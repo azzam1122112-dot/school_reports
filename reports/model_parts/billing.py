@@ -7,6 +7,10 @@ from .base import *
 from .schools import School
 
 class SubscriptionPlan(models.Model):
+    class SupportLevel(models.TextChoices):
+        STANDARD = "standard", "دعم اعتيادي"
+        PRIORITY = "priority", "دعم بأولوية"
+
     name = models.CharField("اسم الباقة", max_length=100)
     price = models.DecimalField("السعر", max_digits=10, decimal_places=2)
     days_duration = models.PositiveIntegerField(
@@ -20,6 +24,21 @@ class SubscriptionPlan(models.Model):
         "حد المعلمين",
         default=0,
         help_text="الحد الأقصى لعدد حسابات المعلمين داخل المدرسة. 0 = غير محدود.",
+    )
+    support_level = models.CharField(
+        "مستوى الدعم",
+        max_length=16,
+        choices=SupportLevel.choices,
+        default=SupportLevel.STANDARD,
+    )
+    onboarding_sessions = models.PositiveSmallIntegerField(
+        "جلسات الإعداد المشمولة",
+        default=0,
+    )
+    included_archive_storage_gb = models.PositiveIntegerField(
+        "مساحة الأرشيف المشمولة (GB)",
+        default=0,
+        help_text="تُفعّل تلقائياً عند اعتماد دفع الباقة. القيمة 0 تعني أن الأرشيف غير مشمول.",
     )
 
     class Meta:
@@ -49,6 +68,12 @@ class SchoolSubscription(models.Model):
         default=True, 
         help_text="يمكن استخدامه لتعطيل الاشتراك مؤقتاً بغض النظر عن التاريخ"
     )
+    teacher_limit_override = models.PositiveIntegerField(
+        "سعة المعلمين المشتراة",
+        null=True,
+        blank=True,
+        help_text="تُستخدم للسعات المرنة. عند تركها فارغة يُطبق حد المعلمين الموجود في الباقة.",
+    )
 
     canceled_at = models.DateTimeField(
         "تاريخ الإلغاء",
@@ -74,6 +99,13 @@ class SchoolSubscription(models.Model):
 
     def __str__(self):
         return f"اشتراك {self.school.name} - ينتهي في {self.end_date}"
+
+    @property
+    def teacher_limit(self) -> int:
+        override = int(self.teacher_limit_override or 0)
+        if override > 0:
+            return override
+        return int(getattr(self.plan, "max_teachers", 0) or 0)
 
     def save(self, *args, **kwargs):
         """ضبط تواريخ الاشتراك تلقائياً.
@@ -116,7 +148,10 @@ class SchoolSubscription(models.Model):
             return True
         if not self.is_active:
             return True
-        return timezone.now().date() > self.end_date
+        # localdate(), not now().date(): end_date is set from the local calendar
+        # in save(), so comparing against the UTC date kept a subscription alive
+        # through the first hours of each local day past its end.
+        return timezone.localdate() > self.end_date
 
     @property
     def is_cancelled(self) -> bool:
@@ -130,11 +165,16 @@ class SchoolSubscription(models.Model):
 
     @property
     def days_remaining(self):
-        delta = self.end_date - timezone.now().date()
+        delta = self.end_date - timezone.localdate()
         return delta.days
 
 
 class Payment(models.Model):
+    class Method(models.TextChoices):
+        BANK_TRANSFER = "bank_transfer", "تحويل بنكي"
+        TAMARA = "tamara", "تمارا"
+        MOYASAR = "moyasar", "ميّسر"
+
     class Status(models.TextChoices):
         PENDING = "pending", "قيد المراجعة"
         APPROVED = "approved", "مقبول"
@@ -161,6 +201,12 @@ class Payment(models.Model):
         related_name="payment_requests",
         verbose_name="الباقة المطلوبة",
     )
+    requested_teacher_limit = models.PositiveIntegerField(
+        "سعة المعلمين المطلوبة",
+        null=True,
+        blank=True,
+        help_text="لقطة للسعة المرنة التي اختارتها المدرسة وقت إنشاء طلب الدفع.",
+    )
 
     subscription = models.ForeignKey(
         SchoolSubscription,
@@ -170,6 +216,45 @@ class Payment(models.Model):
         verbose_name="الاشتراك المرتبط"
     )
     amount = models.DecimalField("المبلغ", max_digits=10, decimal_places=2)
+    payment_method = models.CharField(
+        "طريقة الدفع",
+        max_length=20,
+        choices=Method.choices,
+        default=Method.BANK_TRANSFER,
+        db_index=True,
+    )
+    gateway_order_id = models.CharField(
+        "رقم طلب بوابة الدفع",
+        max_length=160,
+        blank=True,
+        default="",
+        db_index=True,
+    )
+    gateway_checkout_id = models.CharField(
+        "رقم جلسة بوابة الدفع",
+        max_length=160,
+        blank=True,
+        default="",
+    )
+    gateway_status = models.CharField(
+        "حالة بوابة الدفع",
+        max_length=32,
+        blank=True,
+        default="",
+        db_index=True,
+    )
+    gateway_capture_id = models.CharField(
+        "رقم تحصيل بوابة الدفع",
+        max_length=160,
+        blank=True,
+        default="",
+    )
+    gateway_completed_at = models.DateTimeField(
+        "وقت اكتمال عملية البوابة",
+        null=True,
+        blank=True,
+        editable=False,
+    )
     purpose = models.CharField(
         "نوع العملية",
         max_length=32,
@@ -380,6 +465,7 @@ class SchoolYearArchive(models.Model):
     failed_pdf_count = models.PositiveIntegerField("ملفات PDF متعذرة", default=0)
     report_count = models.PositiveIntegerField("عدد التقارير", default=0)
     achievement_count = models.PositiveIntegerField("عدد ملفات الإنجاز", default=0)
+    leadership_count = models.PositiveIntegerField("عدد ملفات الأداء القيادي", default=0)
     ticket_count = models.PositiveIntegerField("عدد التذاكر", default=0)
     circular_count = models.PositiveIntegerField("عدد التعاميم", default=0)
     notification_count = models.PositiveIntegerField("عدد الإشعارات", default=0)

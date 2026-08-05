@@ -14,6 +14,7 @@ from reports.file_cleanup import _model_file_fields
 from reports.models import (
     AchievementEvidenceImage,
     AchievementEvidenceReport,
+    LeadershipEvidenceImage,
     Notification,
     Payment,
     Report,
@@ -213,6 +214,7 @@ class StorageObjectCleanupTests(TransactionTestCase):
                 "archived_image3",
                 "archived_image4",
             },
+            LeadershipEvidenceImage: {"image"},
             Ticket: {"attachment"},
             TicketImage: {"image"},
             RequestTicket: {"attachment"},

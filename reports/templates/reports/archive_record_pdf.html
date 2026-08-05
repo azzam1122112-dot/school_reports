@@ -37,6 +37,10 @@
       <div class="item"><span class="label">المسؤول الرئيسي:</span> {{ record.assignee.name|default:"—" }}</div>
       <div class="item"><span class="label">القسم:</span> {{ record.department.name|default:"—" }}</div>
       <div class="item"><span class="label">تاريخ الإنشاء:</span> {{ record.created_at|date:"Y-m-d H:i" }}</div>
+      <div class="item"><span class="label">آخر تحديث:</span> {{ record.updated_at|date:"Y-m-d H:i" }}</div>
+      <div class="item"><span class="label">نوع الطلب:</span> {% if record.is_platform %}دعم فني للمنصة{% else %}طلب مدرسي{% endif %}</div>
+      <div class="item"><span class="label">المرفق الرئيسي:</span> {% if record.attachment %}موجود داخل مجلد السجل{% else %}لا يوجد{% endif %}</div>
+      <div class="item"><span class="label">عدد الصور:</span> {{ record.images.count }}</div>
     </div>
     <h2>تفاصيل الطلب</h2>
     <div class="body">{{ record.body|default:"لا توجد تفاصيل." }}</div>
@@ -44,21 +48,29 @@
     <div>{% for recipient in recipients %}{{ recipient.name }}{% if not forloop.last %}، {% endif %}{% empty %}—{% endfor %}</div>
     <h2>سجل الملاحظات</h2>
     <table>
-      <thead><tr><th>التاريخ</th><th>الكاتب</th><th>الملاحظة</th></tr></thead>
+      <thead><tr><th>التاريخ</th><th>الكاتب</th><th>الظهور</th><th>الملاحظة</th></tr></thead>
       <tbody>
         {% for note in notes %}
-          <tr><td>{{ note.created_at|date:"Y-m-d H:i" }}</td><td>{{ note.author.name|default:"—" }}</td><td>{{ note.body }}</td></tr>
-        {% empty %}<tr><td colspan="3">لا توجد ملاحظات.</td></tr>{% endfor %}
+          <tr><td>{{ note.created_at|date:"Y-m-d H:i" }}</td><td>{{ note.author.name|default:"—" }}</td><td>{% if note.is_public %}ظاهرة للمرسل{% else %}داخلية{% endif %}</td><td>{{ note.body }}</td></tr>
+        {% empty %}<tr><td colspan="4">لا توجد ملاحظات.</td></tr>{% endfor %}
       </tbody>
     </table>
   {% else %}
     <div class="grid">
       <div class="item"><span class="label">العنوان:</span> {{ record.title|default:"—" }}</div>
-      <div class="item"><span class="label">المرسل:</span> {{ record.created_by.name|default:"—" }}</div>
+      <div class="item"><span class="label">المرسل:</span> {{ record.created_by.name|default:"النظام" }}</div>
+      <div class="item"><span class="label">مصدر السجل:</span> {% if record.created_by_id %}مستخدم{% else %}إشعار آلي من النظام{% endif %}</div>
       <div class="item"><span class="label">تاريخ الإرسال:</span> {{ record.created_at|date:"Y-m-d H:i" }}</div>
+      <div class="item"><span class="label">الأهمية:</span> {% if record.is_important %}مهم{% else %}عادي{% endif %}</div>
+      <div class="item"><span class="label">انتهاء العرض:</span> {{ record.expires_at|date:"Y-m-d H:i"|default:"—" }}</div>
+      <div class="item"><span class="label">نطاق الإرسال:</span> {% if record.is_broadcast %}بث عام للمستلمين{% else %}مستلمون محددون{% endif %}</div>
       <div class="item"><span class="label">عدد المستلمين:</span> {{ recipient_rows|length }}</div>
       <div class="item"><span class="label">تمت القراءة:</span> {{ read_count }}</div>
-      {% if record_kind == "circular" %}<div class="item"><span class="label">تم التوقيع:</span> {{ signed_count }} من {{ recipient_rows|length }}</div>{% endif %}
+      <div class="item"><span class="label">المرفق:</span> {% if record.attachment %}موجود داخل مجلد السجل{% else %}لا يوجد{% endif %}</div>
+      {% if record_kind == "circular" %}
+        <div class="item"><span class="label">آخر موعد للتوقيع:</span> {{ record.signature_deadline_at|date:"Y-m-d H:i"|default:"—" }}</div>
+        <div class="item"><span class="label">تم التوقيع:</span> {{ signed_count }} من {{ recipient_rows|length }}</div>
+      {% endif %}
     </div>
     <h2>النص</h2>
     <div class="body">{{ record.message|default:"—" }}</div>
@@ -68,15 +80,21 @@
     {% endif %}
     <h2>المستلمون وحالة الاستلام{% if record_kind == "circular" %} والتوقيع{% endif %}</h2>
     <table>
-      <thead><tr><th>المستلم</th><th>القراءة</th>{% if record_kind == "circular" %}<th>التوقيع</th><th>وقت التوقيع</th>{% endif %}</tr></thead>
+      <thead><tr><th>المستلم</th><th>القراءة</th><th>وقت القراءة</th>{% if record_kind == "circular" %}<th>التوقيع</th><th>وقت التوقيع</th><th>محاولات التوقيع</th><th>آخر محاولة</th>{% endif %}</tr></thead>
       <tbody>
         {% for row in recipient_rows %}
           <tr>
             <td>{{ row.teacher.name|default:"—" }}</td>
             <td>{% if row.is_read %}تمت{% else %}لم تتم{% endif %}</td>
-            {% if record_kind == "circular" %}<td>{% if row.is_signed %}تم{% else %}لم يتم{% endif %}</td><td>{{ row.signed_at|date:"Y-m-d H:i"|default:"—" }}</td>{% endif %}
+            <td>{{ row.read_at|date:"Y-m-d H:i"|default:"—" }}</td>
+            {% if record_kind == "circular" %}
+              <td>{% if row.is_signed %}تم{% else %}لم يتم{% endif %}</td>
+              <td>{{ row.signed_at|date:"Y-m-d H:i"|default:"—" }}</td>
+              <td>{{ row.signature_attempt_count }}</td>
+              <td>{{ row.signature_last_attempt_at|date:"Y-m-d H:i"|default:"—" }}</td>
+            {% endif %}
           </tr>
-        {% empty %}<tr><td colspan="4">لا يوجد مستلمون.</td></tr>{% endfor %}
+        {% empty %}<tr><td colspan="{% if record_kind == 'circular' %}7{% else %}3{% endif %}">لا يوجد مستلمون.</td></tr>{% endfor %}
       </tbody>
     </table>
   {% endif %}

@@ -1,110 +1,122 @@
-// Bump cache version to force refresh after deployments
-const CACHE_NAME = 'tawtheeq-v6';
+const CACHE_NAME = "tawtheeq-v8";
+const OFFLINE_URL = "/static/offline.html";
+const CORE_ASSETS = [
+  OFFLINE_URL,
+  "/static/manifest.json?v=20260803.1",
+  "/static/img/pwa/icon-192.png",
+  "/static/img/pwa/icon-512.png",
+  "/static/img/pwa/icon-maskable-192.png",
+  "/static/img/pwa/icon-maskable-512.png",
+  "/static/img/pwa/apple-touch-icon-180.png"
+];
 
-// Avoid pre-caching '/' because it can be a redirect (login/dashboard) and can
-// cause stale HTML that references removed hashed assets after deployments.
-const CORE = ['/static/manifest.json'];
-
-// Install
-self.addEventListener('install', (event) => {
+self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    try {
-      await cache.addAll(CORE);
-    } catch (e) {
-      // If any core asset isn't available (e.g., hashed filenames in prod),
-      // don't fail the service worker install.
-    }
-    self.skipWaiting();
+    await Promise.allSettled(CORE_ASSETS.map(async (url) => {
+      const response = await fetch(new Request(url, { cache: "reload" }));
+      if (response.ok) await cache.put(url, response);
+    }));
+    await self.skipWaiting();
   })());
 });
 
-// Activate
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
+    await Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
+    if (self.registration.navigationPreload) {
+      await self.registration.navigationPreload.enable();
+    }
     await self.clients.claim();
   })());
 });
 
-// Helpers
-function isSameOrigin(url) {
-  try { return new URL(url).origin === self.location.origin; }
-  catch { return false; }
+function isSameOrigin(request) {
+  return new URL(request.url).origin === self.location.origin;
 }
-function isStaticRequest(req) {
-  const u = new URL(req.url);
-  return isSameOrigin(req.url) && u.pathname.startsWith('/static/');
+
+function isStaticRequest(request) {
+  return new URL(request.url).pathname.startsWith("/static/");
 }
-function isAuthPath(url) {
+
+function isManifestRequest(request) {
+  return new URL(request.url).pathname === "/static/manifest.json";
+}
+
+function isApiRequest(request) {
+  return new URL(request.url).pathname.startsWith("/api/");
+}
+
+async function networkFirstManifest(request) {
+  const cache = await caches.open(CACHE_NAME);
   try {
-    const p = new URL(url).pathname;
-    return p === '/login/' || p === '/logout/' || p.startsWith('/login') || p.startsWith('/logout');
-  } catch {
-    return false;
+    const response = await fetch(request);
+    if (response.ok) await cache.put(request, response.clone());
+    return response;
+  } catch (error) {
+    return (await cache.match(request)) || Response.error();
   }
 }
 
-// Fetch
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  const network = fetch(request).then(async (response) => {
+    if (response.ok) await cache.put(request, response.clone());
+    return response;
+  });
 
-  // IMPORTANT: Do NOT intercept cross-origin requests.
-  // If we `fetch()` them from the Service Worker, the request is governed by
-  // CSP `connect-src` (often 'self'), which can break loading external CSS/fonts.
-  if (!isSameOrigin(event.request.url)) return;
+  if (cached) {
+    network.catch(() => {});
+    return cached;
+  }
 
-  // HTML navigations: network-first, fallback to cached '/'
-  if (event.request.mode === 'navigate') {
-    // Never cache auth pages; stale login HTML can carry stale CSRF context.
-    if (isAuthPath(event.request.url)) {
-      event.respondWith(
-        fetch(event.request).catch(
-          () => new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
-        )
-      );
-      return;
-    }
+  return network;
+}
 
-    event.respondWith(
-      fetch(event.request)
-        .then((res) => {
-          // Cache successful navigations to allow offline fallback
-          try {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              if (copy && copy.ok && !copy.redirected) cache.put(event.request, copy);
-            });
-          } catch (e) {}
-          return res;
-        })
-        .catch(async () => {
-          // Prefer cached version of the same page only.
-          const cached = await caches.match(event.request);
-          if (cached) return cached;
-          return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-        })
-    );
+async function handleNavigation(event) {
+  try {
+    const preload = await event.preloadResponse;
+    if (preload) return preload;
+    return await fetch(event.request);
+  } catch (error) {
+    const cached = await caches.match(OFFLINE_URL);
+    return cached || new Response("لا يوجد اتصال بالإنترنت.", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8" }
+    });
+  }
+}
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET" || !isSameOrigin(request)) return;
+
+  // صفحات الحساب والتقارير شخصية؛ لا نخزّن HTML أو ردود API في الجهاز.
+  if (request.mode === "navigate") {
+    event.respondWith(handleNavigation(event));
     return;
   }
 
-  // Static: stale-while-revalidate
-  if (isStaticRequest(event.request)) {
-    event.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(event.request);
-      const fetchPromise = fetch(event.request).then((res) => {
-        if (res && res.ok) cache.put(event.request, res.clone());
-        return res;
-      }).catch(() => cached);
-      return cached || fetchPromise;
-    })());
+  if (isApiRequest(request)) {
+    event.respondWith(fetch(request).catch(() => new Response(
+      JSON.stringify({ detail: "لا يوجد اتصال بالإنترنت." }),
+      { status: 503, headers: { "Content-Type": "application/json; charset=utf-8" } }
+    )));
     return;
   }
 
-  // Default: cache-first
-  event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
-  );
+  if (isManifestRequest(request)) {
+    event.respondWith(networkFirstManifest(request));
+    return;
+  }
+
+  if (isStaticRequest(request)) {
+    event.respondWith(staleWhileRevalidate(request));
+  }
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") self.skipWaiting();
 });

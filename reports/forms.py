@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from typing import Optional, List, Tuple
+from decimal import Decimal
 from io import BytesIO
 import os
 import logging
 
 from django import forms
-from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm, SetPasswordForm
 from django.contrib.auth.password_validation import (
     CommonPasswordValidator,
     MinimumLengthValidator,
@@ -25,6 +26,7 @@ from django.utils.text import slugify
 from django.utils import timezone
 
 from .validators import validate_circular_attachment_file
+from .gender_labels import school_gender_labels
 
 # ==============================
 # استيراد الموديلات (من models.py فقط)
@@ -34,13 +36,13 @@ from .models import (
     Department,
     DepartmentMembership,
     ReportType,
-    ReportTemplate,
     Report,
     Ticket,
     TicketNote,
     Notification,
     NotificationRecipient,
     School,
+    SchoolAdditionRequest,
     SchoolMembership,
     PlatformSettings,
     SubscriptionPlan,
@@ -50,6 +52,8 @@ from .models import (
     TeacherAchievementFile,
     AchievementSection,
     AchievementEvidenceImage,
+    SchoolLeadershipPortfolio,
+    LeadershipPortfolioSection,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,15 +77,60 @@ digits10 = RegexValidator(r"^\d{10}$", "يجب أن يتكون من 10 أرقا�
 sa_phone = RegexValidator(r"^0\d{9}$", "رقم الجوال يجب أن يبدأ بـ 0 ويتكون من 10 أرقام.")
 
 
+class SchoolAdditionRequestForm(forms.ModelForm):
+    class Meta:
+        model = SchoolAdditionRequest
+        fields = [
+            "school_name",
+            "stage",
+            "gender",
+            "city",
+            "phone",
+            "email",
+            "manager_notes",
+        ]
+        widgets = {
+            "school_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "اسم المدرسة الرسمي"}),
+            "stage": forms.Select(attrs={"class": "form-select"}),
+            "gender": forms.Select(attrs={"class": "form-select"}),
+            "city": forms.TextInput(attrs={"class": "form-control", "placeholder": "المدينة"}),
+            "phone": forms.TextInput(attrs={"class": "form-control", "placeholder": "05XXXXXXXX", "dir": "ltr", "inputmode": "tel"}),
+            "email": forms.EmailInput(attrs={"class": "form-control", "placeholder": "school@example.com", "dir": "ltr"}),
+            "manager_notes": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "ملاحظات اختيارية عن المدرسة"}),
+        }
+
+    def __init__(self, *args, requested_by=None, **kwargs):
+        self.requested_by = requested_by
+        super().__init__(*args, **kwargs)
+
+    def clean_school_name(self):
+        name = " ".join((self.cleaned_data.get("school_name") or "").split())
+        if len(name) < 3:
+            raise ValidationError("أدخل اسم المدرسة الرسمي.")
+        return name
+
+    def clean_phone(self):
+        raw = (self.cleaned_data.get("phone") or "").strip()
+        if not raw:
+            return ""
+        phone = raw.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
+        phone = "".join(character for character in phone if character.isdigit())
+        if phone.startswith("9665") and len(phone) == 12:
+            phone = f"0{phone[3:]}"
+        elif phone.startswith("5") and len(phone) == 9:
+            phone = f"0{phone}"
+        if len(phone) != 10 or not phone.startswith("05"):
+            raise ValidationError("أدخل رقم جوال سعودي صحيحًا يبدأ بـ 05.")
+        return phone
+
+
 def _school_job_title_choices(active_school: Optional["School"] = None) -> tuple[tuple[str, str], ...]:
     """Display job-title labels using the active school's gender, without changing stored values."""
-    gender = (getattr(active_school, "gender", "") or "").strip().lower()
-    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-    is_girls = gender == girls_value
+    labels = school_gender_labels(active_school)
     return (
-        (SchoolMembership.JobTitle.TEACHER, "معلمة" if is_girls else "معلم"),
-        (SchoolMembership.JobTitle.ADMIN_STAFF, "موظفة إدارية" if is_girls else "موظف إداري"),
-        (SchoolMembership.JobTitle.LAB_TECH, "محضرة مختبر" if is_girls else "محضر مختبر"),
+        (SchoolMembership.JobTitle.TEACHER, str(labels["teacher_indefinite"])),
+        (SchoolMembership.JobTitle.ADMIN_STAFF, str(labels["admin_staff"])),
+        (SchoolMembership.JobTitle.LAB_TECH, str(labels["lab_tech"])),
     )
 
 
@@ -126,14 +175,65 @@ class MyProfilePhoneForm(forms.ModelForm):
         return phone
 
 
+class MyProfileEmailForm(forms.ModelForm):
+    """تحديث البريد الإلكتروني للمستخدم الحالي مع التحقق من التفرد."""
+
+    email = forms.EmailField(
+        label="البريد الإلكتروني",
+        required=False,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "name@example.com",
+                "autocomplete": "email",
+                "inputmode": "email",
+                "dir": "ltr",
+            }
+        ),
+    )
+
+    class Meta:
+        model = Teacher
+        fields = ["email"]
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            return ""
+
+        qs = Teacher.objects.filter(email__iexact=email)
+        if getattr(self.instance, "pk", None):
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError("هذا البريد الإلكتروني مستخدم في حساب آخر.")
+
+        return email
+
+
 class MyPasswordChangeForm(PasswordChangeForm):
     """نموذج تغيير كلمة المرور مع تحسين شكل الحقول."""
+
+    email = forms.EmailField(
+        label="البريد الإلكتروني",
+        required=False,
+        widget=forms.EmailInput(
+            attrs={
+                "autocomplete": "email",
+                "inputmode": "email",
+                "dir": "ltr",
+                "placeholder": "name@example.com",
+            }
+        ),
+    )
 
     # حد أدنى مبسّط للطول (بلا قيود "رقمية/شائعة/تشابه").
     SIMPLE_MIN_LENGTH = 6
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, require_email: bool = False, **kwargs):
+        self.require_email = require_email
         super().__init__(*args, **kwargs)
+        self.fields["email"].required = require_email
+        self.fields["email"].initial = (getattr(self.user, "email", "") or "").strip()
         self.password_requirements = self._build_password_requirements()
         # تبسيط: نتجاوز ما يضبطه المُدقّق الافتراضي ونعتمد حدًّا بسيطًا.
         self.password_min_length = self.SIMPLE_MIN_LENGTH
@@ -142,6 +242,8 @@ class MyPasswordChangeForm(PasswordChangeForm):
                 f.widget.attrs.setdefault("class", "form-control")
                 if name == "old_password":
                     f.widget.attrs.setdefault("autocomplete", "current-password")
+                elif name == "email":
+                    f.widget.attrs.setdefault("autocomplete", "email")
                 else:
                     f.widget.attrs.setdefault("autocomplete", "new-password")
             except Exception:
@@ -150,6 +252,22 @@ class MyPasswordChangeForm(PasswordChangeForm):
         self.fields["old_password"].widget.attrs.setdefault("placeholder", "أدخل كلمة المرور الحالية")
         self.fields["new_password1"].widget.attrs.setdefault("placeholder", "أدخل كلمة مرور جديدة قوية")
         self.fields["new_password2"].widget.attrs.setdefault("placeholder", "أعد إدخال كلمة المرور الجديدة")
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if self.require_email and not email:
+            raise forms.ValidationError("البريد الإلكتروني مطلوب لاستعادة كلمة المرور لاحقًا.")
+
+        if email:
+            existing = Teacher.objects.filter(email__iexact=email).exclude(pk=self.user.pk)
+            if existing.exists():
+                raise forms.ValidationError("هذا البريد الإلكتروني مستخدم في حساب آخر.")
+        return email
+
+    def save(self, commit=True):
+        if self.require_email:
+            self.user.email = self.cleaned_data["email"]
+        return super().save(commit=commit)
 
     def _build_password_requirements(self) -> list[dict[str, str]]:
         requirements: list[dict[str, str]] = []
@@ -218,6 +336,62 @@ class MyPasswordChangeForm(PasswordChangeForm):
                 f"كلمة المرور يجب أن تكون {self.password_min_length} أحرف على الأقل."
             )
         return password2
+
+
+class AccountPasswordResetForm(PasswordResetForm):
+    """Public password-recovery form without exposing account existence."""
+
+    email = forms.EmailField(
+        label="البريد الإلكتروني",
+        max_length=254,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "recovery-input",
+                "autocomplete": "email",
+                "inputmode": "email",
+                "dir": "ltr",
+                "placeholder": "name@example.com",
+                "autofocus": True,
+            }
+        ),
+    )
+
+    def clean_email(self):
+        return (self.cleaned_data.get("email") or "").strip().lower()
+
+    def get_users(self, email):
+        users = list(super().get_users(email))
+        if len(users) == 1:
+            yield users[0]
+        elif len(users) > 1:
+            logger.warning(
+                "Password reset suppressed for a non-unique email match count=%s",
+                len(users),
+            )
+
+
+class AccountSetPasswordForm(SetPasswordForm):
+    """Style the one-time reset form while retaining Django validators."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["new_password1"].label = "كلمة المرور الجديدة"
+        self.fields["new_password2"].label = "تأكيد كلمة المرور الجديدة"
+        self.fields["new_password1"].widget.attrs.update(
+            {
+                "class": "recovery-input",
+                "autocomplete": "new-password",
+                "placeholder": "أدخل كلمة مرور جديدة",
+                "autofocus": True,
+            }
+        )
+        self.fields["new_password2"].widget.attrs.update(
+            {
+                "class": "recovery-input",
+                "autocomplete": "new-password",
+                "placeholder": "أعد إدخال كلمة المرور الجديدة",
+            }
+        )
 
 
 def _validate_academic_year_hijri(value: str) -> str:
@@ -351,14 +525,30 @@ class ReportForm(forms.ModelForm):
     ويستخدم قيمة code كقيمة ثابتة في الخيارات (to_field_name="code").
     """
 
+    section_selection_enabled = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.HiddenInput(),
+    )
+
     class Meta:
         model = Report
         fields = [
             "title",
             "report_date",
             "day_name",
-            "beneficiaries_count",
+            "show_goal",
+            "goal",
+            "show_details",
             "idea",
+            "show_implementation",
+            "implementation_method",
+            "show_results",
+            "results",
+            "show_recommendations",
+            "recommendations",
+            "show_beneficiaries",
+            "beneficiaries_count",
             "category",
             "image1",
             "image2",
@@ -377,11 +567,34 @@ class ReportForm(forms.ModelForm):
             "report_date": forms.DateInput(attrs={"class": "input", "type": "date"}),
             "day_name": forms.TextInput(attrs={"class": "input", "readonly": "readonly"}),
             "beneficiaries_count": forms.NumberInput(attrs={"class": "input", "min": "0", "inputmode": "numeric"}),
-            "idea": forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "الوصف / فكرة التقرير"}),
+            "goal": forms.Textarea(attrs={"class": "textarea", "rows": 3, "placeholder": "ما الهدف الذي يسعى النشاط أو البرنامج إلى تحقيقه؟"}),
+            "idea": forms.Textarea(attrs={"class": "textarea", "rows": 5, "placeholder": "اكتب ملخصًا واضحًا لما تم تنفيذه وأبرز تفاصيله"}),
+            "implementation_method": forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "وضح الخطوات والإجراءات وطريقة تنفيذ النشاط"}),
+            "results": forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "اذكر النتائج والمخرجات التي تحققت"}),
+            "recommendations": forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "أضف التوصيات أو فرص التحسين المستقبلية"}),
+            "show_goal": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
+            "show_details": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
+            "show_implementation": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
+            "show_results": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
+            "show_recommendations": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
+            "show_beneficiaries": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
         }
 
     def __init__(self, *args, **kwargs):
         active_school = kwargs.pop("active_school", None)
+        self.gender_labels = school_gender_labels(active_school)
+
+        # توافق الطلبات القديمة التي سبقت واجهة اختيار البنود.
+        bound_data = args[0] if args else kwargs.get("data")
+        if bound_data is not None and "section_selection_enabled" not in bound_data:
+            data = bound_data.copy()
+            data["show_details"] = "on"
+            data["show_beneficiaries"] = "on"
+            if args:
+                args = (data, *args[1:])
+            else:
+                kwargs["data"] = data
+
         super().__init__(*args, **kwargs)
 
         qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
@@ -396,17 +609,42 @@ class ReportForm(forms.ModelForm):
             to_field_name="code",
             widget=forms.Select(attrs={"class": "form-select"}),
         )
+        self.fields["beneficiaries_count"].label = f"عدد {self.gender_labels['beneficiaries_object']}"
 
     def clean_beneficiaries_count(self):
         val = self.cleaned_data.get("beneficiaries_count")
         if val is None:
             return val
         if val < 0:
-            raise ValidationError("عدد المستفيدين لا يمكن أن يكون سالبًا.")
+            raise ValidationError(f"عدد {self.gender_labels['beneficiaries_object']} لا يمكن أن يكون سالبًا.")
         return val
 
     def clean(self):
         cleaned = super().clean()
+
+        section_fields = (
+            ("show_goal", "goal", "الهدف"),
+            ("show_details", "idea", "تفاصيل التقرير"),
+            ("show_implementation", "implementation_method", "آلية التنفيذ"),
+            ("show_results", "results", "النتائج"),
+            ("show_recommendations", "recommendations", "التوصيات"),
+        )
+        selected = [flag for flag, _field, _label in section_fields if cleaned.get(flag)]
+        if cleaned.get("show_beneficiaries"):
+            selected.append("show_beneficiaries")
+
+        if not selected:
+            raise ValidationError("اختر بندًا واحدًا على الأقل ليظهر في التقرير.")
+
+        for flag, field_name, label in section_fields:
+            if cleaned.get(flag) and not (cleaned.get(field_name) or "").strip():
+                self.add_error(field_name, f"أدخل محتوى بند {label} أو ألغِ اختياره.")
+
+        if cleaned.get("show_beneficiaries") and cleaned.get("beneficiaries_count") is None:
+            self.add_error(
+                "beneficiaries_count",
+                f"أدخل عدد {self.gender_labels['beneficiaries_object']} أو ألغِ اختيار هذا البند.",
+            )
 
         # ضغط الصور قبل الرفع + التحقق من الحجم بعد الضغط
         for field_name in ["image1", "image2", "image3", "image4"]:
@@ -874,10 +1112,23 @@ class ManagerCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self._require_email = bool(kwargs.pop("require_email", False))
         super().__init__(*args, **kwargs)
+
+        if self._require_email:
+            self.fields["email"].required = True
+            self.fields["email"].widget.attrs["required"] = "required"
+            self.fields["email"].help_text = "إجباري لمدير المدرسة لاستقبال الملخص الأسبوعي."
+
         if self.instance and self.instance.pk:
             self.fields["password"].required = False
             self.fields["password"].widget.attrs["placeholder"] = "اتركها فارغة للإبقاء على الحالية"
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip()
+        if self._require_email and not email:
+            raise ValidationError("البريد الإلكتروني إلزامي لمدير المدرسة.")
+        return email
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -1597,58 +1848,17 @@ class ReportTypeForm(forms.ModelForm):
         return instance
 
 # ==============================
-# 📌 نموذج قالب التقرير (إضافة/تعديل)
-# ==============================
-class ReportTemplateForm(forms.ModelForm):
-    """نموذج إدارة قوالب التقارير الجاهزة لمدير المدرسة."""
-
-    class Meta:
-        model = ReportTemplate
-        fields = ["name", "category", "title", "idea", "beneficiaries_count", "order", "is_active"]
-        widgets = {
-            "name": forms.TextInput(
-                attrs={"class": "smart-input", "maxlength": "120", "placeholder": "مثال: الإذاعة الصباحية"}
-            ),
-            "title": forms.TextInput(
-                attrs={"class": "smart-input", "maxlength": "255", "placeholder": "عنوان التقرير المقترح (اختياري)"}
-            ),
-            "idea": forms.Textarea(
-                attrs={"class": "smart-input", "rows": 6, "placeholder": "النص الجاهز الذي سيظهر في تفاصيل التقرير"}
-            ),
-            "beneficiaries_count": forms.NumberInput(
-                attrs={"class": "smart-input", "min": "0", "inputmode": "numeric", "placeholder": "اختياري"}
-            ),
-            "order": forms.NumberInput(attrs={"class": "smart-input", "min": "0", "inputmode": "numeric"}),
-            "is_active": forms.CheckboxInput(),
-        }
-
-    def __init__(self, *args, **kwargs):
-        self.active_school = kwargs.pop("active_school", None)
-        super().__init__(*args, **kwargs)
-
-        qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
-        if self.active_school is not None and hasattr(ReportType, "school"):
-            qs = qs.filter(school=self.active_school)
-        self.fields["category"] = forms.ModelChoiceField(
-            label="نوع التقرير",
-            queryset=qs,
-            required=False,
-            empty_label="— بدون نوع محدّد —",
-            widget=forms.Select(attrs={"class": "smart-input"}),
-        )
-
-    def save(self, commit: bool = True):
-        instance = super().save(commit=False)
-        if hasattr(instance, "school") and self.active_school is not None:
-            instance.school = self.active_school
-        if commit:
-            instance.save()
-        return instance
-
-
-# ==============================
 # 📌 إنشاء إشعار
 # ==============================
+class FlexibleModelMultipleChoiceField(forms.ModelMultipleChoiceField):
+    """Accept legacy single values while exposing a real multi-select field."""
+
+    def clean(self, value):
+        if value not in self.empty_values and not isinstance(value, (list, tuple)):
+            value = [value]
+        return super().clean(value)
+
+
 class NotificationCreateForm(forms.Form):
     title = forms.CharField(max_length=120, required=False, label="عنوان (اختياري)")
     message = forms.CharField(widget=forms.Textarea(attrs={"rows":5}), label="نص الإشعار")
@@ -1705,11 +1915,12 @@ class NotificationCreateForm(forms.Form):
         label="المدرسة المستهدفة",
         help_text="اختر المدرسة التي سيتم إرسال الإشعار لمستخدميها.",
     )
-    target_department = forms.ModelChoiceField(
+    target_department = FlexibleModelMultipleChoiceField(
         queryset=Department.objects.none(),
         required=False,
-        label="إرسال إلى قسم كامل",
-        help_text="اختر قسماً لإرسال الإشعار لجميع منسوبيه. إذا اخترت مستلمين من القائمة أدناه فسيتم الإرسال لهم فقط (حتى لو كان القسم محدداً).",
+        label="اختر قسمًا أو أكثر",
+        help_text="سيُضاف جميع أعضاء الأقسام المختارة إلى المستلمين، ويمكنك إضافة أفراد من القائمة أدناه.",
+        widget=forms.CheckboxSelectMultiple(),
     )
     teachers = forms.ModelMultipleChoiceField(
         queryset=Teacher.objects.none(),
@@ -1743,12 +1954,10 @@ class NotificationCreateForm(forms.Form):
 
         is_superuser = bool(getattr(user, "is_superuser", False))
         is_platform = bool(is_platform_admin(user)) and not is_superuser
-        school_gender = (getattr(active_school, "gender", "") or "").strip().lower()
-        girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-        is_girls_school = school_gender == girls_value
-        teacher_singular = "معلمة" if is_girls_school else "معلم"
-        teachers_plural = "المعلمات" if is_girls_school else "المعلمون"
-        teachers_obj = "المعلمات" if is_girls_school else "المعلمين"
+        labels = school_gender_labels(active_school)
+        teacher_singular = str(labels["teacher_indefinite"])
+        teachers_plural = str(labels["teachers"])
+        teachers_obj = str(labels["teachers_object"])
         
         # التحقق مما إذا كان المستخدم مديراً ضمن المدرسة النشطة (عزل مدارس)
         try:
@@ -1793,9 +2002,11 @@ class NotificationCreateForm(forms.Form):
             else:
                 self.fields.pop("target_department", None)
 
-        # في وضع التعميم: لا علاقة للأقسام بالتوجيه حسب متطلبات المنتج
+        # في وضع التعميم: الأقسام متاحة لمدير المدرسة فقط. أما مدير النظام
+        # ومشرف المنصة فيوجهان التعميم إلى مدراء المدارس لا إلى أقسامها.
         if is_circular:
-            self.fields.pop("target_department", None)
+            if not is_manager:
+                self.fields.pop("target_department", None)
 
             # التعميم دائمًا يتطلب توقيعًا (والـ view يفرضه كذلك)
             if "requires_signature" in self.fields:
@@ -1961,20 +2172,37 @@ class NotificationCreateForm(forms.Form):
         # التعميمات داخل المدرسة: مدير المدرسة يجب أن يحدد مستلمين صراحةً.
         if is_circular and not is_superuser and not is_platform:
             selected_teachers = cleaned.get("teachers")
-            if not selected_teachers:
+            target_departments = cleaned.get("target_department")
+            if not selected_teachers and not target_departments:
                 self.add_error("teachers", "لا يمكن إرسال التعميم والمستلمون = 0. يرجى تحديد المستلمين أولاً.")
+            if target_departments and not selected_teachers:
+                dept_recipients_qs = Teacher.objects.filter(
+                    is_active=True,
+                    dept_memberships__department__in=target_departments,
+                )
+                active_school = getattr(self, "active_school", None)
+                if active_school is not None:
+                    dept_recipients_qs = dept_recipients_qs.filter(
+                        school_memberships__school=active_school,
+                        school_memberships__is_active=True,
+                    )
+                if not dept_recipients_qs.distinct().exists():
+                    self.add_error(
+                        "target_department",
+                        "الأقسام المحددة لا تحتوي على مستلمين نشطين حاليًا. يرجى اختيار مستلمين يدويًا.",
+                    )
 
         # للإشعارات العادية (داخل المدرسة): لا نسمح بالإرسال بدون تحديد مستلمين.
         # يمكن التحديد إما عبر اختيار معلمين بشكل مباشر أو اختيار قسم كامل.
         if not is_circular and not (is_superuser or is_platform):
             selected_teachers = cleaned.get("teachers")
-            target_department = cleaned.get("target_department")
-            if not selected_teachers and not target_department:
+            target_departments = cleaned.get("target_department")
+            if not selected_teachers and not target_departments:
                 raise ValidationError("يرجى تحديد المستلمين (اختيار معلم/معلمة أو قسم) قبل إرسال الإشعار.")
-            if target_department and not selected_teachers:
+            if target_departments and not selected_teachers:
                 dept_recipients_qs = Teacher.objects.filter(
                     is_active=True,
-                    dept_memberships__department=target_department,
+                    dept_memberships__department__in=target_departments,
                 )
                 active_school = getattr(self, "active_school", None)
                 if active_school is not None:
@@ -2046,14 +2274,16 @@ class NotificationCreateForm(forms.Form):
         if selected_teachers:
             teacher_ids_set.update([t.pk for t in selected_teachers])
             
-        # 2. توجيه حسب القسم (للإشعارات فقط)
-        target_dept = cleaned.get("target_department")
-        # ملاحظة: اختيار القسم في الواجهة غالباً يُستخدم لتصفية القائمة.
-        # لذلك لا نرسل للقسم بالكامل إذا اختار المستخدم معلمين بشكل يدوي.
-        if target_dept and not bool(requires_signature) and not selected_teachers:
+        # 2. توجيه حسب القسم (للإشعارات، ولتعاميم مدير المدرسة)
+        target_departments = cleaned.get("target_department")
+        # الأقسام والأفراد مصدران متكاملان للمستلمين؛ تزيل المجموعة أي تكرار.
+        if target_departments and (
+            not bool(requires_signature)
+            or not (is_superuser or is_platform)
+        ):
             from .models import DepartmentMembership
             dept_teachers = DepartmentMembership.objects.filter(
-                department=target_dept,
+                department__in=target_departments,
                 teacher__is_active=True,
             )
             if school_for_notification is not None:
@@ -2459,7 +2689,17 @@ class SupportTicketForm(forms.ModelForm):
 class SubscriptionPlanForm(forms.ModelForm):
     class Meta:
         model = SubscriptionPlan
-        fields = ["name", "description", "price", "days_duration", "max_teachers", "is_active"]
+        fields = [
+            "name",
+            "description",
+            "price",
+            "days_duration",
+            "max_teachers",
+            "support_level",
+            "onboarding_sessions",
+            "included_archive_storage_gb",
+            "is_active",
+        ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "مثال: الاحترافية | سنوية"}),
             "description": forms.Textarea(
@@ -2472,6 +2712,9 @@ class SubscriptionPlanForm(forms.ModelForm):
             "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": 0}),
             "days_duration": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
             "max_teachers": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "support_level": forms.Select(attrs={"class": "form-select"}),
+            "onboarding_sessions": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "included_archive_storage_gb": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         labels = {
@@ -2480,13 +2723,17 @@ class SubscriptionPlanForm(forms.ModelForm):
             "price": "السعر (ريال)",
             "days_duration": "المدة (بالأيام)",
             "max_teachers": "حد المعلمين",
+            "support_level": "مستوى الدعم",
+            "onboarding_sessions": "جلسات الإعداد المشمولة",
+            "included_archive_storage_gb": "مساحة الأرشيف المشمولة (GB)",
             "is_active": "نشط؟",
         }
         help_texts = {
             "description": "اكتب ثلاث جمل قصيرة، كل جملة في سطر مستقل، لتظهر كمميزات واضحة في بطاقة السعر.",
-            "price": "السعر قبل ضريبة القيمة المضافة. استخدم 0 للتجربة المجانية فقط.",
-            "days_duration": "14 للتجربة، 180 لستة أشهر، و365 للسنة.",
+            "price": "السعر النهائي المطلوب من العميل. استخدم 0 للتجربة المجانية فقط.",
+            "days_duration": "30 للشهر، 180 لستة أشهر، و365 للسنة.",
             "max_teachers": "لا يشمل مدير المدرسة. القيمة 0 تعني سعة غير محدودة.",
+            "included_archive_storage_gb": "استخدم 50 للباقة القيادية السنوية، و0 إذا كان الأرشيف إضافة مستقلة.",
         }
 
     def clean(self):
@@ -2519,16 +2766,23 @@ class SchoolSubscriptionForm(forms.ModelForm):
 
     class Meta:
         model = SchoolSubscription
-        fields = ["school", "plan", "is_active"]
+        fields = ["school", "plan", "teacher_limit_override", "is_active"]
         widgets = {
             "school": forms.Select(attrs={"class": "form-select"}),
             "plan": forms.Select(attrs={"class": "form-select"}),
+            "teacher_limit_override": forms.NumberInput(
+                attrs={"class": "form-control", "min": "1", "max": "100", "step": "1"}
+            ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         labels = {
             "school": "المدرسة",
             "plan": "الباقة",
+            "teacher_limit_override": "السعة الفعلية المشتراة",
             "is_active": "نشط؟",
+        }
+        help_texts = {
+            "teacher_limit_override": "اختياري. اتركه فارغاً لتطبيق حد الباقة، أو أدخل السعة المرنة المعتمدة للمدرسة.",
         }
 
     def __init__(self, *args, **kwargs):
@@ -2629,12 +2883,19 @@ class PlatformSettingsForm(forms.ModelForm):
         fields = [
             "maintenance_mode_enabled",
             "maintenance_message",
+            "mansour_public_enabled",
+            "report_ai_enabled",
+            "internal_ai_help_enabled",
             "archive_addon_annual_price",
             "archive_included_storage_gb",
+            "storage_mb_per_teacher",
             "free_storage_mb",
         ]
         widgets = {
             "maintenance_mode_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "mansour_public_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "report_ai_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "internal_ai_help_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "maintenance_message": forms.Textarea(
                 attrs={
                     "class": "form-control",
@@ -2644,20 +2905,32 @@ class PlatformSettingsForm(forms.ModelForm):
             ),
             "archive_addon_annual_price": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01"}),
             "archive_included_storage_gb": forms.NumberInput(attrs={"class": "form-control", "min": "1", "step": "1"}),
+            "storage_mb_per_teacher": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "50"}),
             "free_storage_mb": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "1"}),
         }
         labels = {
             "maintenance_mode_enabled": "تفعيل وضع الصيانة والتطوير",
             "maintenance_message": "رسالة تظهر للمستخدمين",
+            "mansour_public_enabled": "المساعد منصور",
+            "report_ai_enabled": "تحسين التقارير",
+            "internal_ai_help_enabled": "المساعدة داخل النظام",
             "archive_addon_annual_price": "سعر الأرشفة السنوي",
             "archive_included_storage_gb": "المساحة المضمنة مع الأرشفة (GB)",
+            "storage_mb_per_teacher": "مساحة عمل المدرسة لكل معلم (ميجابايت)",
             "free_storage_mb": "حد التخزين المجاني لكل مدرسة غير مشتركة (ميجابايت)",
+        }
+        help_texts = {
+            "storage_mb_per_teacher": (
+                "تُضرب في سعة المعلمين المشتراة. مثال: 400MB × سعة 50 معلماً = 19.5GB. "
+                "امتلاء هذه المساحة يوقف رفع الملفات في المدرسة، فاخفضها بحذر."
+            ),
         }
 
     def clean(self):
         cleaned = super().clean()
         annual_price = cleaned.get("archive_addon_annual_price")
         included = cleaned.get("archive_included_storage_gb")
+        per_teacher = cleaned.get("storage_mb_per_teacher")
         free_mb = cleaned.get("free_storage_mb")
 
         if annual_price is not None and annual_price <= 0:
@@ -2666,6 +2939,18 @@ class PlatformSettingsForm(forms.ModelForm):
             self.add_error("archive_included_storage_gb", "المساحة المضمنة يجب أن تكون 1GB أو أكثر.")
         if free_mb is not None and free_mb < 0:
             self.add_error("free_storage_mb", "القيمة يجب أن تكون 0 أو أكثر (0 = غير محدود).")
+        if per_teacher is not None:
+            if per_teacher < 0:
+                self.add_error("storage_mb_per_teacher", "القيمة يجب أن تكون 0 أو أكثر.")
+            elif 0 < per_teacher < 50:
+                # Below this a 25-teacher school starts under 1.2GB, which one
+                # term of report photos exhausts. Zero stays allowed: it means
+                # "no derived space" and falls back to the free floor.
+                self.add_error(
+                    "storage_mb_per_teacher",
+                    "قيمة أقل من 50MB لكل معلم تجعل مساحة المدرسة غير عملية. "
+                    "استخدم 0 لإلغاء المساحة المشتقة، أو 50 فأكثر.",
+                )
         return cleaned
 
 
@@ -2743,10 +3028,10 @@ class AchievementCreateYearForm(forms.Form):
 
         # إذا تم تمرير سنوات مسموحة (من إعدادات المدرسة) نستخدمها فقط
         # وإلا نستخدم القائمة الافتراضية
-        if allowed_years and len(allowed_years) > 0:
+        if allowed_years is not None:
             base_set = set([_norm(y) for y in allowed_years])
-            # لا نقوم بتوليد سنوات مستقبلية تلقائيًا إذا حدد المدير القائمة
-            all_years = base_set.union(existing)
+            # القائمة المحددة للإنشاء لا تختلط بالسنوات التاريخية للملفات السابقة.
+            all_years = base_set
         else:
             all_years = set([_norm(y) for y in self.BASE_HIJRI_YEARS] + existing)
             # توليد سنوات مستقبلية تلقائيًا في الحالة الافتراضية
@@ -2832,3 +3117,125 @@ class AchievementManagerNotesForm(forms.ModelForm):
                 }
             )
         }
+
+
+class LeadershipPortfolioForm(forms.ModelForm):
+    class Meta:
+        model = SchoolLeadershipPortfolio
+        fields = [
+            "leadership_vision",
+            "executive_summary",
+            "notable_achievements",
+            "improvement_priorities",
+        ]
+        widgets = {
+            field: forms.Textarea(attrs={"class": "lp-textarea", "rows": 4})
+            for field in fields
+        }
+
+
+class LeadershipPortfolioSectionForm(forms.ModelForm):
+    class Meta:
+        model = LeadershipPortfolioSection
+        fields = ["notes", "is_completed"]
+        widgets = {
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "lp-textarea",
+                    "rows": 5,
+                    "placeholder": "صف الممارسة والنتيجة، ثم أرفق الشواهد الداعمة.",
+                }
+            )
+        }
+
+
+class PricingMatrixForm(forms.Form):
+    """Edit the whole anchor price matrix on one screen.
+
+    Nine numbers drive every price the customer sees, and they only make sense
+    relative to each other: a capacity must cost more than the one below it, and
+    a longer commitment must beat paying month by month. Editing them as nine
+    separate plan forms gave no way to check that, so a single edit could create
+    a band where a school pays more and gets less.
+
+    Entitlements are deliberately absent — they are identical across all paid
+    anchors by design (see reports/pricing.py), so there is nothing per-plan to
+    decide here.
+    """
+
+    PERIOD_ORDER = ("1m", "6m", "1y")
+
+    def __init__(self, *args, **kwargs):
+        from .flexible_pricing import ANCHOR_CAPACITIES, PERIODS
+
+        self.capacities = tuple(kwargs.pop("capacities", ANCHOR_CAPACITIES))
+        super().__init__(*args, **kwargs)
+
+        self.periods = PERIODS
+        for capacity in self.capacities:
+            for period_key in self.PERIOD_ORDER:
+                self.fields[self.field_name(capacity, period_key)] = forms.DecimalField(
+                    label=f"{capacity} معلماً · {PERIODS[period_key]['label']}",
+                    min_value=Decimal("1"),
+                    max_digits=10,
+                    decimal_places=2,
+                    widget=forms.NumberInput(
+                        attrs={"class": "form-control", "step": "1", "min": "1", "inputmode": "numeric"}
+                    ),
+                )
+
+    @staticmethod
+    def field_name(capacity: int, period_key: str) -> str:
+        return f"price_{capacity}_{period_key}"
+
+    def grid(self):
+        """Rows of (capacity, [bound fields]) for template rendering."""
+        return [
+            (capacity, [self[self.field_name(capacity, key)] for key in self.PERIOD_ORDER])
+            for capacity in self.capacities
+        ]
+
+    def price_for(self, capacity: int, period_key: str) -> Optional[Decimal]:
+        return self.cleaned_data.get(self.field_name(capacity, period_key))
+
+    def clean(self):
+        cleaned = super().clean()
+        from .flexible_pricing import PERIODS
+
+        # A larger capacity must never cost less than a smaller one, or the
+        # interpolated curve between the anchors runs downhill.
+        for period_key in self.PERIOD_ORDER:
+            previous_capacity = None
+            previous_price = None
+            for capacity in self.capacities:
+                price = cleaned.get(self.field_name(capacity, period_key))
+                if price is None:
+                    continue
+                if previous_price is not None and price <= previous_price:
+                    self.add_error(
+                        self.field_name(capacity, period_key),
+                        f"يجب أن يكون أعلى من سعر سعة {previous_capacity} معلماً "
+                        f"({previous_price:,.0f} ريال) في نفس المدة.",
+                    )
+                previous_capacity = capacity
+                previous_price = price
+
+        # A longer commitment must be cheaper than paying monthly for the same
+        # span, otherwise nobody has a reason to take it.
+        for capacity in self.capacities:
+            monthly = cleaned.get(self.field_name(capacity, "1m"))
+            if monthly is None:
+                continue
+            for period_key in ("6m", "1y"):
+                price = cleaned.get(self.field_name(capacity, period_key))
+                if price is None:
+                    continue
+                months = Decimal(PERIODS[period_key]["months"])
+                if price >= monthly * months:
+                    self.add_error(
+                        self.field_name(capacity, period_key),
+                        f"يجب أن يكون أقل من {monthly * months:,.0f} ريال "
+                        f"(سعر {int(months)} أشهر بالسعر الشهري) حتى يقدّم توفيراً حقيقياً.",
+                    )
+
+        return cleaned

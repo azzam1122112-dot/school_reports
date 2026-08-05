@@ -4,14 +4,17 @@
 {% block title %}لوحة إدارة المدرسة | منصة توثيق{% endblock %}
 
 {% block head %}
-<script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" data-cfasync="false"></script>
 <style>
   .manager-page {
     --manager-ink: #10231a;
     --manager-muted: #607067;
     --manager-line: #dfe8e2;
     --manager-soft: #f3f8f5;
+    /* Accent tokens are used as TEXT. --manager-green-fill is the one used as a
+       background, so the two can be re-tuned independently per theme. */
     --manager-green: #08643b;
+    --manager-green-fill: #08643b;
     --manager-green-dark: #06462b;
     --manager-gold: #b68a42;
     --manager-danger: #b42318;
@@ -27,6 +30,13 @@
     --manager-muted: #afc1b5;
     --manager-line: #2d4637;
     --manager-soft: #13271c;
+    /* The light-theme accents landed at 1.7:1–3.3:1 on these dark surfaces,
+       which left icons and status text unreadable. The fill stays dark so the
+       white numerals on it keep their contrast. */
+    --manager-green: #6ed3a0;
+    --manager-warning: #eabf58;
+    --manager-danger: #ff9d96;
+    --manager-green-fill: #08643b;
   }
 
   .manager-page *,
@@ -323,6 +333,86 @@
     font-weight: 780;
   }
 
+  /* Two KPIs follow the selected period and two do not; say so on the card
+     itself instead of letting one heading imply it covers all four. */
+  .manager-kpi__scope {
+    color: var(--manager-muted);
+    font-size: .72rem;
+    font-style: normal;
+    font-weight: 700;
+    opacity: .78;
+  }
+
+  .manager-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .85rem;
+    padding: .85rem;
+    border: 1px solid var(--manager-line);
+    border-radius: 14px;
+    background: var(--manager-soft);
+  }
+
+  .manager-toggle__copy {
+    display: grid;
+    gap: .3rem;
+    min-width: 0;
+  }
+
+  .manager-toggle__copy strong {
+    color: var(--manager-ink);
+    font-size: .92rem;
+  }
+
+  .manager-toggle__copy small {
+    color: var(--manager-muted);
+    font-size: .75rem;
+  }
+
+  .manager-toggle__state {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .75rem;
+    font-weight: 800;
+  }
+
+  .manager-toggle__state.is-on { color: var(--manager-green); }
+  .manager-toggle__state.is-off { color: var(--manager-warning); }
+
+  .manager-toggle__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+  }
+
+  .manager-toggle__button {
+    min-height: 38px;
+    padding: .45rem .95rem;
+    border: 1px solid var(--manager-line);
+    border-radius: 10px;
+    color: var(--manager-muted);
+    background: var(--surface, #fff);
+    font-size: .8rem;
+    font-weight: 850;
+    cursor: pointer;
+    transition: border-color .18s ease, color .18s ease;
+  }
+
+  .manager-toggle__button:hover {
+    border-color: rgba(8, 100, 59, .42);
+    color: var(--manager-ink);
+  }
+
+  .manager-toggle__button.is-selected {
+    border-color: var(--manager-green);
+    color: var(--manager-green);
+    background: rgba(8, 100, 59, .09);
+  }
+
   .manager-focus {
     display: grid;
     grid-template-columns: minmax(220px, .75fr) minmax(0, 2.25fr);
@@ -350,10 +440,23 @@
     line-height: 1.75;
   }
 
+  /* Up to five chips can appear; a fixed 4-column track strands the fifth. */
   .manager-focus__items {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
     gap: .65rem;
+  }
+
+  /* A subset row drills into the row above it; it is not extra work. */
+  .manager-focus__item.is-subset {
+    border-style: dashed;
+    border-color: var(--manager-line);
+    background: transparent;
+  }
+
+  .manager-focus__item.is-subset .manager-focus__count {
+    color: var(--manager-green);
+    background: rgba(8, 100, 59, .14);
   }
 
   .manager-focus__item {
@@ -380,7 +483,7 @@
     place-items: center;
     border-radius: 11px;
     color: #fff;
-    background: var(--manager-green);
+    background: var(--manager-green-fill);
     font-weight: 950;
   }
 
@@ -812,7 +915,7 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--manager-green), #19a064);
+    background: linear-gradient(90deg, var(--manager-green-fill), #19a064);
   }
 
   .manager-activity-list {
@@ -977,6 +1080,25 @@
     </div>
   {% endif %}
 
+  {% if storage_pressure.needs_attention %}
+    <div class="manager-subscription-alert {% if storage_pressure.warning_level == 'full' %}is-expired{% elif storage_pressure.warning_level == 'critical' %}is-critical{% endif %}" role="status">
+      <i class="fa-solid {% if storage_pressure.warning_level == 'full' %}fa-circle-xmark{% else %}fa-hard-drive{% endif %}" aria-hidden="true"></i>
+      <div class="manager-subscription-alert__content">
+        {% if storage_pressure.warning_level == "full" %}
+          <strong>امتلأت مساحة عمل المدرسة</strong>
+          <span>لا يستطيع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمون" }} رفع الصور والمرفقات الآن. حرّر مساحة أو زِد السعة لاستئناف العمل.</span>
+        {% elif storage_pressure.warning_level == "critical" %}
+          <strong>مساحة العمل شارفت على الامتلاء ({{ storage_pressure.usage_percent }}%)</strong>
+          <span>المتبقي {{ storage_pressure.remaining_label }} فقط. عند الامتلاء يتوقف رفع الملفات في المدرسة كاملة.</span>
+        {% else %}
+          <strong>مساحة العمل بلغت {{ storage_pressure.usage_percent }}%</strong>
+          <span>المستخدم {{ storage_pressure.used_label }} من {{ storage_pressure.limit_label }}. راجعها قبل أن تتوقف عمليات الرفع.</span>
+        {% endif %}
+      </div>
+      <a href="{% url 'reports:school_archive' %}">مراجعة المساحة</a>
+    </div>
+  {% endif %}
+
   {% if active_school %}
     <section class="manager-hero" aria-labelledby="managerDashboardTitle">
       <div>
@@ -991,7 +1113,7 @@
         <div class="manager-school-meta" aria-label="معلومات المدرسة">
           <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ active_school.current_academic_year|default:"السنة الحالية" }}</span>
           <span><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> {{ active_school.get_stage_display }}</span>
-          <span><i class="fa-solid fa-users" aria-hidden="true"></i> {{ teachers_count|intcomma }} {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"معلمين" }}</span>
+          <span><i class="fa-solid fa-users" aria-hidden="true"></i> {{ teachers_count|intcomma }} من {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</span>
         </div>
         <div class="manager-hero__actions">
           <a class="manager-hero__button manager-hero__button--primary" href="{% url 'reports:admin_reports' %}">
@@ -1001,6 +1123,10 @@
           <a class="manager-hero__button" href="{% url 'reports:school_settings' %}">
             <i class="fa-solid fa-sliders" aria-hidden="true"></i>
             إعدادات المدرسة
+          </a>
+          <a class="manager-hero__button" href="{% url 'reports:school_addition_requests' %}">
+            <i class="fa-solid fa-school-circle-check" aria-hidden="true"></i>
+            إضافة مدرسة أخرى
           </a>
           {% if USER_SCHOOLS|length > 1 %}
             <a class="manager-hero__button" href="{% url 'reports:select_school' %}">
@@ -1013,9 +1139,15 @@
       <div class="manager-hero__summary" aria-label="ملخص المتابعة">
         <span class="manager-hero__summary-label">عناصر تحتاج متابعة</span>
         <strong class="manager-hero__summary-value" id="managerAttentionTotal">
-          {{ tickets_open|add:pending_achievement_files|add:NAV_ASSIGNED_TO_ME|intcomma }}
+          {{ attention_total|intcomma }}
         </strong>
-        <small>طلبات مفتوحة وملفات إنجاز بانتظار الاعتماد ومهام معيّنة لك.</small>
+        <small>
+          {% if attention_total %}
+            مفصّلة أدناه في «متابعة اليوم»، ولكل عنصر رابط مباشر.
+          {% else %}
+            لا شيء ينتظر إجراءك الآن؛ مساحتك مرتبة.
+          {% endif %}
+        </small>
       </div>
     </section>
   {% else %}
@@ -1037,26 +1169,26 @@
           <p>المؤشرات التالية تقودك مباشرة إلى التفاصيل.</p>
           <span class="manager-period-context">
             <i class="fa-regular fa-calendar" aria-hidden="true"></i>
-            التحليلات: <span id="managerPeriodLabel">{{ selected_period_label }}</span>
+            عدد التقارير يتبع الفترة المختارة (<span id="managerPeriodLabel">{{ selected_period_label }}</span>)، وبقية المؤشرات تشمل كل الفترات.
           </span>
         </div>
       </div>
       <div class="manager-kpis">
-        <a class="manager-kpi manager-kpi--attention" href="{% url 'reports:manager_school_tickets' %}">
+        <a class="manager-kpi{% if tickets_open %} manager-kpi--attention{% endif %}" href="{% url 'reports:manager_school_tickets' %}?status=attention">
           <span class="manager-kpi__top">
             <span class="manager-kpi__icon"><i class="fa-solid fa-inbox" aria-hidden="true"></i></span>
             <i class="fa-solid fa-arrow-left manager-kpi__arrow" aria-hidden="true"></i>
           </span>
           <strong class="manager-kpi__value" id="schoolTicketsOpen">{{ tickets_open|intcomma }}</strong>
-          <span class="manager-kpi__label">طلبات مدرسة قيد المتابعة</span>
+          <span class="manager-kpi__label">طلبات مدرسة قيد المتابعة <em class="manager-kpi__scope">(كل الفترات)</em></span>
         </a>
-        <a class="manager-kpi manager-kpi--attention" href="{% url 'reports:achievement_school_files' %}">
+        <a class="manager-kpi{% if pending_achievement_files %} manager-kpi--attention{% endif %}" href="{% url 'reports:achievement_school_files' %}?status=submitted">
           <span class="manager-kpi__top">
             <span class="manager-kpi__icon"><i class="fa-solid fa-award" aria-hidden="true"></i></span>
             <i class="fa-solid fa-arrow-left manager-kpi__arrow" aria-hidden="true"></i>
           </span>
           <strong class="manager-kpi__value">{{ pending_achievement_files|intcomma }}</strong>
-          <span class="manager-kpi__label">ملفات إنجاز بانتظار الاعتماد</span>
+          <span class="manager-kpi__label">ملفات إنجاز بانتظار الاعتماد <em class="manager-kpi__scope">(كل الفترات)</em></span>
         </a>
         <a class="manager-kpi" href="{% url 'reports:admin_reports' %}">
           <span class="manager-kpi__top">
@@ -1064,7 +1196,7 @@
             <i class="fa-solid fa-arrow-left manager-kpi__arrow" aria-hidden="true"></i>
           </span>
           <strong class="manager-kpi__value" id="schoolReportsCount">{{ reports_count|intcomma }}</strong>
-          <span class="manager-kpi__label">تقريرًا ضمن الفترة المحددة</span>
+          <span class="manager-kpi__label">تقريرًا <em class="manager-kpi__scope">(<span id="managerReportsScope">{{ selected_period_label }}</span>)</em></span>
         </a>
         <a class="manager-kpi" href="{% url 'reports:manage_teachers' %}">
           <span class="manager-kpi__top">
@@ -1072,7 +1204,7 @@
             <i class="fa-solid fa-arrow-left manager-kpi__arrow" aria-hidden="true"></i>
           </span>
           <strong class="manager-kpi__value" id="schoolTeachersCount">{{ teachers_count|intcomma }}</strong>
-          <span class="manager-kpi__label">{{ SCHOOL_TEACHERS_LABEL|default:"المعلمون" }} النشطون في المدرسة</span>
+          <span class="manager-kpi__label">حسابات الكادر التعليمي النشطة <em class="manager-kpi__scope">(كل الفترات)</em></span>
         </a>
       </div>
     </section>
@@ -1083,37 +1215,13 @@
         <p>ابدأ بالعناصر التي تنتظر منك قراءة أو قرارًا، ثم انتقل إلى بقية الأعمال.</p>
       </div>
       <div class="manager-focus__items">
-        {% if tickets_open or pending_achievement_files or NAV_ASSIGNED_TO_ME or NAV_NOTIFICATIONS_UNREAD or NAV_SIGNATURES_PENDING %}
-          {% if tickets_open %}
-            <a class="manager-focus__item" href="{% url 'reports:manager_school_tickets' %}?status=attention">
-              <span class="manager-focus__count">{{ tickets_open }}</span>
-              <span><strong>طلبات المدرسة المفتوحة</strong><small>تنتظر المتابعة أو الإسناد</small></span>
+        {% if focus_items %}
+          {% for item in focus_items %}
+            <a class="manager-focus__item {% if item.subset %}is-subset{% endif %}" href="{{ item.url }}">
+              <span class="manager-focus__count">{{ item.count|intcomma }}</span>
+              <span><strong>{{ item.title }}</strong><small>{{ item.hint }}</small></span>
             </a>
-          {% endif %}
-          {% if pending_achievement_files %}
-            <a class="manager-focus__item" href="{% url 'reports:achievement_school_files' %}?status=submitted">
-              <span class="manager-focus__count">{{ pending_achievement_files }}</span>
-              <span><strong>اعتمادات الإنجاز</strong><small>ملفات مرسلة للمراجعة</small></span>
-            </a>
-          {% endif %}
-          {% if NAV_ASSIGNED_TO_ME %}
-            <a class="manager-focus__item" href="{% url 'reports:assigned_to_me' %}">
-              <span class="manager-focus__count">{{ NAV_ASSIGNED_TO_ME }}</span>
-              <span><strong>مهام معيّنة لي</strong><small>طلبات تحتاج إجراءك</small></span>
-            </a>
-          {% endif %}
-          {% if NAV_NOTIFICATIONS_UNREAD %}
-            <a class="manager-focus__item" href="{% url 'reports:my_notifications' %}">
-              <span class="manager-focus__count">{{ NAV_NOTIFICATIONS_UNREAD }}</span>
-              <span><strong>إشعارات غير مقروءة</strong><small>آخر المستجدات</small></span>
-            </a>
-          {% endif %}
-          {% if NAV_SIGNATURES_PENDING %}
-            <a class="manager-focus__item" href="{% url 'reports:my_circulars' %}">
-              <span class="manager-focus__count">{{ NAV_SIGNATURES_PENDING }}</span>
-              <span><strong>توقيعات مطلوبة مني</strong><small>تعاميم بانتظار الإقرار</small></span>
-            </a>
-          {% endif %}
+          {% endfor %}
         {% else %}
           <div class="manager-focus__clear">
             <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
@@ -1159,10 +1267,15 @@
       <div class="manager-section__head">
         <div>
           <h2 id="quickActionsTitle">ابدأ مهمة</h2>
-          <p>الإجراءات الأكثر استخدامًا في عمل مدير المدرسة.</p>
+          <p>الإجراءات الأكثر استخدامًا في عمل {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}.</p>
         </div>
       </div>
       <div class="manager-primary-actions">
+        <a class="manager-primary-action" href="{% url 'reports:add_report' %}">
+          <i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i>
+          <strong>إنشاء تقرير</strong>
+          <small>وثّق عملك واستخدمه لاحقًا في ملف الأداء القيادي.</small>
+        </a>
         <a class="manager-primary-action" href="{% url 'reports:admin_reports' %}">
           <i class="fa-solid fa-file-circle-check" aria-hidden="true"></i>
           <strong>مراجعة التقارير</strong>
@@ -1176,7 +1289,7 @@
         <a class="manager-primary-action" href="{% url 'reports:notifications_create' %}">
           <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
           <strong>إرسال إشعار</strong>
-          <small>رسالة سريعة لمعلم أو قسم.</small>
+          <small>رسالة سريعة {{ SCHOOL_TEACHER_INDEFINITE_DATIVE_LABEL|default:"لمعلم" }} أو قسم.</small>
         </a>
         <a class="manager-primary-action" href="{% url 'reports:circulars_create' %}">
           <i class="fa-solid fa-file-signature" aria-hidden="true"></i>
@@ -1215,12 +1328,13 @@
         <article class="manager-workspace">
           <header class="manager-workspace__head">
             <i class="fa-solid fa-folder-tree" aria-hidden="true"></i>
-            <div><h3>التقارير والتوثيق</h3><p>الأنواع والقوالب والملفات والمخرجات.</p></div>
+            <div><h3>التقارير والتوثيق</h3><p>أرشفة كل سنة داخل المنصة أو تنزيل نسخة كاملة للاحتفاظ الخارجي.</p></div>
           </header>
           <div class="manager-workspace__links">
+            <a class="manager-workspace__link" href="{% url 'reports:my_reports' %}"><span>تقاريري</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:reporttypes_list' %}"><span>أنواع التقارير</span><i class="fa-solid fa-arrow-left"></i></a>
-            <a class="manager-workspace__link" href="{% url 'reports:report_templates_list' %}"><span>قوالب التقارير</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:achievement_school_files' %}"><span>ملفات الإنجاز</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:leadership_portfolio_list' %}"><span>ملف الأداء القيادي</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link {% if not ARCHIVE_ADDON_ACTIVE and not HAS_SAVED_ARCHIVE %}manager-workspace__link--locked{% endif %}" href="{% url 'reports:school_archive' %}">
               <span>أرشيف السنوات</span>
               {% if ARCHIVE_ADDON_ACTIVE or HAS_SAVED_ARCHIVE %}
@@ -1230,10 +1344,10 @@
               {% endif %}
             </a>
             {% if ARCHIVE_ADDON_ACTIVE %}
-              <a class="manager-workspace__link" href="{% url 'reports:school_data_export' %}"><span>تصدير بيانات المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
+              <a class="manager-workspace__link" href="{% url 'reports:school_data_export' %}"><span>تنزيل نسخة كاملة</span><i class="fa-solid fa-arrow-left"></i></a>
             {% else %}
-              <a class="manager-workspace__link manager-workspace__link--locked" href="{% url 'reports:my_subscription' %}#archiveOrder" aria-label="تفعيل تصدير بيانات المدرسة من صفحة الاشتراك">
-                <span>تصدير البيانات</span><span class="manager-lock"><i class="fa-solid fa-lock"></i> يتطلب الأرشفة</span>
+              <a class="manager-workspace__link manager-workspace__link--locked" href="{% url 'reports:my_subscription' %}#archiveOrder" aria-label="تفعيل تنزيل نسخة كاملة من صفحة الاشتراك">
+                <span>تنزيل نسخة كاملة</span><span class="manager-lock"><i class="fa-solid fa-lock"></i> يتطلب الأرشفة</span>
               </a>
             {% endif %}
           </div>
@@ -1257,6 +1371,26 @@
             <i class="fa-solid fa-gear" aria-hidden="true"></i>
             <div><h3>الاشتراك والدعم</h3><p>إدارة خدمة المدرسة والتواصل مع فريق المنصة.</p></div>
           </header>
+          <form class="manager-toggle" method="post" action="{% url 'reports:admin_dashboard' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="toggle_weekly_summary_email">
+            <div class="manager-toggle__copy">
+              <strong>الملخص الأسبوعي على بريدك</strong>
+              <small>يصلك كل خميس بعد الساعة 4:00 مساءً.</small>
+              <span class="manager-toggle__state {% if weekly_summary_email_enabled %}is-on{% else %}is-off{% endif %}">
+                <i class="fa-solid {% if weekly_summary_email_enabled %}fa-circle-check{% else %}fa-circle-pause{% endif %}" aria-hidden="true"></i>
+                {% if weekly_summary_email_enabled %}مفعّل حاليًا{% else %}موقّف حاليًا{% endif %}
+              </span>
+            </div>
+            <div class="manager-toggle__buttons" role="group" aria-label="تفضيل الملخص الأسبوعي">
+              <button type="submit" name="weekly_summary_email_enabled" value="1"
+                      class="manager-toggle__button {% if weekly_summary_email_enabled %}is-selected{% endif %}"
+                      aria-pressed="{% if weekly_summary_email_enabled %}true{% else %}false{% endif %}">تفعيل</button>
+              <button type="submit" name="weekly_summary_email_enabled" value="0"
+                      class="manager-toggle__button {% if not weekly_summary_email_enabled %}is-selected{% endif %}"
+                      aria-pressed="{% if not weekly_summary_email_enabled %}true{% else %}false{% endif %}">إيقاف</button>
+            </div>
+          </form>
           <div class="manager-workspace__links">
             <a class="manager-workspace__link" href="{% url 'reports:school_audit_logs' %}"><span>سجل عمليات المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:my_subscription' %}"><span>اشتراك المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
@@ -1342,7 +1476,7 @@
 
 {% block scripts %}
 {% if active_school %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function () {
     "use strict";
 
@@ -1356,6 +1490,8 @@
     let reportsChart = null;
     let categoriesChart = null;
     let payload = {};
+    const baselineAttentionTotal = Number("{{ attention_total|default:0 }}");
+    const baselineTicketsOpen = Number("{{ tickets_open|default:0 }}");
 
     try {
       payload = JSON.parse(payloadElement ? payloadElement.textContent : "{}");
@@ -1474,6 +1610,14 @@
       setText("schoolTicketsDone", formatNumber(kpis.tickets_done));
       setText("schoolTicketsTotal", formatNumber(kpis.tickets_total));
       setText("managerPeriodLabel", nextPayload.period_label || "الكل");
+      setText("managerReportsScope", nextPayload.period_label || "الكل");
+
+      // Open tickets are the only follow-up counter this endpoint can change, so
+      // the hero total is re-derived instead of drifting from the KPI below it.
+      if (kpis.tickets_open !== undefined) {
+        const nextTotal = baselineAttentionTotal - baselineTicketsOpen + Number(kpis.tickets_open || 0);
+        setText("managerAttentionTotal", formatNumber(Math.max(0, nextTotal)));
+      }
 
       const total = Number(kpis.tickets_total || 0);
       const done = Number(kpis.tickets_done || 0);
@@ -1513,13 +1657,23 @@
           headers: {"Accept": "application/json", "X-Requested-With": "XMLHttpRequest"},
           signal: requestController.signal
         });
+        if (response.status === 401) throw new Error("auth");
+        if (response.status === 403) throw new Error("forbidden");
         if (!response.ok) throw new Error("HTTP " + response.status);
         payload = await response.json();
         applyPayload(payload);
         window.history.replaceState({}, "", "?period=" + encodeURIComponent(currentPeriod));
       } catch (error) {
         if (error && error.name === "AbortError") return;
-        if (statusElement) statusElement.textContent = "تعذر التحديث. أعد المحاولة.";
+        if (!statusElement) return;
+        // "Try again" alone gives the manager nothing to act on.
+        if (error && error.message === "auth") {
+          statusElement.textContent = "انتهت الجلسة. أعد تسجيل الدخول لتحديث البيانات.";
+        } else if (error && error.message === "forbidden") {
+          statusElement.textContent = "لا تملك صلاحية على المدرسة النشطة. بدّل المدرسة ثم أعد المحاولة.";
+        } else {
+          statusElement.textContent = "تعذر التحديث. تحقق من الاتصال ثم أعد المحاولة.";
+        }
       } finally {
         root.removeAttribute("aria-busy");
         if (refreshButton) refreshButton.disabled = false;

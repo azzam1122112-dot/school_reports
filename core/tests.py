@@ -1,28 +1,78 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone as dt_timezone
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.conf import settings
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from config.settings import _media_querystring_auth_enabled
-from core.views import healthz
+from core.client_ip import client_ip_for_ratelimit
+from core.views import healthz, ops_metrics
 
 
 class HealthzTests(TestCase):
+    def setUp(self):
+        self.request = RequestFactory().get("/healthz/")
+
     @override_settings(
         CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}},
     )
     def test_healthz_skips_channel_probe_by_default(self):
         with patch("core.views.os.getenv", return_value=""):
             with patch("channels.layers.get_channel_layer") as get_layer:
-                response = healthz(object())
+                response = healthz(self.request)
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'"channels": "skipped"', response.content)
+        self.assertNotIn(b'"instance"', response.content)
+        self.assertIn("no-store", response.headers["Cache-Control"])
         get_layer.assert_not_called()
+
+    @override_settings(
+        CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}},
+    )
+    def test_healthz_does_not_disclose_backend_exception(self):
+        with patch("django.db.backends.utils.CursorWrapper.execute", side_effect=RuntimeError("database-secret")):
+            response = healthz(self.request)
+
+        self.assertEqual(response.status_code, 503)
+        self.assertIn(b'"db": "error"', response.content)
+        self.assertNotIn(b"database-secret", response.content)
+
+
+class ClientIpTests(SimpleTestCase):
+    @override_settings(TRUSTED_PROXY_CIDRS=["172.16.0.0/12"])
+    def test_trusts_real_ip_from_internal_proxy(self):
+        request = SimpleNamespace(META={
+            "REMOTE_ADDR": "172.18.0.4",
+            "HTTP_X_REAL_IP": "203.0.113.15",
+        })
+        self.assertEqual(client_ip_for_ratelimit(request), "203.0.113.15")
+
+    @override_settings(TRUSTED_PROXY_CIDRS=["172.16.0.0/12"])
+    def test_ignores_spoofed_real_ip_from_untrusted_peer(self):
+        request = SimpleNamespace(META={
+            "REMOTE_ADDR": "198.51.100.22",
+            "HTTP_X_REAL_IP": "203.0.113.15",
+        })
+        self.assertEqual(client_ip_for_ratelimit(request), "198.51.100.22")
+
+
+class OpsMetricsAuthorizationTests(SimpleTestCase):
+    def test_staff_user_cannot_read_operational_metrics(self):
+        request = RequestFactory().get("/ops/metrics/")
+        request.user = SimpleNamespace(
+            is_authenticated=True,
+            is_staff=True,
+            is_superuser=False,
+        )
+        response = ops_metrics(request)
+        self.assertEqual(response.status_code, 403)
 
 
 @override_settings(
@@ -40,6 +90,10 @@ class PublicMetadataTests(SimpleTestCase):
             "reports:landing",
             "reports:user_guide",
             "reports:privacy_policy",
+            "reports:terms_conditions",
+            "reports:refund_policy",
+            "reports:service_delivery_policy",
+            "reports:complaints_policy",
             "reports:faq",
         ):
             self.assertIn(
@@ -88,6 +142,10 @@ class PublicMetadataTests(SimpleTestCase):
         self.assertIn("Contact: mailto:security@example.test", body)
         self.assertIn(f"Policy: http://testserver{reverse('reports:privacy_policy')}", body)
         self.assertNotIn("support@example.com", body)
+        # RFC 9116 يوجب حقل Expires بصيغة زمنية صالحة في المستقبل.
+        expires_line = next(line for line in body.splitlines() if line.startswith("Expires: "))
+        expires_at = datetime.strptime(expires_line[len("Expires: "):], "%Y-%m-%dT%H:%M:%SZ")
+        self.assertGreater(expires_at.replace(tzinfo=dt_timezone.utc), timezone.now())
 
 
 class ContentSecurityPolicyTemplateTests(SimpleTestCase):
@@ -111,10 +169,30 @@ class ContentSecurityPolicyTemplateTests(SimpleTestCase):
 
         self.assertEqual(missing_nonce, [], msg=f"Inline scripts missing CSP nonce: {missing_nonce}")
 
+    def test_inline_template_scripts_bypass_rocket_loader(self):
+        templates_dir = settings.BASE_DIR / "reports" / "templates"
+        missing_bypass = []
+
+        for template_path in templates_dir.rglob("*.html"):
+            text = template_path.read_text(encoding="utf-8")
+            for match in self.INLINE_SCRIPT_TAG_RE.finditer(text):
+                if 'data-cfasync="false"' not in match.group(0):
+                    line = text.count("\n", 0, match.start()) + 1
+                    missing_bypass.append(
+                        f"{template_path.relative_to(settings.BASE_DIR)}:{line}"
+                    )
+
+        self.assertEqual(
+            missing_bypass,
+            [],
+            msg=f"Inline scripts exposed to Rocket Loader: {missing_bypass}",
+        )
+
     @override_settings(
         ALLOWED_HOSTS=["testserver"],
         CSP_ENABLED=True,
         CSP_REPORT_ONLY=False,
+        TAMARA_ENABLED=True,
         CONTENT_SECURITY_POLICY=(
             "default-src 'self'; "
             "script-src 'self'; "
@@ -142,6 +220,7 @@ class ContentSecurityPolicyTemplateTests(SimpleTestCase):
             policy,
         )
         self.assertNotIn("script-src-elem 'none'", policy)
+        self.assertIn("form-action 'self' https://checkout.tamara.co", policy)
 
 
 class PrivateMediaSettingsTests(SimpleTestCase):

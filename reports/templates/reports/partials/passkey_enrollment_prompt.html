@@ -196,9 +196,37 @@
   }
 
   @media (max-width: 520px) {
-    .passkey-prompt__top { padding: 24px 20px 21px; }
-    .passkey-prompt__body { padding: 21px 19px 22px; }
+    .passkey-prompt {
+      width: calc(100vw - 16px);
+      max-height: calc(100dvh - 16px);
+      border-radius: 18px;
+    }
+    .passkey-prompt__top {
+      min-height: 112px;
+      padding: 18px 18px 16px;
+    }
+    .passkey-prompt__icon {
+      width: 44px;
+      height: 44px;
+      margin-bottom: 9px;
+      border-radius: 13px;
+      font-size: 1.2rem;
+    }
+    .passkey-prompt__title { max-width: calc(100% - 48px); font-size: 1.08rem; }
+    .passkey-prompt__close {
+      inset-inline-start: 12px;
+      top: 12px;
+      width: 44px;
+      height: 44px;
+    }
+    .passkey-prompt__body { padding: 16px 15px 17px; }
+    .passkey-prompt__lead { font-size: .9rem; line-height: 1.7; }
+    .passkey-prompt__benefits { margin: 12px 0; gap: 6px; }
+    .passkey-prompt__benefits li { font-size: .78rem; line-height: 1.55; }
+    .passkey-prompt__privacy { padding: 9px 10px; font-size: .7rem; }
+    .passkey-prompt__actions { margin-top: 12px; }
     .passkey-prompt__actions { grid-template-columns: 1fr; }
+    .passkey-prompt__button { min-height: 48px; }
     .passkey-prompt__button--secondary { order: 2; }
   }
 
@@ -250,7 +278,7 @@
   </div>
 </dialog>
 
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   document.addEventListener('DOMContentLoaded', function () {
     var prompt = document.getElementById('passkeyEnrollmentPrompt');
     var activateButton = document.getElementById('passkeyPromptActivate');
@@ -325,6 +353,24 @@
       statusBox.classList.toggle('is-error', !!isError);
     }
 
+    function registrationErrorMessage(error, hasKnownCredential) {
+      if (error && error.name === 'InvalidStateError') {
+        return hasKnownCredential
+          ? 'الدخول بالبصمة مفعّل بالفعل لهذا الحساب على جهازك.'
+          : 'يوجد مفتاح مرور غير مكتمل لهذا الحساب في مدير كلمات مرور Google. احذفه من إعدادات مفاتيح المرور ثم أعد المحاولة.';
+      }
+      if (error && (error.name === 'NotSupportedError' || error.name === 'ConstraintError')) {
+        return 'هذا الجهاز أو المتصفح لا يدعم إنشاء مفتاح مرور. حدّث Chrome أو Safari واستخدم قفل الشاشة، أو تابع بكلمة المرور.';
+      }
+      if (error && error.name === 'SecurityError') {
+        return 'تعذر التحقق من نطاق المنصة. افتح https://tawtheeq-ksa.com مباشرة في Chrome أو Safari ثم أعد المحاولة.';
+      }
+      if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
+        return 'لم يكتمل التفعيل. افتح tawtheeq-ksa.com مباشرة في Chrome وتأكد من تفعيل قفل الشاشة، ثم أعد المحاولة.';
+      }
+      return error && error.message ? error.message : 'تعذر تفعيل الدخول بالبصمة.';
+    }
+
     function closePrompt() {
       if (prompt.open && prompt.close) prompt.close();
       else prompt.removeAttribute('open');
@@ -355,25 +401,37 @@
     });
 
     activateButton.addEventListener('click', async function () {
+      var options = null;
       try {
         activateButton.disabled = true;
         laterButton.disabled = true;
         showStatus('سيطلب جهازك البصمة أو قفل الشاشة لإكمال التفعيل...', false);
-        var options = await postJSON(prompt.dataset.optionsUrl, {});
+        if (!window.isSecureContext) {
+          throw new DOMException('Secure context required', 'SecurityError');
+        }
+        if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+          var authenticatorAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          if (!authenticatorAvailable) {
+            throw new DOMException('User verification unavailable', 'NotSupportedError');
+          }
+        }
+        options = await postJSON(prompt.dataset.optionsUrl, {});
         var credential = await navigator.credentials.create({
           publicKey: prepareOptions(options.publicKey)
         });
+        if (!credential) throw new DOMException('Credential creation returned no result', 'NotAllowedError');
         var verified = await postJSON(prompt.dataset.verifyUrl, credentialPayload(credential));
         showStatus(verified.message || 'تم تفعيل الدخول بالبصمة بنجاح.', false);
         setTimeout(function () { window.location.reload(); }, 900);
       } catch (error) {
-        var cancelled = error && (error.name === 'NotAllowedError' || error.name === 'AbortError');
-        showStatus(
-          cancelled
-            ? 'لم يكتمل التفعيل. يمكنك المحاولة مرة أخرى أو اختيار «ليس الآن».'
-            : (error && error.message ? error.message : 'تعذر تفعيل الدخول بالبصمة.'),
-          !cancelled
-        );
+        var hasKnownCredential = !!(options && options.publicKey && options.publicKey.excludeCredentials && options.publicKey.excludeCredentials.length);
+        if (error && error.name === 'InvalidStateError' && hasKnownCredential) {
+          showStatus(registrationErrorMessage(error, true), false);
+          activateButton.textContent = 'البصمة مفعّلة بالفعل';
+          laterButton.disabled = false;
+          return;
+        }
+        showStatus(registrationErrorMessage(error, hasKnownCredential), true);
         activateButton.disabled = false;
         laterButton.disabled = false;
       }
@@ -391,7 +449,9 @@
       var notificationObserver = new MutationObserver(function () {
         if (homeNotification.hidden) {
           notificationObserver.disconnect();
-          showPrompt();
+          /* Avoid stacking two blocking dialogs back-to-back on phones.
+             The session flag remains, so the prompt can appear on the next page. */
+          if (!window.matchMedia('(max-width: 520px)').matches) showPrompt();
         }
       });
       notificationObserver.observe(homeNotification, {

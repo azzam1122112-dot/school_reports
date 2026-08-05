@@ -127,6 +127,14 @@
         z-index: 20;
     }
 
+    @media (max-width: 768px) {
+        .is-sticky {
+            position: static;
+            top: auto;
+            z-index: auto;
+        }
+    }
+
     /* Forms */
     .form-section-title {
         font-size: 1.25rem;
@@ -505,6 +513,7 @@
                     <div class="form-group">
                         <label class="form-label">المستلمون <span class="req">*</span></label>
                         <div id="id_recipients" class="recipients-box" aria-label="قائمة المستلمين"
+                          data-members-url="{% url 'reports:api_department_members' %}"
                             {% if selected_recipient_ids %}
                                 data-selected="{% for rid in selected_recipient_ids %}{{ rid }}{% if not forloop.last %},{% endif %}{% endfor %}"
                             {% endif %}
@@ -545,7 +554,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script src="{% static 'js/request-create-recipients.js' %}?v=20260801.1" defer></script>
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 (function(){
   // --- Add CSS Classes to Django Rendered Inputs ---
   document.querySelectorAll('.ticket-page input[type="text"], .ticket-page textarea').forEach(el => {
@@ -799,7 +809,7 @@
   }
 
   // Event Listeners
-  if(dept && recipientsBox){
+  if(dept && recipientsBox && !window.__ticketRecipientsExternalReady){
     dept.addEventListener('change', (e) => {
       const slug = (e.target.value || '').trim();
       recipientsBox.removeAttribute('data-selected'); // Clear preserved selection on change

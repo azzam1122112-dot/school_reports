@@ -1,5 +1,10 @@
-from django.test import TestCase
+from io import BytesIO
 
+import openpyxl
+from django.test import TestCase, override_settings
+from django.urls import reverse
+
+from reports.gender_labels import school_gender_labels, school_gender_template_context
 from reports.models import (
     School,
     SchoolMembership,
@@ -9,6 +14,7 @@ from reports.models import (
 )
 from reports.permissions import effective_user_role_label, _school_role_labels
 from reports.forms import _school_job_title_choices
+from reports.services_export import build_school_export_workbook
 
 
 class GenderedRoleLabelTests(TestCase):
@@ -51,6 +57,25 @@ class GenderedRoleLabelTests(TestCase):
         self.assertEqual(labels["admin_staff"], "موظفة إدارية")
         self.assertEqual(labels["lab_tech"], "محضرة مختبر")
 
+    def test_complete_girls_terminology_covers_grammar_and_report_labels(self):
+        labels = school_gender_labels(self.girls)
+        self.assertEqual(labels["manager"], "مديرة المدرسة")
+        self.assertEqual(labels["manager_short"], "المديرة")
+        self.assertEqual(labels["teacher"], "المعلمة")
+        self.assertEqual(labels["teachers"], "المعلمات")
+        self.assertEqual(labels["executor"], "المنفّذة")
+        self.assertEqual(labels["head_of_department"], "رئيسة القسم")
+        self.assertEqual(labels["students"], "الطالبات")
+        self.assertEqual(labels["beneficiaries"], "المستفيدات")
+        self.assertEqual(labels["beneficiaries_object"], "المستفيدات")
+        self.assertEqual(labels["teacher_dative"], "للمعلمة")
+        self.assertEqual(labels["manager_dative"], "لمديرة المدرسة")
+
+        context = school_gender_template_context(self.girls)
+        self.assertTrue(context["IS_GIRLS_SCHOOL"])
+        self.assertEqual(context["SCHOOL_EXECUTOR_LABEL"], "المنفّذة")
+        self.assertEqual(context["SCHOOL_BENEFICIARIES_OBJ_LABEL"], "المستفيدات")
+
     def test_effective_label_manager(self):
         boss_b = self._make_member(self.boys, SchoolMembership.RoleType.MANAGER)
         boss_g = self._make_member(self.girls, SchoolMembership.RoleType.MANAGER)
@@ -91,3 +116,43 @@ class GenderedRoleLabelTests(TestCase):
         self.assertEqual(
             girls_choices[SchoolMembership.JobTitle.LAB_TECH], "محضرة مختبر"
         )
+
+    @override_settings(ALLOWED_HOSTS=["testserver"])
+    def test_girls_school_pages_render_feminine_report_and_workspace_labels(self):
+        teacher = self._make_member(self.girls, SchoolMembership.RoleType.TEACHER)
+        self.client.force_login(teacher)
+        session = self.client.session
+        session["active_school_id"] = self.girls.pk
+        session.save()
+
+        report_response = self.client.get(reverse("reports:add_report"))
+        home_response = self.client.get(reverse("reports:home"))
+
+        self.assertEqual(report_response.status_code, 200)
+        self.assertContains(report_response, "المنفّذة")
+        self.assertContains(report_response, "عدد المستفيدات")
+        self.assertNotContains(report_response, "> المنفذ</label>", html=False)
+        self.assertEqual(home_response.status_code, 200)
+        self.assertContains(home_response, "مساحة عمل المعلمة")
+
+    @override_settings(ALLOWED_HOSTS=["testserver"])
+    def test_girls_school_excel_outputs_use_feminine_labels(self):
+        manager = self._make_member(self.girls, SchoolMembership.RoleType.MANAGER)
+        self.client.force_login(manager)
+        session = self.client.session
+        session["active_school_id"] = self.girls.pk
+        session.save()
+
+        response = self.client.get(reverse("reports:bulk_import_teachers_template"))
+        self.assertEqual(response.status_code, 200)
+        template_book = openpyxl.load_workbook(BytesIO(response.content))
+        self.assertIn("المعلمات", template_book.sheetnames)
+        instructions = template_book["التعليمات والأمثلة"]
+        self.assertEqual(instructions["C5"].value, "معلمة")
+        self.assertIn("محضرة مختبر", instructions["D5"].value)
+
+        export_book = build_school_export_workbook(self.girls)
+        self.assertIn("المعلمات", export_book.sheetnames)
+        summary = export_book["ملخص"]
+        summary_labels = [summary.cell(row=row, column=1).value for row in range(1, summary.max_row + 1)]
+        self.assertIn("عدد المعلمات", summary_labels)

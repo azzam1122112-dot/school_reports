@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}محتوى منصور | إعدادات المنصة{% endblock %}
+
+{% block head %}
+<style>
+  .mansour-editor {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.2rem;
+  }
+
+  .mansour-editor .hero {
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(0, 108, 53, .96), rgba(15, 143, 135, .9));
+    color: #fff;
+    padding: 1.2rem 1.3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .mansour-editor .hero h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.2rem, 2.4vw, 1.8rem);
+    font-weight: 900;
+  }
+
+  .mansour-editor .hero p {
+    margin: .45rem 0 0;
+    opacity: .92;
+    line-height: 1.8;
+    font-weight: 700;
+  }
+
+  .mansour-editor .actions {
+    display: flex;
+    gap: .6rem;
+    flex-wrap: wrap;
+  }
+
+  .mansour-editor .panel {
+    background: var(--card, #fff);
+    border: 1px solid rgba(185, 151, 91, .22);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(16, 37, 31, .09);
+    overflow: hidden;
+  }
+
+  .mansour-editor .panel-head {
+    display: flex;
+    justify-content: space-between;
+    gap: .75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: .95rem 1rem;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+  }
+
+  .mansour-editor .panel-body {
+    padding: 1rem;
+  }
+
+  .mansour-editor textarea {
+    width: 100%;
+    min-height: 62vh;
+    font-family: "Consolas", "SFMono-Regular", Menlo, Monaco, monospace;
+    font-size: .88rem;
+    line-height: 1.6;
+    direction: ltr;
+    border: 1px solid #d0dae4;
+    border-radius: 12px;
+    padding: .85rem;
+    resize: vertical;
+    background: #f8fafc;
+    color: #0f172a;
+  }
+
+  [data-theme="dark"] .mansour-editor textarea {
+    background: #0f172a;
+    color: #e5e7eb;
+    border-color: #334155;
+  }
+
+  .mansour-editor .note {
+    margin-top: .65rem;
+    color: var(--muted, #64748b);
+    font-size: .83rem;
+    line-height: 1.8;
+    white-space: pre-line;
+  }
+
+  .mansour-editor .errorlist {
+    margin: .5rem 0 0;
+    padding: .65rem .75rem;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: #fff1f2;
+    color: #9f1239;
+    white-space: pre-line;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mansour-editor">
+  <section class="hero">
+    <div>
+      <h1>محرر محتوى منصور</h1>
+      <p>تعديل قاعدة معرفة خدمة العملاء مباشرة من لوحة المنصة. يتم التحقق من صحة JSON قبل الحفظ.</p>
+    </div>
+    <div class="actions">
+      <a href="{% url 'reports:platform_settings' %}" class="btn btn-outline">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+        إعدادات المنصة
+      </a>
+      <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        لوحة المنصة
+      </a>
+    </div>
+  </section>
+
+  <form method="post" class="panel" novalidate>
+    {% csrf_token %}
+    <div class="panel-head">
+      <strong>ملف المحتوى</strong>
+      <span class="muted" dir="ltr">{{ content_path }}</span>
+    </div>
+    <div class="panel-body">
+      <label for="{{ form.content.id_for_label }}" style="display:block;font-weight:800;margin-bottom:.5rem;">
+        {{ form.content.label }}
+      </label>
+      {{ form.content }}
+      {% for e in form.content.errors %}
+        <div class="errorlist">{{ e }}</div>
+      {% endfor %}
+
+      <div class="note">
+        عدد المحارف الحالي: {{ stats.characters }}
+
+        نصيحة: بعد الحفظ، سيستخدم منصور المحتوى الجديد مباشرة. إذا كانت البنية ناقصة لن يتم الحفظ.
+      </div>
+    </div>
+
+    <div style="padding:0 1rem 1rem;display:flex;gap:.6rem;flex-wrap:wrap;">
+      <button type="submit" class="btn btn-primary">
+        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+        حفظ المحتوى
+      </button>
+      <a href="{% url 'reports:platform_mansour_content' %}" class="btn btn-outline">
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+        إعادة تحميل
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

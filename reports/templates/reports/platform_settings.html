@@ -97,6 +97,88 @@
   .platform-settings-scope .maintenance-control {
     min-width: 210px;
   }
+  .platform-settings-scope .ai-feature-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .platform-settings-scope .ai-feature-heading h2 { margin-bottom: 4px; }
+  .platform-settings-scope .ai-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .platform-settings-scope .ai-feature-card {
+    border: 1px solid var(--ps-line);
+    border-radius: 14px;
+    padding: 15px;
+    background: var(--ps-card);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 13px;
+    min-height: 220px;
+    transition: border-color .18s ease, box-shadow .18s ease, opacity .18s ease;
+  }
+  .platform-settings-scope .ai-feature-card.is-on {
+    border-color: rgba(0,108,53,.34);
+    box-shadow: 0 12px 28px rgba(0,108,53,.08);
+  }
+  .platform-settings-scope .ai-feature-card:not(.is-on) { opacity: .72; }
+  .platform-settings-scope .ai-feature-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .platform-settings-scope .ai-feature-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: inline-grid;
+    place-items: center;
+    color: #006c35;
+    background: rgba(0,108,53,.10);
+    font-size: 1.15rem;
+  }
+  .platform-settings-scope .ai-feature-card:not(.is-on) .ai-feature-icon {
+    color: #64748b;
+    background: rgba(100,116,139,.10);
+  }
+  .platform-settings-scope .ai-feature-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 6px 9px;
+    color: #047857;
+    background: rgba(5,150,105,.10);
+    font-size: .78rem;
+    font-weight: 950;
+  }
+  .platform-settings-scope .ai-feature-card:not(.is-on) .ai-feature-state {
+    color: #64748b;
+    background: rgba(100,116,139,.10);
+  }
+  .platform-settings-scope .ai-feature-copy h3 {
+    margin: 0 0 7px;
+    color: var(--ps-ink);
+    font-size: 1rem;
+    font-weight: 950;
+  }
+  .platform-settings-scope .ai-feature-copy p {
+    margin: 0;
+    color: var(--ps-muted);
+    line-height: 1.7;
+    font-size: .87rem;
+    font-weight: 800;
+  }
+  .platform-settings-scope .ai-feature-card .archive-switch {
+    justify-content: space-between;
+    width: 100%;
+  }
   .platform-settings-scope .maintenance-label {
     margin: 0 0 6px;
     color: var(--ps-ink);
@@ -284,9 +366,14 @@
     flex-wrap: wrap;
   }
   .platform-settings-scope .actions .btn { min-height: 44px; }
+  @media(max-width:1000px){
+    .platform-settings-scope .ai-feature-grid { grid-template-columns: 1fr; }
+    .platform-settings-scope .ai-feature-card { min-height: 0; }
+  }
   @media(max-width:720px){
     .platform-settings-scope .grid,
     .platform-settings-scope .preview,
+    .platform-settings-scope .ai-feature-grid,
     .platform-settings-scope .storage-row { grid-template-columns: 1fr; }
     .platform-settings-scope .maintenance-box { grid-template-columns: 1fr; }
     .platform-settings-scope .maintenance-control { min-width: 0; width: 100%; }
@@ -331,6 +418,10 @@
       <p>تحكم في وضع الصيانة والتطوير وتسعير إضافة الأرشفة ومساحة التخزين.</p>
     </div>
     <div class="hero-actions">
+      <a href="{% url 'reports:platform_mansour_content' %}" class="btn btn-outline">
+        <i class="fa-solid fa-robot" aria-hidden="true"></i>
+        محتوى منصور
+      </a>
       <a href="{% url 'reports:platform_archive_addons_list' %}" class="btn btn-outline">
         <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
         إضافات الأرشيف
@@ -389,6 +480,68 @@
         </div>
       </section>
 
+      <section class="section" id="ai-features">
+        <div class="ai-feature-heading">
+          <div>
+            <h2><i class="fa-solid fa-sparkles" aria-hidden="true"></i> ظهور ميزات الذكاء الاصطناعي</h2>
+            <div class="help">يمكنك إظهار أو إخفاء كل ميزة بشكل مستقل. عند الإخفاء يختفي العنصر من الواجهة ويُرفض استدعاؤه المباشر أيضًا.</div>
+          </div>
+        </div>
+
+        <div class="ai-feature-grid">
+          <article class="ai-feature-card {% if form.mansour_public_enabled.value %}is-on{% endif %}" data-ai-feature-card>
+            <div class="ai-feature-top">
+              <span class="ai-feature-icon" aria-hidden="true"><i class="fa-solid fa-robot"></i></span>
+              <span class="ai-feature-state" data-ai-state><i class="fa-solid {% if form.mansour_public_enabled.value %}fa-eye{% else %}fa-eye-slash{% endif %}" aria-hidden="true"></i><span>{% if form.mansour_public_enabled.value %}ظاهر{% else %}مخفي{% endif %}</span></span>
+            </div>
+            <div class="ai-feature-copy">
+              <h3>المساعد منصور</h3>
+              <p>أداة منصور الموجهة للزوار في الصفحة العامة قبل تسجيل الدخول.</p>
+            </div>
+            <label class="archive-switch" for="{{ form.mansour_public_enabled.id_for_label }}">
+              {{ form.mansour_public_enabled }}
+              <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              <span class="switch-text" data-ai-switch-text>{% if form.mansour_public_enabled.value %}مفعّل{% else %}معطّل{% endif %}</span>
+            </label>
+            {% for e in form.mansour_public_enabled.errors %}<div class="error">{{ e }}</div>{% endfor %}
+          </article>
+
+          <article class="ai-feature-card {% if form.report_ai_enabled.value %}is-on{% endif %}" data-ai-feature-card>
+            <div class="ai-feature-top">
+              <span class="ai-feature-icon" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+              <span class="ai-feature-state" data-ai-state><i class="fa-solid {% if form.report_ai_enabled.value %}fa-eye{% else %}fa-eye-slash{% endif %}" aria-hidden="true"></i><span>{% if form.report_ai_enabled.value %}ظاهر{% else %}مخفي{% endif %}</span></span>
+            </div>
+            <div class="ai-feature-copy">
+              <h3>تحسين التقارير</h3>
+              <p>زر تحسين الصياغة ومعاينة النص الذكي في نماذج إضافة التقرير وتعديله.</p>
+            </div>
+            <label class="archive-switch" for="{{ form.report_ai_enabled.id_for_label }}">
+              {{ form.report_ai_enabled }}
+              <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              <span class="switch-text" data-ai-switch-text>{% if form.report_ai_enabled.value %}مفعّل{% else %}معطّل{% endif %}</span>
+            </label>
+            {% for e in form.report_ai_enabled.errors %}<div class="error">{{ e }}</div>{% endfor %}
+          </article>
+
+          <article class="ai-feature-card {% if form.internal_ai_help_enabled.value %}is-on{% endif %}" data-ai-feature-card>
+            <div class="ai-feature-top">
+              <span class="ai-feature-icon" aria-hidden="true"><i class="fa-solid fa-circle-question"></i></span>
+              <span class="ai-feature-state" data-ai-state><i class="fa-solid {% if form.internal_ai_help_enabled.value %}fa-eye{% else %}fa-eye-slash{% endif %}" aria-hidden="true"></i><span>{% if form.internal_ai_help_enabled.value %}ظاهر{% else %}مخفي{% endif %}</span></span>
+            </div>
+            <div class="ai-feature-copy">
+              <h3>المساعدة داخل النظام</h3>
+              <p>أداة المساعدة العائمة التي تشرح الصفحة الحالية للمعلم والمدير بعد تسجيل الدخول.</p>
+            </div>
+            <label class="archive-switch" for="{{ form.internal_ai_help_enabled.id_for_label }}">
+              {{ form.internal_ai_help_enabled }}
+              <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              <span class="switch-text" data-ai-switch-text>{% if form.internal_ai_help_enabled.value %}مفعّل{% else %}معطّل{% endif %}</span>
+            </label>
+            {% for e in form.internal_ai_help_enabled.errors %}<div class="error">{{ e }}</div>{% endfor %}
+          </article>
+        </div>
+      </section>
+
       <section class="section">
         <h2>إضافة الأرشفة</h2>
         <div class="grid">
@@ -408,19 +561,36 @@
       </section>
 
       <section class="section">
-        <h2>حد التخزين الأساسي (للمدارس غير المشتركة)</h2>
+        <h2>مساحة عمل المدرسة</h2>
         <div class="grid">
+          <div class="field">
+            <label for="{{ form.storage_mb_per_teacher.id_for_label }}">{{ form.storage_mb_per_teacher.label }}</label>
+            {{ form.storage_mb_per_teacher }}
+            <div class="help">
+              مساحة العمل اليومي (صور التقارير وشواهد الإنجاز والمرفقات)، وتُحتسب من
+              <strong>سعة المعلمين المشتراة</strong> فتكبر مع نمو المدرسة.
+              مستقلة تمامًا عن مساحة الأرشيف السنوي.
+              <strong>امتلاؤها يوقف رفع الملفات في المدرسة</strong>، فأي تخفيض يجب أن يُدرس.
+              ضع <strong>0</strong> لإلغاء المساحة المشتقة والاكتفاء بالحد الأدنى أدناه.
+            </div>
+            {% for e in form.storage_mb_per_teacher.errors %}<div class="error">{{ e }}</div>{% endfor %}
+          </div>
           <div class="field">
             <label for="{{ form.free_storage_mb.id_for_label }}">{{ form.free_storage_mb.label }}</label>
             {{ form.free_storage_mb }}
             <div class="help">
-              الحد الأقصى لإجمالي حجم الصور والملفات لكل مدرسة <strong>لا تملك إضافة أرشفة مفعّلة</strong>.
-              القيمة بالميجابايت (1024MB = 1GB). ضع <strong>0</strong> لإلغاء الحد (تخزين غير محدود).
-              يُحسب الاستهلاك من الحجم الفعلي للملفات.
+              يُطبَّق فقط على مدرسة <strong>بلا اشتراك فعّال</strong>. المدارس المشتركة تأخذ
+              المساحة المشتقة أعلاه. القيمة بالميجابايت (1024MB = 1GB)، و<strong>0</strong> تعني بلا حد.
             </div>
             {% for e in form.free_storage_mb.errors %}<div class="error">{{ e }}</div>{% endfor %}
           </div>
         </div>
+        {% if storage_ladder %}
+          <div class="help" style="margin-top:.6rem">
+            بالقيمة الحالية، تحصل المدرسة على:
+            {% for row in storage_ladder %}<strong>{{ row.seats }} معلماً → {{ row.label }}</strong>{% if not forloop.last %} · {% endif %}{% endfor %}
+          </div>
+        {% endif %}
       </section>
 
       <section class="section">
@@ -519,6 +689,10 @@
           <strong>{{ settings_obj.archive_included_storage_gb }}GB</strong>
         </div>
         <div class="metric">
+          <span>مساحة العمل لكل معلم</span>
+          <strong>{% if settings_obj.storage_mb_per_teacher %}{{ settings_obj.storage_mb_per_teacher|intcomma }}MB{% else %}معطّلة{% endif %}</strong>
+        </div>
+        <div class="metric">
           <span>الحد المجاني لكل مدرسة</span>
           <strong>{% if settings_obj.free_storage_mb %}{{ settings_obj.free_storage_mb|intcomma }}MB{% else %}غير محدود{% endif %}</strong>
         </div>
@@ -545,7 +719,36 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+/* مفاتيح الذكاء الاصطناعي: معاينة فورية لحالة الظهور قبل الحفظ */
+(function () {
+  document.querySelectorAll("[data-ai-feature-card]").forEach(function (card) {
+    const input = card.querySelector('input[type="checkbox"]');
+    const switchText = card.querySelector("[data-ai-switch-text]");
+    const state = card.querySelector("[data-ai-state]");
+    if (!input) return;
+
+    function render() {
+      const on = input.checked;
+      card.classList.toggle("is-on", on);
+      if (switchText) switchText.textContent = on ? "مفعّل" : "معطّل";
+      if (state) {
+        const icon = state.querySelector("i");
+        const text = state.querySelector("span");
+        if (icon) {
+          icon.classList.toggle("fa-eye", on);
+          icon.classList.toggle("fa-eye-slash", !on);
+        }
+        if (text) text.textContent = on ? "ظاهر" : "مخفي";
+      }
+    }
+
+    input.addEventListener("change", render);
+    render();
+  });
+})();
+</script>
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 /* وضع الصيانة: تغذية بصرية فورية + تأكيد قبل إيقاف الموقع */
 (function () {
   const box = document.getElementById("maintenanceBox");
@@ -585,7 +788,7 @@
   }
 })();
 </script>
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 document.addEventListener("DOMContentLoaded", function () {
   const addBtn = document.getElementById("addStorageOptionBtn");
   const list = document.getElementById("storageOptionsList");

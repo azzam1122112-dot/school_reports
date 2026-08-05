@@ -912,7 +912,7 @@
           <i class="fa-solid fa-user" aria-hidden="true"></i>
           <span>حسابي</span>
         </h1>
-        <p class="profile-subtitle">تحديث رقم الجوال وكلمة المرور، وعرض المدارس المسندة لك.</p>
+        <p class="profile-subtitle">إدارة بيانات التواصل وكلمة المرور، وعرض المدارس المسندة لك.</p>
       </div>
     </header>
 
@@ -926,9 +926,10 @@
           <h2 class="profile-security-title">خطوة سريعة لحماية حسابك</h2>
           <p class="profile-security-text">
             كلمة المرور الحالية ما زالت مطابقة لرقم الجوال، وهذا يجعل الوصول إلى الحساب أسهل من اللازم.
-            غيّرها الآن إلى كلمة خاصة بك حتى تبقى بياناتك وبيانات المدرسة أكثر أمانًا.
+            أضف بريدك الإلكتروني وغيّر كلمة المرور الآن حتى يبقى حسابك أكثر أمانًا وتتمكن من استعادته لاحقًا.
           </p>
           <ul class="profile-security-points">
+            <li>أدخل بريدًا إلكترونيًا يمكنك الوصول إليه لاستعادة كلمة المرور لاحقًا.</li>
             <li>اكتب رقم الجوال الحالي في خانة كلمة المرور القديمة.</li>
             <li>اختر كلمة مرور جديدة لا يعرفها غيرك.</li>
             <li>بعد الحفظ سيعود الحساب للعمل بشكل طبيعي.</li>
@@ -958,6 +959,10 @@
           <div class="profile-info-row">
             <span class="profile-info-label">رقم الجوال</span>
             <span class="profile-info-value">{{ request.user.phone|default:"-" }}</span>
+          </div>
+          <div class="profile-info-row">
+            <span class="profile-info-label">البريد الإلكتروني</span>
+            <span class="profile-info-value" dir="ltr">{{ request.user.email|default:"-" }}</span>
           </div>
         </div>
 
@@ -1003,6 +1008,38 @@
           </div>
           <div class="profile-divider"></div>
         {% else %}
+          <!-- Email Update Form -->
+          <form method="post" class="profile-form" novalidate>
+            {% csrf_token %}
+            <div class="profile-form-group">
+              <label class="profile-form-label" for="{{ email_form.email.id_for_label }}">
+                <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                <span>{{ email_form.email.label }}</span>
+              </label>
+              <input
+                type="email"
+                name="{{ email_form.email.html_name }}"
+                id="{{ email_form.email.id_for_label }}"
+                value="{{ email_form.email.value|default:'' }}"
+                class="profile-form-input"
+                autocomplete="email"
+                inputmode="email"
+                dir="ltr"
+                placeholder="name@example.com"
+              >
+              <div class="profile-form-hint">يمكنك تركه فارغًا، أو حفظ بريد صالح لاستعادة كلمة المرور لاحقًا.</div>
+              {% if email_form.email.errors %}
+                <div class="profile-form-error">{{ email_form.email.errors|striptags }}</div>
+              {% endif %}
+            </div>
+            <button type="submit" name="update_email" class="profile-btn profile-btn-primary">
+              <i class="fa-solid fa-envelope-circle-check" aria-hidden="true"></i>
+              <span>تحديث البريد الإلكتروني</span>
+            </button>
+          </form>
+
+          <div class="profile-divider"></div>
+
           <!-- Phone Update Form -->
           <form method="post" class="profile-form" novalidate>
             {% csrf_token %}
@@ -1048,6 +1085,32 @@
             </div>
           {% endif %}
 
+          {% if force_password_change %}
+            <div class="profile-form-group">
+              <label class="profile-form-label" for="{{ pwd_form.email.id_for_label }}">
+                <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                <span>{{ pwd_form.email.label }}</span>
+              </label>
+              <input
+                type="email"
+                name="{{ pwd_form.email.html_name }}"
+                id="{{ pwd_form.email.id_for_label }}"
+                value="{{ pwd_form.email.value|default:'' }}"
+                class="profile-form-input"
+                autocomplete="email"
+                inputmode="email"
+                dir="ltr"
+                placeholder="name@example.com"
+                autofocus
+                required
+              >
+              <div class="profile-form-hint">سنستخدمه لاحقًا لمساعدتك في استعادة كلمة المرور وتأمين الحساب.</div>
+              {% if pwd_form.email.errors %}
+                <div class="profile-form-error">{{ pwd_form.email.errors|striptags }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+
           <div class="profile-form-group">
             <label class="profile-form-label" for="{{ pwd_form.old_password.id_for_label }}">
               <i class="fa-solid fa-lock" aria-hidden="true"></i>
@@ -1061,7 +1124,6 @@
                 class="profile-form-input"
                 autocomplete="current-password"
                 placeholder="أدخل كلمة المرور الحالية"
-                {% if force_password_change %}autofocus{% endif %}
                 {% if pwd_form.old_password.field.required %}required{% endif %}
               >
               <button
@@ -1166,7 +1228,11 @@
         </h2>
         <div class="profile-passkey-panel">
           <p class="profile-passkey-copy">
-            فعّل هذا الخيار على جهازك الحالي، وبعدها يمكنك تسجيل الدخول من شاشة الدخول باستخدام بصمة الجهاز أو Face ID أو قفل الشاشة.
+            {% if passkey_credentials %}
+              الدخول بالبصمة مفعّل لحسابك. يمكنك استخدام بصمة الجهاز أو Face ID أو قفل الشاشة، أو إضافة مفتاح مرور لجهاز آخر.
+            {% else %}
+              فعّل هذا الخيار على جهازك الحالي، وبعدها يمكنك تسجيل الدخول من شاشة الدخول باستخدام بصمة الجهاز أو Face ID أو قفل الشاشة.
+            {% endif %}
           </p>
           {% if force_password_change %}
             <div class="profile-locked-box">تفعيل البصمة متاح بعد تغيير كلمة المرور الحالية أولاً.</div>
@@ -1179,7 +1245,7 @@
               data-verify-url="{% url 'reports:passkey_register_verify' %}"
             >
               <i class="fa-solid fa-fingerprint" aria-hidden="true"></i>
-              <span>تفعيل البصمة لهذا الجهاز</span>
+              <span>{% if passkey_credentials %}إضافة مفتاح مرور لجهاز آخر{% else %}تفعيل البصمة لهذا الجهاز{% endif %}</span>
             </button>
             <div class="profile-passkey-status" id="profilePasskeyStatus" role="status" aria-live="polite"></div>
           {% endif %}
@@ -1207,7 +1273,7 @@
 
 {% block scripts %}
   {{ block.super }}
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     (function () {
       const form = document.querySelector('[data-password-form]');
       if (!form) return;
@@ -1364,16 +1430,16 @@
       updateRules();
     })();
   </script>
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     (function () {
       const button = document.getElementById('registerPasskeyBtn');
       const statusBox = document.getElementById('profilePasskeyStatus');
       const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
       if (!button || !statusBox) return;
 
-      if (!window.PublicKeyCredential || !navigator.credentials) {
+      if (!window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) {
         button.disabled = true;
-        statusBox.textContent = 'هذا المتصفح لا يدعم الدخول بالبصمة. جرّب Chrome أو Safari أو Edge على جهاز يدعم قفل الشاشة.';
+        statusBox.textContent = 'تفعيل البصمة يحتاج اتصالًا آمنًا ومتصفحًا حديثًا. افتح المنصة مباشرة في Chrome أو Safari أو Edge.';
         statusBox.classList.add('is-error');
         statusBox.style.display = 'block';
         return;
@@ -1383,6 +1449,24 @@
         statusBox.textContent = text;
         statusBox.classList.toggle('is-error', !!isError);
         statusBox.style.display = text ? 'block' : 'none';
+      }
+
+      function registrationErrorMessage(error, hasKnownCredential) {
+        if (error && error.name === 'InvalidStateError') {
+          return hasKnownCredential
+            ? 'الدخول بالبصمة مفعّل بالفعل لهذا الحساب على جهازك.'
+            : 'يوجد مفتاح مرور غير مكتمل لهذا الحساب في مدير كلمات مرور Google. احذفه من إعدادات مفاتيح المرور ثم أعد المحاولة.';
+        }
+        if (error && (error.name === 'NotSupportedError' || error.name === 'ConstraintError')) {
+          return 'هذا الجهاز أو المتصفح لا يدعم إنشاء مفتاح مرور. حدّث Chrome أو Safari واستخدم قفل الشاشة، أو تابع بكلمة المرور.';
+        }
+        if (error && error.name === 'SecurityError') {
+          return 'تعذر التحقق من نطاق المنصة. افتح https://tawtheeq-ksa.com مباشرة في Chrome أو Safari ثم أعد المحاولة.';
+        }
+        if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
+          return 'لم يكتمل التفعيل. افتح tawtheeq-ksa.com مباشرة في Chrome وتأكد من تفعيل قفل الشاشة، ثم أعد المحاولة.';
+        }
+        return error && error.message ? error.message : 'تعذر تفعيل الدخول بالبصمة.';
       }
 
       function b64ToBuffer(value) {
@@ -1446,20 +1530,36 @@
       }
 
       button.addEventListener('click', async function () {
+        let options = null;
         try {
           button.disabled = true;
           showStatus('سيطلب المتصفح بصمة الجهاز أو قفل الشاشة لإكمال التفعيل...', false);
-          const options = await postJSON(button.dataset.optionsUrl, {});
+          if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+            const authenticatorAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            if (!authenticatorAvailable) {
+              throw new DOMException('User verification unavailable', 'NotSupportedError');
+            }
+          }
+          options = await postJSON(button.dataset.optionsUrl, {});
           const credential = await navigator.credentials.create({
             publicKey: prepareCreationOptions(options.publicKey),
           });
+          if (!credential) throw new DOMException('Credential creation returned no result', 'NotAllowedError');
           const verified = await postJSON(button.dataset.verifyUrl, credentialToJSON(credential));
           showStatus(verified.message || 'تم تفعيل الدخول بالبصمة لهذا الجهاز.', false);
           setTimeout(() => window.location.reload(), 900);
         } catch (error) {
-          showStatus(error && error.message ? error.message : 'تعذر تفعيل الدخول بالبصمة.', true);
+          const hasKnownCredential = !!(options && options.publicKey && options.publicKey.excludeCredentials && options.publicKey.excludeCredentials.length);
+          if (error && error.name === 'InvalidStateError' && hasKnownCredential) {
+            showStatus(registrationErrorMessage(error, true), false);
+            button.disabled = true;
+            const label = button.querySelector('span');
+            if (label) label.textContent = 'البصمة مفعّلة بالفعل';
+            return;
+          }
+          showStatus(registrationErrorMessage(error, hasKnownCredential), true);
         } finally {
-          button.disabled = false;
+          if (button.textContent.indexOf('مفعّلة بالفعل') === -1) button.disabled = false;
         }
       });
     })();

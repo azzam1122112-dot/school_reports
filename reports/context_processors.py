@@ -22,6 +22,7 @@ from .models import (
     school_has_archive_addon,
 )
 from .permissions import effective_user_role_label, get_school_manager_school_ids, is_report_viewer_for_school
+from .gender_labels import school_gender_labels, school_gender_template_context
 
 # حالات التذاكر
 OPEN_STATES = {"open", "new"}
@@ -62,7 +63,7 @@ def _nav_cache_ttl_seconds() -> int:
     """Short TTL to smooth load spikes without keeping stale nav data for long."""
     try:
         default_ttl = 20 if not bool(getattr(settings, "DEBUG", False)) else 5
-        return max(0, int(getattr(settings, "NAV_CONTEXT_CACHE_TTL", default_ttl) or 0))
+        return max(0, int(getattr(settings, "NAV_CONTEXT_CACHE_TTL_SECONDS", default_ttl) or 0))
     except Exception:
         return 10
 
@@ -649,19 +650,17 @@ def _reverse_any(names: Iterable[str]) -> Optional[str]:
 
 
 def _school_role_labels(active_school: Optional[School]) -> Dict[str, str]:
-    """مسميات الدور حسب نوع المدرسة (بنين/بنات)."""
-    gender = (getattr(active_school, "gender", "") or "").strip().lower()
-    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-    is_girls = gender == girls_value
+    """Compatibility wrapper around the canonical gender-aware labels."""
+    labels = school_gender_labels(active_school)
     return {
-        "manager": "مديرة المدرسة" if is_girls else "مدير المدرسة",
-        "teacher": "المعلمة" if is_girls else "المعلم",
-        "teachers": "المعلمات" if is_girls else "المعلمون",
-        "teachers_obj": "المعلمات" if is_girls else "المعلمين",
-        "head": "رئيسة" if is_girls else "رئيس",
-        "head_of_department": "رئيسة القسم" if is_girls else "رئيس القسم",
-        "admin_staff": "موظفة إدارية" if is_girls else "موظف إداري",
-        "lab_tech": "محضرة مختبر" if is_girls else "محضر مختبر",
+        "manager": str(labels["manager"]),
+        "teacher": str(labels["teacher"]),
+        "teachers": str(labels["teachers"]),
+        "teachers_obj": str(labels["teachers_object"]),
+        "head": str(labels["head"]),
+        "head_of_department": str(labels["head_of_department"]),
+        "admin_staff": str(labels["admin_staff"]),
+        "lab_tech": str(labels["lab_tech"]),
     }
 
 
@@ -774,12 +773,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "SCHOOL_NAME": None,
             "SCHOOL_LOGO_URL": None,
             "USER_ROLE_LABEL": None,
-            "SCHOOL_MANAGER_LABEL": "مدير المدرسة",
-            "SCHOOL_TEACHER_LABEL": "المعلم",
-            "SCHOOL_TEACHERS_LABEL": "المعلمون",
-            "SCHOOL_TEACHERS_OBJ_LABEL": "المعلمين",
-            "SCHOOL_HEAD_LABEL": "رئيس",
-            "SCHOOL_HEAD_OF_DEPARTMENT_LABEL": "رئيس القسم",
+            **school_gender_template_context(None),
         }
 
     # -----------------------------
@@ -803,7 +797,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         try:
             dismissed_keys = [k for k in (request.COOKIES or {}).keys() if k.startswith("notif_dismissed_")]
             dismissed_keys.sort()
-            dismissed_sig = hashlib.sha1("|".join(dismissed_keys).encode("utf-8")).hexdigest()[:12]
+            dismissed_sig = hashlib.sha256("|".join(dismissed_keys).encode("utf-8")).hexdigest()[:12]
         except Exception:
             dismissed_sig = "nocookies"
 
@@ -839,15 +833,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         except Exception:
             active_school = None
 
-    role_labels = _school_role_labels(active_school)
-    school_manager_label = role_labels["manager"]
-    school_teacher_label = role_labels["teacher"]
-    school_teachers_label = role_labels["teachers"]
-    school_teachers_obj_label = role_labels["teachers_obj"]
-    school_head_label = role_labels["head"]
-    school_head_of_department_label = role_labels["head_of_department"]
-    school_admin_staff_label = role_labels["admin_staff"]
-    school_lab_tech_label = role_labels["lab_tech"]
+    gender_context = school_gender_template_context(active_school)
 
     try:
         ticket_base = Ticket.objects.filter(status__in=UNRESOLVED_STATES)
@@ -1080,14 +1066,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "SCHOOL_LOGO_URL": school_logo,
         "USER_SCHOOLS": user_schools,
         "USER_ROLE_LABEL": user_role_label,
-        "SCHOOL_MANAGER_LABEL": school_manager_label,
-        "SCHOOL_TEACHER_LABEL": school_teacher_label,
-        "SCHOOL_TEACHERS_LABEL": school_teachers_label,
-        "SCHOOL_TEACHERS_OBJ_LABEL": school_teachers_obj_label,
-        "SCHOOL_HEAD_LABEL": school_head_label,
-        "SCHOOL_HEAD_OF_DEPARTMENT_LABEL": school_head_of_department_label,
-        "SCHOOL_ADMIN_STAFF_LABEL": school_admin_staff_label,
-        "SCHOOL_LAB_TECH_LABEL": school_lab_tech_label,
+        **gender_context,
     }
 
     if cache_key and ttl > 0:
@@ -1120,7 +1099,15 @@ def csp(request: HttpRequest) -> Dict[str, Any]:
     The nonce is attached to the request by ContentSecurityPolicyMiddleware.
     """
     try:
-        return {"CSP_NONCE": getattr(request, "csp_nonce", "")}
+        nonce = getattr(request, "csp_nonce", "") or ""
+        if not nonce:
+            # Fallback safety: ensure templates always receive a nonce value
+            # even if middleware ordering or an upstream wrapper skipped setting it.
+            import secrets
+
+            nonce = secrets.token_urlsafe(16)
+            request.csp_nonce = nonce
+        return {"CSP_NONCE": nonce}
     except Exception:
         return {"CSP_NONCE": ""}
 
@@ -1128,12 +1115,52 @@ def csp(request: HttpRequest) -> Dict[str, Any]:
 __all__.append("csp")
 
 
-def seo(request: HttpRequest) -> Dict[str, str]:
-    """Expose one stable public origin for canonical and social URLs."""
+def seo(request: HttpRequest) -> Dict[str, Any]:
+    """Expose canonical URLs and the public business identity."""
     site_url = str(getattr(settings, "SITE_URL", "") or "").strip().rstrip("/")
     if not site_url:
         site_url = request.build_absolute_uri("/").rstrip("/")
-    return {"SITE_URL": site_url}
+    business = {
+        "legal_name": str(getattr(settings, "BUSINESS_LEGAL_NAME", "") or "").strip(),
+        "commercial_registration": str(
+            getattr(settings, "BUSINESS_COMMERCIAL_REGISTRATION", "") or ""
+        ).strip(),
+        "freelance_document_number": str(
+            getattr(settings, "BUSINESS_FREELANCE_DOCUMENT_NUMBER", "") or ""
+        ).strip(),
+        "freelance_activity": str(
+            getattr(settings, "BUSINESS_FREELANCE_ACTIVITY", "") or ""
+        ).strip(),
+        "freelance_document_expiry": str(
+            getattr(settings, "BUSINESS_FREELANCE_DOCUMENT_EXPIRY", "") or ""
+        ).strip(),
+        "freelance_document_url": str(
+            getattr(settings, "BUSINESS_FREELANCE_DOCUMENT_URL", "") or ""
+        ).strip(),
+        "tax_number": str(getattr(settings, "BUSINESS_TAX_NUMBER", "") or "").strip(),
+        "licenses": str(getattr(settings, "BUSINESS_LICENSES", "") or "").strip(),
+        "verification_url": str(
+            getattr(settings, "BUSINESS_VERIFICATION_URL", "") or ""
+        ).strip(),
+        "address": str(getattr(settings, "BUSINESS_ADDRESS", "") or "").strip(),
+        "support_email": str(
+            getattr(settings, "BUSINESS_SUPPORT_EMAIL", "") or ""
+        ).strip(),
+        "support_phone": str(
+            getattr(settings, "BUSINESS_SUPPORT_PHONE", "") or ""
+        ).strip(),
+    }
+    business["disclosure_complete"] = bool(
+        business["legal_name"]
+        and (
+            business["commercial_registration"]
+            or business["freelance_document_number"]
+        )
+        and business["address"]
+        and business["support_email"]
+        and business["support_phone"]
+    )
+    return {"SITE_URL": site_url, "BUSINESS": business}
 
 
 __all__.append("seo")

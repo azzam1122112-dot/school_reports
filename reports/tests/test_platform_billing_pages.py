@@ -93,10 +93,24 @@ class PlatformBillingPagesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "سياسة التسعير المعتمدة")
         self.assertContains(response, "ما يعادل")
-        self.assertContains(response, "وفّر 199 ريال")
+        self.assertContains(response, "وفّر 498 ريال")
         self.assertContains(response, "399 ريال سنوياً")
-        self.assertEqual(response.context["stats"]["active_count"], 7)
+        # Selling is by teacher count, so this page maintains the reference
+        # anchors the calculator interpolates from — not cards the customer sees.
+        self.assertContains(response, "الأسعار المرجعية التي تُغذّي الحاسبة")
+        self.assertContains(response, "يُدخل فيها عدد المعلمين ويختار المدة")
+        self.assertNotContains(response, "هذه هي الباقات نفسها الظاهرة في الصفحة الرئيسية")
+        self.assertEqual(response.context["stats"]["active_count"], 10)
+        self.assertEqual(response.context["stats"]["monthly_count"], 3)
         self.assertEqual(response.context["stats"]["capacity_count"], 3)
+        self.assertEqual(len(response.context["renewal_catalog"]), 3)
+        self.assertEqual(
+            [len(group["options"]) for group in response.context["renewal_catalog"]],
+            [3, 3, 3],
+        )
+        self.assertEqual(len(response.context["other_plans"]), 2)
+        self.assertTrue(any(plan.price == 0 for plan in response.context["other_plans"]))
+        self.assertTrue(any(not plan.is_active for plan in response.context["other_plans"]))
 
     def test_platform_detail_pages_render_decision_blocks(self):
         subscription_response = self.client.get(

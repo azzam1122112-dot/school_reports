@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% load hijri_tags %}
 
-{% block title %}مساحة عمل المعلم{% endblock %}
+{% block title %}مساحة عمل {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}{% endblock %}
 
 {% block head %}
 <style nonce="{{ CSP_NONCE }}">
@@ -451,8 +452,9 @@
   }
   .th-notification-head h2 { margin: 0; font-size: 1.05rem; font-weight: 950; }
   .th-notification-close {
-    width: 38px;
-    height: 38px;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
     border: 1px solid rgba(255, 255, 255, .28);
     border-radius: 11px;
     color: #fff;
@@ -488,7 +490,16 @@
     .th-hero { grid-template-columns: 1fr; }
     .th-hero-side { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
     .th-side-separator { width: 1px; height: 48px; margin: 0 18px; }
-    .th-layout { grid-template-columns: 1fr; }
+    .th-layout {
+      grid-template-columns: minmax(0, 1fr);
+      min-width: 0;
+    }
+    .th-stack,
+    .th-card,
+    .th-card-head {
+      min-width: 0;
+      max-width: 100%;
+    }
   }
 
   @media (max-width: 680px) {
@@ -501,10 +512,22 @@
     .th-kpis { grid-template-columns: 1fr; gap: 9px; }
     .th-kpi { padding: 14px; }
     .th-card { padding: 16px; border-radius: 17px; }
-    .th-card-head { align-items: flex-start; }
+    .th-card-head { align-items: flex-start; flex-wrap: wrap; }
+    .th-link {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
     .th-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .th-mobile-add { display: flex; }
     .th-notification-foot { flex-direction: column; }
+  }
+
+  @media (max-width: 380px) {
+    .teacher-home { padding-inline: 8px; }
+    .th-actions { grid-template-columns: minmax(0, 1fr); }
+    .th-report,
+    .th-ticket { min-width: 0; padding: 12px 10px; gap: 9px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -562,9 +585,9 @@
     <div class="th-hero-main">
       <div class="th-eyebrow">
         <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>
-        مساحة عمل المعلم
+        مساحة عمل {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}
       </div>
-      <h1 class="th-title" id="teacherHomeTitle">مرحبًا، {{ request.user.name|default:"معلمنا" }}</h1>
+      <h1 class="th-title" id="teacherHomeTitle">مرحبًا، {{ request.user.name|default:SCHOOL_TEACHER_LABEL }}</h1>
       <p class="th-lead">وثّق عملك، تابع طلباتك، واحتفظ بإنجازاتك من مكان واحد واضح.</p>
       <div class="th-hero-actions">
         <a href="{% url 'reports:add_report' %}" class="th-btn th-btn-primary">
@@ -632,9 +655,9 @@
                 <span class="th-item-body">
                   <span class="th-item-title">{{ report.title }}</span>
                   <span class="th-item-meta">
-                    <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ report.report_date|date:"Y-m-d" }}</span>
+                    <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ report.report_date|hijri }} هـ</span>
                     {% if report.day_name %}<span>{{ report.day_name }}</span>{% endif %}
-                    <span>{{ report.beneficiaries_count|default:"0" }} مستفيد</span>
+                    <span>{{ report.beneficiaries_count|default:"0" }} {{ SCHOOL_BENEFICIARY_INDEFINITE_LABEL|default:"مستفيد" }}</span>
                   </span>
                 </span>
                 <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>
@@ -786,7 +809,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   document.addEventListener('DOMContentLoaded', function () {
     var overlay = document.getElementById('homeNotification');
     if (!overlay) return;

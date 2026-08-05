@@ -34,24 +34,23 @@
 
 **التغيير**: تم تقسيم worker واحد إلى 4 عمال متخصصين.
 
-### Procfile (قبل → بعد)
+### compose.hetzner.yaml (قبل → بعد)
 ```
 # قبل:
-worker: celery -A config worker ... -Q default,notifications,images,periodic
+worker-core: celery -A config worker ... -Q default,notifications
+worker-media: celery -A config worker ... -Q images,periodic
 
 # بعد:
-worker_default:       ... -Q default        (concurrency=2)
-worker_notifications: ... -Q notifications  (concurrency=2)
-worker_images:        ... -Q images         (concurrency=1)
-worker_periodic:      ... -Q periodic       (concurrency=1)
+worker-core: ... -Q default,notifications (concurrency tuned)
+worker-media: ... -Q images,periodic      (concurrency tuned)
 ```
 
-### render.yaml
+### compose.hetzner.yaml
 - تم استبدال `school-worker` بـ 4 خدمات: `school-worker-default`, `school-worker-notifications`, `school-worker-images`, `school-worker-periodic`
 - كل خدمة لها نفس متغيرات البيئة (ENV, DATABASE_URL, REDIS_URL, R2_*, إلخ)
-- الأمر القديم محفوظ كتعليق في Procfile للتراجع السريع
+- يمكن الرجوع بسهولة بتقليل الخدمات إلى عامل موحّد واحد عند الحاجة
 
-**Rollback**: أعد الخدمة الواحدة في render.yaml + أزل التعليق عن السطر القديم في Procfile.
+**Rollback**: أعد تعريف العامل الواحد في compose.hetzner.yaml وارجع لآخر صورة مستقرة.
 
 ---
 
@@ -155,18 +154,18 @@ worker_periodic:      ... -Q periodic       (concurrency=1)
 ## 8. المرحلة G — أمان النشر
 
 ### healthz محسّن:
-- أُضيف `instance` field يظهر `RENDER_INSTANCE_ID` أو `HOSTNAME` — يميّز النسخ عند التوسع
+- أُضيف `instance` field يظهر `HOSTNAME` — يميّز النسخ عند التوسع
 
 ### ترتيب النشر الآمن:
 1. **انشر العمال أولاً** (worker_default, worker_notifications, worker_images, worker_periodic)
-2. تأكد أن العمال جاهزة (Render health checks)
+2. تأكد أن العمال جاهزة (health checks)
 3. **انشر beat** (إن تغيّر)
 4. **انشر الويب** أخيراً
 5. تأكد من `/healthz/` لكل نسخة ويب
 
 ### التراجع:
-- Render: اضغط "Rollback" على أي خدمة من Dashboard
-- Procfile fallback: أزل التعليق عن السطر القديم `worker:` وعلّق العمال الأربعة
+- Hetzner: ارجع إلى tag الصورة السابقة ثم أعد تشغيل الخدمات
+- بديل التراجع: استخدم تعريف عامل موحّد واحد داخل compose.hetzner.yaml
 
 ---
 
@@ -198,8 +197,8 @@ python manage.py load_test --base-url https://app.tawtheeq-ksa.com --username ad
 
 | الملف | التغيير |
 |-------|---------|
-| `Procfile` | 4 عمال بدل 1 + fallback معلّق |
-| `render.yaml` | 4 خدمات worker بدل 1 |
+| `compose.hetzner.yaml` | تنظيم العمال وفق طوابير مخصصة مع إعدادات rollback واضحة |
+| `compose.hetzner.yaml` | 4 خدمات worker بدل 1 |
 | `reports/tasks.py` | fan-out: dispatcher + per-school subtask |
 | `config/settings.py` | routing للـ subtask + PgBouncer notes + Redis prefix map |
 | `core/views.py` | ops_metrics مع infra stats + healthz instance ID |
@@ -236,7 +235,7 @@ OK
 ## 13. التوصيات القادمة
 
 1. **مراقبة Queue Lengths**: أضف تنبيه عندما يتجاوز أي طابور 100 مهمة لأكثر من 5 دقائق
-2. **Auto-scaling على Render**: فعّل auto-scaling للـ web و worker_default عند زيادة الحمل
+2. **التوسع على Hetzner**: زد نسخ خدمات الويب والعمال تدريجيًا عند زيادة الحمل
 3. **Prometheus/Grafana**: عند الحاجة لمراقبة أعمق، أضف django-prometheus
 4. **Database Indexing**: راجع أداء الاستعلامات الأكثر تكراراً عند تجاوز 500 مدرسة
 5. **Rate Limiting per School**: أضف throttle على مستوى المدرسة لمنع إساءة الاستخدام

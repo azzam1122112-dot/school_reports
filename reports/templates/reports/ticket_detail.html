@@ -333,6 +333,9 @@
   position: absolute; top: 20px; right: 20px;
   color: #fff; font-size: 2rem; cursor: pointer; background: none; border: none;
 }
+
+  /* A pinned light bubble under themed (light) text on the dark theme. */
+  [data-theme="dark"] .note-bubble.is-mine { background: #10263a; border-color: rgba(205, 225, 216, .16); }
 </style>
 {% endblock %}
 
@@ -603,7 +606,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   document.addEventListener('DOMContentLoaded', () => {
     const triggers = document.querySelectorAll('.lightbox-trigger');
     const lightbox = document.getElementById('lightbox');

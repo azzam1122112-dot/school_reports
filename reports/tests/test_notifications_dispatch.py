@@ -124,6 +124,41 @@ class NotificationDispatchTests(TransactionTestCase):
             {self.teachers[0].id, self.teachers[1].id},
         )
 
+    def test_school_manager_notification_combines_departments_and_individuals(self):
+        second_department = Department.objects.create(
+            school=self.school,
+            name="Languages",
+            slug="languages",
+            is_active=True,
+        )
+        DepartmentMembership.objects.create(
+            department=second_department,
+            teacher=self.teachers[2],
+        )
+        form = NotificationCreateForm(
+            data={
+                "title": "Combined recipients",
+                "message": "Departments plus an individual.",
+                "target_department": [
+                    str(self.department.id),
+                    str(second_department.id),
+                ],
+                # Duplicate an existing department member to verify de-duplication.
+                "teachers": [str(self.teachers[0].id)],
+            },
+            user=self.manager,
+            active_school=self.school,
+            mode="notification",
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_data())
+        notification = form.save(creator=self.manager, default_school=self.school)
+
+        self.assertEqual(
+            self._recipient_ids_for(notification),
+            {teacher.id for teacher in self.teachers},
+        )
+
     def test_school_manager_notification_department_without_active_members_is_invalid(self):
         empty_department = Department.objects.create(
             school=self.school,
@@ -166,6 +201,56 @@ class NotificationDispatchTests(TransactionTestCase):
         )
 
         self.assertEqual(self._recipient_ids_for(notification), {self.teachers[1].id})
+
+    def test_school_manager_circular_department_only_dispatches_without_broker(self):
+        form = NotificationCreateForm(
+            data={
+                "title": "Department circular",
+                "message": "Department members.",
+                "target_department": [str(self.department.id)],
+            },
+            user=self.manager,
+            active_school=self.school,
+            mode="circular",
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_data())
+        notification = form.save(
+            creator=self.manager,
+            default_school=self.school,
+            force_requires_signature=True,
+        )
+
+        self.assertEqual(
+            self._recipient_ids_for(notification),
+            {self.teachers[0].id, self.teachers[1].id},
+        )
+
+    def test_school_manager_circular_department_and_individual_dispatches_without_broker(self):
+        form = NotificationCreateForm(
+            data={
+                "title": "Department circular",
+                "message": "Department members plus an individual.",
+                "target_department": [str(self.department.id)],
+                # Teacher 0 is already in the department; teacher 2 is an addition.
+                "teachers": [str(self.teachers[0].id), str(self.teachers[2].id)],
+            },
+            user=self.manager,
+            active_school=self.school,
+            mode="circular",
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_data())
+        notification = form.save(
+            creator=self.manager,
+            default_school=self.school,
+            force_requires_signature=True,
+        )
+
+        self.assertEqual(
+            self._recipient_ids_for(notification),
+            {teacher.id for teacher in self.teachers},
+        )
 
     def test_school_manager_circular_requires_explicit_recipients(self):
         form = NotificationCreateForm(

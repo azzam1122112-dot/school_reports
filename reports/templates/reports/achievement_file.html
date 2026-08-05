@@ -813,6 +813,62 @@
     background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important;
     box-shadow:0 10px 22px -12px rgba(10,92,51,.6) !important;
   }
+
+  /* Professional document workspace */
+  .af-wrap { max-width: 1180px; margin: 0 auto; padding: 32px 24px 60px; }
+  .af-wrap * { letter-spacing: 0; }
+  .af-wrap .af-card { border: 0 !important; box-shadow: none !important; background: transparent; overflow: visible; }
+  .af-wrap .af-hero {
+    min-height: 158px;
+    border-radius: 8px !important;
+    padding: 30px 34px !important;
+    background:
+      linear-gradient(115deg, rgba(181,138,70,.2), transparent 38%),
+      linear-gradient(135deg,#075b36,#043d25) !important;
+  }
+  .af-wrap .af-hero::before { display: none; }
+  .af-wrap .af-hero::after { width: 5px; height: 100%; right: auto; left: 0; background: #b58a46; }
+  .af-wrap .af-ministry-logo { width: 72px; height: 72px; border-radius: 6px; }
+  .af-hero-info h1 { font-size: 1.75rem; letter-spacing: 0; }
+  .af-kicker { display: block; margin-bottom: 7px; color: #f0d7a9; font-size: .8rem; font-weight: 800; }
+  .af-wrap .af-year-badge { border-radius: 6px !important; box-shadow: none; }
+  .af-status-bar { padding: 14px 0; border-bottom: 1px solid #dce4df; background: transparent; }
+  .af-status-pill { border-radius: 5px; padding: 8px 12px; border-width: 1px; }
+  .af-status-pill:hover { transform: none; }
+  .af-btn { height: 42px; padding: 0 16px; border-radius: 6px; border-width: 1px; }
+  .af-btn:hover { transform: translateY(-1px); }
+  .af-quick-nav { display: flex; gap: 8px; overflow-x: auto; padding: 16px 0 4px; scrollbar-width: none; }
+  .af-quick-nav::-webkit-scrollbar { display: none; }
+  .af-quick-nav a { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; min-height: 38px; padding: 0 13px; border: 1px solid #dce4df; border-radius: 5px; color: #425149; background: #fff; text-decoration: none; font-size: .88rem; font-weight: 750; }
+  .af-quick-nav a:hover { color: #075b36; border-color: #075b36; background: #edf7f1; }
+  .af-body { padding: 8px 0 0; background: transparent; }
+  h2.af-section-title { font-size: 1.2rem; margin: 34px 0 14px; }
+  h2.af-section-title::before { width: 4px; height: 24px; border-radius: 2px; background: #b58a46; box-shadow: none; }
+  .af-grid { gap: 16px; padding: 22px; border-radius: 8px; border-width: 1px; box-shadow: none; }
+  .af-form input, .af-form select, .af-form textarea, .af-muted { border-radius: 6px; border-width: 1px; padding: 12px 14px; }
+  .af-label { text-transform: none; letter-spacing: 0; }
+  .af-details { border-radius: 8px; border-width: 1px; margin-bottom: 12px; }
+  .af-details[open] { box-shadow: 0 15px 30px -28px rgba(7,91,54,.85); }
+  .af-summary { padding: 17px 20px; }
+  .af-sec-body { padding: 22px; border-top-width: 1px; }
+  .af-imgbox, .af-evr-item, .af-comment-box, .af-note { border-radius: 8px; border-width: 1px; box-shadow: none; }
+  .af-imgbox:hover, .af-evr-item:hover { transform: translateY(-2px); }
+  .af-badge { border-radius: 5px; border-width: 1px; }
+  html[data-theme="dark"] .af-body { background: transparent; }
+  @media(max-width: 768px) {
+    .af-wrap { padding: 18px 14px 44px; }
+    .af-wrap .af-hero { min-height: 0; padding: 24px 20px !important; text-align: right; align-items: flex-start; }
+    .af-hero-start { flex-direction: row; gap: 14px; align-items: center; }
+    .af-wrap .af-ministry-logo { width: 58px; height: 58px; }
+    .af-hero-info h1 { font-size: 1.35rem; }
+    .af-hero-info .sub-info { justify-content: flex-start; }
+    .af-status-bar { align-items: stretch; text-align: right; padding: 12px 0; }
+    .af-status-bar > div:first-child { justify-content: flex-start; gap: 8px !important; }
+    .af-actions { justify-content: stretch; gap: 8px; }
+    .af-actions .af-btn { flex: 1 1 auto; }
+    .af-grid, .af-sec-body { padding: 16px; }
+    .af-summary { align-items: flex-start; gap: 10px; }
+  }
 </style>
 {% endblock %}
 
@@ -823,8 +879,9 @@
     <!-- Modern Header -->
     <header class="af-hero" aria-label="رأس الملف">
       <div class="af-hero-start">
-        <img class="af-ministry-logo" src="{% static 'img/logo1.png' %}" alt="شعار">
+        <img class="af-ministry-logo" src="{% static 'img/brand-mark.svg' %}" alt="شعار منصة توثيق">
         <div class="af-hero-info">
+          <span class="af-kicker">ملف الإنجاز المهني</span>
           <h1>{{ file.school_name }}</h1>
           <div class="sub-info">
             <i class="fa-solid fa-user-tie"></i>
@@ -877,14 +934,19 @@
     </div>
 
     <div class="af-body">
+      <nav class="af-quick-nav" aria-label="التنقل داخل ملف الإنجاز">
+        <a href="#generalData"><i class="fa-solid fa-address-card" aria-hidden="true"></i> البيانات العامة</a>
+        <a href="#evidenceSections"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> المحاور والشواهد</a>
+        {% if show_private_comments %}<a href="#privateComments"><i class="fa-solid fa-lock" aria-hidden="true"></i> التعليقات الخاصة</a>{% endif %}
+      </nav>
       
       {% if file.manager_notes %}
-        <div class="af-note">ملاحظات المدير: {{ file.manager_notes|linebreaksbr }}</div>
+        <div class="af-note">ملاحظات {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}: {{ file.manager_notes|linebreaksbr }}</div>
       {% endif %}
 
       <!-- Private Comments -->
       {% if show_private_comments %}
-        <h2 class="af-section-title">تعليقات خاصة (تظهر لك فقط)</h2>
+        <h2 class="af-section-title" id="privateComments">تعليقات خاصة (تظهر لك فقط)</h2>
 
         {% if can_add_private_comment %}
           <form class="af-form" method="post" autocomplete="off" style="margin-bottom:24px;">
@@ -951,7 +1013,7 @@
       {% endif %}
 
       <!-- General Data -->
-      <h2 class="af-section-title">البيانات العامة</h2>
+      <h2 class="af-section-title" id="generalData">البيانات العامة</h2>
 
       {% if can_edit_teacher %}
         <form class="af-form" method="post" autocomplete="off">
@@ -1013,7 +1075,7 @@
         <form class="af-form" method="post" autocomplete="off" class="af-card" style="padding:24px; box-shadow:none; border:2px dashed var(--brand); background:var(--brand-light);">
           {% csrf_token %}
           <div>
-            <label class="af-label">ملاحظات المدير</label>
+            <label class="af-label">ملاحظات {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}</label>
             {{ manager_notes_form.manager_notes }}
           </div>
           <div class="af-actions" style="margin-top:16px">
@@ -1028,7 +1090,7 @@
       {% endif %}
 
       <!-- Sections -->
-      <h2 class="af-section-title">المحاور والشواهد</h2>
+      <h2 class="af-section-title" id="evidenceSections">المحاور والشواهد</h2>
 
       <div class="af-sections">
         {% for s in sections %}
@@ -1223,7 +1285,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function(){
     var modal = document.getElementById('afImgModal');
     var closeBtn = document.getElementById('afImgClose');

@@ -9,10 +9,23 @@ urlpatterns = [
     # الدخول والخروج
     # =========================
     path("", views.platform_landing, name="landing"),
+    path("assistant/mansour/", views.mansour_assistant_reply, name="mansour_assistant_reply"),
     path("guide/", views.user_guide, name="user_guide"),
     path("guide/download/", views.user_guide_download, name="user_guide_download"),
     path("guide/download/pdf/", views.user_guide_download_pdf, name="user_guide_download_pdf"),
     path("login/", views.login_view, name="login"),
+    path("password-reset/", views.AccountPasswordResetView.as_view(), name="password_reset"),
+    path("password-reset/done/", views.AccountPasswordResetDoneView.as_view(), name="password_reset_done"),
+    path(
+        "password-reset/confirm/<uidb64>/<token>/",
+        views.AccountPasswordResetConfirmView.as_view(),
+        name="password_reset_confirm",
+    ),
+    path(
+        "password-reset/complete/",
+        views.AccountPasswordResetCompleteView.as_view(),
+        name="password_reset_complete",
+    ),
     path("platform-login/", views.login_view, {"admin_only": True}, name="platform_login"),
     path("login/passkey/options/", views.passkey_login_options, name="passkey_login_options"),
     path("login/passkey/verify/", views.passkey_login_verify, name="passkey_login_verify"),
@@ -33,6 +46,7 @@ urlpatterns = [
     # التقارير (للمعلّم)
     # =========================
     path("reports/add/", views.add_report, name="add_report"),
+    path("reports/ai/improve/", views.improve_report_text, name="improve_report_text"),
     path("reports/my/", views.my_reports, name="my_reports"),
     path("reports/<int:pk>/edit/", views.edit_my_report, name="edit_my_report"),
     path("reports/<int:pk>/delete/", views.delete_my_report, name="delete_my_report"),
@@ -51,6 +65,7 @@ urlpatterns = [
     path("archive/", views.school_archive, name="school_archive"),
     path("archive/create/", views.school_archive_create, name="school_archive_create"),
     path("archive/download/<int:pk>/", views.school_archive_download, name="school_archive_download"),
+    path("archive/delete/<int:pk>/", views.school_archive_delete, name="school_archive_delete"),
     path("archive/export/", views.school_archive_export, name="school_archive_export"),
 
     # =========================
@@ -70,6 +85,12 @@ urlpatterns = [
     path("achievement/<int:pk>/print/", views.achievement_file_print, name="achievement_file_print"),
     path("achievement/<int:pk>/pdf/", views.achievement_file_pdf, name="achievement_file_pdf"),
     path("achievement/<int:pk>/report-picker/", views.achievement_report_picker, name="achievement_report_picker"),
+
+    # ملف الأداء القيادي لمدير/مديرة المدرسة
+    path("leadership-portfolio/", views.leadership_portfolio_list, name="leadership_portfolio_list"),
+    path("leadership-portfolio/<int:pk>/", views.leadership_portfolio_detail, name="leadership_portfolio_detail"),
+    path("leadership-portfolio/<int:pk>/print/", views.leadership_portfolio_print, name="leadership_portfolio_print"),
+    path("leadership-portfolio/<int:pk>/pdf/", views.leadership_portfolio_pdf, name="leadership_portfolio_pdf"),
 
     # مشاركة ملف الإنجاز (اختياري للمعلم)
     path("achievement/<int:pk>/share/", views.achievement_share_manage, name="achievement_share_manage"),
@@ -125,6 +146,13 @@ urlpatterns = [
     path("staff/schools/managers/<int:pk>/delete/", views.school_manager_delete, name="school_manager_delete"),
     path("staff/schools/managers/add/", views.school_manager_create, name="school_manager_create"),
     path("staff/schools/<int:pk>/managers/", views.school_managers_manage, name="school_managers_manage"),
+    path("staff/schools/request-addition/", views.school_addition_requests, name="school_addition_requests"),
+    path("platform/school-addition-requests/", views.platform_school_addition_requests, name="platform_school_addition_requests"),
+    path(
+        "platform/school-addition-requests/<int:pk>/review/",
+        views.platform_school_addition_request_review,
+        name="platform_school_addition_request_review",
+    ),
     path("platform/audit-logs/", views.platform_audit_logs, name="platform_audit_logs"),
     path("platform-dashboard/", views.platform_admin_dashboard, name="platform_admin_dashboard"),
 
@@ -156,15 +184,6 @@ urlpatterns = [
     path("staff/report-types/add/", views.reporttype_create, name="reporttype_create"),
     path("staff/report-types/<int:pk>/edit/", views.reporttype_update, name="reporttype_update"),
     path("staff/report-types/<int:pk>/delete/", views.reporttype_delete, name="reporttype_delete"),
-
-    # =========================
-    # قوالب التقارير الجاهزة (مدير المدرسة)
-    # =========================
-    path("staff/report-templates/", views.report_templates_list, name="report_templates_list"),
-    path("staff/report-templates/add/", views.report_template_create, name="report_template_create"),
-    path("staff/report-templates/<int:pk>/edit/", views.report_template_update, name="report_template_update"),
-    path("staff/report-templates/<int:pk>/delete/", views.report_template_delete, name="report_template_delete"),
-    path("api/report-templates/", views.api_report_templates, name="api_report_templates"),
 
     # =========================
     # تصدير بيانات المدرسة (مدير المدرسة)
@@ -276,12 +295,32 @@ urlpatterns = [
     path("subscription/my/", views.my_subscription, name="my_subscription"),
     path("subscription/history/", views.subscription_history, name="subscription_history"),
     path("subscription/payment/create/", views.payment_create, name="payment_create"),
+    path("subscription/payment/moyasar/", views.moyasar_checkout_create, name="moyasar_checkout_create"),
+    path(
+        "subscription/payment/moyasar/return/<str:batch_ref>/",
+        views.moyasar_return,
+        name="moyasar_return",
+    ),
+    path(
+        "payments/moyasar/callback/<str:batch_ref>/",
+        views.moyasar_callback,
+        name="moyasar_callback",
+    ),
+    path("subscription/payment/tamara/", views.tamara_checkout_create, name="tamara_checkout_create"),
+    path(
+        "subscription/payment/tamara/<int:payment_id>/cancel/",
+        views.tamara_checkout_cancel,
+        name="tamara_checkout_cancel",
+    ),
+    path("subscription/payment/tamara/return/<str:result>/", views.tamara_return, name="tamara_return"),
+    path("payments/tamara/webhook/", views.tamara_webhook, name="tamara_webhook"),
 
     # =========================
     # إدارة المنصة (Custom Views)
     # =========================
     path("platform/subscriptions/", views.platform_subscriptions_list, name="platform_subscriptions_list"),
     path("platform/settings/", views.platform_settings, name="platform_settings"),
+    path("platform/mansour-content/", views.platform_mansour_content, name="platform_mansour_content"),
     path("platform/academic-years/", views.platform_academic_years, name="platform_academic_years"),
     path("platform/subscriptions/add/", views.platform_subscription_form, name="platform_subscription_add"),
     path("platform/subscriptions/<int:pk>/", views.platform_subscription_detail, name="platform_subscription_detail"),
@@ -292,6 +331,7 @@ urlpatterns = [
         name="platform_subscription_record_payment",
     ),
     path("platform/subscriptions/<int:pk>/delete/", views.platform_subscription_delete, name="platform_subscription_delete"),
+    path("platform/pricing/", views.platform_pricing_matrix, name="platform_pricing_matrix"),
     path("platform/plans/", views.platform_plans_list, name="platform_plans_list"),
     path("platform/plans/add/", views.platform_plan_form, name="platform_plan_add"),
     path("platform/plans/<int:pk>/edit/", views.platform_plan_form, name="platform_plan_edit"),
@@ -299,6 +339,16 @@ urlpatterns = [
     path("platform/payments/", views.platform_payments_list, name="platform_payments_list"),
     path("platform/payments/<int:pk>/", views.platform_payment_detail, name="platform_payment_detail"),
     path("platform/tickets/", views.platform_tickets_list, name="platform_tickets_list"),
+    path(
+        "platform/complaints/",
+        views.platform_complaints_list,
+        name="platform_complaints_list",
+    ),
+    path(
+        "platform/complaints/<int:pk>/",
+        views.platform_complaint_detail,
+        name="platform_complaint_detail",
+    ),
     path("platform/archive-addons/", views.platform_archive_addons_list, name="platform_archive_addons_list"),
     path("platform/archive-addons/add/", views.platform_archive_addon_form, name="platform_archive_addon_add"),
     path("platform/archive-addons/<int:pk>/edit/", views.platform_archive_addon_form, name="platform_archive_addon_edit"),
@@ -309,4 +359,12 @@ urlpatterns = [
     # =========================
     path("faq/", views.faq, name="faq"),
     path("privacy/", views.privacy_policy, name="privacy_policy"),
+    path("terms/", views.terms_conditions, name="terms_conditions"),
+    path("refund-policy/", views.refund_policy, name="refund_policy"),
+    path(
+        "service-delivery/",
+        views.service_delivery_policy,
+        name="service_delivery_policy",
+    ),
+    path("complaints/", views.complaints_policy, name="complaints_policy"),
 ]

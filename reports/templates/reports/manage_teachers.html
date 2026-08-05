@@ -232,7 +232,7 @@
       {% else %}
         <div class="empty-state">
           <div class="empty-icon"><i class="fas fa-users-slash"></i></div>
-          <h3>لا يوجد {{ SCHOOL_TEACHERS_LABEL|default:"معلمون" }}</h3>
+          <h3>لا توجد حسابات للكادر التعليمي</h3>
           <p>لم يتم العثور على نتائج{% if term %} لبحثك عن "<strong>{{ term }}</strong>"{% endif %}</p>
           <a href="{% url 'reports:bulk_import_teachers' %}" class="btn btn-primary">
             <i class="fas fa-users-plus"></i> إضافة منسوبي المدرسة
@@ -545,7 +545,7 @@
     .admin-scope .filter-actions .btn{flex:1}
   }
 </style>
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   document.querySelectorAll(".teacher-delete-form").forEach(function (form) {
     form.addEventListener("submit", function (event) {
       const confirmed = window.confirm("هل أنت متأكد من حذف هذا {{ SCHOOL_TEACHER_LABEL|default:'المعلم'|escapejs }}؟");

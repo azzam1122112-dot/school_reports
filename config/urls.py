@@ -5,7 +5,10 @@ from django.conf import settings
 from django.conf.urls.static import static as serve_static
 from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
+from datetime import timedelta, timezone as dt_timezone
+
 from django.http import HttpResponse
+from django.utils import timezone
 from django.utils.html import escape
 from django.views.decorators.cache import cache_control
 from django.views.generic.base import RedirectView
@@ -33,7 +36,11 @@ def service_worker(request):
         return HttpResponse("Service worker not found.", status=404, content_type="text/plain")
 
     response = HttpResponse(content, content_type="application/javascript")
-    response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    # Keep intermediary/CDN caches from pinning an old worker after deployment.
+    response["CDN-Cache-Control"] = "no-store"
+    response["Cloudflare-CDN-Cache-Control"] = "no-store"
+    response["Service-Worker-Allowed"] = "/"
     return response
 
 
@@ -68,8 +75,11 @@ def security_txt(request):
         .replace("\n", "")
         .strip()
     )
+    # RFC 9116 يوجب حقل Expires، ويوصي بمدة أقل من سنة.
+    expires = (timezone.now() + timedelta(days=180)).astimezone(dt_timezone.utc).replace(microsecond=0)
     content = "\n".join([
         f"Contact: mailto:{contact_email}",
+        f"Expires: {expires.strftime('%Y-%m-%dT%H:%M:%SZ')}",
         f"Canonical: {base}/.well-known/security.txt",
         f"Policy: {request.build_absolute_uri(reverse('reports:privacy_policy'))}",
         "Preferred-Languages: ar, en",
@@ -86,6 +96,10 @@ def sitemap_xml(request):
         ("reports:faq", "monthly", "0.8"),
         ("reports:user_guide", "monthly", "0.8"),
         ("reports:privacy_policy", "yearly", "0.3"),
+        ("reports:terms_conditions", "yearly", "0.3"),
+        ("reports:refund_policy", "yearly", "0.3"),
+        ("reports:service_delivery_policy", "yearly", "0.3"),
+        ("reports:complaints_policy", "yearly", "0.4"),
     )
     base = _public_site_url(request)
     body = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
@@ -121,48 +135,48 @@ urlpatterns = [
     ),
     path(
         "touch-icon-iphone.png",
-        RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
+        RedirectView.as_view(url="/static/img/pwa/apple-touch-icon-180.png", permanent=False),
     ),
     # iOS Safari may request these from site root regardless of <link rel="apple-touch-icon">.
     path(
         "apple-touch-icon.png",
-        RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
+        RedirectView.as_view(url="/static/img/pwa/apple-touch-icon-180.png", permanent=False),
     ),
     path(
         "apple-touch-icon-precomposed.png",
-        RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
+        RedirectView.as_view(url="/static/img/pwa/apple-touch-icon-180.png", permanent=False),
     ),
     path(
         "apple-touch-icon-120x120.png",
-        RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
+        RedirectView.as_view(url="/static/img/pwa/apple-touch-icon-180.png", permanent=False),
     ),
     path(
         "apple-touch-icon-120x120-precomposed.png",
-        RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
+        RedirectView.as_view(url="/static/img/pwa/apple-touch-icon-180.png", permanent=False),
     ),
     path(
         "apple-touch-icon-152x152.png",
-        RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
+        RedirectView.as_view(url="/static/img/pwa/apple-touch-icon-180.png", permanent=False),
     ),
     path(
         "apple-touch-icon-152x152-precomposed.png",
-        RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
+        RedirectView.as_view(url="/static/img/pwa/apple-touch-icon-180.png", permanent=False),
     ),
     path(
         "apple-touch-icon-167x167.png",
-        RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
+        RedirectView.as_view(url="/static/img/pwa/apple-touch-icon-180.png", permanent=False),
     ),
     path(
         "apple-touch-icon-167x167-precomposed.png",
-        RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
+        RedirectView.as_view(url="/static/img/pwa/apple-touch-icon-180.png", permanent=False),
     ),
     path(
         "apple-touch-icon-180x180.png",
-        RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
+        RedirectView.as_view(url="/static/img/pwa/apple-touch-icon-180.png", permanent=False),
     ),
     path(
         "apple-touch-icon-180x180-precomposed.png",
-        RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
+        RedirectView.as_view(url="/static/img/pwa/apple-touch-icon-180.png", permanent=False),
     ),
     path("robots.txt", robots_txt),
     path("sitemap.xml", sitemap_xml, name="sitemap_xml"),

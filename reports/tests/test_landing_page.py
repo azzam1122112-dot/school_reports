@@ -25,6 +25,8 @@ class LandingPageTests(TestCase):
         self.assertContains(response, "التعاميم")
         self.assertContains(response, "الأرشيف")
         self.assertContains(response, "ابدأ تجربة مجانية 21 يوم")
+        self.assertContains(response, "من تسجيل المدرسة إلى أول عمل موثّق")
+        self.assertContains(response, "لكل مدرسة بياناتها وتجربتها وباقتها ودفعها المستقل")
         self.assertContains(response, reverse("reports:register_school"))
         self.assertContains(response, "img/landing/dashboard-system.png")
         self.assertContains(response, "img/landing/tickets-system.png")
@@ -36,6 +38,30 @@ class LandingPageTests(TestCase):
         self.assertNotContains(response, "+500K")
         self.assertNotContains(response, "100% رضا")
 
+    def test_landing_answers_the_whatsapp_and_drive_objection(self):
+        response = self.client.get(reverse("reports:landing"))
+        html = response.content.decode("utf-8")
+
+        self.assertContains(response, 'id="compare"')
+        self.assertContains(response, "قروبات واتساب ومجلدات درايف")
+        # Each contrast row must be paired, otherwise the two columns misalign.
+        self.assertEqual(
+            html.count("compare-cell compare-before"),
+            html.count("compare-cell compare-after"),
+        )
+        self.assertGreaterEqual(html.count("compare-cell compare-before"), 4)
+        # The claim must stay an invitation to verify, never an invented statistic.
+        self.assertContains(response, "جرّبه على أعمال أسبوع واحد")
+
+    def test_landing_backs_each_feature_headline_with_concrete_capabilities(self):
+        response = self.client.get(reverse("reports:landing"))
+        html = response.content.decode("utf-8")
+
+        self.assertEqual(html.count('class="feature-proof"'), 6)
+        self.assertContains(response, "PDF بهوية المدرسة")
+        self.assertContains(response, "بصمة تحقق SHA-256")
+        self.assertContains(response, "سجل اطلاع وتوقيع")
+
     def test_landing_has_accessible_navigation_and_single_main_heading(self):
         response = self.client.get(reverse("reports:landing"))
         html = response.content.decode("utf-8")
@@ -44,12 +70,60 @@ class LandingPageTests(TestCase):
         self.assertIn('href="#mainContent"', html)
         self.assertIn('aria-controls="mobileMenu"', html)
         self.assertIn('aria-expanded="false"', html)
+        self.assertIn(
+            'id="mobileMenu" role="dialog" aria-modal="true"',
+            html,
+        )
+        self.assertLess(
+            html.index("</header>"),
+            html.index('id="mobileMenu"'),
+            "The fixed mobile menu must stay outside the blurred sticky header.",
+        )
         self.assertIn('id="security"', html)
-        self.assertNotIn('href="/terms/', html)
+        self.assertIn(f'href="{reverse("reports:terms_conditions")}"', html)
+        self.assertIn(f'href="{reverse("reports:refund_policy")}"', html)
+        self.assertIn("التسعير حسب عدد المعلمين", html)
+        self.assertNotIn("هوية مقدم الخدمة", html)
+        self.assertNotIn('href="#business"', html)
         self.assertIn('<span>دخول</span>', html)
         self.assertIn('src="/static/js/landing.js"', html)
         self.assertNotIn("var periodButtons", html)
         self.assertIn("no-store", response.headers["Cache-Control"])
+        self.assertEqual(response.headers["CDN-Cache-Control"], "no-store")
+        self.assertEqual(
+            response.headers["Cloudflare-CDN-Cache-Control"],
+            "no-store",
+        )
+
+    def test_landing_shows_compact_payment_methods_in_the_footer(self):
+        response = self.client.get(reverse("reports:landing"))
+        html = response.content.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "اختر وسيلة الدفع الأنسب لمدرستك")
+        self.assertNotContains(response, 'class="payment-options reveal"')
+        self.assertContains(response, 'class="footer-payments"')
+        self.assertContains(response, 'aria-label="وسائل الدفع المدعومة"')
+        self.assertNotContains(response, "img/moyasar-icon-official.png")
+        self.assertNotContains(response, 'aria-label="يونيون باي"')
+        self.assertNotContains(response, "UnionPay")
+        self.assertContains(response, "img/tamara-wordmark-gradient-ar.png")
+        self.assertContains(response, 'alt="تمارا"')
+        for payment_label in (
+            "مدى",
+            "فيزا",
+            "ماستركارد",
+            "أمريكان إكسبريس",
+            "Apple Pay",
+            "Google Pay",
+            "Samsung Pay",
+            "STC Pay",
+            "تمارا",
+        ):
+            self.assertContains(response, f'aria-label="{payment_label}"')
+        self.assertContains(response, "تظهر الوسائل المفعّلة والمتاحة عند إتمام الدفع")
+        self.assertGreater(html.index('class="footer-payments"'), html.index("<footer"))
+        self.assertLess(html.index('class="footer-payments"'), html.index('class="footer-bottom"'))
 
     def test_landing_exposes_complete_canonical_and_social_metadata(self):
         response = self.client.get(reverse("reports:landing"))
@@ -77,6 +151,54 @@ class LandingPageTests(TestCase):
         self.assertEqual(len(schemas), 1)
         self.assertIsInstance(json.loads(schemas[0]), dict)
 
+    @override_settings(CSP_ENABLED=True, CSP_REPORT_ONLY=False)
+    def test_landing_embeds_official_sbc_verification_seal(self):
+        response = self.client.get(reverse("reports:landing"))
+        html = response.content.decode("utf-8")
+        seal_origin = "https://eauthenticate.saudibusiness.gov.sa"
+
+        self.assertContains(response, 'class="sbc-verify-seal"')
+        self.assertContains(
+            response,
+            'data-token="SUdjMEt0WXNwNW5IREVVeUNxajRkUT09"',
+        )
+        self.assertNotContains(response, 'data-position="bottom-right"')
+        self.assertContains(response, 'class="footer-verification"')
+        self.assertContains(response, "توثيق رسمي")
+        self.assertGreater(html.index('class="sbc-verify-seal"'), html.index("<footer"))
+        self.assertLess(
+            html.index('class="sbc-verify-seal"'),
+            html.index("</footer>"),
+        )
+        self.assertRegex(
+            html,
+            (
+                r'<script\b[^>]*\bnonce="[^"]+"[^>]*'
+                r'src="https://eauthenticate\.saudibusiness\.gov\.sa/'
+                r'EAuthSealApi/seal\.js"[^>]*\basync\b[^>]*></script>'
+            ),
+        )
+
+        policy = response.headers["Content-Security-Policy"]
+        self.assertIn(seal_origin, policy)
+        self.assertIn(f"frame-src 'self' {seal_origin}", policy)
+        self.assertIn(
+            (
+                "script-src 'self' "
+                f"'nonce-{response.context['CSP_NONCE']}' "
+                f"https://cdn.jsdelivr.net {seal_origin}"
+            ),
+            policy,
+        )
+        self.assertIn(
+            (
+                "script-src-elem 'self' "
+                f"'nonce-{response.context['CSP_NONCE']}' "
+                f"https://cdn.jsdelivr.net {seal_origin}"
+            ),
+            policy,
+        )
+
     def test_private_pages_send_noindex_header(self):
         response = self.client.get(reverse("reports:login"))
 
@@ -90,6 +212,10 @@ class LandingPageTests(TestCase):
         for route_name in (
             "reports:faq",
             "reports:privacy_policy",
+            "reports:terms_conditions",
+            "reports:refund_policy",
+            "reports:service_delivery_policy",
+            "reports:complaints_policy",
             "reports:user_guide",
         ):
             response = self.client.get(reverse(route_name))
@@ -106,13 +232,42 @@ class LandingPageTests(TestCase):
         self.assertIsNotNone(faq_schema)
         self.assertEqual(json.loads(faq_schema.group(1))["@type"], "FAQPage")
 
-    def test_active_plans_drive_the_pricing_cards_and_period_switch(self):
+    def test_faq_interactions_are_csp_safe_and_keyboard_accessible(self):
+        response = self.client.get(reverse("reports:faq"))
+        html = response.content.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotRegex(html, r"\son(?:click|keyup)=")
+        self.assertEqual(
+            html.count(
+                'class="faq-question" role="button" tabindex="0" '
+                'aria-expanded="false"'
+            ),
+            22,
+        )
+        self.assertIn(
+            "question.addEventListener('click', () => toggleFAQ(question))",
+            html,
+        )
+        self.assertIn(
+            "document.getElementById('faqSearch').addEventListener('input', searchFAQ)",
+            html,
+        )
+
+    def test_published_plans_drive_the_teacher_count_calculator(self):
         SubscriptionPlan.objects.create(
             name="تجربة المدرسة",
             price=0,
             days_duration=21,
             max_teachers=5,
             description="تشغيل كامل للتجربة\nدعم البدء",
+        )
+        SubscriptionPlan.objects.create(
+            name="مدرسة متوسطة شهري",
+            price=229,
+            days_duration=30,
+            max_teachers=50,
+            description="تقارير غير محدودة\nملفات إنجاز",
         )
         SubscriptionPlan.objects.create(
             name="مدرسة متوسطة",
@@ -132,13 +287,28 @@ class LandingPageTests(TestCase):
         response = self.client.get(reverse("reports:landing"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context["pricing_cards"]), 1)
+
+        # Selling is by teacher count: the calculator is the only purchase path,
+        # and the three durations are chosen inside it.
+        self.assertTrue(response.context["flexible_pricing_catalog"])
+        self.assertContains(response, "data-flex-teacher-count")
+        self.assertContains(response, 'data-period="1m"')
         self.assertContains(response, 'data-period="6m"')
         self.assertContains(response, 'data-period="1y"')
-        self.assertContains(response, "650")
-        self.assertContains(response, "1,250")
-        self.assertContains(response, "حتى 50 معلماً")
+
+        # No package cards beside it — the visitor must not be asked to choose twice.
+        html = response.content.decode("utf-8")
+        self.assertNotIn("price-card paid-card", html)
+        self.assertIn("pricing-grid--trial-only", html)
+        # The free trial stays: it is the entry point, not a package.
+        self.assertContains(response, "التجربة المجانية")
         self.assertContains(response, "تشغيل كامل للتجربة")
+        self.assertNotContains(response, "مجموعة مدارس")
+        self.assertContains(response, "توسعة سعة المعلمين")
+        self.assertContains(response, "كل اشتراك ودفع يخص مدرسة واحدة")
+        self.assertNotContains(response, "اشتراك مجمع")
+        self.assertNotContains(response, "اشتراك موحد")
+        self.assertNotContains(response, "باقة المجموعة")
 
     def test_inactive_plans_are_not_advertised(self):
         SubscriptionPlan.objects.create(
@@ -153,3 +323,18 @@ class LandingPageTests(TestCase):
 
         self.assertNotContains(response, "باقة قديمة لا تظهر")
         self.assertEqual(response.context["pricing_cards"], [])
+
+    def test_landing_leaks_no_template_syntax_to_the_visitor(self):
+        """A ``{# #}`` comment spanning two lines is printed, not stripped."""
+        html = self.client.get(reverse("reports:landing")).content.decode("utf-8")
+
+        # الصفحة تضمّن JSON مصغّراً (json_script وJSON-LD)، و``}}`` يظهر فيه
+        # مشروعاً عند تداخل الكائنات — فالفحص على محدّدات القوالب وحدها.
+        for token in ("{#", "#}", "{%", "%}"):
+            self.assertNotIn(token, html, f"صيغة قالب ظاهرة للزائر: {token}")
+
+    def test_landing_hides_the_floating_theme_toggle(self):
+        """The marketing page must not put a floating button over its CTAs."""
+        response = self.client.get(reverse("reports:landing"))
+
+        self.assertContains(response, 'data-theme-toggle="off"')

@@ -50,6 +50,18 @@ class PasskeyEndpointTests(TestCase):
             payload["publicKey"]["authenticatorSelection"]["userVerification"],
             "required",
         )
+        self.assertEqual(
+            payload["publicKey"]["authenticatorSelection"]["residentKey"],
+            "preferred",
+        )
+        self.assertFalse(
+            payload["publicKey"]["authenticatorSelection"]["requireResidentKey"],
+        )
+        self.assertEqual(payload["publicKey"]["timeout"], 120000)
+        self.assertNotIn(
+            "authenticatorAttachment",
+            payload["publicKey"]["authenticatorSelection"],
+        )
 
     def test_password_login_offers_optional_passkey_enrollment(self):
         user = Teacher.objects.create_user(
@@ -71,6 +83,9 @@ class PasskeyEndpointTests(TestCase):
         self.assertContains(profile_response, "تفعيل الآن")
         self.assertContains(profile_response, "ليس الآن")
         self.assertContains(profile_response, "لا تُرسل إلى المنصة")
+        self.assertContains(profile_response, "isUserVerifyingPlatformAuthenticatorAvailable")
+        self.assertContains(profile_response, "InvalidStateError")
+        self.assertContains(profile_response, "NotSupportedError")
 
     def test_password_login_does_not_prompt_user_with_active_passkey(self):
         response = self.client.post(
@@ -82,6 +97,13 @@ class PasskeyEndpointTests(TestCase):
         self.assertNotIn(PASSKEY_ENROLL_PROMPT_SESSION_KEY, self.client.session)
         profile_response = self.client.get(reverse("reports:my_profile"))
         self.assertNotContains(profile_response, 'id="passkeyEnrollmentPrompt"')
+        self.assertContains(profile_response, "الدخول بالبصمة مفعّل لحسابك")
+        self.assertContains(profile_response, "إضافة مفتاح مرور لجهاز آخر")
+        self.assertContains(profile_response, "البصمة مفعّلة بالفعل")
+        self.assertNotContains(
+            profile_response,
+            "يوجد مفتاح مرور سابق لهذا الحساب في مدير كلمات مرور Google",
+        )
 
     def test_password_change_requirement_takes_priority_over_passkey_prompt(self):
         user = Teacher.objects.create_user(
@@ -137,8 +159,14 @@ class PasskeyEndpointTests(TestCase):
         self.assertTrue(payload["ok"])
         self.assertIn("challenge", payload["publicKey"])
         self.assertEqual(payload["publicKey"]["rpId"], "testserver")
+        self.assertEqual(payload["publicKey"]["timeout"], 120000)
         self.assertEqual(payload["publicKey"]["userVerification"], "required")
         self.assertEqual(payload["publicKey"]["allowCredentials"][0]["id"], b64url_encode(self.credential_id))
+
+        login_response = self.client.get(reverse("reports:login"))
+        self.assertContains(login_response, "isUserVerifyingPlatformAuthenticatorAvailable")
+        self.assertContains(login_response, "NotSupportedError")
+        self.assertContains(login_response, "NotAllowedError")
 
     def test_login_options_require_identifier(self):
         response = self.client.post(
@@ -227,13 +255,13 @@ class PasskeyRpIdTests(TestCase):
             self.assertEqual(self._rp_id("www.tawtheeq-ksa.com"), "tawtheeq-ksa.com")
             self.assertEqual(self._rp_id("tawtheeq-ksa.com"), "tawtheeq-ksa.com")
 
-    @override_settings(ALLOWED_HOSTS=["school-7lgm.onrender.com"])
+    @override_settings(ALLOWED_HOSTS=["example-unrelated-host.com"])
     def test_configured_rp_id_ignored_for_unrelated_host(self):
         import os
         from unittest import mock
 
         with mock.patch.dict(os.environ, {"WEBAUTHN_RP_ID": "tawtheeq-ksa.com"}):
-            self.assertEqual(self._rp_id("school-7lgm.onrender.com"), "school-7lgm.onrender.com")
+            self.assertEqual(self._rp_id("example-unrelated-host.com"), "example-unrelated-host.com")
 
     @override_settings(ALLOWED_HOSTS=["testserver"])
     def test_falls_back_to_host_without_config(self):

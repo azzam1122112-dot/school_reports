@@ -383,7 +383,7 @@
             <i class="fa-solid fa-gear" aria-hidden="true"></i>
             إعدادات المدرسة
           </h1>
-          <p class="ss-sub">راجع بيانات مدرستك الأساسية، وحدّث الإعدادات القابلة للتعديل (الجوال، السنة الدراسية، مدة الروابط).</p>
+          <p class="ss-sub">راجع بيانات مدرستك الأساسية، وحدّث الإعدادات القابلة للتعديل (البريد الإلكتروني، الجوال، السنة الدراسية، مدة الروابط).</p>
         </div>
         <div class="ss-chip">
           <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
@@ -434,6 +434,16 @@
             <span class="ss-section-note ok"><i class="fa-solid fa-pen" aria-hidden="true"></i> يمكنك تحديثها وحفظها</span>
           </div>
           <div class="ss-grid">
+            <!-- البريد الإلكتروني -->
+            <div class="ss-group">
+              <label class="ss-label" for="{{ form.email.id_for_label }}">
+                <i class="fa-solid fa-envelope" aria-hidden="true"></i> البريد الإلكتروني
+              </label>
+              {{ form.email }}
+              {% for e in form.email.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+              <div class="ss-hint">البريد الرسمي المستخدم للتواصل مع المدرسة.</div>
+            </div>
+
             <!-- الجوال -->
             <div class="ss-group">
               <label class="ss-label" for="{{ form.phone.id_for_label }}">
@@ -460,7 +470,7 @@
               </label>
               {{ form.current_academic_year }}
               {% for e in form.current_academic_year.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-              <div class="ss-hint">اختر سنة مدرستك الحالية من القائمة — تُستخدم لتصنيف التقارير الجديدة وأرشفتها. قائمة السنوات المتاحة يديرها مدير النظام مركزيًا.</div>
+              <div class="ss-hint">اختر السنة الحالية مرة واحدة؛ ستظهر {{ SCHOOL_TEACHERS_DATIVE_LABEL|default:"للمعلمين" }} عند إنشاء ملف الإنجاز، وتُستخدم أيضًا لتصنيف التقارير والأرشفة.</div>
             </div>
           </div>
         </section>
@@ -483,7 +493,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   document.addEventListener("DOMContentLoaded", function () {
     // تحسين إدخال الجوال (بدون تعديل Widgets في الفورم)
     var phone = document.getElementById("{{ form.phone.id_for_label }}") || document.getElementById("id_phone");

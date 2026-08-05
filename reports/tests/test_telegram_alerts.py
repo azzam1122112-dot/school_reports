@@ -6,8 +6,17 @@ from unittest.mock import MagicMock, patch
 from django.core.cache import cache
 from django.test import TestCase, override_settings
 
-from reports.models import Payment, School, SchoolSubscription, SubscriptionPlan, Teacher, Ticket
+from reports.models import (
+    CustomerComplaint,
+    Payment,
+    School,
+    SchoolSubscription,
+    SubscriptionPlan,
+    Teacher,
+    Ticket,
+)
 from reports.telegram_alerts import (
+    build_customer_complaint_alert,
     build_payment_alert,
     build_school_registration_alert,
     build_support_ticket_alert,
@@ -24,6 +33,7 @@ TELEGRAM_SETTINGS = {
         "subscriptions",
         "registration",
         "payments",
+        "complaints",
     },
     "SITE_URL": "https://tawtheeq-ksa.com",
 }
@@ -97,6 +107,48 @@ class TelegramAlertTests(TestCase):
         self.assertEqual(payload["category"], "registration")
         self.assertIn(str(school.pk), payload["event_key"])
         self.assertNotIn("phone", json.dumps(payload))
+
+    def test_customer_complaint_is_queued_without_personal_details(self):
+        with patch("reports.tasks.send_telegram_alert_task.apply_async") as mocked:
+            with self.captureOnCommitCallbacks(execute=True):
+                complaint = CustomerComplaint.objects.create(
+                    name="اسم خاص",
+                    email="private@example.com",
+                    phone="0501112233",
+                    subject="موضوع خاص",
+                    message="تفاصيل خاصة لا ترسل إلى تيليجرام",
+                )
+
+        mocked.assert_called_once()
+        payload = mocked.call_args.kwargs["args"][0]
+        serialized = json.dumps(payload, ensure_ascii=False)
+        self.assertEqual(payload["category"], "complaints")
+        self.assertIn(complaint.reference, payload["text"])
+        self.assertIn(
+            f"/platform/complaints/{complaint.pk}/",
+            payload["action_url"],
+        )
+        self.assertNotIn("اسم خاص", serialized)
+        self.assertNotIn("private@example.com", serialized)
+        self.assertNotIn("0501112233", serialized)
+        self.assertNotIn("موضوع خاص", serialized)
+        self.assertNotIn("تفاصيل خاصة", serialized)
+
+    def test_customer_complaint_builder_uses_tracking_data_only(self):
+        complaint = CustomerComplaint.objects.create(
+            name="بيانات حساسة",
+            email="sensitive@example.com",
+            subject="عنوان حساس",
+            message="نص حساس",
+        )
+        alert = build_customer_complaint_alert(complaint)
+
+        self.assertEqual(alert.category, "complaints")
+        self.assertIn(complaint.reference, alert.text)
+        self.assertNotIn(complaint.name, alert.text)
+        self.assertNotIn(complaint.email, alert.text)
+        self.assertNotIn(complaint.subject, alert.text)
+        self.assertNotIn(complaint.message, alert.text)
 
     def test_payment_status_change_queues_one_status_alert(self):
         payment = Payment.objects.create(

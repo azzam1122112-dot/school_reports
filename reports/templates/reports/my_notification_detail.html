@@ -684,7 +684,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function(){
     'use strict';
     var form       = document.querySelector('form.mnd-form-grid');

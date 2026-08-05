@@ -988,24 +988,24 @@
     <div class="repdash-card repdash-filters">
       <form method="get" class="repdash-filters-grid">
         <div class="repdash-field">
-          <label>من تاريخ</label>
-          <input type="date" name="start_date" value="{{ start_date }}" class="repdash-control">
+          <label for="reportStartDate">من تاريخ</label>
+          <input id="reportStartDate" type="date" name="start_date" value="{{ start_date }}" class="repdash-control">
         </div>
 
         <div class="repdash-field">
-          <label>إلى تاريخ</label>
-          <input type="date" name="end_date" value="{{ end_date }}" class="repdash-control">
+          <label for="reportEndDate">إلى تاريخ</label>
+          <input id="reportEndDate" type="date" name="end_date" value="{{ end_date }}" class="repdash-control">
         </div>
 
         <div class="repdash-field">
-          <label>{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</label>
-          <input type="text" name="teacher_name" value="{{ teacher_name }}" placeholder="بحث باسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}..." class="repdash-control">
+          <label for="reportTeacherName">{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</label>
+          <input id="reportTeacherName" type="text" name="teacher_name" value="{{ teacher_name }}" placeholder="بحث باسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}..." class="repdash-control">
         </div>
 
         {% if categories %}
           <div class="repdash-field">
-            <label>التصنيف</label>
-            <select name="category" class="repdash-control">
+            <label for="reportCategory">التصنيف</label>
+            <select id="reportCategory" name="category" class="repdash-control">
               <option value="">الكل</option>
               {% for val, label in categories %}
                 <option value="{{ val }}" {% if category == val %}selected{% endif %}>{{ label }}</option>
@@ -1045,7 +1045,7 @@
               <th>{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</th>
               <th>العنوان</th>
               <th>التصنيف</th>
-              <th>المستفيدون</th>
+              <th>{{ SCHOOL_BENEFICIARIES_LABEL|default:"المستفيدون" }}</th>
               <th>الإجراءات</th>
             </tr>
           </thead>
@@ -1185,7 +1185,7 @@
           </div>
 
           <div class="rd-row">
-            <span class="k">المستفيدون</span>
+            <span class="k">{{ SCHOOL_BENEFICIARIES_LABEL|default:"المستفيدون" }}</span>
             <span class="v">{{ r.beneficiaries_count|default:"0" }}</span>
           </div>
 
@@ -1328,7 +1328,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function(){
     function byId(id){ return document.getElementById(id); }
 

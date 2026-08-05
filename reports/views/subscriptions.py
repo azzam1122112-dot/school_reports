@@ -2,8 +2,15 @@
 # -*- coding: utf-8 -*-
 """Subscription, payment, plan management & footer content pages."""
 
+from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
-from urllib.parse import urlencode
+import json
+from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlparse
+import uuid
+
+from django.core.exceptions import ImproperlyConfigured
+from django.views.decorators.csrf import csrf_exempt
 
 from ._helpers import *
 from ._helpers import (
@@ -11,11 +18,128 @@ from ._helpers import (
     _school_manager_label, _get_active_school,
     _clean_query_value, _clean_query_params, _parse_date_safe,
 )
+from ..mansour_knowledge import AUDIENCE_LABELS
+from ..flexible_pricing import (
+    ANCHOR_CAPACITIES,
+    PERIODS,
+    build_flexible_pricing_catalog,
+    normalize_teacher_capacity,
+    period_key_for_days,
+    quote_for_selection,
+    serialize_flexible_pricing_catalog,
+)
+from ..pricing import SUBSCRIPTION_ADDON_NOTES, SUBSCRIPTION_INCLUDED_FEATURES
+from ..moyasar_gateway import (
+    MoyasarGatewayError,
+    create_invoice as create_moyasar_invoice,
+    fetch_invoice as fetch_moyasar_invoice,
+    is_enabled as moyasar_is_enabled,
+)
+from ..tamara_gateway import (
+    TamaraGatewayError,
+    authorise_order,
+    build_checkout_payload,
+    capture_order,
+    create_checkout,
+    get_order,
+    is_enabled as tamara_is_enabled,
+    is_customer_eligible,
+    verify_notification_token,
+)
 
 ARCHIVE_ADDON_ANNUAL_PRICE = Decimal("399.00")
 ARCHIVE_ADDON_INCLUDED_STORAGE_GB = 50
 ARCHIVE_STORAGE_BLOCK_GB = 50
 ARCHIVE_STORAGE_BLOCK_PRICE = Decimal("149.00")
+MANSOUR_KNOWLEDGE_CONTENT_PATH = Path(__file__).resolve().parents[1] / "mansour_knowledge_content.json"
+
+
+def _validate_mansour_knowledge_payload(payload: dict) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(payload, dict):
+        return ["صيغة الملف غير صحيحة: يجب أن يكون JSON Object."]
+
+    required_sections = ("role_guidance", "role_default_slugs", "knowledge_items")
+    for section in required_sections:
+        if section not in payload:
+            errors.append(f"القسم '{section}' مفقود.")
+
+    role_guidance = payload.get("role_guidance")
+    if not isinstance(role_guidance, dict):
+        errors.append("القسم role_guidance يجب أن يكون Object.")
+
+    role_default_slugs = payload.get("role_default_slugs")
+    if not isinstance(role_default_slugs, dict):
+        errors.append("القسم role_default_slugs يجب أن يكون Object.")
+
+    knowledge_items = payload.get("knowledge_items")
+    if not isinstance(knowledge_items, list) or not knowledge_items:
+        errors.append("القسم knowledge_items يجب أن يكون قائمة غير فارغة.")
+
+    if errors:
+        return errors
+
+    known_audiences = set(AUDIENCE_LABELS.keys())
+    for audience in known_audiences:
+        value = role_guidance.get(audience)
+        if not isinstance(value, str) or not value.strip():
+            errors.append(f"role_guidance.{audience} يجب أن يكون نصًا غير فارغ.")
+
+    slugs: set[str] = set()
+    for idx, item in enumerate(knowledge_items, start=1):
+        if not isinstance(item, dict):
+            errors.append(f"knowledge_items[{idx}] يجب أن يكون Object.")
+            continue
+
+        slug = str(item.get("slug") or "").strip()
+        title = str(item.get("title") or "").strip()
+        text = str(item.get("text") or "").strip()
+        url = str(item.get("url") or "").strip()
+        topics = item.get("topics")
+        audiences = item.get("audiences")
+
+        if not slug:
+            errors.append(f"knowledge_items[{idx}].slug مطلوب.")
+        elif slug in slugs:
+            errors.append(f"slug مكرر: {slug}")
+        else:
+            slugs.add(slug)
+
+        if not title:
+            errors.append(f"knowledge_items[{idx}].title مطلوب.")
+        if not text:
+            errors.append(f"knowledge_items[{idx}].text مطلوب.")
+        if not url:
+            errors.append(f"knowledge_items[{idx}].url مطلوب.")
+        if not isinstance(topics, list):
+            errors.append(f"knowledge_items[{idx}].topics يجب أن تكون قائمة.")
+
+        if audiences is not None and not isinstance(audiences, list):
+            errors.append(f"knowledge_items[{idx}].audiences يجب أن تكون قائمة.")
+        elif isinstance(audiences, list):
+            for audience in audiences:
+                audience_value = str(audience).strip()
+                if audience_value and audience_value not in known_audiences:
+                    errors.append(
+                        f"knowledge_items[{idx}].audiences يحتوي قيمة غير معروفة: {audience_value}"
+                    )
+
+    if isinstance(role_default_slugs, dict) and slugs:
+        for audience, selected_slugs in role_default_slugs.items():
+            if audience not in known_audiences:
+                errors.append(f"role_default_slugs يحتوي فئة غير معروفة: {audience}")
+                continue
+            if not isinstance(selected_slugs, list):
+                errors.append(f"role_default_slugs.{audience} يجب أن تكون قائمة.")
+                continue
+            for slug in selected_slugs:
+                slug_value = str(slug).strip()
+                if slug_value and slug_value not in slugs:
+                    errors.append(
+                        f"role_default_slugs.{audience} يحتوي slug غير موجود: {slug_value}"
+                    )
+
+    return errors
 
 
 def _archive_pricing():
@@ -93,7 +217,10 @@ def _renewal_plan_catalog(current_plan_id: int | None = None) -> list[dict]:
         )
 
         days = int(plan.days_duration or 0)
-        if 160 <= days <= 210:
+        if 20 <= days <= 44:
+            duration_label = "شهر"
+            months = 1
+        elif 160 <= days <= 210:
             duration_label = "6 أشهر"
             months = 6
         elif 330 <= days <= 400:
@@ -129,6 +256,14 @@ def _renewal_plan_catalog(current_plan_id: int | None = None) -> list[dict]:
         )
 
     for group in groups.values():
+        monthly = next(
+            (
+                option
+                for option in group["options"]
+                if 20 <= int(option["plan"].days_duration or 0) <= 44
+            ),
+            None,
+        )
         semiannual = next(
             (
                 option
@@ -145,8 +280,12 @@ def _renewal_plan_catalog(current_plan_id: int | None = None) -> list[dict]:
             ),
             None,
         )
-        if semiannual and annual:
-            savings = (semiannual["plan"].price * 2) - annual["plan"].price
+        if monthly and semiannual:
+            savings = (monthly["plan"].price * 6) - semiannual["plan"].price
+            if savings > 0:
+                semiannual["annual_savings"] = savings
+        if monthly and annual:
+            savings = (monthly["plan"].price * 12) - annual["plan"].price
             if savings > 0:
                 annual["annual_savings"] = savings
 
@@ -231,6 +370,13 @@ def platform_settings(request: HttpRequest) -> HttpResponse:
     platform_storage_used_bytes = int(storage_overview.get("used") or 0)
     schools_count = int(storage_overview.get("schools") or 0)
 
+    # Show what the saved rate actually produces: the operator edits megabytes
+    # per teacher but thinks in "what does a 50-teacher school get".
+    storage_ladder = [
+        {"seats": seats, "label": storage_display_for_seats(seats)}
+        for seats in (25, 50, 100)
+    ]
+
     return render(
         request,
         "reports/platform_settings.html",
@@ -240,6 +386,78 @@ def platform_settings(request: HttpRequest) -> HttpResponse:
             "storage_options_formset": storage_options_formset,
             "platform_storage_used_bytes": platform_storage_used_bytes,
             "schools_count": schools_count,
+            "storage_ladder": storage_ladder,
+        },
+    )
+
+
+@login_required(login_url="reports:platform_login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
+@require_http_methods(["GET", "POST"])
+def platform_mansour_content(request: HttpRequest) -> HttpResponse:
+    """Edit Mansour assistant knowledge content JSON from platform admin dashboard."""
+
+    class MansourContentForm(forms.Form):
+        content = forms.CharField(
+            label="محتوى قاعدة معرفة منصور (JSON)",
+            widget=forms.Textarea(
+                attrs={
+                    "rows": 30,
+                    "dir": "ltr",
+                    "spellcheck": "false",
+                    "class": "form-control",
+                }
+            ),
+        )
+
+    def _read_content() -> str:
+        try:
+            return MANSOUR_KNOWLEDGE_CONTENT_PATH.read_text(encoding="utf-8")
+        except Exception:
+            return "{}"
+
+    if request.method == "POST":
+        form = MansourContentForm(request.POST)
+        if form.is_valid():
+            raw = form.cleaned_data["content"]
+            try:
+                payload = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                form.add_error("content", f"صيغة JSON غير صحيحة عند السطر {exc.lineno}.")
+            else:
+                validation_errors = _validate_mansour_knowledge_payload(payload)
+                if validation_errors:
+                    form.add_error("content", "\n".join(validation_errors))
+                else:
+                    pretty = json.dumps(payload, ensure_ascii=False, indent=2)
+                    temp_path = MANSOUR_KNOWLEDGE_CONTENT_PATH.with_suffix(".json.tmp")
+                    temp_path.write_text(pretty + "\n", encoding="utf-8")
+                    temp_path.replace(MANSOUR_KNOWLEDGE_CONTENT_PATH)
+                    try:
+                        from ..mansour_assistant import reload_mansour_knowledge_runtime
+
+                        reload_mansour_knowledge_runtime()
+                    except Exception:
+                        messages.warning(
+                            request,
+                            "تم حفظ المحتوى، لكن لم يتم تحديث جلسة المساعد تلقائيًا. قد تحتاج لإعادة تحميل الخدمة.",
+                        )
+                    messages.success(request, "تم تحديث محتوى منصور بنجاح.")
+                    return redirect("reports:platform_mansour_content")
+        messages.error(request, "تعذر حفظ المحتوى. تحقق من صيغة JSON.")
+    else:
+        form = MansourContentForm(initial={"content": _read_content()})
+
+    stats = {
+        "characters": len(form["content"].value() or ""),
+    }
+    return render(
+        request,
+        "reports/platform_mansour_content.html",
+        {
+            "form": form,
+            "content_path": str(MANSOUR_KNOWLEDGE_CONTENT_PATH),
+            "stats": stats,
         },
     )
 
@@ -281,6 +499,15 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     # ملاحظة: عدّاد التذاكر المفتوحة يأتي من payload الفترة (kpis.tickets_open) أدناه،
     # لذا لا نحسبه هنا تفاديًا لاستعلام مهدور.
     pending_payments = Payment.objects.filter(status=Payment.Status.PENDING).count()
+    pending_school_addition_requests = SchoolAdditionRequest.objects.filter(
+        status=SchoolAdditionRequest.Status.PENDING
+    ).count()
+    complaints_pending = CustomerComplaint.objects.filter(
+        status__in=(
+            CustomerComplaint.Status.NEW,
+            CustomerComplaint.Status.IN_PROGRESS,
+        )
+    ).count()
 
     # البيانات الإحصائية (كاش 5 دقائق)
     stats_cache_key = "platform_stats_v4"
@@ -303,14 +530,21 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         platform_settings = PlatformSettings.get_solo()
         free_limit_bytes = max(0, int(getattr(platform_settings, "free_storage_mb", 0) or 0)) * 1024 * 1024
         storage_near_limit_count = 0
-        for school in School.objects.only("id", "storage_used_bytes").select_related("archive_addon").iterator():
-            limit_bytes = free_limit_bytes
-            try:
-                addon = school.archive_addon
-                if addon.is_active:
-                    limit_bytes = max(0, int(addon.storage_limit_gb or 0)) * 1024 * 1024 * 1024
-            except SchoolArchiveAddon.DoesNotExist:
-                pass
+        # Storage no longer depends on the yearly-archive add-on; it comes from
+        # the purchased teacher capacity plus any separately bought space.
+        storage_schools = School.objects.select_related("subscription__plan").only(
+            "id",
+            "storage_used_bytes",
+            "extra_storage_gb",
+            "subscription__end_date",
+            "subscription__is_active",
+            "subscription__canceled_at",
+            "subscription__teacher_limit_override",
+            "subscription__plan__max_teachers",
+            "subscription__plan__days_duration",
+        )
+        for school in storage_schools.iterator():
+            limit_bytes = school_storage_limit_bytes(school)
             if limit_bytes > 0 and int(school.storage_used_bytes or 0) >= int(limit_bytes * 0.8):
                 storage_near_limit_count += 1
         
@@ -569,6 +803,9 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     
     selected_period = _normalize_period(request.GET.get("period"))
     period_payload = _build_period_payload(selected_period, force=force_refresh)
+    period_payload.setdefault("operations", {})["complaints_pending"] = int(
+        complaints_pending
+    )
 
     wants_json = (
         request.GET.get("format") == "json"
@@ -584,6 +821,8 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         **financial,
         **charts,
         "pending_payments": pending_payments,
+        "pending_school_addition_requests": pending_school_addition_requests,
+        "complaints_pending": complaints_pending,
         "tickets_open": int(period_payload["kpis"]["tickets_open"]),
         "recent_activities": recent_activities,
         "initial_period": selected_period,
@@ -1226,6 +1465,10 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
             plan.period_key = "trial"
             plan.period_label = "تجربة مجانية"
             months = None
+        elif 20 <= plan.days_duration <= 44:
+            plan.period_key = "monthly"
+            plan.period_label = "شهر"
+            months = 1
         elif plan.days_duration >= 300:
             plan.period_key = "annual"
             plan.period_label = "سنة"
@@ -1256,13 +1499,21 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
         plan.annual_discount_percent = None
         paired_plans[(plan.max_teachers, plan.period_key)] = plan
 
+    renewal_catalog = _renewal_plan_catalog()
+    catalog_plan_ids = {
+        option["plan"].id
+        for group in renewal_catalog
+        for option in group["options"]
+    }
+    other_plans = [plan for plan in plans if plan.id not in catalog_plan_ids]
+
     for plan in plans:
         if plan.period_key != "annual":
             continue
-        semiannual = paired_plans.get((plan.max_teachers, "semiannual"))
-        if semiannual is None:
+        monthly = paired_plans.get((plan.max_teachers, "monthly"))
+        if monthly is None:
             continue
-        comparison_price = semiannual.price * 2
+        comparison_price = monthly.price * 12
         savings = max(Decimal("0"), comparison_price - plan.price)
         plan.annual_savings = savings
         if comparison_price > 0:
@@ -1288,20 +1539,77 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
     stats = {
         "active_count": len(active_plans),
         "paid_count": len(paid_plans),
+        "monthly_count": sum(plan.period_key == "monthly" for plan in paid_plans),
         "semiannual_count": sum(plan.period_key == "semiannual" for plan in paid_plans),
         "annual_count": sum(plan.period_key == "annual" for plan in paid_plans),
         "capacity_count": len(capacities),
         "annual_discount_max": max(annual_discounts, default=0),
     }
 
+    flexible_catalog = build_flexible_pricing_catalog(plans=active_plans)
+
     return render(
         request,
         "reports/platform_plans.html",
         {
             "plans": plans,
+            "renewal_catalog": renewal_catalog,
+            "other_plans": other_plans,
             "stats": stats,
+            "flexible_pricing_catalog": flexible_catalog,
+            "flexible_pricing_json": serialize_flexible_pricing_catalog(flexible_catalog),
+            "pricing_warnings": _anchor_pricing_warnings(active_plans),
         },
     )
+
+
+def _anchor_pricing_warnings(active_plans) -> list[str]:
+    """Flag anchor edits that would break the interpolated pricing model.
+
+    Prices between the anchors are interpolated, so the model only holds if the
+    price rises with capacity and every paid anchor grants the same
+    entitlements. An admin editing one anchor here can silently create a band
+    where a school pays more for less — this surfaces that before schools hit it.
+    """
+    paid = [
+        plan
+        for plan in active_plans
+        if Decimal(getattr(plan, "price", 0) or 0) > 0
+        and int(getattr(plan, "max_teachers", 0) or 0) > 0
+        and period_key_for_days(getattr(plan, "days_duration", 0))
+    ]
+    if not paid:
+        return []
+
+    warnings: list[str] = []
+
+    entitlements = {
+        "مستوى الدعم": {(getattr(plan, "support_level", "") or "") for plan in paid},
+        "جلسات الإعداد": {int(getattr(plan, "onboarding_sessions", 0) or 0) for plan in paid},
+        "الأرشيف المشمول": {
+            int(getattr(plan, "included_archive_storage_gb", 0) or 0) for plan in paid
+        },
+    }
+    for label, values in entitlements.items():
+        if len(values) > 1:
+            warnings.append(
+                f"«{label}» غير متطابق بين الباقات المرجعية ({', '.join(str(v) for v in sorted(values, key=str))}). "
+                "الأسعار بين المراجع محسوبة بالاستيفاء، فاختلاف المزايا يخلق سعة يدفع فيها العميل أكثر ويحصل على أقل."
+            )
+
+    by_period: dict[str, list] = {}
+    for plan in paid:
+        by_period.setdefault(period_key_for_days(plan.days_duration), []).append(plan)
+    for period_key, plans_in_period in by_period.items():
+        ordered = sorted(plans_in_period, key=lambda p: int(p.max_teachers or 0))
+        for lower, upper in zip(ordered, ordered[1:]):
+            if Decimal(upper.price) <= Decimal(lower.price):
+                warnings.append(
+                    f"سعر «{upper.name}» ({upper.price}) ليس أعلى من «{lower.name}» ({lower.price}) "
+                    "رغم أن سعته أكبر؛ سيؤدي ذلك إلى منحنى أسعار غير منطقي في الصفحة الرئيسية."
+                )
+
+    return warnings
 
 
 @login_required(login_url="reports:login")
@@ -1572,19 +1880,17 @@ def _apply_payment_effects(payment, today, pricing):
         return applied("success", "تم تفعيل/تجديد إضافة الأرشفة للمدرسة تلقائياً.")
 
     if purpose == Payment.Purpose.ARCHIVE_STORAGE:
-        try:
-            addon = SchoolArchiveAddon.objects.select_for_update().get(school=payment.school)
-        except SchoolArchiveAddon.DoesNotExist:
-            raise _ApprovalError("لا يمكن اعتماد زيادة التخزين قبل تفعيل إضافة الأرشفة لهذه المدرسة.")
-
         added_gb = int(payment.archive_storage_gb or 0)
         if added_gb <= 0:
             raise _ApprovalError("طلب زيادة التخزين لا يحتوي على مساحة صالحة.")
 
-        addon.storage_limit_gb = int(addon.storage_limit_gb or 0) + added_gb
-        addon.paid_amount = (addon.paid_amount or 0) + payment.amount
-        addon.save(update_fields=["storage_limit_gb", "paid_amount", "updated_at"])
-        return applied("success", f"تمت زيادة مساحة أرشيف المدرسة بمقدار {added_gb}GB.")
+        # Storage is its own product. It used to be refused unless the school had
+        # first bought yearly archiving, which forced schools that only needed
+        # room for report photos to buy a product they did not want.
+        school = School.objects.select_for_update().get(pk=payment.school_id)
+        school.extra_storage_gb = int(school.extra_storage_gb or 0) + added_gb
+        school.save(update_fields=["extra_storage_gb"])
+        return applied("success", f"تمت زيادة مساحة تخزين المدرسة بمقدار {added_gb}GB.")
 
     # ── الاشتراك ──
     plan_to_apply = payment.requested_plan
@@ -1592,29 +1898,83 @@ def _apply_payment_effects(payment, today, pricing):
     level, msg = "success", "تم تجديد/تفعيل اشتراك المدرسة تلقائياً."
 
     if subscription is None:
-        if plan_to_apply is not None:
-            subscription = SchoolSubscription(
-                school=payment.school,
-                plan=plan_to_apply,
-                start_date=today,
-                end_date=today,
-                is_active=True,
+        if plan_to_apply is None:
+            raise _ApprovalError(
+                "لا يمكن اعتماد دفع الاشتراك قبل ربطه بباقة؛ لم يُفعّل الاشتراك."
             )
-            subscription.save()
-        else:
-            level, msg = ("warning", "تم اعتماد الدفع، لكن لا توجد باقة مطلوبة لتفعيل الاشتراك تلقائياً.")
+        subscription = SchoolSubscription(
+            school=payment.school,
+            plan=plan_to_apply,
+            teacher_limit_override=(
+                int(payment.requested_teacher_limit)
+                if payment.requested_teacher_limit
+                else None
+            ),
+            start_date=today,
+            end_date=today,
+            is_active=True,
+        )
+        subscription.save()
     else:
         if plan_to_apply is not None:
             subscription.plan = plan_to_apply
+        if payment.requested_teacher_limit:
+            subscription.teacher_limit_override = int(payment.requested_teacher_limit)
         subscription.is_active = True
+        subscription.canceled_at = None
+        subscription.cancel_reason = ""
         days = int(getattr(subscription.plan, "days_duration", 0) or 0)
         subscription.start_date = today
         subscription.end_date = today if days <= 0 else today + timedelta(days=days - 1)
-        subscription.save(update_fields=["plan", "start_date", "end_date", "is_active", "updated_at"])
+        subscription.save(
+            update_fields=[
+                "plan",
+                "teacher_limit_override",
+                "start_date",
+                "end_date",
+                "is_active",
+                "canceled_at",
+                "cancel_reason",
+                "updated_at",
+            ]
+        )
 
     if subscription is not None and payment.subscription_id != subscription.id:
         payment.subscription = subscription
         payment.save(update_fields=["subscription"])
+
+    included_archive_gb = int(
+        getattr(getattr(subscription, "plan", None), "included_archive_storage_gb", 0) or 0
+    )
+    if included_archive_gb > 0:
+        addon, created = SchoolArchiveAddon.objects.select_for_update().get_or_create(
+            school=payment.school,
+            defaults={
+                "is_enabled": True,
+                "start_date": subscription.start_date,
+                "end_date": subscription.end_date,
+                "storage_limit_gb": included_archive_gb,
+                "paid_amount": 0,
+                "notes": f"مشمولة تلقائياً ضمن باقة {subscription.plan.name}.",
+            },
+        )
+        if not created:
+            addon.is_enabled = True
+            addon.start_date = min(addon.start_date or subscription.start_date, subscription.start_date)
+            addon.end_date = max(addon.end_date or subscription.end_date, subscription.end_date)
+            addon.storage_limit_gb = max(int(addon.storage_limit_gb or 0), included_archive_gb)
+            included_note = f"مشمولة تلقائياً ضمن باقة {subscription.plan.name}."
+            if included_note not in (addon.notes or ""):
+                addon.notes = "\n".join(filter(None, [(addon.notes or "").strip(), included_note]))
+            addon.save(
+                update_fields=[
+                    "is_enabled", "start_date", "end_date", "storage_limit_gb", "notes", "updated_at",
+                ]
+            )
+        msg = f"{msg} كما تم تفعيل الأرشيف المضمّن بسعة {included_archive_gb}GB."
+
+    if payment.requested_teacher_limit:
+        msg = f"{msg} سعة المعلمين المعتمدة: {int(payment.requested_teacher_limit)} معلماً."
 
     return applied(level, msg)
 
@@ -1627,12 +1987,12 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
         pk=pk,
     )
 
-    # ── عمليات الطلب الموحّد الشقيقة (نفس batch_ref) ──
+    # ── بنود الطلب الموحّد للمدرسة نفسها (نفس batch_ref) ──
     batch_payments = []
     if payment.batch_ref:
         batch_payments = list(
             Payment.objects.filter(school=payment.school, batch_ref=payment.batch_ref)
-            .select_related("requested_plan")
+            .select_related("school", "requested_plan")
             .order_by("id")
         )
 
@@ -1640,6 +2000,19 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
         action = (request.POST.get("action") or "").strip()
         today = timezone.localdate()
         pricing = _archive_pricing()
+
+        gateway_unsettled = (
+            payment.payment_method == Payment.Method.TAMARA
+            and payment.gateway_status != "fully_captured"
+        ) or (
+            payment.payment_method == Payment.Method.MOYASAR
+            and payment.gateway_status != "paid"
+        )
+        if gateway_unsettled:
+            requested_status = (request.POST.get("status") or "").strip()
+            if action == "approve_batch" or requested_status == Payment.Status.APPROVED:
+                messages.error(request, "لا يمكن اعتماد دفعة إلكترونية يدويًا قبل تأكيد التحصيل من البوابة.")
+                return redirect("reports:platform_payment_detail", pk=pk)
 
         # ===== (أ) اعتماد الطلب الموحّد كاملاً بضغطة واحدة =====
         if action == "approve_batch" and payment.batch_ref:
@@ -1866,6 +2239,15 @@ def my_subscription(request):
         if subscription and subscription.plan_id in current_plan_ids
         else (renewal_plans[0].id if renewal_plans else None)
     )
+    current_teacher_count = SchoolMembership.objects.filter(
+        school=membership.school,
+        role_type=SchoolMembership.RoleType.TEACHER,
+    ).count()
+    current_teacher_limit = int(getattr(subscription, "teacher_limit", 0) or 0)
+    recommended_teacher_capacity = normalize_teacher_capacity(
+        max(current_teacher_count, current_teacher_limit, 1)
+    )
+    flexible_catalog = build_flexible_pricing_catalog()
     
     context = {
         "subscription": subscription,
@@ -1873,6 +2255,15 @@ def my_subscription(request):
         "plans": renewal_plans,
         "renewal_catalog": renewal_catalog,
         "default_renewal_plan_id": default_renewal_plan_id,
+        "current_teacher_count": current_teacher_count,
+        "current_teacher_limit": current_teacher_limit,
+        "recommended_teacher_capacity": recommended_teacher_capacity or 100,
+        "flexible_pricing_catalog": flexible_catalog,
+        "flexible_pricing_json": serialize_flexible_pricing_catalog(flexible_catalog),
+        # Shown next to the calculated price so the manager sees exactly what the
+        # subscription covers — and what is sold separately — before paying.
+        "subscription_included_features": SUBSCRIPTION_INCLUDED_FEATURES,
+        "subscription_addon_notes": SUBSCRIPTION_ADDON_NOTES,
         "payments": payments,
         "archive_addon": archive_addon,
         "archive_addon_price": pricing["addon_price"],
@@ -1881,8 +2272,15 @@ def my_subscription(request):
         "archive_storage_block_price": pricing["storage_block_price"],
         "archive_storage_options": _archive_storage_options(active_only=True),
         "storage_overview": school_storage_overview(membership.school),
+        # Reported separately: a full archive must never read as "the
+        # platform is out of space" for the school's daily work.
+        "archive_overview": school_archive_overview(membership.school),
         "pending_archive_addon_payment": pending_archive_addon_payment,
         "pending_archive_storage_payment": pending_archive_storage_payment,
+        "tamara_enabled": tamara_is_enabled(),
+        "tamara_environment": str(getattr(settings, "TAMARA_ENVIRONMENT", "sandbox") or "sandbox"),
+        "moyasar_enabled": moyasar_is_enabled(),
+        "moyasar_environment": str(getattr(settings, "MOYASAR_ENVIRONMENT", "test") or "test"),
         "has_saved_archives": SchoolYearArchive.objects.filter(
             school=membership.school,
             status__in=[
@@ -1930,42 +2328,57 @@ def subscription_history(request):
     }
     return render(request, 'reports/subscription_history.html', context)
 
-def _create_unified_payment(request, membership, subscription):
-    """ينشئ طلب دفع موحّد: يجمع الاشتراك + إضافة الأرشفة + زيادة المساحة في إيصال واحد.
+class _PaymentSelectionError(Exception):
+    pass
 
-    لكل عنصر مختار يُنشأ سجل Payment مستقل بنفس صورة الإيصال (ملف واحد مشترك)،
-    حتى يبقى منطق الاعتماد الحالي (لكل غرض على حدة) سليمًا دون تغيير.
 
-    قيد مهم: زيادة مساحة التخزين تتطلب وجود إضافة أرشفة مفعّلة مسبقًا، لأن اعتمادها
-    يفشل إن لم تكن الإضافة موجودة. لذلك لا نسمح بطلب المساحة ضمن نفس الطلب الذي
-    يُفعّل الإضافة لأول مرة.
-    """
-    import uuid
+def _subscription_quote_from_request(request, school, requested_plan):
+    raw_capacity = (request.POST.get("teacher_capacity") or "").strip()
+    if not raw_capacity:
+        return {
+            "plan": requested_plan,
+            "capacity": int(getattr(requested_plan, "max_teachers", 0) or 0),
+            "price": Decimal(getattr(requested_plan, "price", 0) or 0),
+        }
+    try:
+        requested_capacity = int(raw_capacity)
+    except (TypeError, ValueError) as exc:
+        raise _PaymentSelectionError("سعة المعلمين المختارة غير صالحة.") from exc
 
+    capacity = normalize_teacher_capacity(requested_capacity)
+    if capacity is None:
+        raise _PaymentSelectionError("السعات المنشورة متاحة حتى 100 معلم. تواصل مع الدعم لسعة أكبر.")
+
+    current_teacher_count = SchoolMembership.objects.filter(
+        school=school,
+        role_type=SchoolMembership.RoleType.TEACHER,
+    ).count()
+    if capacity < current_teacher_count:
+        raise _PaymentSelectionError(
+            f"لا يمكن اختيار سعة {capacity} مع وجود {current_teacher_count} معلماً في المدرسة."
+        )
+
+    quote = quote_for_selection(requested_plan.pk, capacity)
+    if quote is None:
+        raise _PaymentSelectionError("تعذّر احتساب سعر السعة المختارة من الباقات المنشورة.")
+    return quote
+
+
+def _build_unified_payment_items(request, membership, subscription):
     school = membership.school
-    receipt = request.FILES.get("receipt_image")
-    notes = (request.POST.get("notes") or "").strip()
     pricing = _archive_pricing()
-
-    if not receipt:
-        messages.error(request, "يرجى إرفاق صورة الإيصال.")
-        return redirect("reports:my_subscription")
-
     include_sub = (request.POST.get("include_subscription") or "") == "1"
     include_addon = (request.POST.get("include_archive_addon") or "") == "1"
     include_storage = (request.POST.get("include_archive_storage") or "") == "1"
 
     if not (include_sub or include_addon or include_storage):
-        messages.error(request, "اختر عنصرًا واحدًا على الأقل للدفع.")
-        return redirect("reports:my_subscription")
+        raise _PaymentSelectionError("اختر عنصرًا واحدًا على الأقل للدفع.")
 
     archive_addon = SchoolArchiveAddon.objects.filter(school=school).first()
     addon_active = bool(archive_addon and archive_addon.is_active)
+    items = []
+    warnings = []
 
-    items = []      # كل عنصر: dict يحوي بيانات إنشاء Payment + label
-    warnings = []   # عناصر تم تخطّيها مع سبب
-
-    # 1) اشتراك المنصّة
     if include_sub:
         requested_plan = None
         plan_id = request.POST.get("plan_id")
@@ -1976,8 +2389,7 @@ def _create_unified_payment(request, membership, subscription):
                 price__gt=0,
             ).first()
             if requested_plan is None:
-                messages.error(request, "الباقة المختارة غير متاحة للتجديد.")
-                return redirect("reports:my_subscription")
+                raise _PaymentSelectionError("الباقة المختارة غير متاحة للتجديد.")
         if (
             not requested_plan
             and subscription
@@ -1986,24 +2398,24 @@ def _create_unified_payment(request, membership, subscription):
         ):
             requested_plan = subscription.plan
         if not requested_plan:
-            messages.error(request, "يرجى اختيار باقة للاشتراك/التجديد.")
-            return redirect("reports:my_subscription")
-        amount = getattr(requested_plan, "price", 0) or 0
+            raise _PaymentSelectionError("يرجى اختيار باقة للاشتراك/التجديد.")
+        quote = _subscription_quote_from_request(request, school, requested_plan)
+        requested_plan = quote["plan"]
+        amount = quote["price"]
+        requested_teacher_limit = int(quote["capacity"] or 0)
         try:
             if float(amount) <= 0:
-                messages.error(request, "لا يمكن إنشاء طلب دفع لباقة مجانية/غير صالحة.")
-                return redirect("reports:my_subscription")
-        except (TypeError, ValueError):
-            messages.error(request, "سعر الباقة غير صالح.")
-            return redirect("reports:my_subscription")
+                raise _PaymentSelectionError("لا يمكن إنشاء طلب دفع لباقة مجانية/غير صالحة.")
+        except (TypeError, ValueError) as exc:
+            raise _PaymentSelectionError("سعر الباقة غير صالح.") from exc
         items.append({
             "purpose": Payment.Purpose.SUBSCRIPTION,
             "requested_plan": requested_plan,
+            "requested_teacher_limit": requested_teacher_limit,
             "amount": amount,
-            "label": f"اشتراك: {requested_plan.name}",
+            "label": f"اشتراك: {requested_plan.name} · سعة {requested_teacher_limit} معلماً",
         })
 
-    # 2) إضافة الأرشفة (تفعيل/تجديد)
     if include_addon:
         if Payment.objects.filter(
             school=school,
@@ -2019,11 +2431,9 @@ def _create_unified_payment(request, membership, subscription):
                 "label": "إضافة الأرشفة السنوية",
             })
 
-    # 3) زيادة مساحة التخزين (تتطلب إضافة أرشفة مفعّلة مسبقًا)
     if include_storage:
-        if not addon_active:
-            warnings.append("زيادة المساحة (تتاح بعد تفعيل إضافة الأرشفة)")
-        elif Payment.objects.filter(
+        # Storage is its own product — no yearly-archive add-on required.
+        if Payment.objects.filter(
             school=school,
             purpose=Payment.Purpose.ARCHIVE_STORAGE,
             status=Payment.Status.PENDING,
@@ -2035,8 +2445,7 @@ def _create_unified_payment(request, membership, subscription):
             if option_id:
                 option = ArchiveStorageOption.objects.filter(pk=option_id, is_active=True).first()
             if option is None:
-                messages.error(request, "اختر خيار زيادة مساحة صالح.")
-                return redirect("reports:my_subscription")
+                raise _PaymentSelectionError("اختر خيار زيادة مساحة صالح.")
             items.append({
                 "purpose": Payment.Purpose.ARCHIVE_STORAGE,
                 "requested_plan": None,
@@ -2046,10 +2455,34 @@ def _create_unified_payment(request, membership, subscription):
             })
 
     if not items:
-        if warnings:
-            messages.warning(request, "تعذّر إنشاء الطلب: " + " ، ".join(warnings))
-        else:
-            messages.error(request, "لا توجد عناصر صالحة للدفع.")
+        detail = " ، ".join(warnings) if warnings else "لا توجد عناصر صالحة للدفع."
+        raise _PaymentSelectionError(f"تعذّر إنشاء الطلب: {detail}")
+    return items, warnings
+
+
+def _create_unified_payment(request, membership, subscription):
+    """ينشئ طلب دفع موحّد: يجمع الاشتراك + إضافة الأرشفة + زيادة المساحة في إيصال واحد.
+
+    لكل عنصر مختار يُنشأ سجل Payment مستقل بنفس صورة الإيصال (ملف واحد مشترك)،
+    حتى يبقى منطق الاعتماد الحالي (لكل غرض على حدة) سليمًا دون تغيير.
+
+    زيادة مساحة التخزين مستقلة تمامًا عن إضافة الأرشفة السنوية، فيمكن طلبها وحدها
+    أو ضمن نفس الطلب دون أي شرط مسبق.
+    """
+    import uuid
+
+    school = membership.school
+    receipt = request.FILES.get("receipt_image")
+    notes = (request.POST.get("notes") or "").strip()
+
+    if not receipt:
+        messages.error(request, "يرجى إرفاق صورة الإيصال.")
+        return redirect("reports:my_subscription")
+
+    try:
+        items, warnings = _build_unified_payment_items(request, membership, subscription)
+    except _PaymentSelectionError as exc:
+        messages.error(request, str(exc))
         return redirect("reports:my_subscription")
 
     batch = uuid.uuid4().hex[:8]
@@ -2066,6 +2499,7 @@ def _create_unified_payment(request, membership, subscription):
                 school=school,
                 subscription=subscription,
                 requested_plan=it.get("requested_plan"),
+                requested_teacher_limit=it.get("requested_teacher_limit"),
                 purpose=it["purpose"],
                 amount=it["amount"],
                 archive_storage_gb=it.get("archive_storage_gb", 0),
@@ -2172,11 +2606,8 @@ def payment_create(request):
             return redirect('reports:my_subscription')
 
         if payment_kind == Payment.Purpose.ARCHIVE_STORAGE:
-            archive_addon = SchoolArchiveAddon.objects.filter(school=membership.school).first()
-            if not archive_addon or not archive_addon.is_active:
-                messages.error(request, "زيادة مساحة التخزين متاحة بعد تفعيل إضافة الأرشفة فقط.")
-                return redirect('reports:my_subscription')
-
+            # Storage is its own product; it deliberately does not require the
+            # yearly-archive add-on any more.
             if Payment.objects.filter(
                 school=membership.school,
                 purpose=Payment.Purpose.ARCHIVE_STORAGE,
@@ -2243,7 +2674,14 @@ def payment_create(request):
             messages.error(request, "يرجى اختيار باقة للاشتراك/التجديد.")
             return redirect('reports:my_subscription')
 
-        amount = getattr(requested_plan, "price", None)
+        try:
+            quote = _subscription_quote_from_request(request, membership.school, requested_plan)
+        except _PaymentSelectionError as exc:
+            messages.error(request, str(exc))
+            return redirect("reports:my_subscription")
+        requested_plan = quote["plan"]
+        requested_teacher_limit = int(quote["capacity"] or 0)
+        amount = quote["price"]
         try:
             if amount is None or float(amount) <= 0:
                 messages.error(request, "لا يمكن إنشاء طلب دفع لأن الباقة المختارة مجانية/غير صالحة.")
@@ -2255,6 +2693,7 @@ def payment_create(request):
             school=membership.school,
             subscription=subscription,
             requested_plan=requested_plan,
+            requested_teacher_limit=requested_teacher_limit,
             purpose=Payment.Purpose.SUBSCRIPTION,
             amount=amount,
             receipt_image=receipt,
@@ -2269,15 +2708,649 @@ def payment_create(request):
             <div style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 0.75rem 1rem; border-radius: 12px; display: inline-block; margin-top: 0.5rem; color: #fff;">
                 <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 0.25rem;">{}</div>
                 <div style="font-size: 0.9rem;">
-                    السعر: {} ريال &bull; المدة: {} يوم
+                    السعر: {} ريال &bull; السعة: {} معلماً &bull; المدة: {} يوم
                 </div>
             </div>
         </div>
-        """, requested_plan.name, requested_plan.price, requested_plan.days_duration)
+        """, requested_plan.name, amount, requested_teacher_limit, requested_plan.days_duration)
         messages.success(request, msg)
         return redirect('reports:my_subscription')
             
     return redirect('reports:my_subscription')
+
+
+def _manager_payment_membership(request):
+    memberships = SchoolMembership.objects.filter(
+        teacher=request.user,
+        role_type=SchoolMembership.RoleType.MANAGER,
+        is_active=True,
+    ).select_related("school")
+    active_school = _get_active_school(request)
+    if active_school:
+        membership = memberships.filter(school=active_school).first()
+        if membership:
+            return membership
+    return memberships.first()
+
+
+def _complete_moyasar_invoice(batch_ref: str, invoice: dict) -> None:
+    invoice_id = str(invoice.get("id") or "").strip()
+    invoice_status = str(invoice.get("status") or "").strip().lower()
+    currency = str(invoice.get("currency") or "").strip().upper()
+    metadata = invoice.get("metadata") if isinstance(invoice.get("metadata"), dict) else {}
+    if invoice_status != "paid":
+        raise _ApprovalError("فاتورة ميّسر لم تصل إلى حالة مدفوعة.")
+    if currency != "SAR":
+        raise _ApprovalError("عملة فاتورة ميّسر لا تطابق عملة الطلب.")
+    if str(metadata.get("batch_ref") or "") != batch_ref:
+        raise _ApprovalError("مرجع فاتورة ميّسر لا يطابق الطلب المحلي.")
+
+    payment_attempts = invoice.get("payments") if isinstance(invoice.get("payments"), list) else []
+    paid_attempt = next(
+        (
+            attempt
+            for attempt in payment_attempts
+            if isinstance(attempt, dict)
+            and str(attempt.get("status") or "").lower() in {"paid", "captured"}
+        ),
+        {},
+    )
+    gateway_payment_id = str(paid_attempt.get("id") or "")[:160]
+
+    pricing = _archive_pricing()
+    today = timezone.localdate()
+    with transaction.atomic():
+        payments = list(
+            Payment.objects.select_for_update()
+            .filter(payment_method=Payment.Method.MOYASAR, batch_ref=batch_ref)
+            .order_by("id")
+        )
+        if not payments or not invoice_id:
+            raise _ApprovalError("طلب ميّسر غير معروف.")
+        if any(payment.gateway_order_id != invoice_id for payment in payments):
+            raise _ApprovalError("رقم فاتورة ميّسر لا يطابق الطلب المحلي.")
+
+        expected_halalas = int(
+            (
+                sum((payment.amount for payment in payments), Decimal("0"))
+                * Decimal("100")
+            ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        )
+        try:
+            invoice_amount = int(invoice.get("amount"))
+        except (TypeError, ValueError) as exc:
+            raise _ApprovalError("مبلغ فاتورة ميّسر غير صالح.") from exc
+        if invoice_amount != expected_halalas:
+            raise _ApprovalError("مبلغ فاتورة ميّسر لا يطابق مبلغ الطلب.")
+
+        payments.sort(key=lambda payment: _PURPOSE_APPLY_ORDER.get(payment.purpose, 99))
+        for payment in payments:
+            if payment.status == Payment.Status.APPROVED and payment.effects_applied_at:
+                continue
+            payment.status = Payment.Status.APPROVED
+            payment.gateway_status = "paid"
+            payment.gateway_capture_id = gateway_payment_id
+            payment.gateway_completed_at = payment.gateway_completed_at or timezone.now()
+            payment.save(
+                update_fields=[
+                    "status",
+                    "gateway_status",
+                    "gateway_capture_id",
+                    "gateway_completed_at",
+                    "updated_at",
+                ]
+            )
+            _apply_payment_effects(payment, today, pricing)
+
+
+def _sync_moyasar_batch(batch_ref: str) -> str:
+    payment = (
+        Payment.objects.filter(
+            payment_method=Payment.Method.MOYASAR,
+            batch_ref=batch_ref,
+        )
+        .order_by("id")
+        .first()
+    )
+    if not payment or not payment.gateway_order_id:
+        raise _ApprovalError("طلب ميّسر غير معروف.")
+    invoice = fetch_moyasar_invoice(payment.gateway_order_id)
+    invoice_status = str(invoice.get("status") or "").strip().lower()
+    if invoice_status == "paid":
+        _complete_moyasar_invoice(batch_ref, invoice)
+    elif invoice_status in {"failed", "canceled", "expired", "voided"}:
+        local_status = (
+            Payment.Status.REJECTED
+            if invoice_status == "failed"
+            else Payment.Status.CANCELLED
+        )
+        Payment.objects.filter(
+            payment_method=Payment.Method.MOYASAR,
+            batch_ref=batch_ref,
+            status=Payment.Status.PENDING,
+        ).update(status=local_status, gateway_status=invoice_status)
+    else:
+        Payment.objects.filter(
+            payment_method=Payment.Method.MOYASAR,
+            batch_ref=batch_ref,
+            status=Payment.Status.PENDING,
+        ).update(gateway_status=invoice_status[:32])
+    return invoice_status
+
+
+@login_required(login_url="reports:login")
+@ratelimit(key="user", rate="5/m", method="POST", block=True)
+@require_http_methods(["POST"])
+def moyasar_checkout_create(request):
+    if not moyasar_is_enabled():
+        messages.error(request, "الدفع الإلكتروني غير متاح حاليًا.")
+        return redirect("reports:my_subscription")
+
+    membership = _manager_payment_membership(request)
+    if not membership:
+        messages.error(request, "هذه الخدمة مخصصة لإدارة المدرسة.")
+        return redirect("reports:home")
+
+    subscription = (
+        SchoolSubscription.objects.filter(school=membership.school)
+        .select_related("plan")
+        .first()
+    )
+    try:
+        items, warnings = _build_unified_payment_items(request, membership, subscription)
+    except _PaymentSelectionError as exc:
+        messages.error(request, str(exc))
+        return redirect("reports:my_subscription")
+
+    batch_ref = uuid.uuid4().hex[:16]
+    total = sum((Decimal(str(item["amount"])) for item in items), Decimal("0"))
+    labels = "، ".join(item["label"] for item in items)
+    callback_url = request.build_absolute_uri(
+        reverse("reports:moyasar_callback", args=[batch_ref])
+    )
+    success_url = request.build_absolute_uri(
+        reverse("reports:moyasar_return", args=[batch_ref])
+    )
+    back_url = request.build_absolute_uri(reverse("reports:my_subscription"))
+    try:
+        invoice = create_moyasar_invoice(
+            amount=total,
+            description=f"خدمات منصة توثيق: {labels}",
+            callback_url=callback_url,
+            success_url=success_url,
+            back_url=back_url,
+            metadata={
+                "batch_ref": batch_ref,
+                "school_id": str(membership.school_id),
+            },
+        )
+    except (MoyasarGatewayError, ImproperlyConfigured):
+        logger.exception("Moyasar invoice creation failed")
+        messages.error(request, "تعذّر بدء الدفع الإلكتروني. حاول مجددًا أو استخدم طريقة أخرى.")
+        return redirect("reports:my_subscription")
+
+    checkout_url = str(invoice.get("url") or "").strip()
+    parsed_checkout_url = urlparse(checkout_url)
+    checkout_host = (parsed_checkout_url.hostname or "").lower()
+    if parsed_checkout_url.scheme != "https" or checkout_host != "checkout.moyasar.com":
+        logger.error("Moyasar returned an unsafe checkout URL")
+        messages.error(request, "تعذّر التحقق من رابط الدفع الإلكتروني.")
+        return redirect("reports:my_subscription")
+
+    checkout_query = dict(parse_qsl(parsed_checkout_url.query, keep_blank_values=True))
+    checkout_query["lang"] = "ar"
+    checkout_url = parsed_checkout_url._replace(query=urlencode(checkout_query)).geturl()
+
+    invoice_id = str(invoice.get("id") or "").strip()
+    gateway_status = str(invoice.get("status") or "initiated")[:32]
+    note = f"[فاتورة دفع إلكتروني {batch_ref.upper()}] {labels} — الإجمالي {total} ريال."
+    with transaction.atomic():
+        for item in items:
+            Payment.objects.create(
+                school=membership.school,
+                subscription=subscription,
+                requested_plan=item.get("requested_plan"),
+                requested_teacher_limit=item.get("requested_teacher_limit"),
+                purpose=item["purpose"],
+                amount=item["amount"],
+                archive_storage_gb=item.get("archive_storage_gb", 0),
+                notes=note,
+                batch_ref=batch_ref,
+                payment_method=Payment.Method.MOYASAR,
+                gateway_order_id=invoice_id,
+                gateway_checkout_id=invoice_id,
+                gateway_status=gateway_status,
+                created_by=request.user,
+            )
+
+    if warnings:
+        messages.warning(request, "لم تُضف بعض العناصر: " + " ، ".join(warnings))
+    return redirect(checkout_url)
+
+
+@require_http_methods(["GET"])
+def moyasar_return(request, batch_ref: str):
+    if not moyasar_is_enabled():
+        messages.error(request, "الدفع الإلكتروني غير متاح حاليًا.")
+        return redirect("reports:my_subscription")
+    try:
+        invoice_status = _sync_moyasar_batch(batch_ref)
+    except (MoyasarGatewayError, ImproperlyConfigured, _ApprovalError):
+        logger.exception("Moyasar return verification failed for batch %s", batch_ref)
+        messages.error(request, "تعذّر التحقق من نتيجة الدفع الإلكتروني. سيُعاد التحقق تلقائيًا.")
+    else:
+        if invoice_status == "paid":
+            messages.success(request, "تم تأكيد الدفع الإلكتروني وتفعيل الخدمات المختارة.")
+        elif invoice_status in {"failed", "canceled", "expired", "voided"}:
+            messages.error(request, "لم تكتمل عملية الدفع الإلكتروني. يمكنك إنشاء طلب جديد.")
+        else:
+            messages.info(request, "عملية الدفع الإلكتروني ما زالت بانتظار الإكمال.")
+    return redirect("reports:my_subscription")
+
+
+@csrf_exempt
+# Unauthenticated by design — Moyasar calls it — and safe because the invoice is
+# re-fetched from Moyasar rather than trusted from the request body. The limit
+# only stops an anonymous client from replaying it to generate database lookups
+# and outbound gateway calls.
+@ratelimit(key="ip", rate="60/m", method="POST", block=True)
+@require_http_methods(["POST"])
+def moyasar_callback(request, batch_ref: str):
+    if not moyasar_is_enabled():
+        return JsonResponse({"detail": "Moyasar is disabled."}, status=404)
+    try:
+        invoice_status = _sync_moyasar_batch(batch_ref)
+    except (MoyasarGatewayError, ImproperlyConfigured, _ApprovalError):
+        logger.exception("Moyasar callback verification failed for batch %s", batch_ref)
+        return JsonResponse({"detail": "Could not verify invoice."}, status=502)
+    return JsonResponse({"ok": True, "status": invoice_status})
+
+
+def _tamara_risk_assessment(school, items):
+    approved_rows = Payment.objects.filter(
+        school=school,
+        status=Payment.Status.APPROVED,
+        amount__gt=0,
+    ).values_list("batch_ref", "id", "payment_date")
+    successful_orders = {}
+    for batch_ref, payment_id, payment_date in approved_rows:
+        successful_orders.setdefault(batch_ref or f"payment-{payment_id}", payment_date)
+
+    paid_dates = sorted(successful_orders.values())
+    today = timezone.localdate()
+    duration_days = max(
+        (
+            getattr(item.get("requested_plan"), "days_duration", 0) or 0
+            for item in items
+        ),
+        default=0,
+    ) or 365
+
+    def format_date(value):
+        return value.strftime("%d-%m-%Y")
+
+    return {
+        "account_creation_date": format_date(school.created_at.date()),
+        "total_order_count": len(successful_orders),
+        "is_premium_customer": False,
+        "date_first_paid": format_date(paid_dates[0]) if paid_dates else None,
+        "date_last_paid": format_date(paid_dates[-1]) if paid_dates else None,
+        "education": {
+            "education_type": "School reporting platform subscription",
+            "start_date": format_date(today),
+            "end_date": format_date(today + timedelta(days=duration_days - 1)),
+            "event_location": "Online",
+            "purchase_type": "Subscription",
+        },
+    }
+
+
+@login_required(login_url="reports:login")
+@ratelimit(key="user", rate="5/m", method="POST", block=True)
+@require_http_methods(["POST"])
+def tamara_checkout_create(request):
+    if not tamara_is_enabled():
+        messages.error(request, "الدفع عبر تمارا غير متاح حاليًا.")
+        return redirect("reports:my_subscription")
+
+    membership = _manager_payment_membership(request)
+    if not membership:
+        messages.error(request, "هذه الخدمة مخصصة لإدارة المدرسة.")
+        return redirect("reports:home")
+
+    subscription = (
+        SchoolSubscription.objects.filter(school=membership.school)
+        .select_related("plan")
+        .first()
+    )
+    try:
+        items, warnings = _build_unified_payment_items(request, membership, subscription)
+    except _PaymentSelectionError as exc:
+        messages.error(request, str(exc))
+        return redirect("reports:my_subscription")
+
+    city = (request.POST.get("tamara_city") or membership.school.city or "").strip()
+    address = (request.POST.get("tamara_address") or "").strip()
+
+    batch_ref = uuid.uuid4().hex[:16]
+    order_reference = f"TWQ-{batch_ref.upper()}"
+    user_agent = (request.headers.get("User-Agent") or "").lower()
+    total = sum((Decimal(str(item["amount"])) for item in items), Decimal("0"))
+    if not is_customer_eligible(
+        amount=total,
+        phone=request.user.phone,
+        email=request.user.email,
+    ):
+        messages.warning(request, "تمارا غير متاحة لهذا الطلب حاليًا. يمكنك استخدام التحويل البنكي.")
+        return redirect("reports:my_subscription")
+    try:
+        payload = build_checkout_payload(
+            order_reference=order_reference,
+            items=items,
+            customer_name=request.user.name,
+            customer_phone=request.user.phone,
+            customer_email=request.user.email,
+            city=city,
+            address=address,
+            success_url=request.build_absolute_uri(reverse("reports:tamara_return", args=["success"])),
+            failure_url=request.build_absolute_uri(reverse("reports:tamara_return", args=["failure"])),
+            cancel_url=request.build_absolute_uri(reverse("reports:tamara_return", args=["cancel"])),
+            risk_assessment=_tamara_risk_assessment(membership.school, items),
+            is_mobile=any(marker in user_agent for marker in ("android", "iphone", "ipad", "mobile")),
+        )
+        checkout = create_checkout(payload)
+    except (TamaraGatewayError, ImproperlyConfigured):
+        logger.exception("Tamara checkout creation failed")
+        messages.error(request, "تعذّر بدء الدفع عبر تمارا. حاول مجددًا أو استخدم التحويل البنكي.")
+        return redirect("reports:my_subscription")
+
+    checkout_url = str(checkout.get("checkout_url") or "").strip()
+    parsed_checkout_url = urlparse(checkout_url)
+    checkout_host = (parsed_checkout_url.hostname or "").lower()
+    if (
+        parsed_checkout_url.scheme != "https"
+        or checkout_host not in {"tamara.co"}
+        and not checkout_host.endswith(".tamara.co")
+    ):
+        logger.error("Tamara returned an unsafe checkout URL")
+        messages.error(request, "تعذّر التحقق من رابط الدفع عبر تمارا.")
+        return redirect("reports:my_subscription")
+
+    order_id = str(checkout["order_id"])
+    checkout_id = str(checkout.get("checkout_id") or "")
+    gateway_status = str(checkout.get("status") or "new")[:32]
+    labels = "، ".join(item["label"] for item in items)
+    note = f"[طلب تمارا {order_reference}] {labels} — الإجمالي {total} ريال."
+
+    with transaction.atomic():
+        for item in items:
+            Payment.objects.create(
+                school=membership.school,
+                subscription=subscription,
+                requested_plan=item.get("requested_plan"),
+                requested_teacher_limit=item.get("requested_teacher_limit"),
+                purpose=item["purpose"],
+                amount=item["amount"],
+                archive_storage_gb=item.get("archive_storage_gb", 0),
+                notes=note,
+                batch_ref=batch_ref,
+                payment_method=Payment.Method.TAMARA,
+                gateway_order_id=order_id,
+                gateway_checkout_id=checkout_id,
+                gateway_status=gateway_status,
+                created_by=request.user,
+            )
+
+    if warnings:
+        messages.warning(request, "لم تُضف بعض العناصر: " + " ، ".join(warnings))
+    return redirect(checkout_url)
+
+
+@require_http_methods(["GET"])
+def tamara_return(request, result: str):
+    if result == "success":
+        messages.info(request, "استلمت تمارا عملية الدفع. سيُفعّل الطلب تلقائيًا بعد تأكيد التحصيل.")
+    elif result == "cancel":
+        messages.warning(request, "أُلغيت عملية الدفع عبر تمارا ولم يتم تفعيل أي خدمة.")
+    else:
+        messages.error(request, "لم تكتمل عملية الدفع عبر تمارا. يمكنك المحاولة مجددًا.")
+    return redirect("reports:my_subscription")
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def tamara_checkout_cancel(request, payment_id: int):
+    membership = _manager_payment_membership(request)
+    payment = Payment.objects.filter(
+        pk=payment_id,
+        school=getattr(membership, "school", None),
+        payment_method=Payment.Method.TAMARA,
+        status=Payment.Status.PENDING,
+    ).first()
+    if not membership or not payment or not payment.gateway_order_id:
+        messages.error(request, "طلب تمارا غير متاح للإلغاء.")
+        return redirect("reports:my_subscription")
+
+    order_payments = Payment.objects.filter(
+        school=membership.school,
+        payment_method=Payment.Method.TAMARA,
+        gateway_order_id=payment.gateway_order_id,
+    )
+    if order_payments.filter(
+        Q(status=Payment.Status.APPROVED) | Q(effects_applied_at__isnull=False)
+    ).exists():
+        messages.error(request, "لا يمكن إلغاء طلب تم تحصيله أو تفعيله.")
+        return redirect("reports:my_subscription")
+
+    try:
+        gateway_status = str(get_order(payment.gateway_order_id).get("status") or "").lower()
+    except (TamaraGatewayError, ImproperlyConfigured):
+        messages.error(request, "تعذّر التحقق من حالة الطلب لدى تمارا. حاول مجددًا.")
+        return redirect("reports:my_subscription")
+
+    if gateway_status not in {"new", "canceled", "cancelled", "expired", "declined"}:
+        messages.warning(request, "بدأت معالجة الدفع لدى تمارا، لذلك لا يمكن إلغاء الطلب من المنصة.")
+        return redirect("reports:my_subscription")
+
+    local_status = Payment.Status.REJECTED if gateway_status == "declined" else Payment.Status.CANCELLED
+    order_payments.filter(status=Payment.Status.PENDING).update(
+        status=local_status,
+        gateway_status="customer_cancelled" if gateway_status == "new" else gateway_status,
+    )
+    messages.success(request, "أُلغي الطلب غير المدفوع. يمكنك إنشاء طلب جديد متى شئت.")
+    return redirect("reports:my_subscription")
+
+
+def _complete_tamara_order(order_id: str, *, gateway_status: str, capture_id: str, captured_amount) -> None:
+    payments = list(
+        Payment.objects.filter(
+            payment_method=Payment.Method.TAMARA,
+            gateway_order_id=order_id,
+        ).order_by("id")
+    )
+    if not payments:
+        raise _ApprovalError("طلب تمارا غير معروف.")
+
+    expected_total = sum((payment.amount for payment in payments), Decimal("0"))
+    if Decimal(str(captured_amount)).quantize(Decimal("0.01")) != expected_total.quantize(Decimal("0.01")):
+        raise _ApprovalError("مبلغ تحصيل تمارا لا يطابق مبلغ الطلب.")
+
+    pricing = _archive_pricing()
+    with transaction.atomic():
+        locked = list(
+            Payment.objects.select_for_update()
+            .filter(payment_method=Payment.Method.TAMARA, gateway_order_id=order_id)
+            .order_by("id")
+        )
+        locked.sort(key=lambda payment: _PURPOSE_APPLY_ORDER.get(payment.purpose, 99))
+        for payment in locked:
+            payment.status = Payment.Status.APPROVED
+            payment.gateway_status = gateway_status[:32]
+            payment.gateway_capture_id = capture_id[:160]
+            payment.gateway_completed_at = payment.gateway_completed_at or timezone.now()
+            payment.save(
+                update_fields=[
+                    "status", "gateway_status", "gateway_capture_id",
+                    "gateway_completed_at", "updated_at",
+                ]
+            )
+            _apply_payment_effects(payment, timezone.localdate(), pricing)
+
+
+def _record_tamara_refund(order_id: str, *, refund_id: str, refunded_amount) -> None:
+    amount = Decimal(str(refunded_amount)).quantize(Decimal("0.01"))
+    if amount <= 0 or not refund_id:
+        raise _ApprovalError("بيانات استرجاع تمارا غير صالحة.")
+
+    with transaction.atomic():
+        originals = list(
+            Payment.objects.select_for_update()
+            .filter(
+                payment_method=Payment.Method.TAMARA,
+                gateway_order_id=order_id,
+                amount__gt=0,
+            )
+            .order_by("id")
+        )
+        if not originals:
+            raise _ApprovalError("طلب تمارا غير معروف.")
+        if Payment.objects.filter(
+            payment_method=Payment.Method.TAMARA,
+            gateway_order_id=order_id,
+            gateway_capture_id=refund_id,
+            amount__lt=0,
+        ).exists():
+            return
+
+        captured_total = sum((payment.amount for payment in originals), Decimal("0"))
+        refunded_total = -(
+            Payment.objects.filter(
+                payment_method=Payment.Method.TAMARA,
+                gateway_order_id=order_id,
+                amount__lt=0,
+            ).aggregate(total=Sum("amount"))["total"]
+            or Decimal("0")
+        )
+        if refunded_total + amount > captured_total:
+            raise _ApprovalError("إجمالي استرجاع تمارا يتجاوز مبلغ الطلب.")
+
+        original = originals[0]
+        status = "fully_refunded" if refunded_total + amount == captured_total else "partially_refunded"
+        Payment.objects.filter(pk__in=[payment.pk for payment in originals]).update(gateway_status=status)
+        Payment.objects.create(
+            school=original.school,
+            subscription=original.subscription,
+            requested_plan=original.requested_plan,
+            requested_teacher_limit=original.requested_teacher_limit,
+            purpose=original.purpose,
+            amount=-amount,
+            payment_method=Payment.Method.TAMARA,
+            gateway_order_id=order_id,
+            gateway_capture_id=refund_id[:160],
+            gateway_status=status,
+            gateway_completed_at=timezone.now(),
+            batch_ref=original.batch_ref,
+            status=Payment.Status.APPROVED,
+            notes=f"استرجاع عبر تمارا للطلب {order_id}.",
+            created_by=None,
+        )
+
+
+@csrf_exempt
+# Bounds token-guessing attempts against the notification token below.
+@ratelimit(key="ip", rate="60/m", method="POST", block=True)
+@require_http_methods(["POST"])
+def tamara_webhook(request):
+    if not tamara_is_enabled():
+        return JsonResponse({"detail": "Tamara is disabled."}, status=404)
+
+    header = request.headers.get("Authorization", "")
+    header_token = header[7:].strip() if header.lower().startswith("bearer ") else ""
+    query_token = (request.GET.get("tamaraToken") or "").strip()
+    if header_token and query_token and header_token != query_token:
+        return JsonResponse({"detail": "Conflicting notification tokens."}, status=401)
+    try:
+        verify_notification_token(header_token or query_token)
+        payload = json.loads(request.body.decode("utf-8"))
+    except (TamaraGatewayError, ImproperlyConfigured, UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({"detail": "Invalid notification."}, status=401)
+
+    order_id = str(payload.get("order_id") or "").strip()
+    event_type = str(payload.get("event_type") or "").strip()
+    payments = Payment.objects.filter(
+        payment_method=Payment.Method.TAMARA,
+        gateway_order_id=order_id,
+    )
+    if not order_id or not payments.exists():
+        return JsonResponse({"detail": "Unknown order."}, status=404)
+
+    expected_reference = f"TWQ-{payments.first().batch_ref.upper()}"
+    if str(payload.get("order_reference_id") or "") != expected_reference:
+        return JsonResponse({"detail": "Order reference mismatch."}, status=409)
+
+    terminal_statuses = {
+        "order_declined": Payment.Status.REJECTED,
+        "order_expired": Payment.Status.CANCELLED,
+        "order_canceled": Payment.Status.CANCELLED,
+    }
+    if event_type in terminal_statuses:
+        payments.filter(status=Payment.Status.PENDING).update(
+            status=terminal_statuses[event_type],
+            gateway_status=event_type.removeprefix("order_"),
+        )
+        return JsonResponse({"ok": True})
+
+    if event_type == "order_refunded":
+        data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+        refunded = data.get("refunded_amount") if isinstance(data.get("refunded_amount"), dict) else {}
+        try:
+            _record_tamara_refund(
+                order_id,
+                refund_id=str(data.get("refund_id") or ""),
+                refunded_amount=refunded.get("amount"),
+            )
+        except (TypeError, ValueError, ArithmeticError, _ApprovalError):
+            logger.exception("Tamara refund webhook processing failed for order %s", order_id)
+            return JsonResponse({"detail": "Could not process refund."}, status=502)
+        return JsonResponse({"ok": True})
+
+    total = payments.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    capture_id = ""
+    captured_amount = total
+    try:
+        if event_type == "order_approved":
+            response = authorise_order(order_id)
+            gateway_status = str(response.get("status") or "authorised")
+            if gateway_status != "fully_captured":
+                response = capture_order(order_id, total)
+                gateway_status = str(response.get("status") or "")
+            capture_id = str(response.get("capture_id") or "")
+            captured_amount = (response.get("captured_amount") or {}).get("amount", total)
+        elif event_type == "order_authorised":
+            response = capture_order(order_id, total)
+            gateway_status = str(response.get("status") or "")
+            capture_id = str(response.get("capture_id") or "")
+            captured_amount = (response.get("captured_amount") or {}).get("amount", total)
+        elif event_type == "order_captured":
+            gateway_status = "fully_captured"
+            data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+            capture_id = str(data.get("capture_id") or "")
+            captured_amount = (data.get("captured_amount") or {}).get("amount", total)
+        else:
+            return JsonResponse({"ok": True, "ignored": True})
+
+        if gateway_status != "fully_captured":
+            raise TamaraGatewayError("Tamara order was not fully captured.")
+        _complete_tamara_order(
+            order_id,
+            gateway_status=gateway_status,
+            capture_id=capture_id,
+            captured_amount=captured_amount,
+        )
+    except (TamaraGatewayError, _ApprovalError):
+        logger.exception("Tamara webhook processing failed for order %s", order_id)
+        return JsonResponse({"detail": "Could not process order."}, status=502)
+    return JsonResponse({"ok": True})
 
 
 @login_required(login_url="reports:login")
@@ -2617,3 +3690,214 @@ def platform_academic_years(request: HttpRequest) -> HttpResponse:
         "reports/platform_academic_years.html",
         {"items": items, "total": len(years), "active_count": active_count},
     )
+
+
+# =========================================================================
+# Pricing matrix — the single screen where the anchor prices are maintained
+# =========================================================================
+
+PRICING_MATRIX_PERIOD_DAYS = {"1m": 30, "6m": 180, "1y": 365}
+
+
+def _anchor_plan(capacity: int, period_key: str):
+    """Return the stored plan for a capacity/period pair, if it exists."""
+    return (
+        SubscriptionPlan.objects.filter(
+            max_teachers=capacity,
+            days_duration=PRICING_MATRIX_PERIOD_DAYS[period_key],
+        )
+        .order_by("id")
+        .first()
+    )
+
+
+def _pricing_matrix_initial(capacities) -> dict:
+    initial = {}
+    for capacity in capacities:
+        for period_key in PRICING_MATRIX_PERIOD_DAYS:
+            plan = _anchor_plan(capacity, period_key)
+            if plan is not None:
+                initial[PricingMatrixForm.field_name(capacity, period_key)] = plan.price
+    return initial
+
+
+def _default_anchor_name(capacity: int, period_key: str) -> str:
+    label = {"1m": "شهري", "6m": "6 أشهر", "1y": "سنوي"}[period_key]
+    return f"سعة {capacity} معلماً | {label}"
+
+
+def _default_anchor_description(capacity: int) -> str:
+    return "\n".join(
+        [
+            f"تشغيل كامل للمدرسة حتى {capacity} معلماً",
+            "التقارير والإنجاز والطلبات والتعاميم وPDF",
+            "دعم بأولوية وجميع مزايا المنصة دون تجزئة",
+        ]
+    )
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def platform_pricing_matrix(request: HttpRequest) -> HttpResponse:
+    """Maintain the nine anchor prices that drive every published price.
+
+    Editing them one plan at a time made the relationships between them
+    invisible, which is how a capacity ended up cheaper than the one below it.
+    Here they are validated together and saved in one transaction.
+    """
+    capacities = list(ANCHOR_CAPACITIES)
+
+    if request.method == "POST":
+        form = PricingMatrixForm(request.POST, capacities=capacities)
+        if form.is_valid():
+            created = 0
+            updated = 0
+            with transaction.atomic():
+                for capacity in capacities:
+                    for period_key, days in PRICING_MATRIX_PERIOD_DAYS.items():
+                        price = form.price_for(capacity, period_key)
+                        plan = _anchor_plan(capacity, period_key)
+                        if plan is None:
+                            SubscriptionPlan.objects.create(
+                                name=_default_anchor_name(capacity, period_key),
+                                description=_default_anchor_description(capacity),
+                                price=price,
+                                days_duration=days,
+                                max_teachers=capacity,
+                                # Uniform by design — see the invariant in
+                                # reports/pricing.py.
+                                support_level="priority",
+                                onboarding_sessions=0,
+                                included_archive_storage_gb=0,
+                                is_active=True,
+                            )
+                            created += 1
+                        elif plan.price != price or not plan.is_active:
+                            plan.price = price
+                            plan.is_active = True
+                            plan.save(update_fields=["price", "is_active"])
+                            updated += 1
+
+            messages.success(
+                request,
+                f"تم حفظ مصفوفة الأسعار (أُضيفت {created} وحُدّثت {updated}). "
+                "الأسعار البينية أُعيد احتسابها تلقائياً في صفحة الهبوط وصفحة التجديد.",
+            )
+            return redirect("reports:platform_pricing_matrix")
+
+        messages.error(request, "راجع الأسعار المُعلّمة بالأحمر؛ لم يُحفظ أي تغيير.")
+    else:
+        form = PricingMatrixForm(
+            initial=_pricing_matrix_initial(capacities),
+            capacities=capacities,
+        )
+
+    active_plans = list(SubscriptionPlan.objects.filter(is_active=True))
+    return render(
+        request,
+        "reports/platform_pricing_matrix.html",
+        {
+            "form": form,
+            "period_labels": [PERIODS[key]["label"] for key in PricingMatrixForm.PERIOD_ORDER],
+            "anchor_capacities": capacities,
+            "flexible_pricing_catalog": build_flexible_pricing_catalog(plans=active_plans),
+            "pricing_warnings": _anchor_pricing_warnings(active_plans),
+            "included_features": SUBSCRIPTION_INCLUDED_FEATURES,
+            "addon_notes": SUBSCRIPTION_ADDON_NOTES,
+        },
+    )
+
+
+# =========================================================================
+# Reconciliation — a paid school must activate even if we never hear back
+# =========================================================================
+
+def reconcile_pending_gateway_payments(*, max_age_days: int = 7, limit: int = 200) -> dict:
+    """Re-check gateway payments still sitting as PENDING and finish them.
+
+    Activation depended entirely on the customer's browser returning to
+    ``moyasar_return`` or on the gateway's callback reaching us. Both can fail —
+    a closed tab, a dropped webhook, a deploy restarting the container mid-call —
+    and nothing retried. The school had paid, the money was captured, and the
+    subscription silently never activated until someone complained.
+
+    This walks recent pending gateway payments and re-runs the same verified
+    completion path the callback uses: the amount is still re-checked against the
+    gateway and effects are still applied once (``effects_applied_at``), so
+    reconciling is safe to repeat.
+
+    Payments older than ``max_age_days`` are left alone for manual review rather
+    than retried forever.
+    """
+    summary = {
+        "checked": 0,
+        "activated": 0,
+        "still_pending": 0,
+        "failed": 0,
+        # Payment rows that had to be rescued, so the caller can raise an alert
+        # per rescue rather than per sweep.
+        "recovered_payment_ids": [],
+    }
+    cutoff = timezone.now() - timedelta(days=max(1, int(max_age_days)))
+
+    pending = (
+        Payment.objects.filter(
+            status=Payment.Status.PENDING,
+            payment_method__in=[Payment.Method.MOYASAR, Payment.Method.TAMARA],
+            created_at__gte=cutoff,
+        )
+        .exclude(gateway_order_id="")
+        .order_by("created_at")
+    )
+
+    # One attempt per gateway order, not per payment row in the batch.
+    seen: set[tuple[str, str]] = set()
+    for payment in pending[: max(1, int(limit))]:
+        key = (payment.payment_method, payment.batch_ref or payment.gateway_order_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        summary["checked"] += 1
+
+        try:
+            if payment.payment_method == Payment.Method.MOYASAR:
+                if not payment.batch_ref:
+                    continue
+                status = _sync_moyasar_batch(payment.batch_ref)
+                if status == "paid":
+                    summary["activated"] += 1
+                    summary["recovered_payment_ids"].append(payment.pk)
+                else:
+                    summary["still_pending"] += 1
+            else:
+                order = get_order(payment.gateway_order_id)
+                gateway_status = str(order.get("status") or "").lower()
+                if gateway_status != "fully_captured":
+                    # Only a completed capture is reconciled here. Authorising or
+                    # capturing money without the customer present belongs in the
+                    # webhook, not in a background sweep.
+                    summary["still_pending"] += 1
+                    continue
+                captured = (order.get("captured_amount") or {}).get("amount")
+                if captured is None:
+                    summary["still_pending"] += 1
+                    continue
+                _complete_tamara_order(
+                    payment.gateway_order_id,
+                    gateway_status=gateway_status,
+                    capture_id=str(order.get("capture_id") or ""),
+                    captured_amount=captured,
+                )
+                summary["activated"] += 1
+                summary["recovered_payment_ids"].append(payment.pk)
+        except Exception:
+            summary["failed"] += 1
+            logger.exception(
+                "Gateway reconciliation failed method=%s order=%s batch=%s",
+                payment.payment_method,
+                payment.gateway_order_id,
+                payment.batch_ref,
+            )
+
+    return summary

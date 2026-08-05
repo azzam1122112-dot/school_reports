@@ -1,0 +1,239 @@
+{
+  "version": "1.0",
+  "description": "حالات قياس جودة ردود منصور كما يقرأها العميل. التقييم محلي بالكامل ولا يُرسل أي بيانات لأي مزود خارجي إلا عند تشغيل --live صراحةً.",
+  "cases": [
+    {
+      "id": "visitor-what-is",
+      "audience": "general",
+      "kind": "informational",
+      "question": "وش هي منصة توثيق وكيف تفيد مدرستي؟",
+      "expect_any": [["توثيق"], ["تقارير", "التقارير"], ["ملف إنجاز", "ملفات الإنجاز", "الإنجاز"]]
+    },
+    {
+      "id": "visitor-pricing",
+      "audience": "general",
+      "kind": "informational",
+      "question": "كم يكلف الاشتراك في المنصة؟",
+      "expect_any": [["باقة", "باقات"], ["تجربة", "السعر النهائي"]],
+      "allowed_prices": ["0", "199", "299", "399", "499", "599", "799", "999"]
+    },
+    {
+      "id": "visitor-trial-steps",
+      "audience": "general",
+      "kind": "procedural",
+      "question": "كيف أبدأ التجربة المجانية خطوة بخطوة؟",
+      "expect_any": [["تسجيل", "حساب"], ["مدرسة"]]
+    },
+    {
+      "id": "visitor-price-objection",
+      "audience": "general",
+      "kind": "emotional",
+      "question": "بصراحة الاشتراك يبيّن غالي على مدرستنا، ليش ندفع فلوس على شي نسويه بالورق؟",
+      "expect_any": [["تجربة", "تجربها", "جرب"], ["توثيق", "تقارير"]]
+    },
+    {
+      "id": "visitor-alternative-objection",
+      "audience": "general",
+      "kind": "informational",
+      "question": "عندنا مجلدات على درايف وقروبات واتساب وشغالين عليها، وش الفرق؟",
+      "expect_any": [["تقارير", "التقارير"], ["توثيق", "أرشيف", "الأرشيف", "منظم", "منظمة"]]
+    },
+    {
+      "id": "visitor-privacy",
+      "audience": "general",
+      "kind": "informational",
+      "question": "هل بيانات مدرستنا محمية ومن يقدر يشوفها؟",
+      "expect_any": [["معزولة", "منفصلة", "عزل"], ["صلاحيات", "صلاحية", "عضوية"]]
+    },
+    {
+      "id": "visitor-is-robot",
+      "audience": "general",
+      "kind": "social",
+      "question": "أنت إنسان ولا روبوت؟",
+      "expect_any": [["مساعد", "منصور"]],
+      "forbid": ["أنا إنسان", "لست ذكاء اصطناعي"]
+    },
+    {
+      "id": "visitor-wants-human",
+      "audience": "general",
+      "kind": "emotional",
+      "question": "ما أبغى أكلم مساعد ذكي، أبغى أحد من فريقكم يرد علي",
+      "expect_any": [["الدعم", "فريق"], ["شكوى", "طلب", "تذكرة", "تواصل"]]
+    },
+    {
+      "id": "visitor-out-of-scope",
+      "audience": "general",
+      "kind": "social",
+      "question": "كم درجة الحرارة اليوم في الرياض؟",
+      "expect_any": [["توثيق"]],
+      "forbid": ["درجة الحرارة اليوم", "الطقس اليوم"]
+    },
+    {
+      "id": "visitor-devices",
+      "audience": "general",
+      "kind": "informational",
+      "question": "المنصة تشتغل من الجوال والآيباد أو لازم كمبيوتر؟",
+      "expect_any": [["جوال", "الهاتف"], ["متصفح", "المتصفح", "آيباد", "الأجهزة"]]
+    },
+    {
+      "id": "teacher-create-report",
+      "audience": "teacher",
+      "kind": "procedural",
+      "question": "كيف أنشئ تقرير نشاط وأرفق له الصور؟",
+      "expect_any": [["تقرير"], ["صور", "الصور"], ["حفظ", "احفظ", "الحفظ"]]
+    },
+    {
+      "id": "teacher-upload-failure",
+      "audience": "teacher",
+      "kind": "support",
+      "question": "تعبت والله، الصورة ما ترضى تترفع والتقرير يرفض يحفظ",
+      "expect_any": [["صيغة", "حجم", "الحد"], ["اتصال", "الاتصال", "أعد المحاولة", "حاول"]]
+    },
+    {
+      "id": "teacher-achievement",
+      "audience": "teacher",
+      "kind": "procedural",
+      "question": "كيف أسوي ملف إنجاز وأضيف له الشواهد؟",
+      "expect_any": [["ملف إنجاز", "الإنجاز"], ["شواهد", "الشواهد", "أعمال", "أعمالك"]]
+    },
+    {
+      "id": "teacher-sign-circular",
+      "audience": "teacher",
+      "kind": "procedural",
+      "question": "وصلني تعميم، كيف أقرأه وأوقع عليه؟",
+      "expect_any": [["تعميم", "التعميم"], ["توقيع", "التوقيع", "إقرار", "الإقرار"]]
+    },
+    {
+      "id": "teacher-out-of-role",
+      "audience": "teacher",
+      "kind": "informational",
+      "question": "أبغى أرسل تعميم لكل معلمي المدرسة، من وين أرسله؟",
+      "expect_any": [["مدير المدرسة", "مدير", "المدير"]]
+    },
+    {
+      "id": "teacher-forgot-password",
+      "audience": "teacher",
+      "kind": "support",
+      "question": "نسيت كلمة المرور وما وصلني رابط الاستعادة",
+      "expect_any": [["البريد", "بريدك"], ["الاستعادة", "استعادة", "تعيين"]]
+    },
+    {
+      "id": "teacher-session-drop",
+      "audience": "teacher",
+      "kind": "support",
+      "question": "النظام طلعني من حسابي فجأة وأنا أكتب تقرير، ليه صار كذا؟",
+      "expect_any": [["جلسة", "الجلسة", "جهاز", "متصفح"]]
+    },
+    {
+      "id": "manager-onboard-team",
+      "audience": "manager",
+      "kind": "procedural",
+      "question": "كيف أضيف معلمين مدرستي وأوزعهم على الأقسام؟",
+      "expect_any": [["معلمين", "المعلمين"], ["أقسام", "الأقسام", "قسم"]]
+    },
+    {
+      "id": "manager-team-then-circular",
+      "audience": "manager",
+      "kind": "procedural",
+      "question": "أبغى أضيف المعلمين وبعدها أرسل لهم تعميم، وش المسار الصحيح؟",
+      "expect_any": [["معلمين", "المعلمين"], ["تعميم", "التعميم"], ["مستلمين", "المستلمين", "استهداف", "حدد"]]
+    },
+    {
+      "id": "manager-payment-not-active",
+      "audience": "manager",
+      "kind": "support",
+      "question": "دفعت من ثلاث أيام والاشتراك لين الحين ما تفعّل، هذا شي غير مقبول",
+      "expect_any": [["الاشتراك", "اشتراك"], ["العملية", "الفاتورة", "الإيصال", "رقم العملية"]],
+      "forbid": ["فعّلت لك", "راجعت حسابك"]
+    },
+    {
+      "id": "manager-storage",
+      "audience": "manager",
+      "kind": "procedural",
+      "question": "مساحة التخزين خلصت، كيف أزيدها؟",
+      "expect_any": [["مساحة", "التخزين"], ["الاشتراك", "سعة", "إضافية"]]
+    },
+    {
+      "id": "manager-archive",
+      "audience": "manager",
+      "kind": "informational",
+      "question": "وش فايدة الأرشيف السنوي ومتى أحتاجه؟",
+      "expect_any": [["أرشيف", "الأرشيف"], ["سنة", "السنة", "نسخة"]]
+    },
+    {
+      "id": "manager-weekly-report",
+      "audience": "manager",
+      "kind": "informational",
+      "question": "وش هو التقرير الأسبوعي اللي يوصلني؟",
+      "expect_any": [["الأسبوعي", "أسبوعي", "كل أسبوع"], ["المدرسة", "مدرستك", "الفريق", "المعلمين"]]
+    },
+    {
+      "id": "manager-complaint",
+      "audience": "manager",
+      "kind": "emotional",
+      "question": "تجربتنا مع المنصة سيئة وأبغى أرفع شكوى رسمية",
+      "expect_any": [["شكوى", "الشكوى", "الشكاوى"], ["رقم متابعة", "متابعة", "المتابعة"]]
+    },
+    {
+      "id": "manager-refund",
+      "audience": "manager",
+      "kind": "emotional",
+      "question": "أبغى أسترد المبلغ اللي دفعته",
+      "expect_any": [["طلب", "الدعم", "الشكاوى"], ["رقم العملية", "العملية", "الباقة"]],
+      "forbid": ["سنعيد لك المبلغ", "الاسترداد مضمون"]
+    },
+    {
+      "id": "manager-value",
+      "audience": "manager",
+      "kind": "informational",
+      "question": "وش اللي بيتغير في مدرستي فعليًا إذا اشتركنا؟",
+      "expect_any": [["تقارير", "التقارير"], ["متابعة", "توثيق", "منظم", "منظمة", "لوحة"]]
+    },
+    {
+      "id": "manager-add-school",
+      "audience": "manager",
+      "kind": "procedural",
+      "question": "أدير مدرستين، كيف أضيف المدرسة الثانية وأبدل بينها؟",
+      "expect_any": [["مدرسة", "المدرسة"], ["تبديل", "التبديل", "النشطة", "إضافة"]]
+    },
+    {
+      "id": "report-supervisor-scope",
+      "audience": "report_supervisor",
+      "kind": "informational",
+      "question": "أقدر أعدل تقرير معلم أو أحذفه؟",
+      "expect_any": [["عرض", "الاطلاع", "المتابعة"], ["لا يمكنك", "لا تستطيع", "غير متاح"]]
+    },
+    {
+      "id": "platform-supervisor-scope",
+      "audience": "platform_supervisor",
+      "kind": "informational",
+      "question": "وش صلاحياتي على المدارس التابعة لي؟",
+      "expect_any": [["نطاق", "النطاق", "المخصصة", "المدارس"]]
+    },
+    {
+      "id": "followup-shorten",
+      "audience": "manager",
+      "kind": "informational",
+      "question": "ما فهمت، اختصرها لي",
+      "history": [
+        {"role": "user", "content": "كيف أضيف المعلمين وأرسل لهم تعميم؟"},
+        {"role": "assistant", "content": "تبدأ من إدارة المعلمين والأقسام ثم ترسل التعميم."}
+      ],
+      "expect_any": [["معلمين", "المعلمين"], ["تعميم", "التعميم"]]
+    },
+    {
+      "id": "greeting",
+      "audience": "general",
+      "kind": "social",
+      "question": "السلام عليكم",
+      "expect_any": [["منصور"], ["أساعدك", "مساعدتك", "خدمتك"]]
+    },
+    {
+      "id": "thanks",
+      "audience": "general",
+      "kind": "social",
+      "question": "شكرًا يعطيك العافية",
+      "expect_any": [["العفو", "خدمتك", "أبشر"]]
+    }
+  ]
+}

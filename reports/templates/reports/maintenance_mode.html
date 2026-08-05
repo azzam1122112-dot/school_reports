@@ -5,9 +5,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#006c35">
+  <meta name="color-scheme" content="light dark">
+  {% include "reports/partials/theme_bootstrap.html" %}
   <!-- إعادة محاولة تلقائية: تعود المنصة للمستخدم فور انتهاء الصيانة دون أي إجراء منه -->
   <meta http-equiv="refresh" content="60">
   <title>الموقع تحت الصيانة والتطوير</title>
+  {% include "reports/partials/pwa_install_head.html" %}
   <style>
     :root {
       --brand: #006c35;
@@ -363,6 +367,8 @@
       .retry-btn { transition: none !important; }
     }
   </style>
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260804.1">
+  <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 <body>
   <main class="maintenance-shell" aria-labelledby="maintenance-title">
@@ -372,7 +378,7 @@
           <p class="brand-name">منصة توثيق</p>
           <span class="status-pill"><span class="status-dot" aria-hidden="true"></span> صيانة وتطوير</span>
         </div>
-        <img class="logo" src="{% static 'img/logo1.png' %}" alt="">
+        <img class="logo" src="{% static 'img/brand-mark.svg' %}" alt="شعار منصة توثيق">
       </div>
 
       <h1 id="maintenance-title">الموقع تحت الصيانة والتطوير</h1>
@@ -410,5 +416,6 @@
       <p class="auto-note">إذا انتهت الصيانة، سينقلك هذا الزر مباشرة إلى المنصة.</p>
     </aside>
   </main>
+  {% include "reports/partials/pwa_install.html" %}
 </body>
 </html>

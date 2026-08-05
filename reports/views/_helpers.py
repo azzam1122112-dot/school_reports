@@ -45,7 +45,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.cache import cache_control, never_cache
+from django.views.decorators.cache import cache_control, cache_page, never_cache
 from django.db.models.deletion import ProtectedError
 
 from django.templatetags.static import static
@@ -64,41 +64,8 @@ def _user_guide_md_path() -> str:
 
 @require_http_methods(["GET"])
 def user_guide(request: HttpRequest) -> HttpResponse:
-    """Public HTML page rendering the Arabic user guide Markdown."""
-
-    md_path = _user_guide_md_path()
-    if not os.path.exists(md_path):
-        raise Http404("User guide not found")
-
-    with open(md_path, "r", encoding="utf-8") as fp:
-        md_text = fp.read()
-
-    # Remove the first top-level title to avoid duplication with the page header.
-    try:
-        lines = md_text.splitlines()
-        while lines and not lines[0].strip():
-            lines.pop(0)
-        if lines and lines[0].startswith("# "):
-            lines.pop(0)
-            while lines and not lines[0].strip():
-                lines.pop(0)
-        md_text = "\n".join(lines)
-    except Exception:
-        pass
-
-    try:
-        import markdown as md
-    except Exception:
-        return HttpResponse("Markdown renderer is not installed.", status=500, content_type="text/plain")
-
-    guide_html = md.markdown(
-        md_text,
-        extensions=["extra", "fenced_code", "tables"],
-        output_format="html5",
-    )
-
+    """Render the public, task-focused Arabic user guide."""
     ctx = {
-        "guide_html": mark_safe(guide_html),
         "download_url": reverse("reports:user_guide_download"),
         "download_pdf_url": reverse("reports:user_guide_download_pdf"),
     }
@@ -121,39 +88,15 @@ def user_guide_download(request: HttpRequest) -> HttpResponse:
     )
 
 
+@cache_page(60 * 60)
+@ratelimit(key="ip", rate="20/h", method="GET", block=True)
 @require_http_methods(["GET"])
 def user_guide_download_pdf(request: HttpRequest) -> HttpResponse:
     """Download the user guide as a PDF (includes platform logo)."""
-
-    md_path = _user_guide_md_path()
-    if not os.path.exists(md_path):
-        raise Http404("User guide not found")
-
-    with open(md_path, "r", encoding="utf-8") as fp:
-        md_text = fp.read()
-
-    # Remove the first top-level title to avoid duplication with the PDF header.
-    try:
-        lines = md_text.splitlines()
-        while lines and not lines[0].strip():
-            lines.pop(0)
-        if lines and lines[0].startswith("# "):
-            lines.pop(0)
-            while lines and not lines[0].strip():
-                lines.pop(0)
-        md_text = "\n".join(lines)
-    except Exception:
-        pass
-
-    try:
-        import markdown as md
-    except Exception:
-        return HttpResponse("Markdown renderer is not installed.", status=500, content_type="text/plain")
-
-    guide_html = md.markdown(
-        md_text,
-        extensions=["extra", "fenced_code", "tables"],
-        output_format="html5",
+    guide_html = render_to_string(
+        "reports/partials/user_guide_content.html",
+        {"pdf_mode": True},
+        request=request,
     )
 
     logo_src = None
@@ -174,7 +117,7 @@ def user_guide_download_pdf(request: HttpRequest) -> HttpResponse:
     html = render_to_string(
         "reports/user_guide_pdf.html",
         {
-            "title": "دليل المستخدم الشامل — منصة توثيق",
+            "title": "دليل استخدام منصة توثيق",
             "logo_url": logo_src,
             "guide_html": mark_safe(guide_html),
         },
@@ -209,6 +152,7 @@ from ..forms import (
     ReportForm,
     TeacherCreateForm,
     TeacherEditForm,
+    MyProfileEmailForm,
     MyProfilePhoneForm,
     MyPasswordChangeForm,
     TicketActionForm,
@@ -217,6 +161,7 @@ from ..forms import (
     ManagerCreateForm,
     ArchiveStorageOptionForm,
     PlatformSettingsForm,
+    PricingMatrixForm,
     SubscriptionPlanForm,
     SchoolSubscriptionForm,
     SchoolArchiveAddonForm,
@@ -225,6 +170,8 @@ from ..forms import (
     AchievementSectionNotesForm,
     AchievementEvidenceUploadForm,
     AchievementManagerNotesForm,
+    LeadershipPortfolioForm,
+    LeadershipPortfolioSectionForm,
     PlatformAdminCreateForm,
     PlatformSchoolNotificationForm,
     PrivateCommentForm,
@@ -248,6 +195,7 @@ from ..models import (
     TicketNote,
     TicketImage,
     School,
+    SchoolAdditionRequest,
     SchoolMembership,
     MANAGER_SLUG,
     SubscriptionPlan,
@@ -258,11 +206,16 @@ from ..models import (
     ArchiveStorageOption,
     Payment,
     AuditLog,
+    CustomerComplaint,
     school_has_archive_addon,
     TeacherAchievementFile,
     AchievementSection,
     AchievementEvidenceImage,
     AchievementEvidenceReport,
+    SchoolLeadershipPortfolio,
+    LeadershipPortfolioSection,
+    LeadershipEvidenceImage,
+    LeadershipEvidenceReport,
     TeacherPrivateComment,
 )
 
@@ -270,10 +223,20 @@ from ..services_archive import (
     UNCLASSIFIED_YEAR,
     archive_available_years,
     archive_payload,
+    archive_snapshot_capacity_error,
     archive_storage_capacity_error,
     archive_year_label,
+    reclaimable_storage_by_year,
+    school_administrative_archive_payload,
     school_administrative_archive_stats,
+    _human_size,
     school_archive_enabled,
+    school_archive_overview,
+    school_snapshot_used_bytes,
+    school_storage_allowance,
+    school_storage_pressure,
+    storage_display_for_seats,
+    school_storage_limit_bytes,
     school_storage_overview,
     sync_school_archive_storage_usage,
 )
@@ -411,7 +374,10 @@ def _role_display_map(active_school: Optional[School] = None) -> dict:
     ملاحظة مهمة للتوسع (Multi-tenant): قد تتكرر slugs للأقسام بين المدارس،
     لذا عندما تتوفر مدرسة نشطة نُقيّد القراءة عليها (مع السماح بالأقسام العامة school=NULL).
     """
-    base = {"teacher": "المعلم", "manager": "المدير", "officer": "مسؤول قسم"}
+    from ..gender_labels import school_gender_labels
+
+    labels = school_gender_labels(active_school)
+    base = {"teacher": labels["teacher"], "manager": labels["manager_short"], "officer": "مسؤول قسم"}
     if Department is not None:
         try:
             qs = Department.objects.filter(is_active=True).only("slug", "role_label", "name")
@@ -490,23 +456,23 @@ def _private_comment_role_label(author, school: Optional[School]) -> str:
 
 def _school_manager_label(school: Optional[School]) -> str:
     """مسمى مدير/مديرة المدرسة حسب نوع المدرسة."""
-    gender = (getattr(school, "gender", "") or "").strip().lower()
-    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-    return "مديرة المدرسة" if gender == girls_value else "مدير المدرسة"
+    from ..gender_labels import school_gender_labels
+
+    return str(school_gender_labels(school)["manager"])
 
 
 def _school_teacher_label(school: Optional[School]) -> str:
     """مسمى معلم/معلمة حسب نوع المدرسة."""
-    gender = (getattr(school, "gender", "") or "").strip().lower()
-    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-    return "المعلمة" if gender == girls_value else "المعلم"
+    from ..gender_labels import school_gender_labels
+
+    return str(school_gender_labels(school)["teacher"])
 
 
 def _school_teachers_obj_label(school: Optional[School]) -> str:
     """صيغة جمع منصوبة/مجرورة (المعلمين/المعلمات) حسب نوع المدرسة."""
-    gender = (getattr(school, "gender", "") or "").strip().lower()
-    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-    return "المعلمات" if gender == girls_value else "المعلمين"
+    from ..gender_labels import school_gender_labels
+
+    return str(school_gender_labels(school)["teachers_object"])
 
 
 def _canonical_role_label(user, school: Optional[School]) -> str:

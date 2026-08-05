@@ -44,10 +44,6 @@ def _media_querystring_auth_enabled(
 # ----------------- Environment -----------------
 ENV = os.getenv("ENV", "development").strip().lower()
 
-# كشف تلقائي لـ Render (الأقوى من ENV اليدوي)
-if os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL"):
-    ENV = "production"
-
 # يمكنك أيضًا فرض DEBUG عبر DEBUG=1
 DEBUG = (ENV != "production") if os.getenv("DEBUG") is None else _env_bool("DEBUG", False)
 
@@ -61,6 +57,29 @@ logger = logging.getLogger(__name__)
 
 logger.info("Current Environment: %s", ENV)
 logger.info("DEBUG: %s", DEBUG)
+
+
+# ----------------- Error monitoring -----------------
+SENTRY_DSN = (os.getenv("SENTRY_DSN") or "").strip()
+SENTRY_RELEASE = (os.getenv("SENTRY_RELEASE") or "").strip() or None
+try:
+    SENTRY_TRACES_SAMPLE_RATE = min(
+        1.0,
+        max(0.0, float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05") or "0.05")),
+    )
+except (TypeError, ValueError):
+    SENTRY_TRACES_SAMPLE_RATE = 0.05
+
+if SENTRY_DSN:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=ENV,
+        release=SENTRY_RELEASE,
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+        send_default_pii=False,
+    )
 
 
 # ----------------- SECRET_KEY -----------------
@@ -83,22 +102,10 @@ def _default_allowed_hosts() -> list[str]:
 
     # Known deployed domains (backwards compatible)
     hosts += [
-        "school-7lgm.onrender.com",
-        "school-reports.onrender.com",
         "app.tawtheeq-ksa.com",
         "tawtheeq-ksa.com",
         "www.tawtheeq-ksa.com",
     ]
-
-    # Render external URL (preferred)
-    render_url = (os.getenv("RENDER_EXTERNAL_URL") or "").strip()
-    if render_url:
-        try:
-            parts = urlsplit(render_url)
-            if parts.netloc:
-                hosts.append(parts.netloc)
-        except Exception:
-            pass
 
     # De-dupe
     seen = set()
@@ -119,8 +126,6 @@ def _default_csrf_trusted_origins() -> list[str]:
 
     # Static known origins (backwards compatible)
     origins += [
-        "https://school-7lgm.onrender.com",
-        "https://school-reports.onrender.com",
         "https://app.tawtheeq-ksa.com",
         "https://tawtheeq-ksa.com",
         "https://www.tawtheeq-ksa.com",
@@ -140,15 +145,6 @@ def _default_csrf_trusted_origins() -> list[str]:
         if h in {"localhost", "127.0.0.1", "[::1]"}:
             origins.append(f"http://{h}")
 
-    render_url = (os.getenv("RENDER_EXTERNAL_URL") or "").strip()
-    if render_url:
-        try:
-            parts = urlsplit(render_url)
-            if parts.scheme and parts.netloc:
-                origins.append(f"{parts.scheme}://{parts.netloc}")
-        except Exception:
-            pass
-
     # De-dupe
     seen = set()
     out: list[str] = []
@@ -161,6 +157,7 @@ def _default_csrf_trusted_origins() -> list[str]:
 
 _csrf_env = (os.getenv("CSRF_TRUSTED_ORIGINS") or "").strip()
 CSRF_TRUSTED_ORIGINS = _split_env_list(_csrf_env) if _csrf_env else _default_csrf_trusted_origins()
+CSRF_FAILURE_VIEW = "core.views.csrf_failure"
 
 
 # ----------------- Share Links (public, no-account) -----------------
@@ -173,6 +170,75 @@ except Exception:
 SECURITY_CONTACT_EMAIL = (
     os.getenv("SECURITY_CONTACT_EMAIL") or "support@tawtheeq-ksa.com"
 ).strip()
+
+# ----------------- Mansour public AI assistant -----------------
+# The secret is server-side only. The widget remains visible without it and
+# reports a safe temporary-unavailable message until production is configured.
+OPENAI_API_KEY = (os.getenv("OPENAI_API_KEY") or "").strip()
+MANSOUR_ASSISTANT_ENABLED = _env_bool(
+    "MANSOUR_ASSISTANT_ENABLED",
+    bool(OPENAI_API_KEY),
+)
+MANSOUR_ASSISTANT_MODEL = (
+    os.getenv("MANSOUR_ASSISTANT_MODEL") or "gpt-5-mini"
+).strip()
+
+_mansour_reasoning_effort = (
+    os.getenv("MANSOUR_ASSISTANT_REASONING_EFFORT") or "minimal"
+).strip().lower()
+if _mansour_reasoning_effort not in {"minimal", "low", "medium", "high"}:
+    _mansour_reasoning_effort = "minimal"
+MANSOUR_ASSISTANT_REASONING_EFFORT = _mansour_reasoning_effort
+
+try:
+    MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS = max(
+        100,
+        min(900, int(os.getenv("MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS", "700"))),
+    )
+except (TypeError, ValueError):
+    MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS = 700
+
+try:
+    MANSOUR_ASSISTANT_TIMEOUT_SECONDS = max(
+        5.0,
+        min(30.0, float(os.getenv("MANSOUR_ASSISTANT_TIMEOUT_SECONDS", "20"))),
+    )
+except (TypeError, ValueError):
+    MANSOUR_ASSISTANT_TIMEOUT_SECONDS = 20.0
+
+# Platform-wide daily ceiling on paid assistant calls. The per-IP limit alone
+# cannot bound the bill: the widget is public, so a viral launch or a
+# distributed scraper simply arrives from many addresses. Set to 0 to disable
+# the ceiling (not recommended in production).
+try:
+    MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT = max(
+        0,
+        int(os.getenv("MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT", "2000") or "2000"),
+    )
+except (TypeError, ValueError):
+    MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT = 2000
+
+# ----------------- AI report writing assistant -----------------
+REPORT_AI_ENABLED = _env_bool("REPORT_AI_ENABLED", bool(OPENAI_API_KEY))
+REPORT_AI_MODEL = (
+    os.getenv("REPORT_AI_MODEL") or MANSOUR_ASSISTANT_MODEL
+).strip()
+
+try:
+    REPORT_AI_MAX_OUTPUT_TOKENS = max(
+        200,
+        min(1400, int(os.getenv("REPORT_AI_MAX_OUTPUT_TOKENS", "700"))),
+    )
+except (TypeError, ValueError):
+    REPORT_AI_MAX_OUTPUT_TOKENS = 700
+
+try:
+    REPORT_AI_TIMEOUT_SECONDS = max(
+        5.0,
+        min(35.0, float(os.getenv("REPORT_AI_TIMEOUT_SECONDS", "25"))),
+    )
+except (TypeError, ValueError):
+    REPORT_AI_TIMEOUT_SECONDS = 25.0
 
 
 # ----------------- Notifications: Local fallback (no broker) -----------------
@@ -216,7 +282,7 @@ TELEGRAM_ALERT_CATEGORIES = set(
     _split_env_list(
         os.getenv(
             "TELEGRAM_ALERT_CATEGORIES",
-            "support,subscriptions,registration,payments",
+            "support,subscriptions,registration,payments,complaints",
         )
     )
 )
@@ -298,10 +364,61 @@ _use_r2 = bool(R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY and R2_BUCKET_NAME and 
 if _use_r2 and "storages" not in INSTALLED_APPS:
     INSTALLED_APPS.append("storages")
 
+if ENV == "production" and PRODUCTION_STRICT_MODE and not _use_r2:
+    raise ImproperlyConfigured(
+        "Private S3/R2 media storage is required in production. Local container media is not durable."
+    )
+
+
+# ----------------- Load shedding -----------------
+# Ceiling on simultaneously-processed requests per web process. Django's ASGI
+# path gives every in-flight request its own thread *and* its own database
+# connection, with no built-in cap, so a traffic spike can exhaust PostgreSQL's
+# max_connections (default 100) and take the whole platform down — Celery
+# included. Keep this comfortably below:
+#     max_connections - (celery workers + beat + admin headroom)
+# Set to 0 to disable shedding entirely.
+#
+# When MAX_CONCURRENT_REQUESTS is not set explicitly, it is derived from the
+# database budget so the ceiling stays correct after someone scales
+# WEB_CONCURRENCY without revisiting this file:
+#
+#   (DB_MAX_CONNECTIONS - DB_RESERVED_CONNECTIONS) / WEB_CONCURRENCY
+#
+# DB_RESERVED_CONNECTIONS covers the Celery workers, beat, and a superuser slot
+# kept free for an operator to connect during an incident.
+def _derive_max_concurrent_requests() -> int:
+    explicit = (os.getenv("MAX_CONCURRENT_REQUESTS") or "").strip()
+    if explicit:
+        try:
+            return max(0, int(explicit))
+        except ValueError:
+            pass
+    try:
+        db_max = int(os.getenv("DB_MAX_CONNECTIONS", "100") or "100")
+        reserved = int(os.getenv("DB_RESERVED_CONNECTIONS", "15") or "15")
+        workers = max(1, int(os.getenv("WEB_CONCURRENCY", "1") or "1"))
+    except ValueError:
+        return 50
+    budget = (db_max - reserved) // workers
+    # Never so low that ordinary traffic is shed, never so high that the budget
+    # is meaningless.
+    return max(10, min(200, budget))
+
+
+MAX_CONCURRENT_REQUESTS = _derive_max_concurrent_requests()
+
+try:
+    OVERLOAD_RETRY_AFTER_SECONDS = max(1, int(os.getenv("OVERLOAD_RETRY_AFTER_SECONDS", "5") or "5"))
+except (TypeError, ValueError):
+    OVERLOAD_RETRY_AFTER_SECONDS = 5
+
 
 # ----------------- Middleware -----------------
 MIDDLEWARE = [
     "core.middleware.RequestTraceMiddleware",
+    # Shed load before anything touches the session store or the database.
+    "core.middleware.ConcurrencyLimitMiddleware",
     "core.middleware.BlockBadPathsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -342,6 +459,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "reports.context_processors.nav_context",
+                "reports.ai_features.ai_feature_flags",
                 "reports.context_processors.csp",
                 "reports.context_processors.seo",
             ],
@@ -356,7 +474,6 @@ ASGI_APPLICATION = "config.asgi.application"
 
 
 # ----------------- Redis URLs (Broker/Cache/Channels) -----------------
-# Render: استخدم REDIS_URL من Key Value الداخلي
 REDIS_URL = os.getenv("REDIS_URL", "").strip()
 
 # Celery broker: يفضل نفس REDIS_URL إن ما عندك غيره
@@ -394,6 +511,17 @@ if ENV == "production" and PRODUCTION_STRICT_MODE:
         raise ImproperlyConfigured("DATABASE_URL is required in production when PRODUCTION_STRICT_MODE is enabled.")
     if not REDIS_URL:
         raise ImproperlyConfigured("REDIS_URL is required in production when PRODUCTION_STRICT_MODE is enabled.")
+
+
+# django-ratelimit normally reads REMOTE_ADDR, which is the reverse proxy in
+# this deployment. Resolve X-Real-IP only when the direct peer is trusted.
+TRUSTED_PROXY_CIDRS = _split_env_list(
+    os.getenv(
+        "TRUSTED_PROXY_CIDRS",
+        "127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
+    )
+)
+RATELIMIT_IP_META_KEY = "core.client_ip.client_ip_for_ratelimit"
 
 
 # ----------------- Caching -----------------
@@ -454,9 +582,10 @@ else:
 
 # ----------------- Database -----------------
 # ── Scaling notes ───────────────────────────────────────────────
-# Current: single PostgreSQL, CONN_MAX_AGE=600, 3 web workers × 2 threads
-# = up to 6 persistent connections per web dyno.
-# At 500+ schools: consider PgBouncer or Render's managed connection pooling.
+# Current: single PostgreSQL, CONN_MAX_AGE=0 (see the reasoning below).
+# Peak connections per web process are bounded by MAX_CONCURRENT_REQUESTS,
+# because ASGI gives each in-flight request its own thread and connection.
+# At 500+ schools: consider PgBouncer or another managed connection pooling layer.
 # At 1000+ schools: evaluate read replica for nav_context / dashboard queries.
 # Hot tables: NotificationRecipient, AuditLog, Report (see docs/PHASE5 report).
 #
@@ -471,14 +600,30 @@ else:
 #   - Set CONN_MAX_AGE=0 (let PgBouncer manage pooling, not Django)
 #   - Or keep CONN_MAX_AGE=600 if using session mode (not recommended)
 #   - Point DATABASE_URL to PgBouncer host:port instead of Postgres directly
-#   - Render managed pooling: enable from dashboard, uses internal proxy
 # Rollback: revert DATABASE_URL to direct Postgres endpoint, restore CONN_MAX_AGE
 # ────────────────────────────────────────────────────────────────
 DB_SSL = _env_bool("DB_SSL", False)
 
 # الحد الأقصى لعمر الاتصال (ثوانٍ). 0 يعني إغلاق الاتصال بعد كل طلب.
-# 600 (10 دقائق) يُحسّن الأداء بشكل ملحوظ مع عدد كبير من المدارس.
-_CONN_MAX_AGE = int(os.getenv("CONN_MAX_AGE", "600"))
+#
+# ── Why 0 and not a persistent connection under ASGI ────────────
+# Persistent connections only pay off when a later request reuses the same
+# connection. That cannot happen here: Django's ASGI handler opens a
+# ThreadSensitiveContext per request and asgiref allocates a fresh
+# ThreadPoolExecutor(max_workers=1) for each one, while Django's connection
+# registry is thread-local. Every request therefore starts on a brand-new
+# thread with no connection to reuse and dials PostgreSQL anyway.
+#
+# A non-zero value does change one thing, for the worse: the connection is
+# marked "keep until close_at", so it is *not* closed when the request ends.
+# The thread then dies and the connection lingers until garbage collection —
+# which is exactly how a traffic burst exhausts max_connections.
+#
+# 0 closes the connection deterministically at the end of each request. Same
+# number of connects, bounded connection count. Reintroduce a non-zero value
+# only behind PgBouncer in transaction mode (see the PgBouncer notes above),
+# where the pooler — not Django — owns connection reuse.
+_CONN_MAX_AGE = int(os.getenv("CONN_MAX_AGE", "0"))
 
 if DATABASE_URL and dj_database_url:
     DATABASES = {
@@ -517,13 +662,13 @@ else:
                 "PASSWORD": DB_PASS,
                 "HOST": DB_HOST,
                 "PORT": DB_PORT,
-                "CONN_MAX_AGE": 600,
+                "CONN_MAX_AGE": _CONN_MAX_AGE,
                 "OPTIONS": {"sslmode": "require"} if DB_SSL and "postgresql" in engine else {},
             }
         }
 
 
-# خلف Proxy (Render) حافظ على HTTPS + اسم المضيف الأصلي
+# خلف Proxy في الإنتاج: حافظ على HTTPS + اسم المضيف الأصلي
 if ENV == "production":
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     USE_X_FORWARDED_HOST = True
@@ -593,8 +738,13 @@ CELERY_TASK_ROUTES = {
     "reports.tasks.send_daily_manager_summary_task": {"queue": "periodic"},
     "reports.tasks._daily_summary_for_school": {"queue": "periodic"},
     "reports.tasks.check_subscription_expiry_task": {"queue": "periodic"},
+    "reports.tasks.check_archive_addon_expiry_task": {"queue": "periodic"},
+    "reports.tasks.check_storage_thresholds_task": {"queue": "periodic"},
+    "reports.tasks.reconcile_pending_gateway_payments_task": {"queue": "periodic"},
     "reports.tasks.remind_unsigned_circulars_task": {"queue": "periodic"},
     "reports.tasks.cleanup_audit_logs_task": {"queue": "periodic"},
+    "reports.tasks.cleanup_expired_sessions_task": {"queue": "periodic"},
+    "reports.tasks.monitor_infrastructure_capacity_task": {"queue": "periodic"},
 }
 
 
@@ -603,23 +753,67 @@ AUDIT_LOG_RETENTION_DAYS = int(os.getenv("AUDIT_LOG_RETENTION_DAYS", "30"))
 AUDIT_LOG_CLEANUP_ENABLED = _env_bool("AUDIT_LOG_CLEANUP_ENABLED", True)
 
 
+# ----------------- Expired Session Cleanup -----------------
+# Django does not prune django_session by itself. Public traffic keeps adding
+# rows, so the table must be swept on a schedule or it grows without bound.
+SESSION_CLEANUP_ENABLED = _env_bool("SESSION_CLEANUP_ENABLED", True)
+
+
+# ----------------- Infrastructure capacity watch -----------------
+# One Redis carries the cache, the sessions and the Celery queues. Eviction
+# under `volatile-lru` is silent — it surfaces as users being logged out and
+# rate limits resetting — so the memory ratio has to be watched, not discovered.
+INFRA_CAPACITY_MONITOR_ENABLED = _env_bool("INFRA_CAPACITY_MONITOR_ENABLED", True)
+try:
+    REDIS_MEMORY_ALERT_PERCENT = max(
+        10, min(99, int(os.getenv("REDIS_MEMORY_ALERT_PERCENT", "80") or "80"))
+    )
+except (TypeError, ValueError):
+    REDIS_MEMORY_ALERT_PERCENT = 80
+try:
+    EXPIRED_SESSION_ALERT_THRESHOLD = max(
+        1000, int(os.getenv("EXPIRED_SESSION_ALERT_THRESHOLD", "100000") or "100000")
+    )
+except (TypeError, ValueError):
+    EXPIRED_SESSION_ALERT_THRESHOLD = 100_000
+
+
+# ----------------- Landing page pricing cache -----------------
+# `/` is deliberately no-store so platform toggles apply at once, which means it
+# renders in full for every campaign visitor. Its pricing model is derived only
+# from the active plans, so it is cached and invalidated on plan changes rather
+# than recomputed per visit.
+try:
+    LANDING_PRICING_CACHE_TTL_SECONDS = max(
+        0, int(os.getenv("LANDING_PRICING_CACHE_TTL_SECONDS", "60") or "60")
+    )
+except (TypeError, ValueError):
+    LANDING_PRICING_CACHE_TTL_SECONDS = 60
+
+
 # ----------------- Daily Manager Report -----------------
 DAILY_MANAGER_REPORT_ENABLED = _env_bool("DAILY_MANAGER_REPORT_ENABLED", True)
 DAILY_MANAGER_REPORT_INAPP_ENABLED = _env_bool("DAILY_MANAGER_REPORT_INAPP_ENABLED", True)
-DAILY_MANAGER_REPORT_EMAIL_ENABLED = _env_bool("DAILY_MANAGER_REPORT_EMAIL_ENABLED", False)
+DAILY_MANAGER_REPORT_EMAIL_ENABLED = _env_bool("DAILY_MANAGER_REPORT_EMAIL_ENABLED", True)
 DAILY_MANAGER_REPORT_WHATSAPP_ENABLED = _env_bool("DAILY_MANAGER_REPORT_WHATSAPP_ENABLED", False)
 
 try:
-    DAILY_MANAGER_REPORT_HOUR = int((os.getenv("DAILY_MANAGER_REPORT_HOUR", "14") or "14").strip())
+    DAILY_MANAGER_REPORT_HOUR = int((os.getenv("DAILY_MANAGER_REPORT_HOUR", "16") or "16").strip())
 except Exception:
-    DAILY_MANAGER_REPORT_HOUR = 14
+    DAILY_MANAGER_REPORT_HOUR = 16
 DAILY_MANAGER_REPORT_HOUR = max(0, min(23, DAILY_MANAGER_REPORT_HOUR))
 
 try:
-    DAILY_MANAGER_REPORT_MINUTE = int((os.getenv("DAILY_MANAGER_REPORT_MINUTE", "0") or "0").strip())
+    DAILY_MANAGER_REPORT_MINUTE = int((os.getenv("DAILY_MANAGER_REPORT_MINUTE", "5") or "5").strip())
 except Exception:
-    DAILY_MANAGER_REPORT_MINUTE = 0
+    DAILY_MANAGER_REPORT_MINUTE = 5
 DAILY_MANAGER_REPORT_MINUTE = max(0, min(59, DAILY_MANAGER_REPORT_MINUTE))
+
+DAILY_MANAGER_REPORT_DAY_OF_WEEK = (os.getenv("DAILY_MANAGER_REPORT_DAY_OF_WEEK", "thu") or "thu").strip().lower()
+if DAILY_MANAGER_REPORT_DAY_OF_WEEK in {"thursday", "thur", "khamis"}:
+    DAILY_MANAGER_REPORT_DAY_OF_WEEK = "thu"
+if DAILY_MANAGER_REPORT_DAY_OF_WEEK in {"*", "all", "daily"}:
+    DAILY_MANAGER_REPORT_DAY_OF_WEEK = "*"
 
 DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_URL = (os.getenv("DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_URL") or "").strip()
 DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_TOKEN = (os.getenv("DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_TOKEN") or "").strip()
@@ -642,6 +836,23 @@ try:
 except Exception:
     SUBSCRIPTION_EXPIRY_REMINDER_DAYS = [14, 7, 3, 1]
 SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED = _env_bool("SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED", False)
+
+# The archive add-on lapsing is more disruptive than a subscription lapsing:
+# the storage limit falls back to the free tier while the stored data stays, so
+# every upload in the platform stops for a school holding more than that.
+ARCHIVE_ADDON_EXPIRY_REMINDER_ENABLED = _env_bool(
+    "ARCHIVE_ADDON_EXPIRY_REMINDER_ENABLED", True
+)
+
+# Storage is its own product, sized from the purchased teacher capacity. Warn
+# managers as they approach the limit rather than letting them find out from a
+# rejected upload.
+STORAGE_THRESHOLD_ALERTS_ENABLED = _env_bool("STORAGE_THRESHOLD_ALERTS_ENABLED", True)
+
+# Electronic payments activate on the gateway callback or the customer's return
+# to the site. Both can fail, so a sweep re-checks recent pending payments and
+# finishes the ones the gateway actually captured.
+PAYMENT_RECONCILIATION_ENABLED = _env_bool("PAYMENT_RECONCILIATION_ENABLED", True)
 
 
 # ----------------- Unsigned Circular Reminders -----------------
@@ -674,6 +885,30 @@ EMAIL_HOST_PASSWORD = (os.getenv("EMAIL_HOST_PASSWORD") or "").strip()
 EMAIL_USE_TLS = _env_bool("EMAIL_USE_TLS", False)
 EMAIL_USE_SSL = _env_bool("EMAIL_USE_SSL", False)
 DEFAULT_FROM_EMAIL = (os.getenv("DEFAULT_FROM_EMAIL") or "no-reply@tawtheeq-ksa.com").strip()
+try:
+    EMAIL_TIMEOUT = max(
+        3,
+        int((os.getenv("EMAIL_TIMEOUT", "15") or "15").strip()),
+    )
+except (TypeError, ValueError):
+    EMAIL_TIMEOUT = 15
+try:
+    PASSWORD_RESET_TIMEOUT = max(
+        300,
+        int((os.getenv("PASSWORD_RESET_TIMEOUT", "3600") or "3600").strip()),
+    )
+except (TypeError, ValueError):
+    PASSWORD_RESET_TIMEOUT = 3600
+
+if ENV == "production" and PRODUCTION_STRICT_MODE:
+    if EMAIL_BACKEND != "django.core.mail.backends.smtp.EmailBackend":
+        raise ImproperlyConfigured("The SMTP email backend is required in production.")
+    if not EMAIL_HOST or EMAIL_HOST.lower() in {"localhost", "127.0.0.1"}:
+        raise ImproperlyConfigured("EMAIL_HOST must point to the production SMTP provider.")
+    if EMAIL_USE_TLS and EMAIL_USE_SSL:
+        raise ImproperlyConfigured("EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled.")
+    if "@" not in DEFAULT_FROM_EMAIL:
+        raise ImproperlyConfigured("DEFAULT_FROM_EMAIL must be a valid sender address.")
 
 try:
     from celery.schedules import crontab
@@ -689,16 +924,50 @@ if crontab is not None:
             "args": (AUDIT_LOG_RETENTION_DAYS,),
         }
 
+    if SESSION_CLEANUP_ENABLED:
+        CELERY_BEAT_SCHEDULE["cleanup-expired-sessions-daily"] = {
+            "task": "reports.tasks.cleanup_expired_sessions_task",
+            "schedule": crontab(minute=45, hour=3),
+        }
+
+    if INFRA_CAPACITY_MONITOR_ENABLED:
+        CELERY_BEAT_SCHEDULE["monitor-infrastructure-capacity"] = {
+            "task": "reports.tasks.monitor_infrastructure_capacity_task",
+            "schedule": crontab(minute="*/30"),
+        }
+
     if DAILY_MANAGER_REPORT_ENABLED:
         CELERY_BEAT_SCHEDULE["send-daily-manager-summary"] = {
             "task": "reports.tasks.send_daily_manager_summary_task",
-            "schedule": crontab(minute=DAILY_MANAGER_REPORT_MINUTE, hour=DAILY_MANAGER_REPORT_HOUR),
+            "schedule": crontab(
+                minute=DAILY_MANAGER_REPORT_MINUTE,
+                hour=DAILY_MANAGER_REPORT_HOUR,
+                day_of_week=DAILY_MANAGER_REPORT_DAY_OF_WEEK,
+            ),
         }
 
     if SUBSCRIPTION_EXPIRY_REMINDER_ENABLED:
         CELERY_BEAT_SCHEDULE["check-subscription-expiry-daily"] = {
             "task": "reports.tasks.check_subscription_expiry_task",
             "schedule": crontab(minute=30, hour=8),  # يومياً الساعة 8:30 صباحاً
+        }
+
+    if ARCHIVE_ADDON_EXPIRY_REMINDER_ENABLED:
+        CELERY_BEAT_SCHEDULE["check-archive-addon-expiry-daily"] = {
+            "task": "reports.tasks.check_archive_addon_expiry_task",
+            "schedule": crontab(minute=45, hour=8),
+        }
+
+    if STORAGE_THRESHOLD_ALERTS_ENABLED:
+        CELERY_BEAT_SCHEDULE["check-storage-thresholds-daily"] = {
+            "task": "reports.tasks.check_storage_thresholds_task",
+            "schedule": crontab(minute=15, hour=9),
+        }
+
+    if PAYMENT_RECONCILIATION_ENABLED:
+        CELERY_BEAT_SCHEDULE["reconcile-pending-gateway-payments"] = {
+            "task": "reports.tasks.reconcile_pending_gateway_payments_task",
+            "schedule": crontab(minute="*/20"),
         }
 
     if CIRCULAR_SIGNATURE_REMINDER_ENABLED:
@@ -713,8 +982,19 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 if ENV == "production":
-    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    STORAGES["staticfiles"] = {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    }
     WHITENOISE_MAX_AGE = 60 * 60 * 24 * 365
 
 
@@ -725,7 +1005,14 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # ----------------- Upload limits -----------------
 DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FIELDS", "20000"))
-DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(40 * 1024 * 1024)))
+# Caps the non-file portion of a request body, which Django buffers in memory.
+# Uploaded files are exempt (they spool to disk past FILE_UPLOAD_MAX_MEMORY_SIZE),
+# so this only needs to cover form fields. The largest legitimate form here is a
+# notification addressed to thousands of recipients — roughly 1 MB — so 10 MB
+# leaves a wide margin while removing a cheap memory-exhaustion vector: at the
+# previous 40 MB, a handful of concurrent crafted POSTs could OOM a 768 MB
+# container.
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(10 * 1024 * 1024)))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(2 * 1024 * 1024)))
 DATA_UPLOAD_MAX_NUMBER_FILES = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FILES", "20"))
 
@@ -735,6 +1022,9 @@ DATA_UPLOAD_MAX_NUMBER_FILES = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FILES", "20
 # enabled explicitly because reports, tickets, circulars, achievement evidence,
 # and payment receipts may contain sensitive data.
 MEDIA_PUBLIC_ACCESS_ENABLED = _env_bool("MEDIA_PUBLIC_ACCESS_ENABLED", False)
+if ENV == "production" and PRODUCTION_STRICT_MODE and MEDIA_PUBLIC_ACCESS_ENABLED:
+    raise ImproperlyConfigured("MEDIA_PUBLIC_ACCESS_ENABLED must remain False for private school files.")
+
 R2_PUBLIC_DOMAIN = (os.getenv("R2_PUBLIC_DOMAIN") or "").strip()
 if R2_PUBLIC_DOMAIN:
     try:
@@ -748,7 +1038,9 @@ if R2_PUBLIC_DOMAIN:
         R2_PUBLIC_DOMAIN = R2_PUBLIC_DOMAIN.split("/", 1)[0]
 
 if _use_r2:
-    DEFAULT_FILE_STORAGE = "reports.storage.R2MediaStorage"
+    STORAGES["default"] = {
+        "BACKEND": "reports.storage.R2MediaStorage",
+    }
 
     AWS_ACCESS_KEY_ID = R2_ACCESS_KEY_ID
     AWS_SECRET_ACCESS_KEY = R2_SECRET_ACCESS_KEY
@@ -880,6 +1172,112 @@ SITE_URL = (os.getenv("SITE_URL") or "").strip()
 if not SITE_URL:
     SITE_URL = "https://tawtheeq-ksa.com" if ENV == "production" else "http://127.0.0.1:8000"
 SITE_URL = SITE_URL.rstrip("/")
+
+# Public business disclosure shown in a collapsed, low-prominence section on
+# the landing and legal pages. Never place a national ID or personal photo here.
+BUSINESS_LEGAL_NAME = (os.getenv("BUSINESS_LEGAL_NAME") or "").strip()
+BUSINESS_COMMERCIAL_REGISTRATION = (
+    os.getenv("BUSINESS_COMMERCIAL_REGISTRATION") or ""
+).strip()
+BUSINESS_FREELANCE_DOCUMENT_NUMBER = (
+    os.getenv("BUSINESS_FREELANCE_DOCUMENT_NUMBER") or ""
+).strip()
+BUSINESS_FREELANCE_ACTIVITY = (
+    os.getenv("BUSINESS_FREELANCE_ACTIVITY") or ""
+).strip()
+BUSINESS_FREELANCE_DOCUMENT_EXPIRY = (
+    os.getenv("BUSINESS_FREELANCE_DOCUMENT_EXPIRY") or ""
+).strip()
+BUSINESS_FREELANCE_DOCUMENT_URL = (
+    os.getenv("BUSINESS_FREELANCE_DOCUMENT_URL") or ""
+).strip()
+BUSINESS_TAX_NUMBER = (os.getenv("BUSINESS_TAX_NUMBER") or "").strip()
+BUSINESS_LICENSES = (os.getenv("BUSINESS_LICENSES") or "").strip()
+BUSINESS_VERIFICATION_URL = (os.getenv("BUSINESS_VERIFICATION_URL") or "").strip()
+BUSINESS_ADDRESS = (os.getenv("BUSINESS_ADDRESS") or "").strip()
+BUSINESS_SUPPORT_EMAIL = (os.getenv("BUSINESS_SUPPORT_EMAIL") or "").strip()
+BUSINESS_SUPPORT_PHONE = (os.getenv("BUSINESS_SUPPORT_PHONE") or "").strip()
+
+if ENV == "production" and PRODUCTION_STRICT_MODE:
+    _business_disclosure_missing = [
+        name
+        for name, value in (
+            ("BUSINESS_LEGAL_NAME", BUSINESS_LEGAL_NAME),
+            ("BUSINESS_ADDRESS", BUSINESS_ADDRESS),
+            ("BUSINESS_SUPPORT_EMAIL", BUSINESS_SUPPORT_EMAIL),
+            ("BUSINESS_SUPPORT_PHONE", BUSINESS_SUPPORT_PHONE),
+        )
+        if not value
+    ]
+    if not (BUSINESS_COMMERCIAL_REGISTRATION or BUSINESS_FREELANCE_DOCUMENT_NUMBER):
+        _business_disclosure_missing.append(
+            "BUSINESS_COMMERCIAL_REGISTRATION or BUSINESS_FREELANCE_DOCUMENT_NUMBER"
+        )
+    if _business_disclosure_missing:
+        raise ImproperlyConfigured(
+            "Public business disclosure is incomplete in production: "
+            + ", ".join(_business_disclosure_missing)
+        )
+
+# ----------------- Tamara payments -----------------
+# Keep disabled until Sandbox credentials and the notification webhook are configured.
+TAMARA_ENABLED = _env_bool("TAMARA_ENABLED", False)
+TAMARA_ENVIRONMENT = (os.getenv("TAMARA_ENVIRONMENT") or "sandbox").strip().lower()
+TAMARA_API_TOKEN = (os.getenv("TAMARA_API_TOKEN") or "").strip()
+TAMARA_NOTIFICATION_TOKEN = (os.getenv("TAMARA_NOTIFICATION_TOKEN") or "").strip()
+if TAMARA_ENVIRONMENT not in {"sandbox", "production"}:
+    raise ImproperlyConfigured("TAMARA_ENVIRONMENT must be either sandbox or production.")
+if TAMARA_ENABLED:
+    _tamara_missing = [
+        name
+        for name, value in (
+            ("TAMARA_API_TOKEN", TAMARA_API_TOKEN),
+            ("TAMARA_NOTIFICATION_TOKEN", TAMARA_NOTIFICATION_TOKEN),
+        )
+        if not value
+    ]
+    if _tamara_missing:
+        raise ImproperlyConfigured(
+            "Tamara is enabled but required credentials are missing: "
+            + ", ".join(_tamara_missing)
+        )
+    if ENV == "production" and PRODUCTION_STRICT_MODE and TAMARA_ENVIRONMENT != "production":
+        raise ImproperlyConfigured(
+            "TAMARA_ENVIRONMENT must be production when Tamara is enabled in strict production mode."
+        )
+TAMARA_API_BASE_URL = (
+    os.getenv("TAMARA_API_BASE_URL")
+    or ("https://api.tamara.co" if TAMARA_ENVIRONMENT == "production" else "https://api-sandbox.tamara.co")
+).strip().rstrip("/")
+TAMARA_INSTALMENTS = int(os.getenv("TAMARA_INSTALMENTS", "4"))
+TAMARA_REQUEST_TIMEOUT = int(os.getenv("TAMARA_REQUEST_TIMEOUT", "15"))
+
+# ----------------- Moyasar payments -----------------
+# Keep test mode isolated from strict production. The secret key is server-only;
+# checkout is hosted by Moyasar and the returned invoice is verified server-side.
+MOYASAR_ENABLED = _env_bool("MOYASAR_ENABLED", False)
+MOYASAR_ENVIRONMENT = (os.getenv("MOYASAR_ENVIRONMENT") or "test").strip().lower()
+MOYASAR_SECRET_KEY = (os.getenv("MOYASAR_SECRET_KEY") or "").strip()
+if MOYASAR_ENVIRONMENT not in {"test", "live"}:
+    raise ImproperlyConfigured("MOYASAR_ENVIRONMENT must be either test or live.")
+if MOYASAR_ENABLED:
+    if not MOYASAR_SECRET_KEY:
+        raise ImproperlyConfigured(
+            "Moyasar is enabled but MOYASAR_SECRET_KEY is missing."
+        )
+    expected_prefix = "sk_live_" if MOYASAR_ENVIRONMENT == "live" else "sk_test_"
+    if not MOYASAR_SECRET_KEY.startswith(expected_prefix):
+        raise ImproperlyConfigured(
+            "MOYASAR_SECRET_KEY does not match MOYASAR_ENVIRONMENT."
+        )
+    if ENV == "production" and PRODUCTION_STRICT_MODE and MOYASAR_ENVIRONMENT != "live":
+        raise ImproperlyConfigured(
+            "MOYASAR_ENVIRONMENT must be live when Moyasar is enabled in strict production mode."
+        )
+MOYASAR_API_BASE_URL = (
+    os.getenv("MOYASAR_API_BASE_URL") or "https://api.moyasar.com/v1"
+).strip().rstrip("/")
+MOYASAR_REQUEST_TIMEOUT = int(os.getenv("MOYASAR_REQUEST_TIMEOUT", "15"))
 CANONICAL_HOST_REDIRECT = _env_bool(
     "CANONICAL_HOST_REDIRECT",
     ENV == "production",
@@ -887,8 +1285,8 @@ CANONICAL_HOST_REDIRECT = _env_bool(
 
 # Self-service school trial. The free plan exposes the complete product journey
 # while keeping teacher count and archive storage deliberately small.
-TRIAL_DAYS = max(1, int(os.getenv("TRIAL_DAYS", "14") or "14"))
-TRIAL_PLAN_NAME = (os.getenv("TRIAL_PLAN_NAME") or "تجربة مجانية").strip()
+TRIAL_DAYS = max(1, int(os.getenv("TRIAL_DAYS", "30") or "30"))
+TRIAL_PLAN_NAME = (os.getenv("TRIAL_PLAN_NAME") or "التجربة المجانية").strip()
 TRIAL_MAX_TEACHERS = max(1, int(os.getenv("TRIAL_MAX_TEACHERS", "5") or "5"))
 TRIAL_ARCHIVE_STORAGE_GB = max(
     1,

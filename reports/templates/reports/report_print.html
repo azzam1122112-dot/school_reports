@@ -4,6 +4,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>تقرير: {% firstof r.title "بدون عنوان" %}</title>
   
   {% if not for_pdf %}
@@ -166,8 +167,15 @@
 
     @media (max-width: 600px) {
       .toolbar { padding: 10px 12px; gap: 8px; }
-      .toolbar .tb-title { width: 100%; margin: 0 0 2px; justify-content: center; }
+      .toolbar .tb-title {
+        width: 100%;
+        margin: 0 0 2px;
+        justify-content: center;
+        white-space: normal;
+        text-align: center;
+      }
       .toolbar .btn { flex: 1; }
+      .page { overflow-wrap: anywhere; }
     }
 
     /* Official header */
@@ -384,8 +392,9 @@
     }
     .report-footer div { color: var(--muted); }
   </style>
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
+  <style>
+    {% include "reports/partials/report_print_official_styles.html" %}
+  </style>
 </head>
 <body>
 
@@ -400,7 +409,7 @@
     </button>
   </div>
 
-  <div class="page">
+  <div class="page{% if r.image3 or r.image4 %} page--dense-evidence{% endif %}">
     <header class="header">
       <div class="hdr-block hdr-right">
         <div>المملكة العربية السعودية</div>
@@ -417,38 +426,70 @@
       </div>
 
       <div class="hdr-block hdr-left">
-        <div>التاريخ: {{ r.report_date|hijri }} هـ</div>
-        {% if r.day_name %}<div>اليوم: {{ r.day_name }}</div>{% endif %}
-        <div>رقم التقرير: {{ r.id }}</div>
+        {% if r.academic_year %}
+          <div class="hdr-academic-label">العام الدراسي</div>
+          <div class="hdr-academic-year">{{ r.academic_year }} هـ</div>
+        {% endif %}
       </div>
     </header>
 
-    <div class="title">تقرير </div>
-    <div class="subtitle">عنوان التقـرير: {% firstof r.title "—" %}</div>
+    <section class="report-identity" aria-labelledby="reportTitle">
+      <h1 id="reportTitle">{% firstof r.title "تقرير مدرسي" %}</h1>
+      <div class="identity-tags">
+        <span><i class="fa-solid fa-hashtag" aria-hidden="true"></i> رقم التقرير: <b>REP-{{ r.id }}</b></span>
+        <span><i class="fa-regular fa-calendar-check" aria-hidden="true"></i> تاريخ التنفيذ: <b>{% if r.day_name %}{{ r.day_name }} - {% endif %}{{ r.report_date|hijri }} هـ</b></span>
+      </div>
+    </section>
 
-    <table class="meta-table">
+    <table class="meta-table meta-table--compact">
       <tr>
         <th>التصنيف</th>
-        <td>{% if r.category %}{{ r.category.name }}{% else %}عام{% endif %}</td>
-        <th>تاريخ التنفيذ</th>
-        <td>{{ r.report_date|hijri }} هـ</td>
-      </tr>
-      <tr>
-        <th>المنفذ</th>
-        <td>{% firstof r.teacher_display_name r.teacher_name r.teacher.name "—" %}</td>
-        <th>عدد المستفيدين</th>
-        <td>{% if r.beneficiaries_count %}{{ r.beneficiaries_count }}{% else %}—{% endif %}</td>
+        <td{% if not r.show_beneficiaries %} colspan="3"{% endif %}>{% if r.category %}{{ r.category.name }}{% else %}عام{% endif %}</td>
+        {% if r.show_beneficiaries %}
+          <th>عدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين" }}</th>
+          <td>{{ r.beneficiaries_count|default_if_none:"—" }}</td>
+        {% endif %}
       </tr>
     </table>
 
-    <section class="section">
-      <div class="section-h">أولاً:الـوصـف </div>
-      <div class="section-body">{{ r.idea|default:"—" }}</div>
-    </section>
+    {% if r.show_goal %}
+      <section class="section print-section">
+        <div class="section-h"><span class="section-index"></span><span>الهدف</span></div>
+        <div class="section-body">{{ r.goal|default:"—" }}</div>
+      </section>
+    {% endif %}
+
+    {% if r.show_details %}
+      <section class="section print-section">
+        <div class="section-h"><span class="section-index"></span><span>تفاصيل التقرير</span></div>
+        <div class="section-body">{{ r.idea|default:"—" }}</div>
+      </section>
+    {% endif %}
+
+    {% if r.show_implementation %}
+      <section class="section print-section">
+        <div class="section-h"><span class="section-index"></span><span>آلية التنفيذ</span></div>
+        <div class="section-body">{{ r.implementation_method|default:"—" }}</div>
+      </section>
+    {% endif %}
+
+    {% if r.show_results %}
+      <section class="section print-section">
+        <div class="section-h"><span class="section-index"></span><span>النتائج</span></div>
+        <div class="section-body">{{ r.results|default:"—" }}</div>
+      </section>
+    {% endif %}
+
+    {% if r.show_recommendations %}
+      <section class="section print-section">
+        <div class="section-h"><span class="section-index"></span><span>التوصيات</span></div>
+        <div class="section-body">{{ r.recommendations|default:"—" }}</div>
+      </section>
+    {% endif %}
     
     {% if r.image1 or r.image2 or r.image3 or r.image4 %}
-    <section class="section" style="border:1px solid var(--line);">
-      <div class="section-h">ثانياً: المرفقات والشواهد</div>
+    <section class="section evidence-section print-section">
+      <div class="section-h"><span class="section-index"></span><span>المرفقات والشواهد</span></div>
       <div class="images-grid">
         {% if r.image1 %}
         <div class="img-box">
@@ -487,6 +528,10 @@
     ============================================
     {% endcomment %}
     <div class="signature-spacer"></div>
+    <section class="approval-block">
+      <div class="approval-heading">
+        <strong>الاعتمادات والتوقيعات</strong>
+      </div>
 
     {% comment %}
     ============================================
@@ -496,68 +541,69 @@
     ============================================
     {% endcomment %}
     {% firstof r.teacher_display_name r.teacher_name r.teacher.name as executor_name %}
-    {% if head_decision and not head_decision.no_render %}
-      {# مرتبط بقسم → ثلاثة تواقيع #}
-      <div class="signatures three-sigs">
-        <div class="sig">
-          <h4>{{ executor_label|default:"المنفّذ" }}</h4>
-          <div class="sig-space"></div>
-          <div class="sig-line">
-            <span class="sig-label">الاسم:</span>
-            {% if executor_name %}{{ executor_name }}{% else %}........................{% endif %}
+      {% if head_decision and not head_decision.no_render %}
+        {# مرتبط بقسم → ثلاثة تواقيع #}
+        <div class="signatures three-sigs">
+          <div class="sig">
+            <h4>{{ executor_label|default:"المنفّذ" }}</h4>
+            <div class="sig-space"></div>
+            <div class="sig-line">
+              <span class="sig-label">الاسم:</span>
+              {% if executor_name %}{{ executor_name }}{% else %}........................{% endif %}
+            </div>
           </div>
-        </div>
 
-        <div class="sig">
-          <h4>{{ SCHOOL_HEAD_OF_DEPARTMENT_LABEL|default:"رئيس القسم" }}</h4>
-          <div class="sig-space"></div>
-          <div class="sig-line">
-            <span class="sig-label">الاسم:</span>
-            {% if head_decision.single %}
-              {{ head_decision.name }}
-            {% elif head_decision.multi_dept %}
-              {{ head_decision.dept_name }}
-            {% else %}
-              ........................
-            {% endif %}
+          <div class="sig">
+            <h4>{{ SCHOOL_HEAD_OF_DEPARTMENT_LABEL|default:"رئيس القسم" }}</h4>
+            <div class="sig-space"></div>
+            <div class="sig-line">
+              <span class="sig-label">الاسم:</span>
+              {% if head_decision.single %}
+                {{ head_decision.name }}
+              {% elif head_decision.multi_dept %}
+                {{ head_decision.dept_name }}
+              {% else %}
+                ........................
+              {% endif %}
+            </div>
           </div>
-        </div>
 
-        <div class="sig">
-          <h4>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</h4>
-          <div class="sig-space"></div>
-          <div class="sig-line">
-            <span class="sig-label">الاسم:</span>
-            {% if SCHOOL_PRINCIPAL %}{{ SCHOOL_PRINCIPAL }}{% else %}........................{% endif %}
+          <div class="sig">
+            <h4>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</h4>
+            <div class="sig-space"></div>
+            <div class="sig-line">
+              <span class="sig-label">الاسم:</span>
+              {% if SCHOOL_PRINCIPAL %}{{ SCHOOL_PRINCIPAL }}{% else %}........................{% endif %}
+            </div>
           </div>
         </div>
-      </div>
-    {% else %}
-      {# غير مرتبط بقسم → توقيعان: المنفّذ + المدير #}
-      <div class="signatures two-sigs">
-        <div class="sig">
-          <h4>{{ executor_label|default:"المنفّذ" }}</h4>
-          <div class="sig-space"></div>
-          <div class="sig-line">
-            <span class="sig-label">الاسم:</span>
-            {% if executor_name %}{{ executor_name }}{% else %}........................{% endif %}
+      {% else %}
+        {# غير مرتبط بقسم → توقيعان: المنفّذ + المدير #}
+        <div class="signatures two-sigs">
+          <div class="sig">
+            <h4>{{ executor_label|default:"المنفّذ" }}</h4>
+            <div class="sig-space"></div>
+            <div class="sig-line">
+              <span class="sig-label">الاسم:</span>
+              {% if executor_name %}{{ executor_name }}{% else %}........................{% endif %}
+            </div>
           </div>
-        </div>
 
-        <div class="sig">
-          <h4>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</h4>
-          <div class="sig-space"></div>
-          <div class="sig-line">
-            <span class="sig-label">الاسم:</span>
-            {% if SCHOOL_PRINCIPAL %}{{ SCHOOL_PRINCIPAL }}{% else %}........................{% endif %}
+          <div class="sig">
+            <h4>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</h4>
+            <div class="sig-space"></div>
+            <div class="sig-line">
+              <span class="sig-label">الاسم:</span>
+              {% if SCHOOL_PRINCIPAL %}{{ SCHOOL_PRINCIPAL }}{% else %}........................{% endif %}
+            </div>
           </div>
         </div>
-      </div>
-    {% endif %}
+      {% endif %}
+    </section>
 
     {% if show_comments %}
-      <section class="section no-print" style="border:1px solid var(--line);">
-        <div class="section-h">ملاحظات وتعليقات خاصة</div>
+      <section class="section report-comments no-print">
+        <div class="section-h"><span>ملاحظات وتعليقات خاصة</span></div>
 
         <div style="color:var(--muted);font-weight:800;margin:-2px 0 10px;">
           لا تظهر في الطباعة أو المشاركة.
@@ -611,7 +657,7 @@
           <form method="post" style="margin-top:12px;">
             {% csrf_token %}
             <input type="hidden" name="action" value="private_comment_create" />
-            <div style="font-weight:900;margin-bottom:6px;">إضافة تعليق خاص للمعلم</div>
+            <div style="font-weight:900;margin-bottom:6px;">إضافة تعليق خاص {{ SCHOOL_TEACHER_DATIVE_LABEL|default:"للمعلم" }}</div>
             <div>{{ comment_form.body }}</div>
             {% if comment_form.body.errors %}
               <div style="color:#b91c1c;font-weight:900;margin-top:6px;">{{ comment_form.body.errors.0 }}</div>
@@ -625,13 +671,13 @@
     {% endif %}
 
     <div class="report-footer">
-      <div>تم إصدار التقرير إلكترونيًا — {% now "Y/m/d H:i" %}</div>
-      <div>منصة توثيق التقارير المدرسية</div>
+      <div>تم الإصدار إلكترونيًا: {% now "Y/m/d H:i" %}</div>
+      <div class="footer-brand">منصة توثيق</div>
     </div>
 
   </div>
 
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     function goBack() {
       // Prefer an explicit next= (works even when opened in a new tab)
       try {
@@ -654,47 +700,9 @@
       {% endif %}
     }
 
-    // ===== التحجيم التلقائي ليُطبع التقرير في صفحة A4 واحدة قدر الإمكان =====
-    // يقيس ارتفاع المحتوى مقارنةً بالمساحة القابلة للطباعة، وإن تجاوزها يُصغّر
-    // عبر zoom دون النزول تحت 65% حفاظًا على الوضوح.
-    var MIN_FIT_SCALE = 0.65;
-
-    function pxPerMm() {
-      var ruler = document.createElement('div');
-      ruler.style.cssText = 'position:absolute;visibility:hidden;height:100mm;width:0;top:0;left:0;';
-      document.body.appendChild(ruler);
-      var v = ruler.getBoundingClientRect().height / 100;
-      ruler.remove();
-      return v || 3.7795; // 96dpi fallback
-    }
-
-    function fitToOnePage() {
-      var page = document.querySelector('.page');
-      if (!page) return;
-      page.style.zoom = '1';
-      // المساحة القابلة للطباعة داخل A4 مع هوامش @page (14mm أعلى/أسفل)
-      var printableMm = 297 - 14 - 14;
-      var target = pxPerMm() * printableMm;
-      var h = page.scrollHeight;
-      if (h > target + 2) {
-        var scale = Math.max(target / h, MIN_FIT_SCALE);
-        page.style.zoom = String(scale);
-      }
-    }
-
-    function resetFit() {
-      var page = document.querySelector('.page');
-      if (page) page.style.zoom = '1';
-    }
-
-    // قبل الطباعة (Ctrl+P أو من المتصفح)
-    window.addEventListener('beforeprint', fitToOnePage);
-    window.addEventListener('afterprint', resetFit);
-
     // ربط أزرار شريط الأدوات (متوافق مع CSP بدل onclick)
     var _btnPrint = document.getElementById('btnPrint');
     if (_btnPrint) _btnPrint.addEventListener('click', function(){
-      fitToOnePage();                 // لمتصفحات لا تطلق beforeprint (Safari)
       setTimeout(function(){ window.print(); }, 30);
     });
     var _btnBack = document.getElementById('btnBack');
@@ -710,7 +718,6 @@
 
     // Auto print if ?print=true (optional)
     if(window.location.search.includes('print=true')){
-      fitToOnePage();
       setTimeout(function(){ window.print(); }, 60);
     }
   </script>

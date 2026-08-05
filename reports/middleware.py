@@ -124,13 +124,16 @@ class AuditLogMiddleware:
         _thread_locals.request = request
         # Ensure suppression does not leak between requests.
         set_audit_logging_suppressed(False)
-        response = self.get_response(request)
-        # تنظيف بعد الطلب
-        if hasattr(_thread_locals, "request"):
-            del _thread_locals.request
-        if hasattr(_thread_locals, "suppress_audit_logging"):
-            delattr(_thread_locals, "suppress_audit_logging")
-        return response
+        try:
+            return self.get_response(request)
+        finally:
+            # تنظيف بعد الطلب — لا بد أن يتم حتى لو رمى الطلب استثناءً،
+            # وإلا بقي الطلب القديم مرتبطًا بالـ thread وسُجّلت عمليات لاحقة
+            # باسم المستخدم الخطأ.
+            if hasattr(_thread_locals, "request"):
+                del _thread_locals.request
+            if hasattr(_thread_locals, "suppress_audit_logging"):
+                delattr(_thread_locals, "suppress_audit_logging")
 
 
 class CanonicalHostMiddleware:
@@ -246,6 +249,13 @@ class MaintenanceModeMiddleware:
             "reports:login",
             "reports:platform_login",
             "reports:logout",
+            "reports:landing",
+            "reports:faq",
+            "reports:privacy_policy",
+            "reports:terms_conditions",
+            "reports:refund_policy",
+            "reports:service_delivery_policy",
+            "reports:complaints_policy",
             "reports:platform_admin_dashboard",
             "reports:api_platform_dashboard_data",
             "reports:api_platform_dashboard_search",
@@ -297,6 +307,10 @@ class SearchEngineIndexingMiddleware:
         "reports:landing",
         "reports:faq",
         "reports:privacy_policy",
+        "reports:terms_conditions",
+        "reports:refund_policy",
+        "reports:service_delivery_policy",
+        "reports:complaints_policy",
         "reports:user_guide",
     }
     INDEXABLE_PATHS = {
@@ -645,6 +659,7 @@ class SubscriptionMiddleware:
             allowed_paths |= {
                 reverse('reports:my_subscription'),
                 reverse('reports:payment_create'),
+                reverse('reports:school_addition_requests'),
                 reverse('reports:school_archive'),
                 reverse('reports:school_archive_create'),
             }
@@ -760,7 +775,7 @@ class ForcePasswordChangeMiddleware:
 
         messages.warning(
             request,
-            "لأمان حسابك، يلزم تغيير كلمة المرور الحالية أولاً لأنها مطابقة لرقم الجوال.",
+            "لأمان حسابك، أضف بريدك الإلكتروني وغيّر كلمة المرور الحالية لأنها مطابقة لرقم الجوال.",
         )
         return redirect("reports:my_profile")
 
@@ -831,6 +846,7 @@ class PlatformAdminAccessMiddleware:
             "reports:login",
             "reports:logout",
             "reports:my_profile",
+            "reports:mansour_assistant_reply",
 
             # platform admin (scoped only)
             "reports:platform_schools_directory",
@@ -963,6 +979,10 @@ class ReportViewerAccessMiddleware:
         if bool(getattr(request, "force_password_change_required", False)) and full_name == "reports:my_profile":
             return self.get_response(request)
 
+        # سؤال المساعد عملية استشارية لا تغيّر بيانات المدرسة.
+        if full_name == "reports:mansour_assistant_reply":
+            return self.get_response(request)
+
         # منع أي عمليات كتابة تمامًا
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
             if self._wants_json(request):
@@ -1054,6 +1074,11 @@ class ContentSecurityPolicyMiddleware:
         return ""
 
     def _policy_for_request(self, request) -> str:
+        sbc_seal_origin = "https://eauthenticate.saudibusiness.gov.sa"
+        tamara_checkout_origin = "https://checkout.tamara.co"
+        tamara_enabled = bool(getattr(settings, "TAMARA_ENABLED", False))
+        is_landing_page = getattr(request, "path", "") == "/"
+
         # Allow override via env/settings for emergency tweaks.
         # If you provide a custom policy, you may include "{nonce}" placeholder.
         custom = (getattr(settings, "CONTENT_SECURITY_POLICY", "") or "").strip()
@@ -1064,6 +1089,8 @@ class ContentSecurityPolicyMiddleware:
             directives = []
             script_directives = {"script-src", "script-src-elem"}
             seen_script_directives: set[str] = set()
+            seen_frame_src = False
+            seen_form_action = False
 
             for raw_directive in policy.split(";"):
                 parts = raw_directive.strip().split()
@@ -1079,32 +1106,74 @@ class ContentSecurityPolicyMiddleware:
                     ]
                     if nonce_source not in sources:
                         sources.append(nonce_source)
+                    if is_landing_page and sbc_seal_origin not in sources:
+                        sources.append(sbc_seal_origin)
                     parts = [parts[0], *sources]
+                elif directive_name == "frame-src":
+                    seen_frame_src = True
+                    if is_landing_page and sbc_seal_origin not in parts[1:]:
+                        parts.append(sbc_seal_origin)
+                elif directive_name == "form-action":
+                    seen_form_action = True
+                    if tamara_enabled and tamara_checkout_origin not in parts[1:]:
+                        parts.append(tamara_checkout_origin)
                 directives.append(" ".join(parts))
 
             for directive_name in script_directives - seen_script_directives:
-                directives.append(f"{directive_name} 'self' {nonce_source}")
+                sources = ["'self'", nonce_source]
+                if is_landing_page:
+                    sources.append(sbc_seal_origin)
+                directives.append(f"{directive_name} {' '.join(sources)}")
+            if is_landing_page and not seen_frame_src:
+                directives.append(f"frame-src 'self' {sbc_seal_origin}")
+            if tamara_enabled and not seen_form_action:
+                directives.append(f"form-action 'self' {tamara_checkout_origin}")
             return "; ".join(directives)
 
         nonce = getattr(request, "csp_nonce", "")
+        seal_script_source = f" {sbc_seal_origin}" if is_landing_page else ""
+        frame_src = "frame-src 'self'"
+        form_action = "form-action 'self'"
+        if is_landing_page:
+            frame_src = f"{frame_src} {sbc_seal_origin}"
+        if tamara_enabled:
+            form_action = f"{form_action} {tamara_checkout_origin}"
 
         # Default policy: safe baseline with current template constraints.
         # NOTE: style-src keeps 'unsafe-inline' because templates use inline style="...".
         base = [
             "default-src 'self'",
             "base-uri 'self'",
-            "form-action 'self'",
+            form_action,
             "object-src 'none'",
             "frame-ancestors 'none'",
-            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net",
-            f"script-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net",
+            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net{seal_script_source}",
+            f"script-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net{seal_script_source}",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
             "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
             "img-src 'self' data: blob: https:",
             "connect-src 'self'",
+            frame_src,
             "upgrade-insecure-requests",
         ]
         return "; ".join(base)
+
+    @staticmethod
+    def _admin_policy() -> str:
+        """CSP compatible with Django admin's remaining inline assets."""
+        return "; ".join([
+            "default-src 'self'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "object-src 'none'",
+            "frame-ancestors 'none'",
+            "script-src 'self' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline'",
+            "font-src 'self' data:",
+            "img-src 'self' data:",
+            "connect-src 'self'",
+            "upgrade-insecure-requests",
+        ])
 
     def __call__(self, request):
         # Generate per-request nonce early (so templates can use it)
@@ -1125,13 +1194,6 @@ class ContentSecurityPolicyMiddleware:
         except Exception:
             pass
 
-        # Do not enforce strict CSP on Django admin (it uses inline scripts without our nonce)
-        try:
-            if request.path.startswith("/admin-panel/"):
-                return response
-        except Exception:
-            pass
-
         header_name = "Content-Security-Policy"
         try:
             if bool(getattr(settings, "CSP_REPORT_ONLY", False)):
@@ -1141,6 +1203,10 @@ class ContentSecurityPolicyMiddleware:
 
         # Don't override if already set by upstream/proxy
         if header_name not in response:
-            response[header_name] = self._policy_for_request(request)
+            try:
+                is_admin = request.path.startswith("/admin-panel/")
+            except Exception:
+                is_admin = False
+            response[header_name] = self._admin_policy() if is_admin else self._policy_for_request(request)
 
         return response

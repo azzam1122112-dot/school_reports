@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-  {% if mode == "edit" %}تعديل مدير مدرسة{% else %}إنشاء مدير مدرسة{% endif %}
+  {% if mode == "edit" %}تعديل حساب إدارة مدرسة{% else %}إنشاء حساب إدارة مدرسة{% endif %}
 {% endblock %}
 
 {% block head %}
@@ -195,13 +195,13 @@
   <div class="page-head" style="max-width:860px;margin-inline:auto">
     <div>
       <h1 class="page-title">
-        {% if mode == "edit" %}تعديل مدير مدرسة{% else %}إنشاء مدير مدرسة{% endif %}
+        {% if mode == "edit" %}تعديل حساب إدارة مدرسة{% else %}إنشاء حساب إدارة مدرسة{% endif %}
       </h1>
       <p class="page-subtitle">
         {% if mode == "edit" and manager %}
-          تحديث بيانات المدير وربطه بالمدارس المناسبة.
+          تحديث بيانات الحساب وربطه بالمدارس المناسبة.
         {% else %}
-          إنشاء حساب مدير وربطه بمدرسة واحدة على الأقل.
+          إنشاء حساب إدارة وربطه بمدرسة واحدة على الأقل.
         {% endif %}
       </p>
     </div>
@@ -211,9 +211,9 @@
     <div class="card">
       <div class="kicker">
         {% if mode == "edit" and manager %}
-          <span class="badge info">المدير الحالي: {{ manager.name }}</span>
+          <span class="badge info">الحساب الحالي: {{ manager.name }}</span>
         {% else %}
-          <span class="badge info">يمكن ربط المدير بعدة مدارس</span>
+          <span class="badge info">يمكن ربط الحساب بعدة مدارس</span>
         {% endif %}
 
         <span class="count-pill" id="selectedCountPill" aria-live="polite">
@@ -235,12 +235,12 @@
           <!-- بيانات المدير -->
           <div class="schools-box">
             <h3 class="section-title">
-              <span><i class="fa-solid fa-user-gear" style="opacity:.85"></i> بيانات المدير</span>
+              <span><i class="fa-solid fa-user-gear" style="opacity:.85"></i> بيانات حساب الإدارة</span>
             </h3>
 
             <div style="display:grid;gap:12px">
               <div>
-                <label for="{{ form.name.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">اسم المدير</label>
+                <label for="{{ form.name.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">اسم المسؤول</label>
                 {{ form.name }}
                 {% for e in form.name.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
               </div>
@@ -253,9 +253,9 @@
               </div>
 
               <div>
-                <label for="{{ form.email.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">البريد الإلكتروني (اختياري)</label>
+                <label for="{{ form.email.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">البريد الإلكتروني <span style="color:#dc2626">*</span></label>
                 {{ form.email }}
-                <div class="hint">يُستخدم لاستقبال التقرير اليومي تلقائيًا.</div>
+                <div class="hint">إجباري لاستقبال الملخص الأسبوعي (من الأحد حتى الخميس 4:00 م).</div>
                 {% for e in form.email.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
               </div>
 
@@ -339,7 +339,7 @@
 
         <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <button type="submit" class="btn btn-primary">
-            {% if mode == "edit" %}حفظ التعديلات{% else %}حفظ وإنشاء المدير{% endif %}
+            {% if mode == "edit" %}حفظ التعديلات{% else %}حفظ وإنشاء الحساب{% endif %}
           </button>
 
           {% if mode == "edit" and manager %}
@@ -356,7 +356,7 @@
 
 {% block scripts %}
 {{ block.super }}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 (function(){
   const search = document.getElementById('managerSchoolsSearch');
   const list = document.getElementById('schoolsList');

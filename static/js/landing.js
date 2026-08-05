@@ -44,10 +44,16 @@
       var period = button.getAttribute("data-period");
 
       Array.prototype.forEach.call(periodButtons, function (item) {
-        var active = item === button;
+        var active = item.getAttribute("data-period") === period;
         item.classList.toggle("active", active);
+        item.classList.toggle("is-active", active);
         item.setAttribute("aria-pressed", active ? "true" : "false");
       });
+
+      var flexiblePricing = document.querySelector("[data-flex-pricing]");
+      if (flexiblePricing && flexiblePricing.__flexiblePricing) {
+        flexiblePricing.__flexiblePricing.setPeriod(period);
+      }
 
       Array.prototype.forEach.call(
         document.querySelectorAll("[data-price-card]"),
@@ -154,9 +160,4 @@
     });
   }
 
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", function () {
-      navigator.serviceWorker.register("/sw.js").catch(function () {});
-    });
-  }
 }());

@@ -221,6 +221,106 @@
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
   }
 
+  .recipient-step {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 0.75rem;
+    color: var(--c-text-muted);
+    font-size: 0.88rem;
+  }
+
+  .recipient-step-number {
+    width: 1.8rem;
+    height: 1.8rem;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: var(--c-primary);
+    color: #fff;
+    font-weight: 800;
+  }
+
+  .department-selector {
+    border: 1px solid var(--c-border);
+    border-radius: 1rem;
+    background: #f8fafc;
+    padding: 0.75rem;
+  }
+
+  #id_target_department {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.55rem;
+  }
+
+  #id_target_department > div {
+    display: contents;
+  }
+
+  #id_target_department label {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 48px;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--c-border);
+    border-radius: 0.65rem;
+    background: var(--c-card-bg);
+    cursor: pointer;
+    transition: all 0.16s ease;
+  }
+
+  #id_target_department label:has(input:checked) {
+    border-color: var(--c-primary);
+    background: var(--c-primary-light);
+    color: var(--c-primary-dark);
+    font-weight: 700;
+    box-shadow: 0 0 0 1px var(--c-primary);
+  }
+
+  #id_target_department input[type="checkbox"] {
+    width: 1.15rem;
+    height: 1.15rem;
+    accent-color: var(--c-primary);
+  }
+
+  .selected-departments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.65rem;
+  }
+
+  .recipient-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.42rem 0.72rem;
+    border-radius: 999px;
+    background: var(--c-primary);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .recipient-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.8rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid rgba(5, 150, 105, .25);
+    border-radius: 0.75rem;
+    background: rgba(5, 150, 105, .06);
+  }
+
+  .recipient-summary strong {
+    color: var(--c-primary-dark);
+    white-space: nowrap;
+  }
+
   .teacher-tools {
     display: flex;
     gap: 0.75rem;
@@ -745,7 +845,7 @@
 
                 <!-- Hidden Fields -->
                 {% if form.requires_signature %}
-                  <div class="hidden">{{ form.requires_signature }}</div>
+                  <div class="hidden" hidden aria-hidden="true">{{ form.requires_signature }}</div>
                 {% endif %}
                 
                 {% if form.non_field_errors %}
@@ -772,9 +872,22 @@
 
                   <!-- Optional Filters (Department / School) -->
                    {% if form.target_department %}
-                    <div class="form-group">
-                        <label class="form-label">{{ form.target_department.label }}</label>
-                        {{ form.target_department }}
+                    <div class="full-width form-group" data-name="target_department">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:0.5rem">
+                          <label class="form-label">{{ form.target_department.label }}</label>
+                          <button type="button" id="clearAllDepartments" class="btn-link" style="font-size:0.85rem">
+                            مسح الأقسام
+                          </button>
+                        </div>
+                        <div class="recipient-step">
+                          <span class="recipient-step-number">1</span>
+                          <span>اختر قسمًا أو أكثر لإضافة جميع أعضائه إلى مستلمي التعميم.</span>
+                        </div>
+                        <div class="department-selector" id="departmentList">
+                          {{ form.target_department }}
+                        </div>
+                        <div class="selected-departments" id="selectedDepartmentsPreview" aria-live="polite"></div>
+                        {% if form.target_department.help_text %}<div class="form-hint">{{ form.target_department.help_text }}</div>{% endif %}
                         {% if form.target_department.errors %}<div class="error-list">{{ form.target_department.errors }}</div>{% endif %}
                     </div>
                   {% endif %}
@@ -809,17 +922,23 @@
                      <div class="form-group">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
                            <label class="form-label">
-                              {{ form.teachers.label }} <span class="text-red">*</span>
+                              {{ form.teachers.label }}
                            </label>
                            <span class="text-sm" style="color:var(--c-primary); font-weight:700">
-                             تم اختيار: <span id="selCount">0</span>
+                             أفراد محددون: <span id="selCount">0</span>
                            </span>
                         </div>
+                        {% if form.target_department %}
+                        <div class="recipient-step">
+                          <span class="recipient-step-number">2</span>
+                          <span>أضف حسابات فردية، سواء كانت داخل الأقسام المختارة أو خارجها.</span>
+                        </div>
+                        {% endif %}
                         
                         <div class="teacher-selector">
                            <div class="teacher-tools">
                               <input type="search" id="teacherSearch" class="teacher-search" placeholder="ابحث باسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}...">
-                              <button type="button" id="selectAllTeachers" class="btn-link" style="color:var(--c-primary); font-size:0.85rem" title="اختيار جميع المعلمين">
+                              <button type="button" id="selectAllTeachers" class="btn-link" style="color:var(--c-primary); font-size:0.85rem" title="اختيار جميع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}">
                                 <i class="fa-solid fa-check-double" style="margin-inline-end:4px"></i>الكل
                               </button>
                               <button type="button" id="clearAllTeachers" class="btn-link" style="color:#ef4444; font-size:0.85rem" title="إلغاء تحديد الكل">
@@ -828,16 +947,20 @@
                            </div>
                            <p style="font-size:0.8rem;color:#64748b;margin:0 0 0.6rem;padding:0 0.25rem">
                              <i class="fa-solid fa-circle-info" style="color:var(--c-primary);margin-inline-end:4px"></i>
-                             اضغط على اسم المعلم لتحديده، أو اضغط "<strong>الكل</strong>" لتحديد الجميع دفعةً واحدة.
+                             اضغط على اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} لتحديده، أو اضغط "<strong>الكل</strong>" لتحديد الجميع دفعةً واحدة.
                            </p>
                            
                            <div class="teacher-list-container" id="teacherList">
                               {{ form.teachers }}
                            </div>
                          </div>
+                         <div class="recipient-summary" aria-live="polite">
+                           <strong>ملخص المستلمين</strong>
+                           <span id="recipientSummaryText">لم يتم تحديد مستلمين بعد</span>
+                         </div>
                          <div id="recipientGuardMsg" class="recipient-alert" role="alert" aria-live="polite">
                            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
-                           <span>قبل الإرسال، فضلاً حدّد المستلمين لهذا التعميم.</span>
+                           <span>قبل الإرسال، حدّد حسابًا واحدًا أو قسمًا واحدًا على الأقل.</span>
                          </div>
                          {% if form.teachers.errors %}<div class="error-list">{{ form.teachers.errors }}</div>{% endif %}
                      </div>
@@ -959,7 +1082,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 (function(){
   const $ = s => document.querySelector(s);
   const $$ = s => document.querySelectorAll(s);
@@ -1043,17 +1166,62 @@
 
   // --- TEACHER SELECTOR LOGIC ---
   const teacherList = document.getElementById('teacherList');
+  const departmentList = document.getElementById('departmentList');
   const searchInput = document.getElementById('teacherSearch');
   const countDisplay = document.getElementById('selCount');
+  const departmentPreview = document.getElementById('selectedDepartmentsPreview');
+  const recipientSummaryText = document.getElementById('recipientSummaryText');
   
   function getCheckboxes(){
      return teacherList ? Array.from(teacherList.querySelectorAll('input[type="checkbox"]')) : [];
   }
 
+  function getDepartmentCheckboxes(){
+     return departmentList ? Array.from(departmentList.querySelectorAll('input[type="checkbox"]')) : [];
+  }
+
+  function selectedNames(checkboxes){
+     return checkboxes.filter(cb => cb.checked).map(cb => {
+        const label = cb.closest('label');
+        return ((label && label.textContent) || '').replace(/\s+/g, ' ').trim();
+     }).filter(Boolean);
+  }
+
+  function renderDepartmentPreview(names){
+     if(!departmentPreview) return;
+     departmentPreview.innerHTML = '';
+     names.forEach(name => {
+        const chip = document.createElement('span');
+        chip.className = 'recipient-chip';
+        chip.textContent = name;
+        departmentPreview.appendChild(chip);
+     });
+  }
+
   function updateCount(){
-     if(!countDisplay) return;
-     const c = getCheckboxes().filter(cb => cb.checked).length;
-     countDisplay.textContent = c;
+     const teacherNames = selectedNames(getCheckboxes());
+     const departmentNames = selectedNames(getDepartmentCheckboxes());
+     if(countDisplay) countDisplay.textContent = String(teacherNames.length);
+     renderDepartmentPreview(departmentNames);
+
+     if(recipientSummaryText){
+        const parts = [];
+        if(departmentNames.length){
+           parts.push(
+             String(departmentNames.length) +
+             (departmentNames.length === 1 ? ' قسم كامل' : ' أقسام كاملة')
+           );
+        }
+        if(teacherNames.length){
+           parts.push(
+             String(teacherNames.length) +
+             (teacherNames.length === 1 ? ' فرد إضافي' : ' أفراد إضافيين')
+           );
+        }
+        recipientSummaryText.textContent = parts.length
+          ? parts.join(' + ') + ' — تُزال الأسماء المكررة تلقائيًا'
+          : 'لم يتم تحديد مستلمين بعد';
+     }
   }
 
   // Filter List
@@ -1098,9 +1266,20 @@
      });
   }
 
+  const btnClearDepartments = document.getElementById('clearAllDepartments');
+  if(btnClearDepartments){
+     btnClearDepartments.addEventListener('click', () => {
+        getDepartmentCheckboxes().forEach(cb => cb.checked = false);
+        updateCount();
+     });
+  }
+
   // Listen for manual checkbox changes
   if(teacherList){
      teacherList.addEventListener('change', updateCount);
+  }
+  if(departmentList){
+     departmentList.addEventListener('change', updateCount);
   }
 
   // Initial Count
@@ -1109,16 +1288,14 @@
   // --- AJAX RELOAD (Backwards Compatibility) ---
   const scopeSel = document.getElementById('id_audience_scope');
   const schoolSel = document.getElementById('id_target_school');
-  const deptSel = document.getElementById('id_target_department');
 
   async function refreshTeachers(){
-      if(!scopeSel && !schoolSel && !deptSel) return; 
+      if(!scopeSel && !schoolSel) return;
 
       const params = new URLSearchParams();
       params.set('mode', 'circular');
       if(scopeSel) params.set('audience_scope', scopeSel.value);
       if(schoolSel) params.set('target_school', schoolSel.value);
-      if(deptSel) params.set('target_department', deptSel.value);
 
       const url = '{% url "reports:api_notification_teachers" %}?' + params.toString();
       
@@ -1151,7 +1328,6 @@
       }
   }
 
-  if(deptSel) deptSel.addEventListener('change', refreshTeachers);
   if(scopeSel) scopeSel.addEventListener('change', refreshTeachers);
   if(schoolSel) schoolSel.addEventListener('change', refreshTeachers);
 
@@ -1181,19 +1357,25 @@
     }
   }
 
-  if(teacherList){
-    teacherList.addEventListener('change', () => {
-      if(recipientGuardMsg && getCheckboxes().some(cb => cb.checked)){
+  [teacherList, departmentList].forEach(list => {
+    if(!list) return;
+    list.addEventListener('change', () => {
+      const hasRecipients =
+        getCheckboxes().some(cb => cb.checked) ||
+        getDepartmentCheckboxes().some(cb => cb.checked);
+      if(recipientGuardMsg && hasRecipients){
         recipientGuardMsg.classList.remove('show');
       }
     });
-  }
+  });
 
   if(form){
     form.addEventListener('submit', function(e){
        if(enforceRecipientsSelection){
-         const selectedCount = getCheckboxes().filter(cb => cb.checked).length;
-         if(selectedCount === 0){
+         const hasRecipients =
+           getCheckboxes().some(cb => cb.checked) ||
+           getDepartmentCheckboxes().some(cb => cb.checked);
+         if(!hasRecipients){
            e.preventDefault();
            showRecipientGuard();
            return;

@@ -9,6 +9,8 @@ from django.utils import timezone
 
 from reports.forms import NotificationCreateForm
 from reports.models import (
+    AcademicYear,
+    Report,
     ReportType,
     School,
     SchoolMembership,
@@ -16,6 +18,10 @@ from reports.models import (
     SubscriptionPlan,
     Teacher,
     TeacherAchievementFile,
+    SchoolLeadershipPortfolio,
+    LeadershipPortfolioSection,
+    LeadershipEvidenceImage,
+    LeadershipEvidenceReport,
     Ticket,
 )
 
@@ -68,6 +74,71 @@ class ManagerExperienceTests(TestCase):
         session["active_school_id"] = self.school.id
         session.save()
 
+    def test_manager_selects_current_year_and_achievement_view_defaults_to_it(self):
+        AcademicYear.objects.update(is_active=False)
+        AcademicYear.objects.update_or_create(value="1447-1448", defaults={"is_active": True})
+        AcademicYear.objects.update_or_create(value="1448-1449", defaults={"is_active": True})
+        TeacherAchievementFile.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            academic_year="1446-1447",
+        )
+        self._login_manager()
+
+        settings_response = self.client.get(reverse("reports:school_settings"))
+        year_field = settings_response.context["form"].fields["current_academic_year"]
+        self.assertEqual(
+            [value for value, _label in year_field.choices],
+            ["", "1447-1448", "1448-1449"],
+        )
+
+        update_response = self.client.post(
+            reverse("reports:school_settings"),
+            {"current_academic_year": "1448-1449", "share_link_default_days": 7},
+        )
+        self.assertEqual(update_response.status_code, 302)
+        self.school.refresh_from_db()
+        self.assertEqual(self.school.current_academic_year, "1448-1449")
+
+        files_response = self.client.get(reverse("reports:achievement_school_files"))
+        self.assertEqual(files_response.context["year"], "1448-1449")
+        self.assertEqual(
+            files_response.context["year_choices"],
+            ["1446-1447", "1448-1449"],
+        )
+
+    def test_manager_can_update_school_email_and_invalid_email_is_rejected(self):
+        self._login_manager()
+
+        settings_response = self.client.get(reverse("reports:school_settings"))
+        self.assertIn("email", settings_response.context["form"].fields)
+        self.assertContains(settings_response, 'type="email"')
+
+        update_response = self.client.post(
+            reverse("reports:school_settings"),
+            {
+                "email": "School.Contact@Example.COM",
+                "current_academic_year": "1447-1448",
+                "share_link_default_days": 7,
+            },
+        )
+        self.assertEqual(update_response.status_code, 302)
+        self.school.refresh_from_db()
+        self.assertEqual(self.school.email, "school.contact@example.com")
+
+        invalid_response = self.client.post(
+            reverse("reports:school_settings"),
+            {
+                "email": "invalid-email",
+                "current_academic_year": "1447-1448",
+                "share_link_default_days": 7,
+            },
+        )
+        self.assertEqual(invalid_response.status_code, 200)
+        self.assertIn("email", invalid_response.context["form"].errors)
+        self.school.refresh_from_db()
+        self.assertEqual(self.school.email, "school.contact@example.com")
+
     def test_manager_has_one_clear_home_destination(self):
         self._login_manager()
 
@@ -78,6 +149,194 @@ class ManagerExperienceTests(TestCase):
             reverse("reports:admin_dashboard"),
             fetch_redirect_response=False,
         )
+
+    def test_manager_creates_school_leadership_portfolio_with_eight_sections(self):
+        self._login_manager()
+
+        list_response = self.client.get(reverse("reports:leadership_portfolio_list"))
+        self.assertEqual(list_response.status_code, 200)
+        self.assertContains(list_response, self.school.name)
+
+        response = self.client.post(reverse("reports:leadership_portfolio_list"))
+
+        portfolio = SchoolLeadershipPortfolio.objects.get(
+            school=self.school,
+            academic_year="1447-1448",
+        )
+        self.assertRedirects(
+            response,
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(portfolio.manager, self.manager)
+        self.assertEqual(portfolio.school_name, self.school.name)
+        self.assertEqual(portfolio.sections.count(), 8)
+        self.assertEqual(
+            set(portfolio.sections.values_list("code", flat=True)),
+            set(LeadershipPortfolioSection.Code.values),
+        )
+        completed_section = portfolio.sections.first()
+        completed_section.is_completed = True
+        completed_section.save(update_fields=["is_completed", "updated_at"])
+        LeadershipEvidenceImage.objects.create(
+            section=completed_section,
+            image="leadership/evidence/first.png",
+        )
+        LeadershipEvidenceImage.objects.create(
+            section=completed_section,
+            image="leadership/evidence/second.png",
+        )
+        summary = self.client.get(reverse("reports:leadership_portfolio_list"))
+        summary_portfolio = summary.context["portfolios"].get(pk=portfolio.pk)
+        self.assertEqual(summary_portfolio.completed_count, 1)
+        self.assertEqual(summary_portfolio.evidence_count, 2)
+        detail_response = self.client.get(
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk])
+        )
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertContains(detail_response, self.school.name)
+
+    def test_manager_creates_report_and_adds_it_to_leadership_section(self):
+        self._login_manager()
+        self.client.post(reverse("reports:leadership_portfolio_list"))
+        portfolio = SchoolLeadershipPortfolio.objects.get(school=self.school)
+        section = portfolio.sections.get(
+            code=LeadershipPortfolioSection.Code.PLANNING
+        )
+
+        create_page = self.client.get(
+            f"{reverse('reports:add_report')}?leadership_section={section.pk}"
+        )
+        self.assertEqual(create_page.status_code, 200)
+        self.assertContains(create_page, "سيُضاف هذا التقرير تلقائيًا")
+        self.assertContains(create_page, section.get_code_display())
+
+        response = self.client.post(
+            reverse("reports:add_report"),
+            {
+                "leadership_section": section.pk,
+                "title": "اجتماع إعداد الخطة التشغيلية",
+                "report_date": "2026-08-01",
+                "beneficiaries_count": 12,
+                "idea": "تم إعداد الخطة ومؤشرات المتابعة مع فريق المدرسة.",
+                "category": self.report_type.code,
+            },
+        )
+
+        report = Report.objects.get(title="اجتماع إعداد الخطة التشغيلية")
+        self.assertRedirects(
+            response,
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(report.teacher, self.manager)
+        self.assertEqual(report.school, self.school)
+        self.assertTrue(
+            LeadershipEvidenceReport.objects.filter(
+                section=section,
+                report=report,
+            ).exists()
+        )
+
+        detail = self.client.get(
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk])
+        )
+        self.assertContains(detail, report.title)
+        printed = self.client.get(
+            reverse("reports:leadership_portfolio_print", args=[portfolio.pk])
+        )
+        self.assertContains(printed, "التقارير القيادية الموثقة")
+        self.assertContains(printed, report.title)
+
+    def test_manager_cannot_link_another_users_report_to_leadership_file(self):
+        self._login_manager()
+        self.client.post(reverse("reports:leadership_portfolio_list"))
+        portfolio = SchoolLeadershipPortfolio.objects.get(school=self.school)
+        section = portfolio.sections.first()
+        teacher_report = Report.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            teacher_name=self.teacher.name,
+            title="تقرير معلم",
+            report_date=timezone.localdate(),
+            academic_year=portfolio.academic_year,
+            category=self.report_type,
+        )
+
+        response = self.client.post(
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk]),
+            {
+                "action": "add_report_evidence",
+                "section_id": section.pk,
+                "report_id": teacher_report.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(LeadershipEvidenceReport.objects.exists())
+
+    def test_teacher_cannot_access_leadership_portfolio(self):
+        portfolio = SchoolLeadershipPortfolio.objects.create(
+            school=self.school,
+            manager=self.manager,
+            academic_year="1447-1448",
+        )
+        self.client.force_login(self.teacher)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+        self.assertEqual(
+            self.client.get(reverse("reports:leadership_portfolio_list")).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("reports:leadership_portfolio_detail", args=[portfolio.pk])
+            ).status_code,
+            404,
+        )
+
+    def test_manager_cannot_access_another_school_leadership_portfolio(self):
+        other_school = School.objects.create(
+            name="مدرسة أخرى",
+            code="other-leadership-school",
+            current_academic_year="1447-1448",
+        )
+        portfolio = SchoolLeadershipPortfolio.objects.create(
+            school=other_school,
+            manager=self.manager,
+            academic_year="1447-1448",
+        )
+        self._login_manager()
+
+        response = self.client.get(
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk])
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_leadership_portfolio_print_keeps_school_identity(self):
+        self.school.gender = "girls"
+        self.school.save(update_fields=["gender"])
+        portfolio = SchoolLeadershipPortfolio.objects.create(
+            school=self.school,
+            manager=self.manager,
+            academic_year="1447-1448",
+        )
+        self._login_manager()
+        self.client.post(reverse("reports:leadership_portfolio_list"))
+
+        response = self.client.get(
+            reverse("reports:leadership_portfolio_print", args=[portfolio.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ملف الأداء القيادي")
+        self.assertContains(response, self.school.name)
+        self.assertContains(response, "منصة توثيق")
+        self.assertContains(response, "مديرة المدرسة")
+        self.assertEqual(response.content.decode("utf-8").count('class="page'), 12)
 
     def test_dashboard_prioritizes_actionable_manager_work(self):
         Ticket.objects.create(
@@ -129,6 +388,41 @@ class ManagerExperienceTests(TestCase):
         self.assertContains(response, "جاهزية مساحة المدرسة")
         self.assertContains(response, "بيانات المدرسة والسنة الحالية")
         self.assertContains(response, "الأقسام")
+
+    def test_manager_can_toggle_weekly_summary_email_preference_from_dashboard(self):
+        self._login_manager()
+
+        response = self.client.get(reverse("reports:admin_dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "الملخص الأسبوعي على بريدك")
+        self.assertContains(response, 'name="weekly_summary_email_enabled" value="1"')
+        self.assertContains(response, 'name="weekly_summary_email_enabled" value="0"')
+        self.assertContains(response, "مفعّل حاليًا")
+
+        post_disable = self.client.post(
+            reverse("reports:admin_dashboard"),
+            {"action": "toggle_weekly_summary_email", "weekly_summary_email_enabled": "0"},
+            follow=True,
+        )
+
+        self.assertEqual(post_disable.status_code, 200)
+        self.manager_membership.refresh_from_db()
+        self.assertFalse(self.manager_membership.weekly_summary_email_enabled)
+        self.assertContains(post_disable, "موقّف حاليًا")
+
+        post_enable = self.client.post(
+            reverse("reports:admin_dashboard"),
+            {
+                "action": "toggle_weekly_summary_email",
+                "weekly_summary_email_enabled": "1",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(post_enable.status_code, 200)
+        self.manager_membership.refresh_from_db()
+        self.assertTrue(self.manager_membership.weekly_summary_email_enabled)
 
     def test_dashboard_period_never_hides_old_open_actionable_ticket(self):
         ticket = Ticket.objects.create(

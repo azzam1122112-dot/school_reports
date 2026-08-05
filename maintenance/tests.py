@@ -119,6 +119,12 @@ class SchoolYearResetTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "ابحث باسم المدرسة أو الكود أو المدينة")
         self.assertContains(response, reverse("maintenance:school_year_reset_school_search"))
+        self.assertContains(response, "/static/maintenance/school_year_reset.js")
+        self.assertNotContains(response, "const picker = document.getElementById")
+        self.assertContains(response, "البطاقة الحمراء سيتم حذف بياناتها")
+        self.assertContains(response, 'id="selectedDataCount"')
+        self.assertContains(response, "محدد للحذف", count=5)
+        self.assertContains(response, "لن يُحذف", count=5)
 
     def test_school_search_endpoint_lists_schools_for_superuser_only(self):
         self.client.force_login(self.superuser)

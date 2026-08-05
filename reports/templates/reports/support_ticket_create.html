@@ -316,7 +316,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function(){
     var form = document.getElementById('supportForm');
     var btn = document.getElementById('submitBtn');

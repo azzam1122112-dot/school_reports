@@ -1,0 +1,18 @@
+{# Apply the saved/system theme before styles render to prevent a light-mode flash. #}
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+  (function () {
+    try {
+      var saved = '';
+      try { saved = window.localStorage.getItem('theme') || ''; } catch (storageError) {}
+      if (saved !== 'dark' && saved !== 'light') {
+        var match = document.cookie.match(/(?:^|; )theme=([^;]+)/);
+        saved = match ? decodeURIComponent(match[1]) : '';
+      }
+      var theme = saved === 'dark' || saved === 'light'
+        ? saved
+        : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.style.colorScheme = theme;
+    } catch (error) {}
+  })();
+</script>

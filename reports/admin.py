@@ -15,12 +15,12 @@ from .models import (
     WebAuthnCredential,
     Department,
     ReportType,
-    ReportTemplate,
     AcademicYear,
     Report,
     Ticket,
     TicketNote,
     School,
+    SchoolAdditionRequest,
     SchoolMembership,
     PlatformAdminScope,
     PlatformAdminRole,
@@ -32,6 +32,7 @@ from .models import (
     SchoolYearArchiveDownload,
     ArchiveStorageOption,
     Payment,
+    CustomerComplaint,
     AuditLog,
 )
 
@@ -173,16 +174,6 @@ class AcademicYearAdmin(admin.ModelAdmin):
     ordering = ("-value",)
 
 
-@admin.register(ReportTemplate)
-class ReportTemplateAdmin(admin.ModelAdmin):
-    list_display = ("name", "school", "category", "is_active", "order", "updated_at")
-    list_filter = ("is_active", "school")
-    search_fields = ("name", "title", "idea")
-    list_editable = ("is_active", "order")
-    autocomplete_fields = ("category",)
-    ordering = ("school", "order", "name")
-
-
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
     # ✅ تسجيل واحد فقط للقسم — لا تكرار!
@@ -320,10 +311,29 @@ class TicketNoteAdmin(admin.ModelAdmin):
 # =========================
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "current_academic_year", "is_active", "created_at")
-    list_filter = ("is_active", "created_at")
-    search_fields = ("name", "code")
+    list_display = (
+        "name",
+        "code",
+        "marketing_source",
+        "marketing_campaign",
+        "current_academic_year",
+        "is_active",
+        "created_at",
+    )
+    list_filter = ("is_active", "marketing_source", "marketing_medium", "created_at")
+    search_fields = ("name", "code", "marketing_campaign", "marketing_click_id")
     prepopulated_fields = {"code": ("name",)}
+    readonly_fields = (
+        "marketing_source",
+        "marketing_medium",
+        "marketing_campaign",
+        "marketing_content",
+        "marketing_term",
+        "marketing_click_id",
+        "marketing_referrer",
+        "created_at",
+        "updated_at",
+    )
 
     # عرض سجل العمليات الخاصة بهذه المدرسة داخل صفحة المدرسة في Django Admin
     inlines = ()
@@ -437,17 +447,31 @@ class NotificationRecipientAdmin(admin.ModelAdmin):
 # =========================
 # إدارة الاشتراكات والمالية
 # =========================
+@admin.register(SchoolAdditionRequest)
+class SchoolAdditionRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "school_name", "requested_by", "status",
+        "created_school", "created_at", "reviewed_at",
+    )
+    list_filter = ("status", "stage", "gender", "created_at")
+    search_fields = ("school_name", "city", "requested_by__name", "requested_by__phone")
+    list_select_related = ("requested_by", "created_school", "reviewed_by")
+
+
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(admin.ModelAdmin):
-    list_display = ("name", "price", "days_duration", "max_teachers", "is_active", "created_at")
-    list_filter = ("is_active", "created_at")
+    list_display = (
+        "name", "price", "days_duration", "max_teachers", "support_level",
+        "onboarding_sessions", "included_archive_storage_gb", "is_active", "created_at",
+    )
+    list_filter = ("is_active", "support_level", "created_at")
     search_fields = ("name", "description")
     ordering = ("price",)
 
 
 @admin.register(SchoolSubscription)
 class SchoolSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ("school", "plan", "start_date", "end_date", "is_active", "is_expired")
+    list_display = ("school", "plan", "teacher_limit", "start_date", "end_date", "is_active", "is_expired")
     list_filter = ("is_active", "plan", "start_date", "end_date")
     search_fields = ("school__name", "school__code")
     autocomplete_fields = ("school", "plan")
@@ -501,6 +525,7 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
                         school=obj.school,
                         subscription=obj,
                         requested_plan=obj.plan,
+                        requested_teacher_limit=obj.teacher_limit,
                         amount=0,
                         receipt_image=None,
                         payment_date=today,
@@ -552,6 +577,7 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
                 school=obj.school,
                 subscription=obj,
                 requested_plan=obj.plan,
+                requested_teacher_limit=obj.teacher_limit,
                 amount=obj.plan.price,
                 receipt_image=None,
                 payment_date=today,
@@ -569,6 +595,9 @@ class PlatformSettingsAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "maintenance_mode_enabled",
+        "mansour_public_enabled",
+        "report_ai_enabled",
+        "internal_ai_help_enabled",
         "share_link_default_days",
         "archive_addon_annual_price",
         "archive_included_storage_gb",
@@ -579,9 +608,13 @@ class PlatformSettingsAdmin(admin.ModelAdmin):
     fields = (
         "maintenance_mode_enabled",
         "maintenance_message",
+        "mansour_public_enabled",
+        "report_ai_enabled",
+        "internal_ai_help_enabled",
         "share_link_default_days",
         "archive_addon_annual_price",
         "archive_included_storage_gb",
+        "storage_mb_per_teacher",
         "free_storage_mb",
         "updated_by",
         "created_at",
@@ -618,6 +651,7 @@ class SchoolYearArchiveAdmin(admin.ModelAdmin):
         "version",
         "status",
         "file_count",
+        "leadership_count",
         "ticket_count",
         "circular_count",
         "storage_bytes",
@@ -640,6 +674,7 @@ class SchoolYearArchiveAdmin(admin.ModelAdmin):
         "failed_pdf_count",
         "report_count",
         "achievement_count",
+        "leadership_count",
         "ticket_count",
         "circular_count",
         "notification_count",
@@ -679,6 +714,7 @@ class PaymentAdmin(admin.ModelAdmin):
         "school",
         "purpose",
         "requested_plan",
+        "requested_teacher_limit",
         "amount",
         "status",
         "effects_applied_at",
@@ -690,6 +726,32 @@ class PaymentAdmin(admin.ModelAdmin):
     autocomplete_fields = ("school", "requested_plan")
     date_hierarchy = "created_at"
     readonly_fields = ("effects_applied_at", "created_at")
+
+
+@admin.register(CustomerComplaint)
+class CustomerComplaintAdmin(admin.ModelAdmin):
+    list_display = ("reference", "subject", "name", "status", "created_at", "updated_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("name", "email", "phone", "order_reference", "subject", "message")
+    readonly_fields = (
+        "name",
+        "email",
+        "phone",
+        "order_reference",
+        "subject",
+        "message",
+        "created_at",
+        "updated_at",
+    )
+    date_hierarchy = "created_at"
+
+    def save_model(self, request, obj, form, change):
+        if change and obj.status == CustomerComplaint.Status.RESOLVED and not obj.resolved_at:
+            obj.resolved_at = timezone.now()
+        super().save_model(request, obj, form, change)
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(AuditLog)
@@ -764,4 +826,3 @@ class AuditLogAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # فقط السوبر يوزر يمكنه الحذف (اختياري)
         return request.user.is_superuser
-

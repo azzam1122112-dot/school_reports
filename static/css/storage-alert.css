@@ -1,0 +1,101 @@
+/* Storage pressure banner — shown to school managers from 80% usage. */
+.storage-alert {
+  --sa-ink: #0f3025;
+  --sa-muted: #62736b;
+  --sa-surface: #ffffff;
+  --sa-accent: #b7791f;
+  --sa-accent-soft: rgba(183, 121, 31, .1);
+  margin: 0 0 20px;
+  padding: clamp(14px, 2.4vw, 20px);
+  color: var(--sa-ink);
+  border: 1px solid var(--sa-accent-soft);
+  border-inline-start: 5px solid var(--sa-accent);
+  border-radius: 16px;
+  background: var(--sa-surface);
+  box-shadow: 0 10px 30px rgba(4, 60, 39, .06);
+}
+.storage-alert--critical { --sa-accent: #c2410c; --sa-accent-soft: rgba(194, 65, 12, .12); }
+.storage-alert--full { --sa-accent: #b42318; --sa-accent-soft: rgba(180, 35, 24, .12); }
+
+.storage-alert__head { display: flex; gap: 12px; align-items: flex-start; }
+.storage-alert__icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  color: var(--sa-accent);
+  background: var(--sa-accent-soft);
+  font-size: 1rem;
+}
+.storage-alert__copy strong { display: block; font-size: .95rem; font-weight: 900; }
+.storage-alert__copy span { display: block; margin-top: 3px; color: var(--sa-muted); font-size: .78rem; font-weight: 700; }
+
+.storage-alert__meter {
+  margin: 14px 0 0;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, .16);
+}
+.storage-alert__meter span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--sa-accent);
+  transition: width .3s ease;
+}
+
+.storage-alert__origin { margin: 10px 0 0; color: var(--sa-muted); font-size: .73rem; font-weight: 700; line-height: 1.7; }
+
+.storage-alert__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.storage-alert__cta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 13px;
+  border: 1px solid var(--sa-accent);
+  border-radius: 13px;
+  color: #fff;
+  background: var(--sa-accent);
+  text-decoration: none;
+}
+.storage-alert__cta i { flex: 0 0 auto; font-size: .95rem; }
+.storage-alert__cta strong { display: block; font-size: .82rem; font-weight: 900; }
+.storage-alert__cta small { display: block; margin-top: 2px; font-size: .68rem; font-weight: 700; opacity: .85; }
+.storage-alert__cta:hover { filter: brightness(1.06); color: #fff; }
+.storage-alert__cta--ghost { color: var(--sa-ink); background: transparent; border-color: rgba(100, 116, 139, .3); }
+.storage-alert__cta--ghost:hover { color: var(--sa-ink); background: rgba(100, 116, 139, .07); filter: none; }
+
+.storage-alert__note {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  margin: 12px 0 0;
+  color: var(--sa-muted);
+  font-size: .71rem;
+  font-weight: 700;
+  line-height: 1.7;
+}
+.storage-alert__note i { margin-top: 2px; color: #087443; }
+
+@media (max-width: 640px) {
+  .storage-alert { border-radius: 14px; }
+  .storage-alert__actions { grid-template-columns: 1fr; }
+}
+
+html[data-theme="dark"] .storage-alert {
+  --sa-ink: #edf8f2;
+  --sa-muted: #aabbb3;
+  --sa-surface: #16271f;
+  border-color: rgba(93, 196, 140, .18);
+}
+html[data-theme="dark"] .storage-alert__meter { background: rgba(237, 248, 242, .12); }
+html[data-theme="dark"] .storage-alert__cta--ghost { border-color: rgba(237, 248, 242, .22); }
+html[data-theme="dark"] .storage-alert__cta--ghost:hover { background: rgba(237, 248, 242, .07); }

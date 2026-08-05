@@ -308,7 +308,7 @@
 
     <section class="summary-grid" aria-label="ملخص مالي سريع">
       <div class="summary-card">
-        <span class="label">قيمة الباقة</span>
+        <span class="label">السعر المرجعي</span>
         <div class="num">{{ subscription.plan.price|floatformat:0|intcomma }} ريال</div>
       </div>
       <div class="summary-card">
@@ -343,6 +343,11 @@
           <div class="row">
             <span class="label">الخطة الحالية</span>
             <span class="value">{{ subscription.plan.name }}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">السعة المعتمدة</span>
+            <span class="value">{{ subscription.teacher_limit }} معلماً</span>
           </div>
 
           <div class="row">
@@ -490,6 +495,7 @@
               <th style="text-align:right">رقم العملية</th>
               <th style="text-align:right">التاريخ</th>
               <th style="text-align:right">المبلغ</th>
+              <th style="text-align:right">طريقة الدفع</th>
               <th style="text-align:right">الحالة</th>
               <th style="text-align:right">الخطة</th>
               <th style="text-align:right">الإجراء</th>
@@ -501,6 +507,7 @@
                 <td data-label="رقم العملية" style="text-align:right">#{{ payment.id }}</td>
                 <td data-label="التاريخ" style="text-align:right">{{ payment.payment_date|hijri }} هـ</td>
                 <td data-label="المبلغ" style="text-align:right">{{ payment.amount|floatformat:0|intcomma }} ريال</td>
+                <td data-label="طريقة الدفع" style="text-align:right">{{ payment.get_payment_method_display }}</td>
                 <td data-label="الحالة" style="text-align:right">
                   {% if payment.status == 'approved' %}
                     <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> مقبول</span>
@@ -508,11 +515,15 @@
                     <span class="badge danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> مرفوض</span>
                   {% elif payment.status == 'cancelled' %}
                     <span class="badge warning"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
+                  {% elif payment.payment_method == 'tamara' %}
+                    <span class="badge warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار تمارا</span>
+                  {% elif payment.payment_method == 'moyasar' %}
+                    <span class="badge warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار ميّسر</span>
                   {% else %}
                     <span class="badge warning"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> قيد المراجعة</span>
                   {% endif %}
                 </td>
-                <td data-label="الخطة" style="text-align:right">{{ payment.requested_plan.name|default:subscription.plan.name }}</td>
+                <td data-label="الخطة" style="text-align:right">{{ payment.requested_plan.name|default:subscription.plan.name }}{% if payment.requested_teacher_limit %}<small style="display:block">سعة {{ payment.requested_teacher_limit }} معلماً</small>{% endif %}</td>
                 <td data-label="الإجراء" style="text-align:right">
                   <a href="{% url 'reports:platform_payment_detail' payment.id %}" class="btn btn-outline" style="min-height:34px;padding:6px 10px;border-radius:10px;">
                     <i class="fa-solid fa-eye" aria-hidden="true"></i>
@@ -522,7 +533,7 @@
               </tr>
             {% empty %}
               <tr>
-                <td colspan="6" style="text-align:center; padding: 2rem;" class="muted">
+                <td colspan="7" style="text-align:center; padding: 2rem;" class="muted">
                   لا توجد عمليات مالية مرتبطة بهذا الاشتراك حتى الآن.
                 </td>
               </tr>

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}مصفوفة الأسعار — منصة توثيق{% endblock %}
+
+{% block head %}
+<style nonce="{{ CSP_NONCE }}">
+    .matrix-shell { max-width: 1120px; margin: 0 auto; padding: 1.25rem; }
+    .matrix-head { margin-bottom: 1.35rem; }
+    .matrix-head h1 { margin: 0 0 .45rem; font-size: 1.35rem; font-weight: 900; }
+    .matrix-head p { margin: 0; color: var(--muted, #64748b); font-size: .84rem; line-height: 1.9; font-weight: 700; }
+
+    .matrix-card {
+        margin-bottom: 1.35rem;
+        padding: 1.25rem;
+        border: 1px solid rgba(8, 116, 67, .16);
+        border-radius: 18px;
+        background: var(--card-bg, #fff);
+    }
+    .matrix-card h2 { margin: 0 0 .35rem; font-size: 1rem; font-weight: 900; }
+    .matrix-card > p { margin: 0 0 1rem; color: var(--muted, #64748b); font-size: .78rem; line-height: 1.85; font-weight: 700; }
+
+    .matrix-table { width: 100%; border-collapse: separate; border-spacing: 0 .55rem; }
+    .matrix-table th { padding: .4rem .6rem; text-align: start; font-size: .76rem; font-weight: 900; }
+    .matrix-table td { padding: .35rem .4rem; vertical-align: top; }
+    .matrix-capacity { font-size: .84rem; font-weight: 900; white-space: nowrap; }
+    .matrix-capacity small { display: block; margin-top: .15rem; color: var(--muted, #64748b); font-size: .68rem; font-weight: 700; }
+    .matrix-field .form-control { max-width: 150px; }
+    .matrix-field .errorlist { margin: .35rem 0 0; padding-inline-start: 1rem; color: #b42318; font-size: .7rem; font-weight: 800; line-height: 1.7; list-style: disc; }
+    .matrix-field .is-invalid-cell .form-control { border-color: #b42318; }
+
+    .matrix-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
+
+    .matrix-preview { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .8rem; }
+    .matrix-preview article { padding: .9rem; border: 1px solid rgba(8, 116, 67, .12); border-radius: 14px; }
+    .matrix-preview h3 { margin: 0 0 .55rem; font-size: .84rem; font-weight: 900; }
+    .matrix-preview .row-line { display: flex; justify-content: space-between; gap: .6rem; padding: .28rem 0; font-size: .76rem; font-weight: 700; border-bottom: 1px dashed rgba(100, 116, 139, .2); }
+    .matrix-preview .row-line:last-child { border-bottom: 0; }
+    .matrix-preview .row-line.is-anchor { font-weight: 900; }
+    .matrix-preview .row-line.is-anchor span:first-child::after { content: " (مرجعية)"; font-size: .64rem; opacity: .7; }
+
+    .matrix-alert { margin-bottom: 1.35rem; padding: 1.05rem 1.25rem; border: 1px solid #f0b429; border-inline-start-width: 5px; border-radius: 14px; background: #fff8e6; color: #6b4708; }
+    .matrix-alert h2 { margin: 0 0 .5rem; font-size: .95rem; font-weight: 900; }
+    .matrix-alert ul { margin: 0; padding-inline-start: 1.15rem; font-size: .8rem; line-height: 1.9; font-weight: 700; }
+
+    .matrix-includes ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .5rem; }
+    .matrix-includes li { padding: .6rem .7rem; border: 1px solid rgba(8, 116, 67, .1); border-radius: 12px; font-size: .76rem; font-weight: 800; }
+    .matrix-includes li small { display: block; margin-top: .2rem; color: var(--muted, #64748b); font-size: .68rem; font-weight: 700; line-height: 1.6; }
+    .matrix-includes .addon-note { margin: .9rem 0 0; padding: .7rem .85rem; border: 1px dashed rgba(199, 161, 90, .55); border-radius: 12px; font-size: .74rem; font-weight: 700; }
+
+    html[data-theme="dark"] .matrix-card { background: #16271f; border-color: rgba(93, 196, 140, .2); }
+    html[data-theme="dark"] .matrix-alert { background: #2f2712; color: #f6e3b6; border-color: #a97b18; }
+    html[data-theme="dark"] .matrix-includes li { border-color: rgba(93, 196, 140, .16); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="matrix-shell">
+    <header class="matrix-head">
+        <h1><i class="fas fa-table-cells ms-1"></i> مصفوفة الأسعار</h1>
+        <p>
+            المدرسة تشتري <strong>سعة معلمين</strong> لا باقة. هذه الأرقام التسعة هي كل ما يُخزَّن؛
+            السعات بينها (30، 35، 40، 45، 60، 70، 80، 90) تُحسب تلقائياً، وتظهر فوراً في صفحة
+            الهبوط وصفحة تجديد المدرسة. المزايا موحّدة لكل السعات عمداً، فلا يوجد ما يُختار هنا سوى السعر.
+        </p>
+    </header>
+
+    {% if pricing_warnings %}
+        <section class="matrix-alert" role="alert">
+            <h2><i class="fas fa-triangle-exclamation ms-1"></i> تنبيه: إعدادات التسعير غير متسقة</h2>
+            <ul>{% for warning in pricing_warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+        </section>
+    {% endif %}
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <section class="matrix-card">
+            <h2>الأسعار المرجعية</h2>
+            <p>يُرفض الحفظ إذا كانت سعة أكبر أرخص من سعة أصغر، أو إذا لم تقدّم المدة الأطول توفيراً حقيقياً مقابل الدفع الشهري.</p>
+
+            {% if form.non_field_errors %}
+                <ul class="errorlist">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+            {% endif %}
+
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>السعة</th>
+                        {% for label in period_labels %}<th>{{ label }}</th>{% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for capacity, fields in form.grid %}
+                        <tr>
+                            <td class="matrix-capacity">
+                                {{ capacity }} معلماً
+                                <small>سعة مرجعية</small>
+                            </td>
+                            {% for field in fields %}
+                                <td class="matrix-field">
+                                    <div class="{% if field.errors %}is-invalid-cell{% endif %}">
+                                        {{ field }}
+                                        {% if field.errors %}
+                                            <ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="matrix-actions">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk ms-1"></i> حفظ المصفوفة</button>
+                <a class="btn btn-outline-secondary" href="{% url 'reports:platform_plans_list' %}">عرض الباقات المخزّنة</a>
+            </div>
+        </section>
+    </form>
+
+    <section class="matrix-card">
+        <h2>ما سيراه العميل</h2>
+        <p>هذه هي الأسعار المنشورة فعلياً بعد الاستيفاء، وهي نفسها في صفحة الهبوط وصفحة تجديد المدرسة.</p>
+        <div class="matrix-preview">
+            {% for group in flexible_pricing_catalog %}
+                <article>
+                    <h3>{{ group.label }}</h3>
+                    {% for quote in group.quotes %}
+                        <div class="row-line{% if quote.capacity in anchor_capacities %} is-anchor{% endif %}">
+                            <span>{{ quote.capacity }} معلماً</span>
+                            <b>{{ quote.price_display }} ريال</b>
+                        </div>
+                    {% endfor %}
+                </article>
+            {% empty %}
+                <p>لا توجد أسعار منشورة بعد. احفظ المصفوفة أعلاه لتوليدها.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="matrix-card matrix-includes">
+        <h2>ما يشمله الاشتراك في كل السعات</h2>
+        <p>هذه القائمة هي نفسها المعروضة للمدرسة قبل الدفع، ومصدرها ملف واحد حتى لا تتناقض النصوص.</p>
+        <ul>
+            {% for feature in included_features %}
+                <li>{{ feature.title }}<small>{{ feature.detail }}</small></li>
+            {% endfor %}
+        </ul>
+        {% if addon_notes %}
+            <div class="addon-note">
+                <strong>تُشترى بشكل منفصل:</strong>
+                {% for note in addon_notes %}{{ note }}{% if not forloop.last %} {% endif %}{% endfor %}
+            </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

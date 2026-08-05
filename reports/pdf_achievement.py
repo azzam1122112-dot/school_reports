@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.contrib.staticfiles import finders
 
+from .gender_labels import school_gender_template_context
 from .models import TeacherAchievementFile, AchievementEvidenceReport, AchievementSection
 
 
@@ -49,9 +50,6 @@ def generate_achievement_pdf(*, request, ach_file: TeacherAchievementFile) -> Tu
 
     school = ach_file.school
     primary = (getattr(school, "print_primary_color", None) or "").strip() or "#2563eb"
-    gender = (getattr(school, "gender", "") or "").strip().lower()
-    gender_label = "بنين" if gender == "boys" else ("بنات" if gender == "girls" else "")
-
     ctx = {
         "file": ach_file,
         "school": school,
@@ -60,6 +58,7 @@ def generate_achievement_pdf(*, request, ach_file: TeacherAchievementFile) -> Tu
         "theme": {"brand": primary},
         "now": timezone.localtime(timezone.now()),
         "ministry_logo_src": _static_png_as_data_uri("img/UntiTtled-1.png"),
+        **school_gender_template_context(school),
     }
 
     html = render_to_string("reports/pdf/achievement_file.html", ctx)

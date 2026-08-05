@@ -84,6 +84,18 @@ def _achievement_evidence_upload_to(instance: "AchievementEvidenceImage", filena
     return f"achievements/evidence/{year}/section_{instance.section.code}/teacher_{instance.section.file.teacher_id}/{safe_name}"
 
 
+def _leadership_evidence_upload_to(instance, filename: str) -> str:
+    try:
+        portfolio = instance.section.portfolio
+        year = _normalize_academic_year_hijri(portfolio.academic_year) or "unknown"
+        school_id = portfolio.school_id or "school"
+        section_code = instance.section.code
+    except Exception:
+        year, school_id, section_code = "unknown", "school", "section"
+    safe_name = _safe_unique_filename(filename, fallback="evidence")
+    return f"leadership/evidence/{year}/school_{school_id}/section_{section_code}/{safe_name}"
+
+
 def _payment_receipt_upload_to(instance: "Payment", filename: str) -> str:
     """مسار رفع صورة إيصال الدفع"""
     return f"payments/receipts/{_safe_unique_filename(filename, fallback='receipt')}"

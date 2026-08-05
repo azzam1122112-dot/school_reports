@@ -1,0 +1,416 @@
+.mansour-launcher {
+  position: fixed;
+  z-index: 96;
+  left: 24px;
+  bottom: 24px;
+  min-height: 62px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 8px 9px;
+  border: 1px solid rgba(255, 255, 255, .45);
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, #087443, #005c30);
+  box-shadow: 0 16px 40px rgba(0, 69, 38, .28);
+  cursor: pointer;
+  font: 800 .92rem/1.3 "Cairo", sans-serif;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.mansour-launcher-copy {
+  display: grid;
+  gap: 1px;
+  text-align: right;
+}
+
+.mansour-launcher-copy strong {
+  font-size: .9rem;
+  line-height: 1.35;
+}
+
+.mansour-launcher-copy small {
+  color: rgba(255, 255, 255, .72);
+  font-size: .62rem;
+  font-weight: 650;
+}
+
+.mansour-launcher:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 19px 46px rgba(0, 69, 38, .34);
+}
+
+.mansour-launcher:focus-visible,
+.mansour-panel button:focus-visible,
+.mansour-panel textarea:focus-visible,
+.mansour-quick-action:focus-visible {
+  outline: 3px solid rgba(197, 163, 101, .45);
+  outline-offset: 2px;
+}
+
+.mansour-launcher-avatar,
+.mansour-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .82);
+  background: linear-gradient(145deg, #fff8e8, #d8bd82);
+  box-shadow:
+    0 4px 12px rgba(0, 36, 20, .2),
+    inset 0 0 0 1px rgba(7, 63, 40, .1);
+}
+
+.mansour-launcher-avatar img,
+.mansour-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.mansour-launcher-avatar {
+  width: 46px;
+  height: 46px;
+}
+
+.mansour-panel[hidden] { display: none; }
+
+.mansour-panel {
+  position: fixed;
+  z-index: 120;
+  left: 24px;
+  bottom: 92px;
+  width: min(410px, calc(100vw - 32px));
+  max-height: min(700px, calc(100dvh - 126px));
+  display: grid;
+  grid-template-rows: auto minmax(190px, 1fr) auto auto;
+  overflow: hidden;
+  direction: rtl;
+  border: 1px solid rgba(3, 77, 44, .15);
+  border-radius: 22px;
+  color: #17251f;
+  background: #fff;
+  box-shadow: 0 26px 74px rgba(2, 45, 26, .25);
+  font-family: "Cairo", sans-serif;
+  animation: mansour-panel-in .2s ease-out both;
+}
+
+@keyframes mansour-panel-in {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.mansour-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 15px 16px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(197, 163, 101, .24), transparent 32%),
+    linear-gradient(135deg, #073f2a, #075d38);
+}
+
+.mansour-avatar {
+  width: 49px;
+  height: 49px;
+}
+
+.mansour-identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.mansour-identity strong,
+.mansour-identity small { display: block; }
+.mansour-identity strong { font-size: .98rem; }
+.mansour-identity small { margin-top: 2px; color: rgba(255, 255, 255, .78); font-size: .73rem; }
+
+.mansour-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: #72df9e;
+  box-shadow: 0 0 0 3px rgba(114, 223, 158, .14);
+}
+
+.mansour-close,
+.mansour-reset {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(255, 255, 255, .12);
+  cursor: pointer;
+  transition: background-color .16s ease, transform .16s ease;
+}
+
+.mansour-close:hover,
+.mansour-reset:hover {
+  background: rgba(255, 255, 255, .2);
+  transform: translateY(-1px);
+}
+
+.mansour-reset:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+
+.mansour-conversation {
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(circle at 100% 0, rgba(8, 116, 67, .045), transparent 34%),
+    #f7faf8;
+  scrollbar-color: #b8c9c0 transparent;
+  scrollbar-width: thin;
+}
+
+.mansour-message {
+  width: fit-content;
+  max-width: 88%;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 15px 15px 4px 15px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: .84rem;
+  line-height: 1.75;
+}
+
+.mansour-message.assistant {
+  margin-left: auto;
+  border: 1px solid #e0e9e4;
+  border-radius: 15px 15px 15px 4px;
+  background: #fff;
+}
+
+.mansour-message.user {
+  margin-right: auto;
+  color: #fff;
+  background: #087443;
+}
+
+.mansour-message.pending { color: #5d6b64; }
+
+.mansour-message.pending::after {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 5px;
+  margin-right: 7px;
+  background: radial-gradient(circle, #087443 2px, transparent 2.5px) 0 0 / 6px 5px;
+  animation: mansour-thinking .9s ease-in-out infinite alternate;
+}
+
+@keyframes mansour-thinking {
+  from { opacity: .35; transform: translateY(1px); }
+  to { opacity: 1; transform: translateY(-1px); }
+}
+
+.mansour-message.error {
+  border-color: #f0d4ce;
+  color: #7b3025;
+  background: #fff9f7;
+}
+
+.mansour-message.role-confirmation {
+  border-color: #cfe5d8;
+  color: #075d38;
+  background: #f0f9f4;
+}
+
+.mansour-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 90%;
+  margin: -3px 0 13px auto;
+}
+
+.mansour-sources-label {
+  flex: 0 0 100%;
+  color: #708078;
+  font-size: .63rem;
+  font-weight: 750;
+}
+
+.mansour-sources a {
+  padding: 5px 9px;
+  border: 1px solid #dce8e1;
+  border-radius: 999px;
+  color: #075d38;
+  background: #fff;
+  font-size: .7rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color .16s ease, background-color .16s ease;
+}
+
+.mansour-sources a:hover {
+  border-color: #93bda5;
+  background: #f1f8f4;
+}
+
+.mansour-quick-actions {
+  display: flex;
+  gap: 7px;
+  margin: 0;
+  padding: 9px 12px 10px;
+  overflow-x: auto;
+  border-top: 1px solid #e2ebe6;
+  background: #f7faf8;
+  scrollbar-width: none;
+}
+
+.mansour-quick-actions::-webkit-scrollbar { display: none; }
+
+.mansour-quick-action {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid #cfe2d7;
+  border-radius: 999px;
+  color: #075d38;
+  background: #fff;
+  cursor: pointer;
+  font: 700 .72rem/1.4 "Cairo", sans-serif;
+  white-space: nowrap;
+  transition: border-color .16s ease, background-color .16s ease, transform .16s ease;
+}
+
+.mansour-quick-action:hover {
+  transform: translateY(-1px);
+  border-color: #8dbba1;
+  background: #f2f9f5;
+}
+
+.mansour-quick-action:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.mansour-retry {
+  display: block;
+  margin: -3px 0 13px auto;
+  padding: 7px 11px;
+  border: 1px solid #e0b8ae;
+  border-radius: 999px;
+  color: #7b3025;
+  background: #fff;
+  cursor: pointer;
+  font: 750 .7rem/1.4 "Cairo", sans-serif;
+}
+
+.mansour-form {
+  padding: 12px;
+  border-top: 1px solid #e6ece8;
+  background: #fff;
+}
+
+.mansour-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.mansour-form textarea {
+  min-height: 45px;
+  max-height: 110px;
+  flex: 1;
+  resize: none;
+  padding: 10px 12px;
+  border: 1px solid #cfdbd4;
+  border-radius: 13px;
+  color: #17251f;
+  background: #fff;
+  font: 500 .82rem/1.55 "Cairo", sans-serif;
+}
+
+.mansour-form textarea:disabled {
+  color: #839188;
+  background: #f4f7f5;
+  cursor: not-allowed;
+}
+
+.mansour-send {
+  width: 45px;
+  height: 45px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 13px;
+  color: #fff;
+  background: #087443;
+  cursor: pointer;
+}
+
+.mansour-send:disabled { opacity: .55; cursor: wait; }
+
+.mansour-composer-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 2px 0;
+  color: #829087;
+  font-size: .59rem;
+  line-height: 1.4;
+}
+
+.mansour-composer-meta .is-near-limit {
+  color: #9b4a3c;
+  font-weight: 800;
+}
+
+.mansour-disclaimer {
+  margin: 5px 2px 0;
+  color: #718079;
+  font-size: .65rem;
+  line-height: 1.5;
+}
+
+.mansour-disclaimer i {
+  margin-left: 3px;
+  color: #087443;
+}
+
+@media (max-width: 760px) {
+  .mansour-launcher {
+    left: 12px;
+    bottom: 82px;
+    min-width: 54px;
+    min-height: 54px;
+    padding: 7px;
+  }
+
+  .mansour-launcher-copy { display: none; }
+
+  .mansour-panel {
+    left: 10px;
+    bottom: 78px;
+    width: calc(100vw - 20px);
+    max-height: min(680px, calc(100dvh - 92px));
+    border-radius: 19px;
+  }
+
+}
+
+@media (max-width: 380px) {
+  .mansour-composer-meta span:first-child { display: none; }
+  .mansour-composer-meta { justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mansour-launcher,
+  .mansour-panel,
+  .mansour-message.pending::after { animation: none; transition: none; }
+}

@@ -8,6 +8,7 @@ from ._helpers import (
     _model_has_field, _get_active_school, _school_teachers_obj_label,
     _is_report_viewer, _user_manager_schools,
 )
+from ..gender_labels import school_gender_labels, school_gender_template_context
 
 
 def _notify_achievement_submitted(ach_file, active_school):
@@ -28,9 +29,10 @@ def _notify_achievement_submitted(ach_file, active_school):
         if not manager_ids:
             return
         teacher_name = getattr(ach_file.teacher, "name", "") if ach_file.teacher else ""
+        sent_verb = "أرسلت" if school_gender_labels(school)["is_girls"] else "أرسل"
         create_system_notification(
             title="📂 ملف إنجاز جديد للاعتماد",
-            message=f"أرسل {teacher_name} ملف إنجاز للسنة {ach_file.academic_year} للاعتماد.",
+            message=f"{sent_verb} {teacher_name} ملف إنجاز للسنة {ach_file.academic_year} للاعتماد.",
             school=school,
             teacher_ids=manager_ids,
         )
@@ -123,14 +125,9 @@ def achievement_my_files(request: HttpRequest) -> HttpResponse:
         .distinct()
     )
     
-    # السنوات المسموحة: المصدر المركزي (يديره مدير النظام) أولًا، ثم إعدادات المدرسة كتراجع
-    from ..models import AcademicYear
-
-    allowed = list(
-        AcademicYear.objects.filter(is_active=True).order_by("-value").values_list("value", flat=True)
-    )
-    if not allowed and active_school:
-        allowed = list(active_school.allowed_academic_years or [])
+    # سنة المدرسة الحالية هي الخيار الوحيد لإنشاء ملف جديد.
+    current_year = (getattr(active_school, "current_academic_year", "") or "").strip()
+    allowed = [current_year] if current_year else []
 
     create_form = AchievementCreateYearForm(
         request.POST or None, 
@@ -195,10 +192,11 @@ def achievement_file_update_year(request: HttpRequest, pk: int) -> HttpResponse:
         messages.error(request, "لا تملك صلاحية تعديل ملف إنجاز من مدرسة أخرى.")
         return redirect("reports:achievement_my_files")
 
-    # نموذج بسيط للتحقق من السنة (نستخدم نفس فورم الإنشاء للتحقق مع تمرير القيمة المرسلة كخيار مقبول)
-    # هذا يسمح بقبول أي سنة صحيحة (هيئة + تتابع) حتى لو لم تكن في القائمة الافتراضية
-    submitted_year = request.POST.get("academic_year", "")
-    form = AchievementCreateYearForm(request.POST, year_choices=[submitted_year]) 
+    current_year = (getattr(file.school, "current_academic_year", "") or "").strip()
+    form = AchievementCreateYearForm(
+        request.POST,
+        allowed_years=[current_year] if current_year else [],
+    )
     
     if form.is_valid():
         new_year = form.cleaned_data["academic_year"]
@@ -255,14 +253,13 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
         .values_list("academic_year", flat=True)
         .distinct()
     )
-    # نفس منطق الاختيارات في نموذج الإنشاء (بدون إدخال يدوي)
-    tmp_form = AchievementCreateYearForm(year_choices=existing_years)
-    year_choices = [c[0] for c in tmp_form.fields["academic_year"].choices]
+    current_year = (getattr(active_school, "current_academic_year", "") or "").strip()
+    year_choices = sorted(set(existing_years) | ({current_year} if current_year else set()))
 
     if not year and year_choices:
-        year = year_choices[0]
+        year = current_year if current_year in year_choices else year_choices[-1]
     if year and year_choices and year not in year_choices:
-        year = year_choices[0]
+        year = current_year if current_year in year_choices else year_choices[-1]
 
     base_url = reverse("reports:achievement_school_files")
 
@@ -274,7 +271,8 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
 
     # إنشاء ملف إنجاز من صفحة المدرسة غير مسموح: المعلّم هو من ينشئ ملفه من (ملف الإنجاز)
     if request.method == "POST" and (request.POST.get("action") == "create"):
-        messages.error(request, "إنشاء ملف الإنجاز متاح للمعلّم فقط.")
+        teacher_label = school_gender_labels(active_school)["teacher"]
+        messages.error(request, f"إنشاء ملف الإنجاز متاح لـ{teacher_label} فقط.")
         return _redirect_with_year(year)
 
     # Search Logic
@@ -364,6 +362,7 @@ def achievement_school_teachers(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
     active_school = _get_active_school(request)
+    labels = school_gender_labels(active_school)
     ach_file = get_object_or_404(TeacherAchievementFile, pk=pk)
     user = request.user
 
@@ -458,7 +457,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                                 created_by=user,
                             )
                             NotificationRecipient.objects.create(notification=n, teacher=ach_file.teacher)
-                        messages.success(request, "تم إرسال التعليق الخاص للمعلّم ✅")
+                        messages.success(request, f"تم إرسال التعليق الخاص لـ{labels['teacher']} ✅")
                         return redirect("reports:achievement_file_detail", pk=ach_file.pk)
                     except Exception:
                         logger.exception("Failed to create private achievement comment")
@@ -702,7 +701,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             # إشعار المعلم بإرجاع ملف الإنجاز
             _notify_achievement_decided(ach_file, "returned", active_school)
 
-            messages.success(request, "تم إرجاع الملف للمعلّم مع الملاحظات ✅")
+            messages.success(request, f"تم إرجاع الملف لـ{labels['teacher']} مع الملاحظات ✅")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         messages.error(request, "تعذر تنفيذ العملية.")
@@ -913,6 +912,7 @@ def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
             "sections": sections,
             "has_evidence_reports": has_evidence_reports,
             "theme": {"brand": primary},
+            **school_gender_template_context(school),
             "now": timezone.localtime(timezone.now()),
             "school_logo_url": school_logo_url,
             "ministry_logo_src": ministry_logo_src,

@@ -40,10 +40,29 @@
 
     const orderToggles = form.querySelectorAll(".order-toggle");
     const planRadios = form.querySelectorAll('input[name="plan_id"]');
+    const planChoices = form.querySelectorAll(".plan-duration-choice");
     const storageSelect = form.querySelector("#archiveStorageUnits");
     const orderTotal = form.querySelector("#orderTotal");
     const orderEmptyState = form.querySelector("#orderEmptyState");
     const receiptSubmit = form.querySelector("#submitBtn");
+    const tamaraSubmit = form.querySelector("#tamaraSubmit");
+    const moyasarSubmit = form.querySelector("#moyasarSubmit");
+    const paymentChoices = form.querySelectorAll("[data-payment-choice]");
+    const paymentPanels = form.querySelectorAll("[data-payment-panel]");
+    const tamaraCheckout = form.querySelector('[data-payment-panel="tamara"]');
+    const tamaraInstallmentAmount = form.querySelector(
+      "#tamaraInstallmentAmount",
+    );
+    const tamaraInstallmentAmounts = form.querySelectorAll(
+      "[data-tamara-installment-amount]",
+    );
+    const mobileSelectedCount = document.querySelector(
+      "#mobileSelectedCount",
+    );
+    const mobileOrderTotal = document.querySelector("#mobileOrderTotal");
+    const mobileCheckoutContinue = document.querySelector(
+      "#mobileCheckoutContinue",
+    );
 
     function input(name) {
       return form.querySelector(`input[name="${name}"]`);
@@ -113,7 +132,7 @@
         ? storageSelect.options[storageSelect.selectedIndex]
         : null;
       const planName = plan
-        ? plan
+        ? plan.dataset.label || plan
             .closest(".plan-duration-choice")
             ?.querySelector(".duration-copy strong")
             ?.textContent.trim()
@@ -123,6 +142,15 @@
       setItemAmount("addon", addonAmount());
       setItemAmount("storage", storageAmount());
       setItemLabel("subscription", planName || "تجديد اشتراك المدرسة");
+      // Storage is bought with the capacity, so name it before payment.
+      const storageNote = form.querySelector("[data-summary-storage]");
+      if (storageNote) {
+        const includedStorage = plan ? plan.dataset.storage : "";
+        storageNote.textContent = includedStorage
+          ? `يشمل مساحة تخزين ${includedStorage}`
+          : "";
+        storageNote.hidden = !includedStorage;
+      }
       setItemLabel(
         "storage",
         selectedStorage
@@ -141,7 +169,36 @@
       if (addonSelected) total += addonAmount();
       if (storageSelected) total += storageAmount() || 0;
 
+      const selectedCount = [
+        subscriptionSelected,
+        addonSelected,
+        storageSelected,
+      ].filter(Boolean).length;
+
       if (orderTotal) orderTotal.textContent = formatAmount(total);
+      if (mobileOrderTotal) mobileOrderTotal.textContent = formatAmount(total);
+      if (mobileSelectedCount) {
+        mobileSelectedCount.textContent = `${selectedCount} ${
+          selectedCount === 1 ? "خدمة" : "خدمات"
+        }`;
+      }
+      setSubmitState(
+        mobileCheckoutContinue,
+        anySelected,
+        "متابعة للدفع",
+        "اختر خدمة أولًا",
+      );
+      const installment = total / 4;
+      const formattedInstallment = formatAmount(installment);
+      if (tamaraInstallmentAmount) {
+        tamaraInstallmentAmount.textContent = formattedInstallment;
+      }
+      tamaraInstallmentAmounts.forEach((element) => {
+        element.textContent = `${formattedInstallment} ر.س`;
+      });
+      if (tamaraCheckout) {
+        tamaraCheckout.classList.toggle("is-ready", anySelected);
+      }
       if (orderEmptyState) orderEmptyState.hidden = anySelected;
       setSubmitState(
         receiptSubmit,
@@ -149,7 +206,36 @@
         "إرسال إيصال التحويل البنكي",
         "اختر خدمة لإرسال إيصال التحويل",
       );
+      setSubmitState(
+        tamaraSubmit,
+        anySelected,
+        "المتابعة والدفع عبر تمارا",
+        "اختر خدمة للدفع عبر تمارا",
+      );
+      setSubmitState(
+        moyasarSubmit,
+        anySelected,
+        "المتابعة للدفع الإلكتروني",
+        "اختر خدمة للمتابعة",
+      );
     }
+
+    function selectPaymentMethod(method) {
+      paymentChoices.forEach((choice) => {
+        const selected = choice.dataset.paymentChoice === method;
+        choice.classList.toggle("is-selected", selected);
+        choice.setAttribute("aria-pressed", String(selected));
+      });
+      paymentPanels.forEach((panel) => {
+        panel.hidden = panel.dataset.paymentPanel !== method;
+      });
+    }
+
+    paymentChoices.forEach((choice) => {
+      choice.addEventListener("click", () => {
+        selectPaymentMethod(choice.dataset.paymentChoice || "bank_transfer");
+      });
+    });
 
     orderToggles.forEach((toggle) => {
       const sync = () => {
@@ -166,17 +252,34 @@
       sync();
     });
 
-    planRadios.forEach((radio) => {
-      radio.addEventListener("change", () => {
-        const subscriptionToggle = input("include_subscription");
-        if (subscriptionToggle && !subscriptionToggle.disabled) {
-          subscriptionToggle.checked = true;
-          subscriptionToggle.dispatchEvent(
-            new Event("change", { bubbles: true }),
-          );
-        }
+    function activateSubscription() {
+      const subscriptionToggle = input("include_subscription");
+      if (subscriptionToggle && !subscriptionToggle.disabled) {
+        subscriptionToggle.checked = true;
+        subscriptionToggle.dispatchEvent(
+          new Event("change", { bubbles: true }),
+        );
+      }
+    }
+
+    // Listen on the visible card, not only the radio. A checked default radio
+    // does not emit `change` when its card is clicked again.
+    planChoices.forEach((choice) => {
+      choice.addEventListener("click", () => {
+        activateSubscription();
         recompute();
       });
+    });
+
+    planRadios.forEach((radio) => {
+      radio.addEventListener("change", () => {
+        recompute();
+      });
+    });
+
+    form.addEventListener("flex-pricing:change", () => {
+      activateSubscription();
+      recompute();
     });
 
     if (storageSelect) {
@@ -192,11 +295,28 @@
       });
     }
 
+    if (mobileCheckoutContinue) {
+      mobileCheckoutContinue.addEventListener("click", () => {
+        if (mobileCheckoutContinue.disabled) return;
+        const selectedMethod = form.querySelector(
+          "[data-payment-choice].is-selected",
+        )?.dataset.paymentChoice;
+        const target =
+          (selectedMethod &&
+            form.querySelector(`[data-payment-panel="${selectedMethod}"]`)) ||
+          form.querySelector(".payment-method-heading");
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+
     const api = {
       form,
       isOn,
       recompute,
       receiptSubmit,
+      tamaraSubmit,
+      moyasarSubmit,
+      selectPaymentMethod,
     };
     Object.defineProperty(pageRoot, "__subscriptionCheckout", {
       configurable: false,

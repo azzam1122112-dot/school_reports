@@ -5,8 +5,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#006c35">
+  <meta name="color-scheme" content="light dark">
+  {% include "reports/partials/theme_bootstrap.html" %}
   <meta name="description" content="{% if admin_login %}دخول مدير النظام لمنصة توثيق{% else %}تسجيل الدخول لمنصة توثيق{% endif %}">
   <title>{% if admin_login %}دخول مدير النظام{% else %}تسجيل الدخول{% endif %} | منصة توثيق</title>
+  {% include "reports/partials/pwa_install_head.html" %}
 
   <!-- Typography & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -193,7 +196,11 @@
       color: var(--muted);
       cursor: pointer;
       font-size: 1rem;
-      padding: 4px;
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      padding: 0;
       border-radius: 4px;
     }
     .password-toggle:hover { color: var(--ink); background: #f1f5f9; }
@@ -282,6 +289,13 @@
       transition: color 0.2s;
     }
     .link:hover { color: var(--brand); text-decoration: underline; }
+    .form-footer .link {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding-inline: 10px;
+    }
 
     /* Messages/Toasts */
     .messages-area {
@@ -321,15 +335,26 @@
       .card-body { padding: 0; }
       body { background: #fff; } /* Simplify on mobile */
       body::before { display: none; }
+      body { min-height: 100dvh; overflow-y: auto; }
+      .auth-wrapper {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: max(18px, env(safe-area-inset-top)) 18px calc(30px + env(safe-area-inset-bottom));
+      }
       
       .brand-title { font-size: 1.7rem; }
       .logo-circle { width: 70px; height: 70px; }
+      .brand-area { margin-bottom: 24px; }
+      .form-footer { margin-top: 14px; }
       
       .brand-stripe { display: none; }
     }
   </style>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260804.1">
+  <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 <body>
 
@@ -342,7 +367,7 @@
         <!-- Brand -->
         <div class="brand-area">
           <div class="logo-circle">
-            <img src="{% static 'img/logo1.png' %}" alt="منصة توثيق" class="brand-logo-img">
+            <img src="{% static 'img/brand-mark.svg' %}" alt="منصة توثيق" class="brand-logo-img">
           </div>
           <h1 class="brand-title">{% if admin_login %}لوحة مدير النظام{% else %}منصة توثيق{% endif %}</h1>
           <div class="brand-sub">
@@ -420,7 +445,7 @@
           <div class="passkey-status" id="passkeyStatus" role="status" aria-live="polite"></div>
 
           <div class="form-footer">
-             <a href="#" class="link" onclick="alert('يرجى التواصل مع إدارة المدرسة / إدارة المنصة لاستعادة كلمة المرور.');return false;">
+             <a href="{% url 'reports:password_reset' %}" class="link">
                هل نسيت كلمة المرور؟
              </a>
           </div>
@@ -433,7 +458,7 @@
     &copy; {% now "Y" %} جميع الحقوق محفوظة — منصة توثيق
   </footer>
 
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     // Password Toggle
     const toggleBtn = document.getElementById('togglePass');
     const passInput = document.getElementById('password');
@@ -478,7 +503,7 @@
       const identifier = document.getElementById('identifier');
       const nextInput = document.querySelector('input[name="next"]');
       const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-      if (!passkeyBtn || !statusBox || !window.PublicKeyCredential || !navigator.credentials) return;
+      if (!passkeyBtn || !statusBox || !window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) return;
 
       passkeyBtn.style.display = 'flex';
 
@@ -486,6 +511,19 @@
         statusBox.textContent = text;
         statusBox.classList.toggle('is-error', !!isError);
         statusBox.style.display = text ? 'block' : 'none';
+      }
+
+      function passkeyErrorMessage(error) {
+        if (error && (error.name === 'NotSupportedError' || error.name === 'ConstraintError')) {
+          return 'هذا الجهاز أو المتصفح لا يدعم الدخول بمفتاح المرور. حدّث Chrome أو Safari واستخدم قفل الشاشة.';
+        }
+        if (error && error.name === 'SecurityError') {
+          return 'افتح https://tawtheeq-ksa.com مباشرة في Chrome أو Safari ثم أعد المحاولة.';
+        }
+        if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
+          return 'لم يكتمل الدخول. تأكد من قفل الشاشة وافتح المنصة مباشرة في Chrome أو Safari ثم أعد المحاولة.';
+        }
+        return error && error.message ? error.message : 'تعذر تسجيل الدخول بالبصمة.';
       }
 
       function b64ToBuffer(value) {
@@ -557,16 +595,23 @@
         try {
           passkeyBtn.disabled = true;
           showStatus('افتح نافذة البصمة أو قفل الجهاز لإكمال الدخول...', false);
+          if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+            const authenticatorAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            if (!authenticatorAvailable) {
+              throw new DOMException('User verification unavailable', 'NotSupportedError');
+            }
+          }
           const options = await postJSON(passkeyBtn.dataset.optionsUrl, {
             identifier: identifierValue,
           });
           const credential = await navigator.credentials.get({
             publicKey: prepareRequestOptions(options.publicKey),
           });
+          if (!credential) throw new DOMException('Credential request returned no result', 'NotAllowedError');
           const verified = await postJSON(passkeyBtn.dataset.verifyUrl, credentialToJSON(credential));
           window.location.href = verified.redirect || '/';
         } catch (error) {
-          showStatus(error && error.message ? error.message : 'تعذر تسجيل الدخول بالبصمة.', true);
+          showStatus(passkeyErrorMessage(error), true);
         } finally {
           passkeyBtn.disabled = false;
         }
@@ -574,5 +619,6 @@
     })();
   </script>
 
+  {% include "reports/partials/pwa_install.html" %}
 </body>
 </html>

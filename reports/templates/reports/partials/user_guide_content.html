@@ -1,0 +1,610 @@
+{% load static %}
+
+<section class="guide-topic guide-topic--welcome" id="start" data-guide-role="all" data-guide-title="ابدأ من هنا الدخول اختيار المدرسة الصفحة الرئيسية">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> ابدأ من هنا</span>
+    <h2>أول ثلاث دقائق في منصة توثيق</h2>
+    <p>ثلاث خطوات بسيطة تضعك في المكان الصحيح قبل أن تبدأ أي مهمة.</p>
+  </div>
+
+  <div class="journey-grid">
+    <article class="journey-card">
+      <span class="journey-number">١</span>
+      <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
+      <h3>سجّل الدخول</h3>
+      <p>اكتب رقم الجوال أو رقم الهوية، ثم كلمة المرور الخاصة بك.</p>
+    </article>
+    <article class="journey-card">
+      <span class="journey-number">٢</span>
+      <i class="fa-solid fa-school" aria-hidden="true"></i>
+      <h3>تأكد من المدرسة</h3>
+      <p>إذا كنت مرتبطًا بأكثر من مدرسة، اختر المدرسة التي تريد العمل عليها.</p>
+    </article>
+    <article class="journey-card">
+      <span class="journey-number">٣</span>
+      <i class="fa-solid fa-compass" aria-hidden="true"></i>
+      <h3>اختر مهمتك</h3>
+      <p>استخدم القائمة للوصول إلى التقارير، ملف الإنجاز، الطلبات أو التعاميم.</p>
+    </article>
+  </div>
+
+  <div class="guide-callout guide-callout--gold">
+    <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+    <div>
+      <strong>نصيحة سريعة</strong>
+      <p>يظهر اسم المدرسة الحالية في أعلى الصفحة. راجعه قبل إضافة تقرير أو إرسال تعميم.</p>
+    </div>
+  </div>
+</section>
+
+<section class="guide-topic" id="teacher-home" data-guide-role="teacher" data-guide-title="المعلم الصفحة الرئيسية تقاريري ملف الإنجاز الإشعارات التعاميم الطلبات">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i> دليل {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</span>
+    <h2>مساحة عملك اليومية</h2>
+    <p>تجمع الصفحة الرئيسية أهم ما تحتاجه: آخر التقارير، ملف الإنجاز، التعاميم، الإشعارات والطلبات.</p>
+  </div>
+
+  <ol class="guide-steps">
+    <li>
+      <div>
+        <strong>ابدأ من البطاقات المختصرة</strong>
+        <p>اضغط البطاقة المناسبة للوصول مباشرة إلى المهمة التي تريد تنفيذها.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>راجع التنبيهات الجديدة</strong>
+        <p>النقطة الملونة بجوار الجرس تعني أن لديك إشعارًا أو تعميمًا لم تفتحه بعد.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>استخدم القائمة عند الحاجة</strong>
+        <p>في الجوال اضغط زر القائمة أعلى الصفحة؛ ستظهر لك الخيارات من جهة اليمين.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section class="guide-topic guide-topic--visual" id="teacher-report" data-guide-role="teacher" data-guide-title="إنشاء تقرير جديد تقاريري الصور المستفيدين الطباعة المشاركة">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i> التقارير</span>
+    <h2>أنشئ تقريرًا واضحًا في دقائق</h2>
+    <p>اجمع معلومات النشاط وصوره في تقرير مرتب وجاهز للطباعة أو المشاركة.</p>
+  </div>
+
+  <div class="visual-split">
+    <div>
+      <ol class="guide-steps">
+        <li>
+          <div>
+            <strong>افتح «إضافة تقرير»</strong>
+            <p>من القائمة اختر التقارير، ثم اضغط إضافة تقرير جديد.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <strong>اكتب البيانات الأساسية</strong>
+            <p>أدخل عنوان النشاط وتاريخه ونوعه وعدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين" }}، ثم اكتب وصفًا مختصرًا للفكرة.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <strong>أضف الصور المناسبة</strong>
+            <p>اختر صورًا واضحة تمثل النشاط. يمكنك مراجعتها قبل الحفظ واستبدال أي صورة غير مناسبة.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <strong>راجع ثم احفظ</strong>
+            <p>تأكد من صحة المعلومات واضغط حفظ. ستجد التقرير بعد ذلك في صفحة «تقاريري».</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+    <figure class="screen-preview">
+      <div class="screen-preview__bar"><span></span><span></span><span></span></div>
+      <img src="{% static 'img/landing/report-system.png' %}" alt="مثال لشاشة عرض التقارير في منصة توثيق" loading="lazy">
+      <figcaption>من صفحة تقاريري يمكنك مراجعة التقرير وطباعته أو مشاركته.</figcaption>
+    </figure>
+  </div>
+
+  <div class="guide-callout guide-callout--success">
+    <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+    <div>
+      <strong>قبل الحفظ</strong>
+      <p>اجعل العنوان قصيرًا وواضحًا، واختر الصور التي توضح أثر النشاط لا مجرد مكان انعقاده.</p>
+    </div>
+  </div>
+</section>
+
+<section class="guide-topic" id="teacher-achievement" data-guide-role="teacher" data-guide-title="ملف الإنجاز السنة الدراسية إضافة إنجاز مشاركة طباعة PDF">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-award" aria-hidden="true"></i> ملف الإنجاز</span>
+    <h2>اجمع إنجازاتك في ملف واحد</h2>
+    <p>ملف الإنجاز يحفظ أعمالك خلال السنة الدراسية ويجعل عرضها ومشاركتها أكثر تنظيمًا.</p>
+  </div>
+
+  <ol class="guide-steps guide-steps--compact">
+    <li>
+      <div>
+        <strong>افتح «ملف إنجازي»</strong>
+        <p>اختر السنة الدراسية الصحيحة، ثم أنشئ الملف إذا لم يكن لديك ملف لهذه السنة.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>أضف أعمالك تباعًا</strong>
+        <p>رتّب الإنجازات بعناوين واضحة، وأرفق ما يثبتها من صور أو ملفات عند توفرها.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>راجع الملف قبل مشاركته</strong>
+        <p>استخدم المعاينة، ثم اختر الطباعة أو تنزيل PDF أو إنشاء رابط مشاركة.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section class="guide-topic" id="teacher-circulars" data-guide-role="teacher" data-guide-title="التعاميم الإشعارات القراءة التوقيع الإقرار الجوال">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> التعاميم والإشعارات</span>
+    <h2>تابع ما يصلك وأكّد اطلاعك</h2>
+    <p>الإشعار للمعلومة السريعة، أما التعميم فقد يتطلب منك قراءة المحتوى وتأكيد الاطلاع بالتوقيع.</p>
+  </div>
+
+  <div class="compare-grid">
+    <article class="compare-card">
+      <i class="fa-regular fa-bell" aria-hidden="true"></i>
+      <h3>الإشعار</h3>
+      <p>افتح الإشعار واقرأ التفاصيل. سيختفي تنبيه «غير مقروء» بعد الاطلاع.</p>
+    </article>
+    <article class="compare-card compare-card--accent">
+      <i class="fa-solid fa-file-signature" aria-hidden="true"></i>
+      <h3>التعميم</h3>
+      <p>اقرأ التعميم كاملًا. إذا طُلب توقيعك، فعّل الإقرار ثم أكمل خطوة التأكيد.</p>
+    </article>
+  </div>
+
+  <div class="guide-callout">
+    <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+    <div>
+      <strong>التوقيع مرتبط بحسابك</strong>
+      <p>لا تشارك بيانات الدخول مع الآخرين، وتأكد أن رقم جوالك المسجل صحيح.</p>
+    </div>
+  </div>
+</section>
+
+<section class="guide-topic guide-topic--visual" id="teacher-requests" data-guide-role="teacher" data-guide-title="طلب جديد طلباتي متابعة الحالة الرد الملاحظات الدعم">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-inbox" aria-hidden="true"></i> الطلبات</span>
+    <h2>أرسل طلبك وتابع حالته</h2>
+    <p>استخدم الطلبات للملاحظات أو الاحتياجات التي تتطلب متابعة من إدارة المدرسة.</p>
+  </div>
+
+  <div class="visual-split visual-split--reverse">
+    <figure class="screen-preview">
+      <div class="screen-preview__bar"><span></span><span></span><span></span></div>
+      <img src="{% static 'img/landing/tickets-system.png' %}" alt="مثال لشاشة متابعة الطلبات في منصة توثيق" loading="lazy">
+      <figcaption>تظهر حالة كل طلب بوضوح مع آخر تحديث عليه.</figcaption>
+    </figure>
+    <ol class="guide-steps">
+      <li>
+        <div>
+          <strong>اختر «طلب جديد»</strong>
+          <p>حدد نوع الطلب واكتب عنوانًا يوضح المطلوب مباشرة.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>اشرح المطلوب باختصار</strong>
+          <p>أضف المعلومات التي تساعد الإدارة على فهم الطلب واتخاذ الإجراء المناسب.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>تابع من «طلباتي»</strong>
+          <p>سترى ما إذا كان الطلب جديدًا أو قيد المعالجة أو مكتملًا، مع الملاحظات المضافة عليه.</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="guide-topic guide-topic--visual" id="manager-dashboard" data-guide-role="manager" data-guide-title="مدير المدرسة لوحة المدير المؤشرات المتابعة التقارير المعلمين الطلبات">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-user-tie" aria-hidden="true"></i> دليل {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</span>
+    <h2>ابدأ يومك من لوحة {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}</h2>
+    <p>تعطيك اللوحة صورة سريعة عن العمل داخل المدرسة وما يحتاج إلى متابعة.</p>
+  </div>
+
+  <figure class="screen-preview screen-preview--wide">
+    <div class="screen-preview__bar"><span></span><span></span><span></span></div>
+    <img src="{% static 'img/landing/dashboard-system.png' %}" alt="مثال للوحة متابعة المدرسة في منصة توثيق" loading="lazy">
+    <figcaption>راجع المؤشرات أولًا، ثم انتقل إلى الجزء الذي يحتاج إجراءً أو متابعة.</figcaption>
+  </figure>
+
+  <div class="feature-row">
+    <article>
+      <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+      <strong>المؤشرات</strong>
+      <p>تعرف على حجم التقارير والطلبات وحالة العمل بسرعة.</p>
+    </article>
+    <article>
+      <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+      <strong>آخر النشاطات</strong>
+      <p>تابع أحدث ما أضيف أو تغير داخل المدرسة.</p>
+    </article>
+    <article>
+      <i class="fa-solid fa-arrow-pointer" aria-hidden="true"></i>
+      <strong>الوصول السريع</strong>
+      <p>انتقل مباشرة إلى التقارير أو {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} أو الطلبات.</p>
+    </article>
+  </div>
+</section>
+
+<section class="guide-topic" id="manager-teachers" data-guide-role="manager" data-guide-title="إدارة المعلمين إضافة معلم استيراد تعديل إزالة قسم">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-users-gear" aria-hidden="true"></i> فريق المدرسة</span>
+    <h2>أضف {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} ونظّم الأقسام</h2>
+    <p>حافظ على قائمة فريقك محدثة حتى تصل التقارير والتعاميم إلى الأشخاص الصحيحين.</p>
+  </div>
+
+  <ol class="guide-steps">
+    <li>
+      <div>
+        <strong>افتح «إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}»</strong>
+        <p>ستظهر حسابات فريق المدرسة مع حالة كل حساب.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>أضف حساب {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</strong>
+        <p>اكتب رقم الجوال والبيانات المطلوبة. إذا كان {{ SCHOOL_TEACHER_DATIVE_LABEL|default:"للمعلم" }} حساب سابق فسيُربط بمدرستك دون إنشاء حساب مكرر.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>استخدم الاستيراد عند العدد الكبير</strong>
+        <p>نزّل النموذج الجاهز، املأه كما هو، ثم ارفعه وراجع النتيجة قبل الاعتماد.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>رتّب الأقسام والمسؤوليات</strong>
+        <p>أنشئ الأقسام، ثم أضف الأعضاء وحدد المسؤول عند الحاجة.</p>
+      </div>
+    </li>
+  </ol>
+
+  <div class="guide-callout guide-callout--warning">
+    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+    <div>
+      <strong>راجع رقم الجوال قبل الحفظ</strong>
+      <p>رقم الجوال هو أهم وسيلة لتمييز الحساب وربطه بالمدرسة الصحيحة.</p>
+    </div>
+  </div>
+</section>
+
+<section class="guide-topic" id="manager-reports" data-guide-role="manager" data-guide-title="تقارير المدرسة البحث التصفية المعلم التاريخ النوع الطباعة">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> تقارير المدرسة</span>
+    <h2>اعثر على التقرير المطلوب بسرعة</h2>
+    <p>تجمع صفحة تقارير المدرسة أعمال الفريق وتوفر خيارات بحث وتصفية واضحة.</p>
+  </div>
+
+  <ol class="guide-steps guide-steps--compact">
+    <li>
+      <div>
+        <strong>حدد ما تبحث عنه</strong>
+        <p>استخدم اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} أو نوع التقرير أو الفترة الزمنية لتقليل النتائج.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>افتح التقرير للمراجعة</strong>
+        <p>راجع التفاصيل والصور، ثم استخدم الطباعة أو المشاركة عند الحاجة.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>أعد ضبط الفلاتر</strong>
+        <p>إذا لم تظهر النتيجة المطلوبة، امسح خيارات البحث وجرب معيارًا واحدًا أولًا.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section class="guide-topic" id="manager-leadership" data-guide-role="manager" data-guide-title="إنشاء تقرير ملف الأداء القيادي ربط تقرير محور شاهد PDF">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-crown" aria-hidden="true"></i> الأداء القيادي</span>
+    <h2>حوّل تقريرك إلى شاهد قيادي</h2>
+    <p>يمكن {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} إنشاء التقارير وتنظيمها كشواهد داخل محاور ملف الأداء القيادي.</p>
+  </div>
+
+  <ol class="guide-steps guide-steps--compact">
+    <li>
+      <div>
+        <strong>افتح ملف الأداء القيادي</strong>
+        <p>من لوحة {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }} انتقل إلى «ملف الأداء القيادي»، ثم أنشئ أو افتح ملف السنة الحالية.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>اختر المحور المناسب</strong>
+        <p>اضغط «إنشاء تقرير لهذا المحور» ليُربط التقرير تلقائيًا بعد الحفظ، أو اربط تقريرًا سابقًا من القائمة.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>راجع النسخة النهائية</strong>
+        <p>تظهر التقارير الموثقة بتفاصيلها وصورها في ملحق مستقل عند معاينة الملف أو تنزيله بصيغة PDF.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section class="guide-topic" id="manager-communication" data-guide-role="manager" data-guide-title="إرسال إشعار تعميم المستلمين التوقيع الموعد النهائي متابعة القراءة">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> التواصل</span>
+    <h2>أرسل الرسالة بالشكل المناسب</h2>
+    <p>اختر الإشعار للمعلومة السريعة، والتعميم عندما تحتاج إلى توثيق الاطلاع أو التوقيع.</p>
+  </div>
+
+  <div class="decision-grid">
+    <article>
+      <span class="decision-label">استخدم إشعارًا عندما</span>
+      <h3>تريد إيصال معلومة سريعة</h3>
+      <ul>
+        <li>تذكير بموعد أو مهمة.</li>
+        <li>تنبيه داخلي لا يحتاج توقيعًا.</li>
+        <li>رسالة لفئة محددة من الفريق.</li>
+      </ul>
+    </article>
+    <article class="decision-card--gold">
+      <span class="decision-label">استخدم تعميمًا عندما</span>
+      <h3>تحتاج توثيق القراءة</h3>
+      <ul>
+        <li>تعليمات رسمية أو مهمة.</li>
+        <li>محتوى يتطلب إقرارًا أو توقيعًا.</li>
+        <li>متابعة من وقّع ومن لم يوقّع.</li>
+      </ul>
+    </article>
+  </div>
+
+  <ol class="guide-steps guide-steps--compact">
+    <li>
+      <div>
+        <strong>اختر المستلمين بعناية</strong>
+        <p>حدد الجميع أو قسمًا أو مجموعة معينة، ثم راجع العدد الظاهر قبل الإرسال.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>اكتب عنوانًا مباشرًا</strong>
+        <p>اجعل المطلوب واضحًا من أول سطر، وحدد الموعد النهائي إن وجد.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>تابع النتيجة</strong>
+        <p>من صفحة المرسلة يمكنك مراجعة القراءة والتوقيعات وإصدار تقرير عند الحاجة.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section class="guide-topic guide-topic--visual" id="manager-requests" data-guide-role="manager" data-guide-title="طلبات المدرسة صندوق الوارد إسناد مسؤول معالجة إغلاق">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-list-check" aria-hidden="true"></i> متابعة الطلبات</span>
+    <h2>حوّل الطلبات إلى مهام قابلة للمتابعة</h2>
+    <p>استقبل طلبات الفريق، أسندها للشخص المناسب، ثم تابعها حتى الإغلاق.</p>
+  </div>
+
+  <div class="status-flow" aria-label="مراحل معالجة الطلب">
+    <span><i class="fa-regular fa-envelope" aria-hidden="true"></i> جديد</span>
+    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+    <span><i class="fa-solid fa-user-check" aria-hidden="true"></i> تم الإسناد</span>
+    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+    <span><i class="fa-solid fa-spinner" aria-hidden="true"></i> قيد المعالجة</span>
+    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+    <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> مكتمل</span>
+  </div>
+
+  <div class="guide-callout">
+    <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
+    <div>
+      <strong>اكتب تحديثًا عند كل إجراء</strong>
+      <p>الملاحظة القصيرة تساعد صاحب الطلب والإدارة على فهم ما تم دون الحاجة إلى متابعة خارج المنصة.</p>
+    </div>
+  </div>
+</section>
+
+<section class="guide-topic" id="manager-subscription" data-guide-role="manager" data-guide-title="الاشتراك الباقة التجديد المدفوعات رفع إيصال حالة الاشتراك">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-receipt" aria-hidden="true"></i> الاشتراك</span>
+    <h2>تابع حالة اشتراك المدرسة</h2>
+    <p>تعرض صفحة الاشتراك الباقة الحالية وتاريخ الانتهاء والسعة المتاحة وسجل المدفوعات.</p>
+  </div>
+
+  <div class="feature-row">
+    <article>
+      <i class="fa-regular fa-calendar-check" aria-hidden="true"></i>
+      <strong>الحالة والمدة</strong>
+      <p>راجع تاريخ الانتهاء لتجديد الاشتراك قبل توقف الخدمات المرتبطة به.</p>
+    </article>
+    <article>
+      <i class="fa-solid fa-users" aria-hidden="true"></i>
+      <strong>سعة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</strong>
+      <p>تعرف على العدد المستخدم والمتبقي ضمن باقتك الحالية.</p>
+    </article>
+    <article>
+      <i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i>
+      <strong>المدفوعات</strong>
+      <p>راجع العمليات السابقة وارفع إيصال الدفع عند طلب التجديد.</p>
+    </article>
+  </div>
+</section>
+
+<section class="guide-topic" id="report-supervisor" data-guide-role="supervisor" data-guide-title="مشرف التقارير عرض فقط المدرسة التقارير الصلاحيات">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-eye" aria-hidden="true"></i> لمشرف التقارير</span>
+    <h2>راجع تقارير المدرسة بصلاحية عرض فقط</h2>
+    <p>مشرف التقارير دور مدرسي مستقل عن {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}، ومهمته المتابعة دون تعديل بيانات المدرسة.</p>
+  </div>
+
+  <div class="compare-grid">
+    <article class="compare-card compare-card--accent">
+      <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+      <h3>ما يستطيع تنفيذه</h3>
+      <p>فتح تقارير المدرسة والبحث والتصفية ومراجعة التفاصيل ضمن المدرسة المرتبط بها.</p>
+    </article>
+    <article class="compare-card">
+      <i class="fa-solid fa-lock" aria-hidden="true"></i>
+      <h3>حدود الصلاحية</h3>
+      <p>لا يدير {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} أو الاشتراك والأرشيف، ولا يحذف البيانات أو يرسل تعاميم بصفة إدارة المدرسة.</p>
+    </article>
+  </div>
+
+  <div class="guide-callout">
+    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+    <div>
+      <strong>هل تحتاج إجراءً إداريًا؟</strong>
+      <p>تواصل مع {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}؛ اختلاف الصلاحيات مقصود لحماية بيانات المدرسة ومسؤولياتها.</p>
+    </div>
+  </div>
+</section>
+
+<section class="guide-topic" id="supervisor" data-guide-role="supervisor" data-guide-title="مشرف المنصة المدارس النطاق الدخول للمدرسة المتابعة التقارير الطلبات">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-building-shield" aria-hidden="true"></i> لمشرف المنصة</span>
+    <h2>تابع المدارس المخصصة لك</h2>
+    <p>يظهر لك دليل المدارس التي تقع ضمن مسؤوليتك، ويمكنك فتح كل مدرسة لمراجعة عملها.</p>
+  </div>
+
+  <ol class="guide-steps">
+    <li>
+      <div>
+        <strong>افتح «دليل المدارس»</strong>
+        <p>ابحث باسم المدرسة، ثم اختر المدرسة التي تريد متابعتها.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>ادخل إلى مساحة المدرسة</strong>
+        <p>راجع لوحة المدرسة وتقاريرها وطلباتها وفق الصلاحيات المتاحة لك.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>تأكد من اسم المدرسة دائمًا</strong>
+        <p>قبل أي متابعة أو إرسال، راجع المدرسة الحالية الظاهرة في أعلى الصفحة.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section class="guide-topic" id="switch-school" data-guide-role="all" data-guide-title="تبديل المدرسة اختيار مدرسة أخرى المدرسة الحالية">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-right-left" aria-hidden="true"></i> للجميع</span>
+    <h2>كيف تبدّل المدرسة؟</h2>
+    <p>يظهر خيار تبديل المدرسة فقط عندما يكون حسابك مرتبطًا بأكثر من مدرسة.</p>
+  </div>
+
+  <ol class="guide-steps guide-steps--compact">
+    <li>
+      <div>
+        <strong>اضغط اسم المدرسة أو «تبديل المدرسة»</strong>
+        <p>ستظهر المدارس المتاحة لحسابك.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>اختر المدرسة المطلوبة</strong>
+        <p>انتظر حتى تتحدث الصفحة ويظهر اسم المدرسة الجديدة في الأعلى.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>ابدأ عملك بعد التأكد</strong>
+        <p>كل ما ستضيفه بعد ذلك سيُحفظ ضمن المدرسة المختارة.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section class="guide-topic" id="account-security" data-guide-role="all" data-guide-title="الحساب الشخصي رقم الجوال كلمة المرور البصمة تسجيل الخروج الأمان">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> الحساب والأمان</span>
+    <h2>حافظ على حسابك آمنًا</h2>
+    <p>بيانات حسابك تمثل هويتك داخل المنصة، خصوصًا عند الاطلاع على التعاميم أو توقيعها.</p>
+  </div>
+
+  <div class="safety-grid">
+    <article>
+      <i class="fa-solid fa-key" aria-hidden="true"></i>
+      <h3>كلمة المرور</h3>
+      <p>استخدم كلمة يصعب تخمينها ولا ترسلها لأي شخص.</p>
+    </article>
+    <article>
+      <i class="fa-solid fa-fingerprint" aria-hidden="true"></i>
+      <h3>الدخول بالبصمة</h3>
+      <p>فعّله على جهازك الشخصي فقط لتسجيل دخول أسرع وأكثر أمانًا.</p>
+    </article>
+    <article>
+      <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+      <h3>تسجيل الخروج</h3>
+      <p>اخرج من الحساب عند استخدام جهاز مشترك أو غير شخصي.</p>
+    </article>
+  </div>
+</section>
+
+<section class="guide-topic guide-topic--help" id="help" data-guide-role="all" data-guide-title="مساعدة مشكلة لا تظهر الصفحة صلاحية حفظ رفع صور جلسة قديمة دعم">
+  <div class="topic-heading">
+    <span class="topic-kicker"><i class="fa-solid fa-life-ring" aria-hidden="true"></i> مساعدة سريعة</span>
+    <h2>إذا واجهتك مشكلة</h2>
+    <p>جرّب الخطوات البسيطة التالية قبل التواصل مع الدعم.</p>
+  </div>
+
+  <div class="help-list">
+    <details>
+      <summary><span>لا أرى المدرسة أو الصفحة المطلوبة</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+      <p>تأكد أنك اخترت المدرسة الصحيحة. إذا استمرت المشكلة فقد لا تكون الصلاحية مضافة إلى حسابك؛ تواصل مع {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}.</p>
+    </details>
+    <details>
+      <summary><span>لم يتم حفظ النموذج</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+      <p>راجع الحقول المميزة برسالة تنبيه، وأكمل البيانات المطلوبة، ثم اضغط حفظ مرة أخرى.</p>
+    </details>
+    <details>
+      <summary><span>الصورة لا تُرفع</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+      <p>اختر صورة واضحة بصيغة شائعة، وتأكد من استقرار الاتصال، ثم أعد المحاولة بصورة واحدة أولًا.</p>
+    </details>
+    <details>
+      <summary><span>الصفحة لم تتحدث أو ظهرت رسالة جلسة</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+      <p>حدّث الصفحة وسجّل الدخول من جديد. لن تفقد البيانات التي سبق حفظها بنجاح.</p>
+    </details>
+  </div>
+
+  {% if not pdf_mode %}
+  <div class="support-banner">
+    <div>
+      <span>ما زلت تحتاج مساعدة؟</span>
+      <h3>نحن هنا لمساعدتك</h3>
+      <p>استخدم صفحة الأسئلة الشائعة أو تواصل مع دعم منصة توثيق.</p>
+    </div>
+    <div class="support-banner__actions">
+      <a href="{% url 'reports:faq' %}" class="guide-button guide-button--light">
+        <i class="fa-regular fa-circle-question" aria-hidden="true"></i>
+        الأسئلة الشائعة
+      </a>
+      {% if BUSINESS.support_email %}
+      <a href="mailto:{{ BUSINESS.support_email }}" class="guide-button guide-button--gold">
+        <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+        تواصل مع الدعم
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</section>

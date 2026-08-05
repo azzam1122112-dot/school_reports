@@ -8,9 +8,13 @@ from typing import Any
 
 import cbor2
 from django.conf import settings
+from django.contrib.auth import views as auth_views
 from django.db import IntegrityError
 from django.db.models import Q
+from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit
 
 from ._helpers import *
 from ._helpers import (
@@ -33,7 +37,18 @@ from ..middleware import (
     clear_force_password_change_flag,
     is_force_password_change_required,
 )
+from ..marketing_attribution import capture_marketing_attribution
 from ..models import WebAuthnCredential
+from ..forms import AccountPasswordResetForm, AccountSetPasswordForm
+from ..pricing import (
+    DEFAULT_SERVICE_PRICING,
+    SUBSCRIPTION_ADDON_NOTES,
+    SUBSCRIPTION_INCLUDED_FEATURES,
+)
+from ..flexible_pricing import (
+    build_flexible_pricing_catalog,
+    serialize_flexible_pricing_catalog,
+)
 from core import opmetrics
 
 
@@ -47,7 +62,7 @@ PASSKEY_ENROLL_PROMPT_SESSION_KEY = "passkey_enroll_prompt"
 
 def _force_password_change_notice() -> str:
     return (
-        "لحماية حسابك وبيانات المدرسة، يلزم تغيير كلمة المرور الحالية الآن "
+        "لحماية حسابك وبيانات المدرسة، أضف بريدك الإلكتروني وغيّر كلمة المرور الحالية الآن "
         "لأنها ما زالت مطابقة لرقم الجوال."
     )
 
@@ -55,6 +70,32 @@ def _force_password_change_notice() -> str:
 def _passkey_response(ok: bool, *, status: int = 200, **payload: Any) -> JsonResponse:
     payload["ok"] = ok
     return JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
+
+
+@method_decorator(
+    ratelimit(key="ip", rate="5/10m", method="POST", block=True),
+    name="dispatch",
+)
+class AccountPasswordResetView(auth_views.PasswordResetView):
+    template_name = "reports/password_reset_form.html"
+    email_template_name = "reports/emails/password_reset_email.txt"
+    subject_template_name = "reports/emails/password_reset_subject.txt"
+    form_class = AccountPasswordResetForm
+    success_url = reverse_lazy("reports:password_reset_done")
+
+
+class AccountPasswordResetDoneView(auth_views.PasswordResetDoneView):
+    template_name = "reports/password_reset_done.html"
+
+
+class AccountPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    template_name = "reports/password_reset_confirm.html"
+    form_class = AccountSetPasswordForm
+    success_url = reverse_lazy("reports:password_reset_complete")
+
+
+class AccountPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
+    template_name = "reports/password_reset_complete.html"
 
 
 def _offer_passkey_enrollment(request: HttpRequest, user: Teacher) -> None:
@@ -295,6 +336,8 @@ def _landing_period_key(days: int, is_trial: bool) -> str | None:
         return "1y"
     if days >= 45:
         return "6m"
+    if days >= 20:
+        return "1m"
     return None
 
 
@@ -304,11 +347,11 @@ def _landing_card_title(capacity: int, is_unlimited: bool) -> str:
     if capacity <= 0:
         return "باقة مخصصة"
     if capacity <= 25:
-        return "الباقة الأساسية"
+        return "انطلاقة"
     if capacity <= 50:
-        return "الباقة الاحترافية"
+        return "تشغيل"
     if capacity <= 100:
-        return "الباقة الموسعة"
+        return "قيادة"
     return "باقة تشغيل موسعة"
 
 
@@ -605,11 +648,10 @@ def passkey_register_options(request: HttpRequest) -> JsonResponse:
             {"type": "public-key", "alg": -7},
             {"type": "public-key", "alg": -257},
         ],
-        "timeout": 60000,
+        "timeout": 120000,
         "attestation": "none",
         "excludeCredentials": existing,
         "authenticatorSelection": {
-            "authenticatorAttachment": "platform",
             "residentKey": "preferred",
             "requireResidentKey": False,
             "userVerification": "required",
@@ -743,7 +785,7 @@ def passkey_login_options(request: HttpRequest) -> JsonResponse:
     public_key = {
         "challenge": challenge,
         "rpId": rp_id_from_request(request),
-        "timeout": 60000,
+        "timeout": 120000,
         "userVerification": "required",
         "allowCredentials": allow_credentials,
     }
@@ -830,7 +872,7 @@ def my_profile(request: HttpRequest) -> HttpResponse:
     - متاح لكل المستخدمين.
     - حساب (مشرف تقارير - عرض فقط) لا يدخلها عادةً، ويُسمح له بها فقط عند إجباره على تغيير كلمة المرور.
     - يعرض الاسم + المدارس المسندة.
-    - يسمح بتغيير رقم الجوال + تغيير كلمة المرور.
+    - يسمح بتغيير رقم الجوال + تغيير كلمة المرور، ويطلب البريد الإلكتروني عند الدخول الأول.
     """
 
     active_school = _get_active_school(request)
@@ -846,10 +888,21 @@ def my_profile(request: HttpRequest) -> HttpResponse:
     )
 
     phone_form = MyProfilePhoneForm(instance=request.user, prefix="phone")
-    pwd_form = MyPasswordChangeForm(request.user, prefix="pwd")
+    email_form = MyProfileEmailForm(instance=request.user, prefix="email")
+    pwd_form = MyPasswordChangeForm(
+        request.user,
+        prefix="pwd",
+        require_email=force_password_change,
+    )
 
     if request.method == "POST":
-        if "update_phone" in request.POST:
+        if "update_email" in request.POST:
+            email_form = MyProfileEmailForm(request.POST, instance=request.user, prefix="email")
+            if email_form.is_valid():
+                email_form.save()
+                messages.success(request, "تم تحديث البريد الإلكتروني بنجاح.")
+                return redirect("reports:my_profile")
+        elif "update_phone" in request.POST:
             if force_password_change:
                 messages.info(request, "لتأمين الحساب أولاً، غيّر كلمة المرور ثم سيصبح تحديث رقم الجوال متاحًا مباشرة.")
                 return redirect("reports:my_profile")
@@ -862,7 +915,12 @@ def my_profile(request: HttpRequest) -> HttpResponse:
                 except IntegrityError:
                     messages.error(request, "تعذر تحديث رقم الجوال (قد يكون مستخدمًا بالفعل).")
         elif "update_password" in request.POST:
-            pwd_form = MyPasswordChangeForm(request.user, request.POST, prefix="pwd")
+            pwd_form = MyPasswordChangeForm(
+                request.user,
+                request.POST,
+                prefix="pwd",
+                require_email=force_password_change,
+            )
             if pwd_form.is_valid():
                 user = pwd_form.save()
                 update_session_auth_hash(request, user)
@@ -883,13 +941,17 @@ def my_profile(request: HttpRequest) -> HttpResponse:
                 except Exception:
                     pass
 
-                messages.success(request, "تم تحديث كلمة المرور بنجاح.")
+                if force_password_change:
+                    messages.success(request, "تم حفظ البريد الإلكتروني وتحديث كلمة المرور بنجاح.")
+                else:
+                    messages.success(request, "تم تحديث كلمة المرور بنجاح.")
                 return redirect("reports:my_profile")
 
     ctx = {
         "active_school": active_school,
         "memberships": memberships,
         "phone_form": phone_form,
+        "email_form": email_form,
         "pwd_form": pwd_form,
         "force_password_change": force_password_change,
         "passkey_credentials": WebAuthnCredential.objects.filter(teacher=request.user, is_active=True).order_by("-created_at"),
@@ -897,28 +959,20 @@ def my_profile(request: HttpRequest) -> HttpResponse:
     return render(request, "reports/my_profile.html", ctx)
 
 
-@never_cache
-@cache_control(no_cache=True, must_revalidate=True, no_store=True, max_age=0)
-@require_http_methods(["GET"])
-def platform_landing(request: HttpRequest) -> HttpResponse:
-    """الصفحة الرئيسية العامة للمنصة (تعريف + مميزات + زر دخول).
 
-    - المستخدِم المسجّل بالفعل يُعاد توجيهه مباشرةً للواجهة المناسبة.
-    - الزر الأساسي يقود إلى شاشة تسجيل الدخول العادية.
+LANDING_PRICING_CACHE_KEY = "landing:pricing-context:v1"
+
+
+def _build_landing_pricing_context() -> dict[str, Any]:
+    """Compute the landing page's pricing model from the active plans.
+
+    Pure function of ``SubscriptionPlan`` rows plus settings — it holds no
+    per-request state, which is what makes the result cacheable.
     """
-
-    if getattr(request.user, "is_authenticated", False):
-        if getattr(request.user, "is_superuser", False):
-            return redirect("reports:platform_admin_dashboard")
-        if is_platform_admin(request.user):
-            return redirect("reports:platform_schools_directory")
-        if _is_staff(request.user):
-            return redirect("reports:admin_dashboard")
-        return redirect("reports:home")
 
     plans_qs = SubscriptionPlan.objects.filter(is_active=True).order_by("price", "max_teachers", "days_duration", "id")
     source_plans = list(plans_qs)
-    trial_days_target = int(getattr(settings, "TRIAL_DAYS", 14) or 14)
+    trial_days_target = int(getattr(settings, "TRIAL_DAYS", 30) or 30)
 
     def serialize_plan(plan: SubscriptionPlan, *, is_trial: bool) -> dict[str, Any]:
         raw_price = float(getattr(plan, "price", 0) or 0)
@@ -988,12 +1042,12 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
 
     paid_source = [plan for plan in source_plans if float(getattr(plan, "price", 0) or 0) > 0]
     paid_groups: dict[str, dict[str, Any]] = {}
-    available_periods = {"6m": False, "1y": False}
+    available_periods = {"1m": False, "6m": False, "1y": False}
 
     for source_plan in paid_source:
         plan = serialize_plan(source_plan, is_trial=False)
         period_key = plan["period_key"]
-        if period_key not in {"6m", "1y"}:
+        if period_key not in {"1m", "6m", "1y"}:
             continue
 
         available_periods[period_key] = True
@@ -1009,7 +1063,7 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
             },
         )
         existing = group["plans"].get(period_key)
-        target_days = 365 if period_key == "1y" else 180
+        target_days = {"1m": 30, "6m": 180, "1y": 365}[period_key]
         if existing is None or (
             abs(plan["duration_days"] - target_days),
             plan["price_value"],
@@ -1030,11 +1084,11 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         ),
     ):
         plans_by_period = group["plans"]
-        default_plan = plans_by_period.get("6m") or plans_by_period.get("1y")
+        default_plan = plans_by_period.get("1m") or plans_by_period.get("6m") or plans_by_period.get("1y")
         if default_plan is None:
             continue
 
-        for period_key, months in (("6m", 6), ("1y", 12)):
+        for period_key, months in (("1m", 1), ("6m", 6), ("1y", 12)):
             period_plan = plans_by_period.get(period_key)
             if period_plan is None:
                 continue
@@ -1043,15 +1097,21 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
 
         semiannual_plan = plans_by_period.get("6m")
         annual_plan = plans_by_period.get("1y")
+        monthly_plan = plans_by_period.get("1m")
         annual_savings = 0
         annual_discount_percent = 0
-        if semiannual_plan is not None and annual_plan is not None:
-            two_periods_price = float(semiannual_plan["price_value"]) * 2
-            annual_savings = max(0, int(round(two_periods_price - float(annual_plan["price_value"]))))
-            if two_periods_price > 0:
-                annual_discount_percent = int(round((annual_savings / two_periods_price) * 100))
+        if monthly_plan is not None and annual_plan is not None:
+            comparison_price = float(monthly_plan["price_value"]) * 12
+            annual_savings = max(0, int(round(comparison_price - float(annual_plan["price_value"]))))
+            if comparison_price > 0:
+                annual_discount_percent = int(round((annual_savings / comparison_price) * 100))
             annual_plan["savings_display"] = f"{annual_savings:,}"
             annual_plan["discount_percent"] = annual_discount_percent
+
+        if monthly_plan is not None and semiannual_plan is not None:
+            comparison_price = float(monthly_plan["price_value"]) * 6
+            semiannual_savings = max(0, int(round(comparison_price - float(semiannual_plan["price_value"]))))
+            semiannual_plan["savings_display"] = f"{semiannual_savings:,}"
 
         card = {
             "capacity_hint": group["capacity_hint"],
@@ -1059,9 +1119,11 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
             "fit_text": group["fit_text"],
             "name": _landing_card_title(int(default_plan["capacity"]), bool(default_plan["is_unlimited"])),
             "cta_label": "ابدأ بالتجربة ثم فعّل",
+            "period_1m": plans_by_period.get("1m"),
             "period_6m": plans_by_period.get("6m"),
             "period_1y": plans_by_period.get("1y"),
             "periods": {
+                "1m": plans_by_period.get("1m"),
                 "6m": plans_by_period.get("6m"),
                 "1y": plans_by_period.get("1y"),
             },
@@ -1073,7 +1135,7 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         }
         pricing_cards.append(card)
 
-    initial_period = "6m" if available_periods["6m"] else "1y"
+    initial_period = "1y" if available_periods["1y"] else ("6m" if available_periods["6m"] else "1m")
     paid_view = [card for card in pricing_cards if card["periods"].get(initial_period) is not None]
     if not paid_view:
         paid_view = pricing_cards[:]
@@ -1084,7 +1146,7 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
             paid_view,
             key=lambda card: (
                 abs((card["capacity_hint"] if card["capacity_hint"] < 999999 else 75) - 50),
-                float((card["periods"].get(initial_period) or card["periods"].get("1y") or card["periods"].get("6m"))["price_value"]),
+                float((card["periods"].get(initial_period) or card["periods"].get("1y") or card["periods"].get("6m") or card["periods"].get("1m"))["price_value"]),
                 int(card["capacity_hint"]),
             ),
         )
@@ -1098,7 +1160,7 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         cheapest_paid = min(
             paid_view,
             key=lambda card: (
-                float((card["periods"].get(initial_period) or card["periods"].get("1y") or card["periods"].get("6m"))["price_value"]),
+                float((card["periods"].get(initial_period) or card["periods"].get("1y") or card["periods"].get("6m") or card["periods"].get("1m"))["price_value"]),
                 int(card["capacity_hint"]),
             ),
         )
@@ -1144,6 +1206,8 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         for v in mark_values
     ]
 
+    flexible_catalog = build_flexible_pricing_catalog()
+
     ctx = {
         "trial_days": trial_days_target,
         "pricing_trial_plan": pricing_trial_plan,
@@ -1152,6 +1216,7 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         "pricing_recommended": recommended_plan,
         "pricing_initial_period": initial_period,
         "pricing_periods": [
+            {"key": "1m", "label": "شهري", "available": available_periods["1m"], "active": initial_period == "1m"},
             {"key": "6m", "label": "6 أشهر", "available": available_periods["6m"], "active": initial_period == "6m"},
             {
                 "key": "1y",
@@ -1167,6 +1232,86 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
             "initial": active_mark,
         },
         "advisor_marks": advisor_marks,
+        "service_pricing": DEFAULT_SERVICE_PRICING,
+        "flexible_pricing_catalog": flexible_catalog,
+        "flexible_pricing_json": serialize_flexible_pricing_catalog(flexible_catalog),
+        # Same source as the manager's pre-payment panel, so a visitor and a
+        # paying manager never read two different promises.
+        "subscription_included_features": SUBSCRIPTION_INCLUDED_FEATURES,
+        "subscription_addon_notes": SUBSCRIPTION_ADDON_NOTES,
     }
 
-    return render(request, "reports/landing.html", ctx)
+    return ctx
+
+
+def landing_pricing_context() -> dict[str, Any]:
+    """Return the landing pricing context, recomputing it at most once per TTL.
+
+    ``/`` is where every campaign click lands, and the page is deliberately
+    ``no-store`` so platform toggles apply immediately. That makes it the one
+    page guaranteed to run in full for every visitor, so the queries and the
+    pricing maths behind it must not run per visit.
+
+    Only the pricing model is cached — never the rendered HTML, which carries
+    a per-request CSP nonce and the separately-cached AI feature switches. A
+    ``SubscriptionPlan`` change clears this immediately (see the signal in
+    ``reports.model_parts.signals``); the TTL is just a backstop.
+    """
+
+    try:
+        ttl = int(getattr(settings, "LANDING_PRICING_CACHE_TTL_SECONDS", 60) or 0)
+    except (TypeError, ValueError):
+        ttl = 60
+
+    if ttl <= 0:
+        return _build_landing_pricing_context()
+
+    try:
+        cached = cache.get(LANDING_PRICING_CACHE_KEY)
+        if isinstance(cached, dict):
+            return cached
+    except Exception:
+        pass
+
+    ctx = _build_landing_pricing_context()
+    try:
+        cache.set(LANDING_PRICING_CACHE_KEY, ctx, ttl)
+    except Exception:
+        pass
+    return ctx
+
+
+@never_cache
+@cache_control(no_cache=True, must_revalidate=True, no_store=True, max_age=0)
+@require_http_methods(["GET"])
+def platform_landing(request: HttpRequest) -> HttpResponse:
+    """الصفحة الرئيسية العامة للمنصة (تعريف + مميزات + زر دخول).
+
+    - المستخدِم المسجّل بالفعل يُعاد توجيهه مباشرةً للواجهة المناسبة.
+    - الزر الأساسي يقود إلى شاشة تسجيل الدخول العادية.
+    """
+
+    if getattr(request.user, "is_authenticated", False):
+        if getattr(request.user, "is_superuser", False):
+            return redirect("reports:platform_admin_dashboard")
+        if is_platform_admin(request.user):
+            return redirect("reports:platform_schools_directory")
+        if _is_staff(request.user):
+            return redirect("reports:admin_dashboard")
+        return redirect("reports:home")
+
+    capture_marketing_attribution(request)
+
+    ctx = landing_pricing_context()
+
+    response = render(request, "reports/landing.html", ctx)
+
+    # The landing HTML contains runtime-controlled content (including Mansour's
+    # visibility).  Some CDN cache rules can ignore the standard ``never_cache``
+    # response header, so send the CDN-specific directives as well.  Otherwise
+    # an edge can keep serving the version rendered before a platform toggle
+    # changed even though Django is already returning the updated page.
+    response["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0, private"
+    response["CDN-Cache-Control"] = "no-store"
+    response["Cloudflare-CDN-Cache-Control"] = "no-store"
+    return response

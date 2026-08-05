@@ -1,4 +1,4 @@
-# منصة توثيق للتقارير المدرسية
+# منصة توثيق
 
 منصة Django عربية متعددة المدارس لإدارة التقارير، الطلبات والتذاكر، التعاميم
 والتوقيعات، ملفات الإنجاز، الاشتراكات، المدفوعات، والأرشفة.
@@ -57,7 +57,14 @@ WeasyPrint يحتاج مكتبات Pango/GObject الأصلية. صورة Docker
 - Cloudflare R2 للوسائط.
 - Gunicorn مع Uvicorn worker لتطبيق ASGI.
 
-راجع `.env.example` و`render.yaml` لقائمة المتغيرات كاملة.
+راجع `.env.example` و`deploy/hetzner/env.production.example` لقائمة المتغيرات كاملة.
+
+### تمارا
+
+تكامل تمارا معطّل افتراضيًا. ابدأ ببيئة `sandbox`، وضع `TAMARA_API_TOKEN`
+و`TAMARA_NOTIFICATION_TOKEN` في ملف البيئة الفعلي فقط، ثم سجّل Webhook من نوع
+Order على `/payments/tamara/webhook/` لكل أحداث الطلب. لا تنتقل إلى
+`TAMARA_ENVIRONMENT=production` قبل اجتياز قائمة اختبار الإطلاق لدى تمارا.
 
 ## الأمان
 

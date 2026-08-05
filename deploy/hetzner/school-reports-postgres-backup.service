@@ -1,0 +1,18 @@
+[Unit]
+Description=Encrypted offsite PostgreSQL backup for School Reports
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/school-reports-backup.conf
+ExecStart=/usr/local/sbin/school-reports-backup
+Nice=10
+IOSchedulingClass=idle
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

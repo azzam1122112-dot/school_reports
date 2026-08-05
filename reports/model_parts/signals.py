@@ -3,8 +3,9 @@ from __future__ import annotations
 from .base import *
 from .audit import AuditLog
 from .achievements import AchievementEvidenceImage, AchievementEvidenceReport, TeacherAchievementFile
+from .billing import SchoolSubscription, SubscriptionPlan
 from .reports import Report
-from .schools import DepartmentMembership, SchoolMembership, Teacher
+from .schools import Department, DepartmentMembership, School, SchoolMembership, Teacher
 from .tickets import Ticket
 from .notifications import TicketImage
 
@@ -56,8 +57,11 @@ def trigger_report_background_tasks(sender, instance, created, **kwargs):
     has_images = any([instance.image1, instance.image2, instance.image3, instance.image4])
     
     if has_images:
-        # معالجة الصور فقط (لا نقوم بتوليد PDF)
-        run_task_safe(process_report_images, instance.pk)
+        # معالجة الصور فقط (لا نقوم بتوليد PDF).
+        # ضغط الصور تحسين وليس شرطًا لصحة التقرير: الصور الأصلية محفوظة وتعمل
+        # بدونه. لذلك لا نشغّله داخل الطلب عند تعطّل Celery، لأن ضغط أربع صور
+        # بـ Pillow داخل طلب الويب يحوّل عطل الوسيط إلى بطء في كل الصفحات.
+        run_task_safe(process_report_images, instance.pk, inline_fallback=False)
     # إذا لم توجد صور: لا يوجد أي مهام مطلوبة هنا
     _sync_archive_usage_after_commit(getattr(instance, "school", None))
 
@@ -217,8 +221,38 @@ def trigger_ticket_image_processing(sender, instance, created, **kwargs):
 
 
 # =========================
+# إبطال كاش تسعير الصفحة الرئيسية
+def _clear_landing_pricing_cache(*_args, **_kwargs):
+    """Publish plan edits to the landing page immediately.
+
+    The landing pricing context is cached (it runs for every campaign visitor),
+    so a price or capacity change must drop that entry instead of waiting for
+    the TTL to lapse.
+    """
+    from django.core.cache import cache
+
+    try:
+        from ..views.auth import LANDING_PRICING_CACHE_KEY
+
+        cache.delete(LANDING_PRICING_CACHE_KEY)
+    except Exception:
+        pass
+
+
+receiver(post_save, sender=SubscriptionPlan)(_clear_landing_pricing_cache)
+receiver(models.signals.post_delete, sender=SubscriptionPlan)(_clear_landing_pricing_cache)
+
+
+# =========================
 # سجل العمليات (Audit Logs)
-@receiver(post_save)
+#
+# مسجّلة لكل موديل على حدة عمدًا. الاشتراك العام في ``post_save`` بلا ``sender``
+# كان يُستدعى عند كل عملية حفظ في المشروع كله — بما فيها صفوف الجلسات وسجل
+# التدقيق نفسه — ليخرج فورًا بعد مقارنة اسم الصنف.
+AUDITED_SAVE_MODELS = (Report, Teacher, School, Department, Ticket, SchoolSubscription)
+AUDITED_DELETE_MODELS = (Report, Teacher, School, Department, Ticket)
+
+
 def audit_log_save(sender, instance, created, **kwargs):
     if kwargs.get("raw"):
         return
@@ -226,11 +260,6 @@ def audit_log_save(sender, instance, created, **kwargs):
     from ..middleware import is_audit_logging_suppressed
 
     if is_audit_logging_suppressed():
-        return
-
-    # قائمة النماذج التي نريد مراقبتها
-    monitored_models = ["Report", "Teacher", "School", "Department", "Ticket", "SchoolSubscription"]
-    if sender.__name__ not in monitored_models:
         return
 
     from ..middleware import get_current_request
@@ -264,15 +293,10 @@ def audit_log_save(sender, instance, created, **kwargs):
     )
 
 
-@receiver(models.signals.post_delete)
 def audit_log_delete(sender, instance, **kwargs):
     from ..middleware import is_audit_logging_suppressed
 
     if is_audit_logging_suppressed():
-        return
-
-    monitored_models = ["Report", "Teacher", "School", "Department", "Ticket"]
-    if sender.__name__ not in monitored_models:
         return
 
     from ..middleware import get_current_request
@@ -293,3 +317,18 @@ def audit_log_delete(sender, instance, **kwargs):
         user_agent=request.META.get("HTTP_USER_AGENT", "")[:500]
     )
 
+
+
+for _audited_model in AUDITED_SAVE_MODELS:
+    post_save.connect(
+        audit_log_save,
+        sender=_audited_model,
+        dispatch_uid=f"audit_log_save:{_audited_model.__name__}",
+    )
+
+for _audited_model in AUDITED_DELETE_MODELS:
+    models.signals.post_delete.connect(
+        audit_log_delete,
+        sender=_audited_model,
+        dispatch_uid=f"audit_log_delete:{_audited_model.__name__}",
+    )

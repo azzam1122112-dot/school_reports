@@ -5,10 +5,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#071d15">
+  <meta name="color-scheme" content="light dark">
+  {% include "reports/partials/theme_bootstrap.html" %}
   <meta name="description" content="أنشئ حساب مدرستك وابدأ تجربة منصة توثيق الكاملة.">
   <meta name="robots" content="noindex,follow">
   <title>ابدأ تجربة مدرستك | منصة توثيق</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
+  {% include "reports/partials/pwa_install_head.html" %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -293,6 +296,9 @@
       font-size: .64rem;
     }
     .error-list { margin-block-start: 5px; color: var(--danger); font-size: .68rem; }
+    .policy-consent { display: flex; align-items: flex-start; gap: 10px; margin: 16px 2px 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8fbf9; color: var(--muted); font-size: .72rem; line-height: 1.8; }
+    .policy-consent input { width: 24px; height: 24px; flex: 0 0 24px; margin-top: 2px; accent-color: var(--green); }
+    .policy-consent a { color: var(--green); font-weight: 900; text-decoration: underline; text-underline-offset: 3px; }
     .submit-row {
       display: flex;
       margin-block-start: 20px;
@@ -330,11 +336,19 @@
       .privacy-note { margin-block-start: 25px; }
     }
     @media (max-width: 620px) {
+      .registration-shell {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .form-panel { order: 1; min-width: 0; }
+      .experience-panel { order: 2; min-width: 0; }
       .experience-panel { padding: 22px 18px; }
       .experience-copy { padding-block-start: 30px; }
       .experience-copy h1 { font-size: 2rem; }
       .benefit-list { grid-template-columns: 1fr; }
-      .form-panel { padding: 28px 14px; }
+      .form-panel { padding: 24px 12px 30px; }
       .back-link { position: static; margin: 0 4px; }
       .form-head { margin-block-start: 32px; padding-inline: 4px; }
       .field-grid { grid-template-columns: 1fr; }
@@ -342,28 +356,32 @@
       .form-section { padding: 18px 14px; }
       .submit-row { align-items: stretch; flex-direction: column; }
       .login-link { text-align: center; }
+      .password-toggle { width: 44px; height: 44px; }
+      .policy-consent { padding: 12px 10px; font-size: .8rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
     }
   </style>
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260804.1">
+  <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 <body>
   <main class="registration-shell">
     <aside class="experience-panel" aria-label="مزايا التجربة المجانية">
       <a class="brand" href="{% url 'reports:landing' %}">
         <img src="{% static 'img/brand-mark.svg' %}" alt="" width="44" height="44">
-        <span><strong>توثيق</strong><small>لتشغيل وتوثيق العمل المدرسي</small></span>
+        <span><strong>منصة توثيق</strong><small>لتشغيل وتوثيق العمل المدرسي</small></span>
       </a>
 
       <div class="experience-copy">
         <span class="trial-label"><i class="fa-solid fa-sparkles"></i> تجربة كاملة لمدة {{ trial_days }} يومًا</span>
         <h1>ابدأ بمدرستك الحقيقية، لا بنسخة محدودة.</h1>
-        <p>بعد التسجيل ستدخل مباشرة إلى لوحة المدير، وتستطيع تجربة مسارات المنصة الأساسية قبل اتخاذ قرار الاشتراك.</p>
+        <p>بعد التسجيل ستدخل مباشرة إلى لوحة المدرسة، وتستطيع تجربة مسارات المنصة الأساسية قبل اتخاذ قرار الاشتراك.</p>
         <ul class="benefit-list">
           <li><i class="fa-solid fa-check"></i><span>التقارير وملفات الإنجاز والمخرجات بصيغة PDF</span></li>
           <li><i class="fa-solid fa-check"></i><span>الطلبات والتذاكر والتعاميم والتوقيعات</span></li>
-          <li><i class="fa-solid fa-check"></i><span>إضافة حتى {{ trial_teacher_limit }} معلمين لتجربة العمل الجماعي</span></li>
+          <li><i class="fa-solid fa-check"></i><span>إضافة حتى {{ trial_teacher_limit }} من أعضاء الكادر لتجربة العمل الجماعي</span></li>
           <li><i class="fa-solid fa-check"></i><span>أرشيف تجريبي بسعة {{ trial_archive_storage_gb }}GB طوال فترة التجربة</span></li>
         </ul>
       </div>
@@ -382,7 +400,7 @@
       <header class="form-head">
         <div class="steps" aria-label="خطوات البدء">
           <span data-step="1">بيانات المدرسة</span><i></i>
-          <span data-step="2">حساب المدير</span><i></i>
+          <span data-step="2">حساب إدارة المدرسة</span><i></i>
           <span data-step="3">ابدأ التجربة</span>
         </div>
         <h2>أنشئ حساب المدرسة</h2>
@@ -428,7 +446,7 @@
         </section>
 
         <section class="form-section">
-          <div class="section-title"><i class="fa-solid fa-user-shield"></i> حساب مدير المدرسة</div>
+          <div class="section-title"><i class="fa-solid fa-user-shield"></i> حساب إدارة المدرسة</div>
           <div class="field-grid">
             <div class="form-group full">
               <label for="id_manager_name">{{ form.manager_name.label }}</label>
@@ -440,6 +458,12 @@
               {{ form.manager_phone }}
               <p class="field-help">سيكون رقم الجوال هو اسم المستخدم عند تسجيل الدخول.</p>
               {% if form.manager_phone.errors %}<ul class="error-list">{% for error in form.manager_phone.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+            <div class="form-group full">
+              <label for="id_manager_email">{{ form.manager_email.label }}</label>
+              {{ form.manager_email }}
+              <p class="field-help"> ميس.</p>
+              {% if form.manager_email.errors %}<ul class="error-list">{% for error in form.manager_email.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             </div>
             <div class="form-group">
               <label for="id_password">{{ form.password.label }}</label>
@@ -460,6 +484,17 @@
           </div>
         </section>
 
+        <div class="policy-consent">
+          {{ form.accept_policies }}
+          <label for="id_accept_policies">
+            أوافق على
+            <a href="{% url 'reports:terms_conditions' %}" target="_blank" rel="noopener">الشروط والأحكام</a>،
+            <a href="{% url 'reports:privacy_policy' %}" target="_blank" rel="noopener">سياسة الخصوصية</a>،
+            و<a href="{% url 'reports:refund_policy' %}" target="_blank" rel="noopener">سياسة الإلغاء والاسترجاع</a>.
+            {% if form.accept_policies.errors %}<span class="error-list">{{ form.accept_policies.errors|striptags }}</span>{% endif %}
+          </label>
+        </div>
+
         <div class="submit-row">
           <button class="submit-button" type="submit" id="submitButton">
             <span>إنشاء المدرسة وبدء التجربة</span>
@@ -471,7 +506,7 @@
     </section>
   </main>
 
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     (function () {
       document.querySelectorAll("[data-password-toggle]").forEach(function (button) {
         button.addEventListener("click", function () {
@@ -500,5 +535,6 @@
       }
     }());
   </script>
+  {% include "reports/partials/pwa_install.html" %}
 </body>
 </html>

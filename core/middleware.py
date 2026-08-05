@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 import secrets
+import threading
 
+from django.conf import settings
 from django.core.cache import cache
-from django.http import HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 
 from .trace_context import reset_trace_id, set_trace_id
 from . import opmetrics
@@ -63,6 +65,114 @@ class RequestTraceMiddleware:
         except Exception:
             pass
         return response
+
+
+class ConcurrencyLimitMiddleware:
+    """Shed excess load instead of letting a spike exhaust the process.
+
+    Why this exists
+    ---------------
+    Django's ASGI handler wraps every request in ``ThreadSensitiveContext``,
+    and asgiref then allocates a dedicated ``ThreadPoolExecutor(max_workers=1)``
+    per in-flight request. There is no global ceiling: 1,000 simultaneous
+    visitors become 1,000 OS threads, each opening its own database connection
+    (the connection registry is thread-local, so nothing is shared). PostgreSQL
+    refuses new connections past ``max_connections`` — default 100 — so an
+    unbounded burst turns a slow page into a full outage, and Celery and the
+    beat scheduler lose their connections too.
+
+    ``gunicorn --threads`` does not help: the Uvicorn worker ignores it. So the
+    ceiling has to live in the application.
+
+    Behaviour
+    ---------
+    Requests beyond ``MAX_CONCURRENT_REQUESTS`` get a fast 503 with
+    ``Retry-After`` rather than queueing behind a saturated process. Serving a
+    subset of visitors correctly beats timing out for all of them.
+
+    ``/healthz/`` is always admitted: a merely busy container must not be
+    reported as dead and restarted, which would make the overload worse.
+    """
+
+    EXEMPT_PATHS = frozenset({"/healthz/"})
+
+    _lock = threading.Lock()
+    _in_flight = 0
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    @classmethod
+    def _limit(cls) -> int:
+        try:
+            return max(0, int(getattr(settings, "MAX_CONCURRENT_REQUESTS", 0) or 0))
+        except (TypeError, ValueError):
+            return 0
+
+    @classmethod
+    def in_flight(cls) -> int:
+        with cls._lock:
+            return cls._in_flight
+
+    @staticmethod
+    def _wants_json(request) -> bool:
+        try:
+            path = (getattr(request, "path", "") or "").lower()
+            accept = (request.headers.get("Accept") or "").lower()
+            requested_with = (request.headers.get("X-Requested-With") or "").lower()
+            return (
+                path.startswith("/api/")
+                or "application/json" in accept
+                or requested_with == "xmlhttprequest"
+            )
+        except Exception:
+            return False
+
+    def _overloaded_response(self, request):
+        retry_after = str(int(getattr(settings, "OVERLOAD_RETRY_AFTER_SECONDS", 5) or 5))
+        message = "الخدمة مزدحمة حالياً. حاول مرة أخرى بعد لحظات."
+        if self._wants_json(request):
+            response = JsonResponse({"detail": "server_busy", "message": message}, status=503)
+        else:
+            response = HttpResponse(
+                message, status=503, content_type="text/plain; charset=utf-8"
+            )
+        response["Retry-After"] = retry_after
+        response["Cache-Control"] = "no-store"
+        return response
+
+    def __call__(self, request):
+        limit = self._limit()
+        path = getattr(request, "path", "") or ""
+        if limit <= 0 or path in self.EXEMPT_PATHS or path.startswith(("/static/", "/media/")):
+            return self.get_response(request)
+
+        cls = type(self)
+        with cls._lock:
+            if cls._in_flight >= limit:
+                current = cls._in_flight
+                admitted = False
+            else:
+                cls._in_flight += 1
+                current = cls._in_flight
+                admitted = True
+
+        if not admitted:
+            opmetrics.increment("http.overload.shed")
+            logger.warning(
+                "Shedding request over concurrency limit path=%s in_flight=%s limit=%s trace_id=%s",
+                path,
+                current,
+                limit,
+                getattr(request, "trace_id", "-"),
+            )
+            return self._overloaded_response(request)
+
+        try:
+            return self.get_response(request)
+        finally:
+            with cls._lock:
+                cls._in_flight -= 1
 
 
 class BlockBadPathsMiddleware:

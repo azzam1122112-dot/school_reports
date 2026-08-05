@@ -4,6 +4,8 @@ FROM python:3.12-slim
 # Environment
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PIP_NO_CACHE_DIR=1 \
     DEBIAN_FRONTEND=noninteractive \
     SERVICE_TYPE=web
 
@@ -24,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgdk-pixbuf-xlib-2.0-0 \
     libffi-dev \
     fonts-dejavu-core \
+    fonts-noto-core \
     shared-mime-info \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -35,7 +38,14 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . /app/
 
-# Expose port (Render sets PORT automatically)
+# The application does not need root privileges at runtime.
+RUN addgroup --system app && adduser --system --ingroup app app \
+    && mkdir -p /app/staticfiles /app/media \
+    && chown -R app:app /app
+
+USER app
+
+# Expose application port
 EXPOSE 10000
 
 # Run service based on SERVICE_TYPE or START_CMD override
@@ -61,13 +71,16 @@ elif [ \"$SERVICE_TYPE\" = \"beat\" ]; then \
     exec celery -A config beat; \
 else \
     echo \"[boot] Starting web service\"; \
-    python manage.py migrate --noinput; \
-    python manage.py collectstatic --noinput; \
+    if [ \"${RUN_MIGRATIONS_ON_START:-1}\" = \"1\" ]; then \
+        python manage.py migrate --noinput; \
+        python manage.py collectstatic --noinput; \
+    else \
+        echo \"[boot] Skipping migrate/collectstatic (RUN_MIGRATIONS_ON_START=0)\"; \
+    fi; \
     exec gunicorn config.asgi:application \
         --bind 0.0.0.0:${PORT:-10000} \
         -k uvicorn.workers.UvicornWorker \
         --workers ${WEB_CONCURRENCY:-1} \
-        --threads ${GUNICORN_THREADS:-2} \
         --timeout ${GUNICORN_TIMEOUT:-120} \
         --keep-alive ${GUNICORN_KEEPALIVE:-5} \
         --max-requests ${GUNICORN_MAX_REQUESTS:-800} \

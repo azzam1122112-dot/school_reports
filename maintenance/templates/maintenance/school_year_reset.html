@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}تهيئة العام الدراسي{% endblock %}
 
@@ -376,21 +377,113 @@
   .data-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 10px;
-    margin-top: 10px;
+    gap: 12px;
+    margin-top: 12px;
   }
-  .data-card {
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 12px;
+  .data-selection-help {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 8px 0 0;
+    color: #64748b;
+    font-size: .9rem;
+    font-weight: 700;
+  }
+  .data-selection-help > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .data-selection-help > span i { color: #b4233a; }
+  .data-selection-count {
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: #fff1f2;
+    color: #b4233a;
+    font-size: .82rem;
+    font-weight: 900;
+  }
+  .data-card {
+    position: relative;
+    min-height: 86px;
+    border: 2px solid #cbd5e1;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     background: #fff;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color .18s, background .18s, box-shadow .18s, transform .18s;
+  }
+  .data-card:hover {
+    border-color: #94a3b8;
+    transform: translateY(-1px);
   }
   .data-card input {
-    width: 18px;
-    height: 18px;
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .data-card:has(input:focus-visible) {
+    outline: 3px solid rgba(0,114,188,.25);
+    outline-offset: 2px;
+  }
+  .data-card-check {
+    width: 30px;
+    height: 30px;
+    border: 2px solid #94a3b8;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    color: transparent;
+    background: #fff;
+    transition: border-color .18s, background .18s, color .18s;
+  }
+  .data-card-check i { font-size: .9rem; }
+  .data-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    min-width: 0;
+  }
+  .data-card-status {
+    color: #64748b;
+    font-size: .78rem;
+    font-weight: 800;
+  }
+  .data-card .when-checked { display: none; }
+  .data-card:has(input:checked) {
+    border-color: #d92d4c;
+    background: #fff5f6;
+    box-shadow: 0 0 0 3px rgba(217,45,76,.1);
+  }
+  .data-card:has(input:checked) .data-card-check {
+    border-color: #d92d4c;
+    background: #d92d4c;
+    color: #fff;
+  }
+  .data-card:has(input:checked) .data-card-status { color: #b4233a; }
+  .data-card:has(input:checked) .when-checked { display: inline; }
+  .data-card:has(input:checked) .when-unchecked { display: none; }
+  .data-card.delete-files:has(input:checked) {
+    border-color: #ea580c;
+    background: #fff7ed;
+    box-shadow: 0 0 0 3px rgba(234,88,12,.1);
+  }
+  .data-card.delete-files:has(input:checked) .data-card-check {
+    border-color: #ea580c;
+    background: #ea580c;
+  }
+  .data-card.delete-files:has(input:checked) .data-card-status { color: #c2410c; }
+  @media (max-width: 560px) {
+    .data-grid { grid-template-columns: 1fr; }
+    .data-card { min-height: 76px; }
   }
   .delete-files {
     margin-top: 16px;
@@ -531,16 +624,44 @@
 
           <section>
             <h3 class="reset-section-title">البيانات التشغيلية المراد حذفها</h3>
+            <p class="data-selection-help">
+              <span><i class="fa-solid fa-circle-info"></i> اضغط على البطاقة لتحديدها أو استبعادها. البطاقة الحمراء سيتم حذف بياناتها.</span>
+              <strong class="data-selection-count" id="selectedDataCount" aria-live="polite">5 من 5 محددة للحذف</strong>
+            </p>
             <div class="data-grid">
-              <label class="data-card"><input type="checkbox" name="reports" checked> <strong>التقارير</strong></label>
-              <label class="data-card"><input type="checkbox" name="tickets" checked> <strong>الطلبات والتذاكر</strong></label>
-              <label class="data-card"><input type="checkbox" name="achievements" checked> <strong>ملفات الإنجاز</strong></label>
-              <label class="data-card"><input type="checkbox" name="notifications" checked> <strong>التعاميم والإشعارات</strong></label>
-              <label class="data-card"><input type="checkbox" name="share_links" checked> <strong>روابط المشاركة</strong></label>
+              <label class="data-card">
+                <input type="checkbox" name="reports" checked>
+                <span class="data-card-check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+                <span class="data-card-content"><strong>التقارير</strong><span class="data-card-status"><span class="when-checked">محدد للحذف</span><span class="when-unchecked">لن يُحذف</span></span></span>
+              </label>
+              <label class="data-card">
+                <input type="checkbox" name="tickets" checked>
+                <span class="data-card-check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+                <span class="data-card-content"><strong>الطلبات والتذاكر</strong><span class="data-card-status"><span class="when-checked">محدد للحذف</span><span class="when-unchecked">لن يُحذف</span></span></span>
+              </label>
+              <label class="data-card">
+                <input type="checkbox" name="achievements" checked>
+                <span class="data-card-check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+                <span class="data-card-content"><strong>ملفات الإنجاز</strong><span class="data-card-status"><span class="when-checked">محدد للحذف</span><span class="when-unchecked">لن يُحذف</span></span></span>
+              </label>
+              <label class="data-card">
+                <input type="checkbox" name="notifications" checked>
+                <span class="data-card-check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+                <span class="data-card-content"><strong>التعاميم والإشعارات</strong><span class="data-card-status"><span class="when-checked">محدد للحذف</span><span class="when-unchecked">لن يُحذف</span></span></span>
+              </label>
+              <label class="data-card">
+                <input type="checkbox" name="share_links" checked>
+                <span class="data-card-check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+                <span class="data-card-content"><strong>روابط المشاركة</strong><span class="data-card-status"><span class="when-checked">محدد للحذف</span><span class="when-unchecked">لن يُحذف</span></span></span>
+              </label>
             </div>
             <label class="data-card delete-files">
               <input type="checkbox" name="delete_files">
-              <strong>حذف المرفقات من التخزين بعد نجاح حذف قاعدة البيانات</strong>
+              <span class="data-card-check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+              <span class="data-card-content">
+                <strong>حذف المرفقات من التخزين بعد نجاح حذف قاعدة البيانات</strong>
+                <span class="data-card-status"><span class="when-checked">مفعّل: ستحذف الملفات أيضًا</span><span class="when-unchecked">غير مفعّل: ستبقى الملفات في التخزين</span></span>
+              </span>
             </label>
           </section>
 
@@ -639,200 +760,5 @@
   {% endif %}
 </main>
 
-<script>
-(function () {
-  const picker = document.getElementById('schoolPicker');
-  if (!picker) return;
-
-  const searchUrl = picker.dataset.searchUrl;
-  const resultsEl = document.getElementById('schoolsResults');
-  const searchInput = document.getElementById('schoolSearchInput');
-  const metaEl = document.getElementById('schoolsResultMeta');
-  const loadMoreBtn = document.getElementById('loadMoreSchoolsBtn');
-  const refreshBtn = document.getElementById('refreshSchoolsBtn');
-  const clearBtn = document.getElementById('clearSelectedSchoolsBtn');
-  const selectVisibleBtn = document.getElementById('selectVisibleSchoolsBtn');
-  const selectedIdsInput = document.getElementById('selectedSchoolIds');
-  const selectedStrip = document.getElementById('selectedSchoolsStrip');
-  const targetAll = document.getElementById('targetAll');
-  const targetSpecific = document.getElementById('targetSpecific');
-  const resetForm = document.getElementById('resetForm');
-
-  const selected = new Map();
-  let visibleRows = [];
-  let page = 1;
-  let hasNext = false;
-  let loading = false;
-  let timer = null;
-
-  function escapeHtml(value) {
-    return String(value || '').replace(/[&<>"']/g, function (char) {
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char];
-    });
-  }
-
-  function syncHiddenIds() {
-    selectedIdsInput.value = Array.from(selected.keys()).join(',');
-  }
-
-  function renderSelected() {
-    selectedStrip.innerHTML = '';
-    if (!selected.size) {
-      const hint = document.createElement('span');
-      hint.className = 'hint';
-      hint.textContent = 'لم يتم اختيار مدارس بعد.';
-      selectedStrip.appendChild(hint);
-      syncHiddenIds();
-      return;
-    }
-    const count = document.createElement('span');
-    count.className = 'status-pill';
-    count.textContent = selected.size + ' مدرسة مختارة';
-    selectedStrip.appendChild(count);
-    Array.from(selected.values()).slice(0, 12).forEach(function (school) {
-      const chip = document.createElement('span');
-      chip.className = 'school-chip';
-      chip.innerHTML = '<span>' + escapeHtml(school.name) + '</span><button type="button" data-remove-id="' + school.id + '" title="إزالة"><i class="fa-solid fa-xmark" style="pointer-events:none"></i></button>';
-      selectedStrip.appendChild(chip);
-    });
-    if (selected.size > 12) {
-      const more = document.createElement('span');
-      more.className = 'hint';
-      more.textContent = '+' + (selected.size - 12) + ' أخرى';
-      selectedStrip.appendChild(more);
-    }
-    syncHiddenIds();
-  }
-
-  const AVATAR_COLORS = ['#0f8f87','#b9975b','#ec4899','#0072bc','#14b8a6','#b9975b','#16845b','#f43f5e'];
-  function avatarColor(id) { return AVATAR_COLORS[Math.abs(parseInt(id, 10) || 0) % AVATAR_COLORS.length]; }
-  function avatarInitial(name) { return (name || '?').trim()[0] || '?'; }
-
-  function renderRows(rows, append) {
-    if (!append) resultsEl.innerHTML = '';
-    visibleRows = append ? visibleRows.concat(rows) : rows.slice();
-    if (!rows.length && !append) {
-      resultsEl.innerHTML = '<div style="text-align:center;padding:3rem 2rem;color:#94a3b8;font-weight:700;"><i class="fa-regular fa-circle-xmark" style="font-size:2rem;display:block;margin-bottom:.75rem;"></i>لا توجد مدارس مطابقة للبحث</div>';
-      return;
-    }
-    rows.forEach(function (school) {
-      const isChecked = selected.has(String(school.id));
-      const row = document.createElement('label');
-      row.className = 'school-row' + (isChecked ? ' is-selected' : '');
-      row.dataset.schoolId = school.id;
-      const stateClass = school.is_active ? 'school-state' : 'school-state off';
-      const stateLabel = school.is_active ? 'نشطة' : 'غير نشطة';
-      const color = avatarColor(school.id);
-      const initial = escapeHtml(avatarInitial(school.name));
-      row.innerHTML =
-        '<input type="checkbox" value="' + school.id + '"' + (isChecked ? ' checked' : '') + '>' +
-        '<div class="school-avatar" style="background:' + color + '">' + initial + '</div>' +
-        '<div class="school-info">' +
-          '<div class="school-name">' + escapeHtml(school.name) + '</div>' +
-          '<div class="school-meta">#' + school.id + ' · ' + escapeHtml(school.code) + ' · ' + escapeHtml(school.city || 'بدون مدينة') + '</div>' +
-        '</div>' +
-        '<div class="school-row-right">' +
-          '<span class="' + stateClass + '">' + stateLabel + '</span>' +
-          '<div class="school-check-icon"><i class="fa-solid fa-check"></i></div>' +
-        '</div>';
-      resultsEl.appendChild(row);
-    });
-  }
-
-  async function loadSchools(options) {
-    if (loading) return;
-    const append = options && options.append;
-    loading = true;
-    metaEl.textContent = 'جاري تحميل المدارس...';
-    loadMoreBtn.disabled = true;
-    const url = new URL(searchUrl, window.location.origin);
-    url.searchParams.set('q', searchInput.value || '');
-    url.searchParams.set('page', String(page));
-    try {
-      const response = await fetch(url.toString(), {headers: {'X-Requested-With': 'XMLHttpRequest'}});
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      const payload = await response.json();
-      hasNext = Boolean(payload.has_next);
-      renderRows(payload.results || [], append);
-      metaEl.textContent = 'تم العثور على ' + payload.total + ' مدرسة';
-      loadMoreBtn.style.display = hasNext ? 'inline-flex' : 'none';
-    } catch (error) {
-      resultsEl.innerHTML = '<div class="school-row"><div></div><div class="hint">تعذر تحميل المدارس. حاول مرة أخرى.</div><div></div></div>';
-      metaEl.textContent = 'خطأ في تحميل المدارس';
-    } finally {
-      loading = false;
-      loadMoreBtn.disabled = false;
-    }
-  }
-
-  function resetSearch() {
-    page = 1;
-    visibleRows = [];
-    loadSchools({append: false});
-  }
-
-  resultsEl.addEventListener('change', function (event) {
-    const input = event.target;
-    if (!input || input.type !== 'checkbox') return;
-    const id = String(input.value);
-    const row = visibleRows.find(function (item) { return String(item.id) === id; });
-    if (input.checked && row) selected.set(id, row);
-    if (!input.checked) selected.delete(id);
-    const label = input.closest('.school-row');
-    if (label) label.classList.toggle('is-selected', input.checked);
-    renderSelected();
-  });
-
-  selectedStrip.addEventListener('click', function (event) {
-    const button = event.target.closest('button[data-remove-id]');
-    if (!button) return;
-    selected.delete(String(button.dataset.removeId));
-    const input = resultsEl.querySelector('input[value="' + button.dataset.removeId + '"]');
-    if (input) input.checked = false;
-    renderSelected();
-  });
-
-  searchInput.addEventListener('input', function () {
-    clearTimeout(timer);
-    timer = setTimeout(resetSearch, 250);
-  });
-  refreshBtn.addEventListener('click', resetSearch);
-  clearBtn.addEventListener('click', function () {
-    selected.clear();
-    resultsEl.querySelectorAll('input[type="checkbox"]').forEach(function (input) { input.checked = false; });
-    renderSelected();
-  });
-  loadMoreBtn.addEventListener('click', function () {
-    if (!hasNext) return;
-    page += 1;
-    loadSchools({append: true});
-  });
-  selectVisibleBtn.addEventListener('click', function () {
-    if (targetAll.checked) return;
-    visibleRows.forEach(function (school) { selected.set(String(school.id), school); });
-    resultsEl.querySelectorAll('input[type="checkbox"]').forEach(function (input) { input.checked = true; });
-    renderSelected();
-  });
-
-  function syncMode() {
-    const all = targetAll.checked;
-    picker.style.opacity = all ? '0.55' : '1';
-    picker.style.pointerEvents = all ? 'none' : 'auto';
-  }
-  targetAll.addEventListener('change', syncMode);
-  targetSpecific.addEventListener('change', syncMode);
-
-  resetForm.addEventListener('submit', function (event) {
-    if (targetSpecific.checked && selected.size === 0) {
-      event.preventDefault();
-      metaEl.textContent = 'اختر مدرسة واحدة على الأقل أو فعّل خيار جميع المدارس.';
-      searchInput.focus();
-    }
-  });
-
-  renderSelected();
-  syncMode();
-  resetSearch();
-})();
-</script>
+<script src="{% static 'maintenance/school_year_reset.js' %}" defer></script>
 {% endblock %}

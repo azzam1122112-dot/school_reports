@@ -25,6 +25,10 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods
 from django_ratelimit.decorators import ratelimit
 
+from ..marketing_attribution import (
+    capture_marketing_attribution,
+    school_marketing_fields,
+)
 from ..models import (
     School,
     SchoolArchiveAddon,
@@ -36,8 +40,8 @@ from ..models import (
 
 
 # ── Trial settings (configurable via env / settings.py) ─────────────
-TRIAL_DAYS = int(getattr(settings, "TRIAL_DAYS", 14))
-TRIAL_PLAN_NAME = getattr(settings, "TRIAL_PLAN_NAME", "تجربة مجانية")
+TRIAL_DAYS = int(getattr(settings, "TRIAL_DAYS", 30))
+TRIAL_PLAN_NAME = getattr(settings, "TRIAL_PLAN_NAME", "التجربة المجانية")
 TRIAL_MAX_TEACHERS = int(getattr(settings, "TRIAL_MAX_TEACHERS", 5))
 TRIAL_ARCHIVE_STORAGE_GB = int(getattr(settings, "TRIAL_ARCHIVE_STORAGE_GB", 1))
 REGISTRATION_RECEIPT_SESSION_KEY = "school_registration_receipt"
@@ -84,7 +88,7 @@ class SchoolRegistrationForm(forms.Form):
 
     # Manager info
     manager_name = forms.CharField(
-        label="اسم مدير المدرسة", max_length=120,
+        label="اسم المسؤول عن إدارة المدرسة", max_length=120,
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
@@ -102,6 +106,18 @@ class SchoolRegistrationForm(forms.Form):
                 "placeholder": "05XXXXXXXX",
                 "inputmode": "tel",
                 "autocomplete": "tel",
+            }
+        ),
+    )
+    manager_email = forms.EmailField(
+        label="البريد الإلكتروني لإدارة المدرسة",
+        required=True,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "dir": "ltr",
+                "placeholder": "manager@school.edu.sa",
+                "autocomplete": "email",
             }
         ),
     )
@@ -124,6 +140,11 @@ class SchoolRegistrationForm(forms.Form):
                 "placeholder": "أعد كتابة كلمة المرور",
             }
         ),
+    )
+    accept_policies = forms.BooleanField(
+        label="أوافق على الشروط والأحكام وسياسة الخصوصية وسياسة الإلغاء والاسترجاع",
+        required=True,
+        error_messages={"required": "يلزم الاطلاع على السياسات والموافقة عليها قبل إنشاء الحساب."},
     )
 
     def clean_manager_phone(self):
@@ -191,6 +212,8 @@ def register_school(request):
     if request.user.is_authenticated:
         return redirect("reports:home")
 
+    capture_marketing_attribution(request)
+
     if request.method == "POST":
         form = SchoolRegistrationForm(request.POST)
         if form.is_valid():
@@ -210,6 +233,7 @@ def register_school(request):
                                     gender=form.cleaned_data["gender"],
                                     city=form.cleaned_data.get("city") or "",
                                     is_active=True,
+                                    **school_marketing_fields(request),
                                 )
                             break
                         except IntegrityError:
@@ -221,6 +245,7 @@ def register_school(request):
                     manager = Teacher.objects.create_user(
                         phone=form.cleaned_data["manager_phone"],
                         name=form.cleaned_data["manager_name"],
+                        email=form.cleaned_data["manager_email"],
                         password=form.cleaned_data["password"],
                     )
 

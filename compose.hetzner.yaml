@@ -9,6 +9,13 @@ x-logging: &default-logging
 x-app: &app
   image: ${APP_IMAGE:-school-reports:local}
   restart: unless-stopped
+  init: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  tmpfs:
+    - /tmp:size=128m,mode=1777
   env_file:
     - ${ENV_FILE:-deploy/hetzner/env.production}
   logging: *default-logging
@@ -24,10 +31,12 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - ${ENV_FILE:-deploy/hetzner/env.production}
     logging: *default-logging
-    mem_limit: 768m
+    mem_limit: 2048m
     shm_size: 128m
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -39,19 +48,66 @@ services:
     networks:
       - backend
 
+  # Opt-in connection pooler. Not started by default — bring it up with
+  #     docker compose --profile pgbouncer up -d
+  # then point DATABASE_URL at pgbouncer:6432 instead of postgres:5432.
+  #
+  # Only needed once WEB_CONCURRENCY × MAX_CONCURRENT_REQUESTS approaches
+  # PostgreSQL's max_connections. transaction mode is required: Django issues
+  # SET/RESET per connection, which session mode would pin. Keep CONN_MAX_AGE=0
+  # either way — with a pooler in front, reuse is the pooler's job, not Django's.
+  pgbouncer:
+    profiles: ["pgbouncer"]
+    image: edoburu/pgbouncer:v1.23.1-p2
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - ${ENV_FILE:-deploy/hetzner/env.production}
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "${PGBOUNCER_MAX_CLIENT_CONN:-500}"
+      DEFAULT_POOL_SIZE: "${PGBOUNCER_DEFAULT_POOL_SIZE:-20}"
+      SERVER_IDLE_TIMEOUT: "300"
+      SERVER_LIFETIME: "3600"
+      AUTH_TYPE: scram-sha-256
+    logging: *default-logging
+    mem_limit: 128m
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U $${POSTGRES_USER}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - ${ENV_FILE:-deploy/hetzner/env.production}
     logging: *default-logging
-    mem_limit: 256m
+    mem_limit: 512m
+    # One Redis serves three roles: Celery broker (DB 0), Channels layer (DB 0)
+    # and the Django cache/sessions (DB 1). With `noeviction`, a traffic spike
+    # that fills the cache makes Redis reject *every* write — which takes the
+    # broker down with it, not just the cache.
+    # `volatile-lru` only evicts keys that carry a TTL: cache entries, sessions
+    # and Channels groups. Celery's queues have no TTL, so queued tasks are
+    # never dropped. Degrade the cache, keep the platform up.
     command: >-
       sh -c 'exec redis-server
       --appendonly yes
       --appendfsync everysec
-      --maxmemory "$${REDIS_MAXMEMORY:-192mb}"
-      --maxmemory-policy noeviction
+      --maxmemory "$${REDIS_MAXMEMORY:-384mb}"
+      --maxmemory-policy "$${REDIS_MAXMEMORY_POLICY:-volatile-lru}"
       --requirepass "$${REDIS_PASSWORD}"'
     volumes:
       - redis-data:/data
@@ -66,7 +122,7 @@ services:
   migrate:
     <<: *app
     restart: "no"
-    mem_limit: 768m
+    mem_limit: 2048m
     command: >-
       sh -c "python manage.py migrate --noinput &&
       python manage.py collectstatic --noinput"
@@ -75,24 +131,36 @@ services:
 
   web:
     <<: *app
-    mem_limit: 768m
-    cpus: 1.00
+    mem_limit: 1536m
+    cpus: 2.00
     depends_on:
       migrate:
         condition: service_completed_successfully
+    # Sizing: WEB_CONCURRENCY is the number of OS processes. Requests inside a
+    # process run concurrently on their own threads (ASGI), so raise this to add
+    # CPU parallelism, not I/O concurrency. Budget ~250 MB per worker against
+    # mem_limit and raise `cpus` alongside it; keep
+    # WEB_CONCURRENCY × MAX_CONCURRENT_REQUESTS below PostgreSQL max_connections
+    # minus the Celery workers and beat.
+    # `--threads` is intentionally absent: the Uvicorn worker ignores it, so
+    # passing it only creates false confidence about capacity.
+    # `sh -c` with $$VAR on purpose: a bare ${VAR} here is expanded by Compose
+    # from the host shell, so values set in env_file were silently ignored and
+    # every deploy ran a single worker no matter what the env file said.
     command: >-
-      gunicorn config.asgi:application
+      sh -c 'exec gunicorn config.asgi:application
       --bind 0.0.0.0:8000
       -k uvicorn.workers.UvicornWorker
-      --workers ${WEB_CONCURRENCY:-1}
-      --threads ${GUNICORN_THREADS:-2}
-      --timeout ${GUNICORN_TIMEOUT:-120}
-      --keep-alive ${GUNICORN_KEEPALIVE:-5}
-      --max-requests ${GUNICORN_MAX_REQUESTS:-800}
-      --max-requests-jitter ${GUNICORN_MAX_REQUESTS_JITTER:-80}
+      --workers "$${WEB_CONCURRENCY:-1}"
+      --timeout "$${GUNICORN_TIMEOUT:-120}"
+      --keep-alive "$${GUNICORN_KEEPALIVE:-5}"
+      --max-requests "$${GUNICORN_MAX_REQUESTS:-800}"
+      --max-requests-jitter "$${GUNICORN_MAX_REQUESTS_JITTER:-80}"
       --access-logfile -
-      --error-logfile -
+      --error-logfile -'
     ports:
+      # Compose-level substitution: this one really is read from the host shell
+      # or a .env file beside this compose file, never from env_file.
       - "127.0.0.1:${LOCAL_HTTP_PORT:-18000}:8000"
     volumes:
       - static-data:/app/staticfiles:ro
@@ -119,7 +187,25 @@ services:
 
   worker-core:
     <<: *app
-    mem_limit: 512m
+    mem_limit: 768m
+    cpus: 0.50
+    networks:
+      - backend
+      - edge
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: >-
+      sh -c 'exec celery -A config worker
+      --loglevel=info
+      --concurrency="$${CELERY_CORE_CONCURRENCY:-1}"
+      --prefetch-multiplier=1
+      --max-tasks-per-child=100
+      -Q default,notifications'
+
+  worker-media:
+    <<: *app
+    mem_limit: 1024m
     cpus: 0.75
     networks:
       - backend
@@ -128,30 +214,12 @@ services:
       migrate:
         condition: service_completed_successfully
     command: >-
-      celery -A config worker
+      sh -c 'exec celery -A config worker
       --loglevel=info
-      --concurrency=${CELERY_CORE_CONCURRENCY:-1}
-      --prefetch-multiplier=1
-      --max-tasks-per-child=100
-      -Q default,notifications
-
-  worker-media:
-    <<: *app
-    mem_limit: 640m
-    cpus: 1.00
-    networks:
-      - backend
-      - edge
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    command: >-
-      celery -A config worker
-      --loglevel=info
-      --concurrency=${CELERY_MEDIA_CONCURRENCY:-1}
+      --concurrency="$${CELERY_MEDIA_CONCURRENCY:-1}"
       --prefetch-multiplier=1
       --max-tasks-per-child=50
-      -Q images,periodic
+      -Q images,periodic'
 
   beat:
     <<: *app

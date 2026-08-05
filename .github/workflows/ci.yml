@@ -11,7 +11,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       DJANGO_SETTINGS_MODULE: config.test_settings
       ENV: test
@@ -49,12 +49,50 @@ jobs:
         run: |
           ruff check .
           python -m compileall -q config core reports maintenance manage.py
-          python -c "import yaml; yaml.safe_load(open('render.yaml')); yaml.safe_load(open('.github/workflows/ci.yml'))"
+          python -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"
+
+      - name: Security checks
+        run: |
+          python -m pip_audit -r requirements.txt
+          python -m bandit -r config core reports maintenance manage.py \
+            -x "reports/tests,reports/migrations,core/migrations,maintenance/migrations,maintenance/tests.py" \
+            --severity-level high --confidence-level high --quiet
 
       - name: Django checks and migration drift
         run: |
           python manage.py check
           python manage.py makemigrations --check --dry-run
 
+      - name: Production deployment checks
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings
+          ENV: production
+          DEBUG: "False"
+          SECRET_KEY: ci-production-check-only-secret-key-with-sufficient-length
+          ALLOWED_HOSTS: example.test
+          CSRF_TRUSTED_ORIGINS: https://example.test
+          SITE_URL: https://example.test
+          BUSINESS_LEGAL_NAME: Test Business
+          BUSINESS_FREELANCE_DOCUMENT_NUMBER: FL-CI-TEST
+          BUSINESS_ADDRESS: Riyadh
+          BUSINESS_SUPPORT_EMAIL: legal@example.test
+          BUSINESS_SUPPORT_PHONE: "+966500000000"
+          DATABASE_URL: postgresql://school_reports:ci-password@postgres:5432/school_reports
+          REDIS_URL: redis://redis:6379/0
+          R2_ACCESS_KEY_ID: ci-access-key
+          R2_SECRET_ACCESS_KEY: ci-secret-key
+          R2_BUCKET_NAME: ci-private-media
+          R2_ENDPOINT_URL: https://object-storage.example.test
+          MEDIA_PUBLIC_ACCESS_ENABLED: "False"
+          EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+          EMAIL_HOST: smtp.example.test
+          EMAIL_PORT: "587"
+          EMAIL_USE_TLS: "True"
+          DEFAULT_FROM_EMAIL: no-reply@example.test
+        run: python manage.py check --deploy --fail-level WARNING
+
       - name: Test
         run: python manage.py test --verbosity 1
+
+      - name: Build production image
+        run: docker build --tag school-reports:ci .

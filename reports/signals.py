@@ -8,6 +8,7 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from reports.models import (
     AuditLog,
+    CustomerComplaint,
     Notification,
     NotificationRecipient,
     Payment,
@@ -138,6 +139,24 @@ def _telegram_platform_ticket_created(sender, instance, created, **kwargs):
         queue_telegram_alert(build_support_ticket_alert(instance))
     except Exception:
         logger.exception("Unable to prepare Telegram support alert ticket=%s", instance.pk)
+
+
+@receiver(post_save, sender=CustomerComplaint)
+def _telegram_customer_complaint_created(sender, instance, created, **kwargs):
+    if kwargs.get("raw") or not created:
+        return
+    try:
+        from .telegram_alerts import (
+            build_customer_complaint_alert,
+            queue_telegram_alert,
+        )
+
+        queue_telegram_alert(build_customer_complaint_alert(instance))
+    except Exception:
+        logger.exception(
+            "Unable to prepare Telegram complaint alert complaint=%s",
+            instance.pk,
+        )
 
 
 def _infer_school_for_audit(request, user) -> School | None:

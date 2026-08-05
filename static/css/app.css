@@ -1183,6 +1183,7 @@ html[data-theme="dark"] .skeleton::after{
   display:flex;
   flex-direction:column;
   overflow:auto;
+  overscroll-behavior:contain;
   padding-bottom:var(--safe-bottom);
 }
 html[dir="rtl"] .drawer{transform:translateX(100%);right:0;left:auto !important}
@@ -1195,9 +1196,19 @@ html[dir="rtl"] .drawer.open{transform:translateX(0)}
 .drawer-head{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:12px;border-bottom:1px solid var(--line-2);
+  position:sticky;top:0;z-index:3;
+  flex:0 0 auto;
+  background:var(--card);
+  backdrop-filter:blur(16px);
 }
 .drawer-title{font-weight:950}
-.drawer-nav{display:grid;padding:12px;gap:10px}
+.drawer-nav{
+  display:flex;
+  flex:1 0 auto;
+  flex-direction:column;
+  padding:12px;
+  gap:10px;
+}
 .drawer-nav a{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:12px;border:1px solid var(--line-2);
@@ -1223,42 +1234,6 @@ html[data-theme="dark"] .sub-banner{
   border-bottom-color:rgba(245,158,11,.22);
 }
 .sub-banner a{font-weight:950;text-decoration:underline;margin-inline-start:8px}
-
-/* PWA install banner */
-.pwa-banner{
-  position:fixed;
-  right:14px;left:14px;
-  bottom:calc(14px + var(--safe-bottom));
-  z-index:var(--z-toast);
-  display:none;
-}
-.pwa-banner.open{display:block}
-.pwa-card{
-  background:var(--card);
-  border:1px solid var(--line-2);
-  border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-lg);
-  padding:12px;
-  display:flex;
-  gap:12px;
-  align-items:center;
-  justify-content:space-between;
-}
-.pwa-text{min-width:0}
-.pwa-title{font-weight:950;margin:0;color:var(--ink)}
-.pwa-sub{margin:2px 0 0;color:var(--muted);font-weight:800;font-size:.92rem}
-.pwa-actions{display:flex;gap:10px;align-items:center;flex:0 0 auto}
-.pwa-btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:44px;padding:0 14px;border-radius:12px;border:1px solid transparent;
-  cursor:pointer;font-weight:950;text-decoration:none;background:var(--brand);color:#fff;
-}
-.pwa-btn:hover{filter:saturate(1.05) brightness(.98)}
-.pwa-close{
-  width:44px;height:44px;border-radius:12px;border:1px solid var(--line-2);
-  background:var(--card);color:var(--ink);cursor:pointer;display:grid;place-items:center;
-}
-.pwa-close:hover{box-shadow:var(--shadow-sm)}
 
 /* School modal */
 .school-modal{

@@ -51,6 +51,19 @@ class Report(models.Model):
     )
 
     idea = models.TextField("الوصف / فكرة التقرير", blank=True, null=True)
+    goal = models.TextField("الهدف", blank=True, default="")
+    implementation_method = models.TextField("آلية التنفيذ", blank=True, default="")
+    results = models.TextField("النتائج", blank=True, default="")
+    recommendations = models.TextField("التوصيات", blank=True, default="")
+
+    # يتحكم المستخدم في البنود التي تظهر داخل النسخة النهائية من التقرير.
+    # القيم الافتراضية تحافظ على مظهر التقارير السابقة دون تغيير.
+    show_goal = models.BooleanField("إظهار الهدف", default=False)
+    show_details = models.BooleanField("إظهار تفاصيل التقرير", default=True)
+    show_implementation = models.BooleanField("إظهار آلية التنفيذ", default=False)
+    show_results = models.BooleanField("إظهار النتائج", default=False)
+    show_recommendations = models.BooleanField("إظهار التوصيات", default=False)
+    show_beneficiaries = models.BooleanField("إظهار عدد المستفيدين", default=True)
 
     # التصنيف ديناميكي عبر FK
     category = models.ForeignKey(
@@ -140,85 +153,6 @@ class Report(models.Model):
         super().save(*args, **kwargs)
 
 
-# =========================
-# قوالب التقارير الجاهزة (لكل مدرسة)
-# =========================
-class ReportTemplate(models.Model):
-    """قالب جاهز يُعبّئ حقول التقرير تلقائيًا عند الإنشاء.
-
-    يُدار من قِبل مدير المدرسة، ويستخدمه المعلمون لتسريع إدخال التقارير المتكررة
-    (مثل: الإذاعة الصباحية، الاصطفاف، حصة الانتظار...).
-    """
-
-    school = models.ForeignKey(
-        School,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="report_templates",
-        verbose_name="المدرسة",
-        help_text="يظهر هذا القالب فقط داخل المدرسة المحددة.",
-    )
-    category = models.ForeignKey(
-        "ReportType",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="templates",
-        verbose_name="نوع التقرير",
-        help_text="يُختار تلقائيًا عند تطبيق القالب (اختياري).",
-    )
-    name = models.CharField(
-        "اسم القالب",
-        max_length=120,
-        help_text="اسم مختصر يظهر للمعلم في قائمة القوالب، مثل: الإذاعة الصباحية.",
-    )
-    title = models.CharField(
-        "عنوان التقرير المقترح",
-        max_length=255,
-        blank=True,
-        help_text="يُعبّأ في حقل العنوان عند تطبيق القالب.",
-    )
-    idea = models.TextField(
-        "نص التفاصيل المقترح",
-        blank=True,
-        help_text="يُعبّأ في حقل تفاصيل التقرير عند تطبيق القالب.",
-    )
-    beneficiaries_count = models.PositiveIntegerField(
-        "عدد المستفيدين المقترح",
-        null=True,
-        blank=True,
-        validators=[MinValueValidator(0)],
-        help_text="اتركه فارغًا إذا لا ينطبق.",
-    )
-    order = models.PositiveIntegerField("الترتيب", default=0)
-    is_active = models.BooleanField("نشط", default=True, db_index=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="report_templates_created",
-        verbose_name="أنشأه",
-    )
-    created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True)
-    updated_at = models.DateTimeField("تاريخ التحديث", auto_now=True)
-
-    class Meta:
-        ordering = ("order", "name")
-        indexes = [
-            models.Index(fields=["school", "is_active", "order"]),
-        ]
-        verbose_name = "قالب تقرير"
-        verbose_name_plural = "قوالب التقارير"
-
-    def __str__(self) -> str:
-        return self.name
-
-
-# =========================
-
-
 class PlatformSettings(models.Model):
     """إعدادات عامة للمنصة تُدار من مدير النظام.
 
@@ -259,11 +193,21 @@ class PlatformSettings(models.Model):
         help_text="سعر كل وحدة زيادة مساحة تخزين للأرشيف.",
     )
     free_storage_mb = models.PositiveIntegerField(
-        "حد التخزين المجاني لكل مدرسة (ميجابايت)",
+        "حد التخزين الأدنى لمدرسة بلا اشتراك فعّال (ميجابايت)",
         default=1024,
         help_text=(
-            "الحد الأقصى لإجمالي حجم الصور والملفات لكل مدرسة غير مشتركة في إضافة الأرشفة. "
-            "القيمة بالميجابايت (1024MB = 1GB). ضع 0 لإلغاء الحد (تخزين غير محدود)."
+            "يُطبّق فقط على مدرسة بلا اشتراك فعّال. المدارس المشتركة تحصل على مساحة "
+            "مشتقة من سعة المعلمين. القيمة بالميجابايت (1024MB = 1GB). "
+            "ضع 0 لإلغاء الحد (تخزين غير محدود)."
+        ),
+    )
+    storage_mb_per_teacher = models.PositiveIntegerField(
+        "المساحة الأساسية لكل معلم (ميجابايت)",
+        default=400,
+        help_text=(
+            "تُضرب في سعة المعلمين المشتراة لتحديد المساحة الأساسية للمدرسة، "
+            "فتكبر المساحة بنفس نسبة نمو الفريق. "
+            "مثال: 400MB × سعة 50 معلماً = 19.5GB. ضع 0 لإلغاء المساحة الأساسية المشتقة."
         ),
     )
     maintenance_mode_enabled = models.BooleanField(
@@ -277,6 +221,24 @@ class PlatformSettings(models.Model):
         blank=True,
         default="",
         help_text="رسالة اختيارية تظهر للمستخدمين في شاشة الصيانة.",
+    )
+    mansour_public_enabled = models.BooleanField(
+        "إظهار المساعد منصور",
+        default=True,
+        db_index=True,
+        help_text="إظهار منصور للزوار في الصفحة العامة والسماح باستخدامه.",
+    )
+    report_ai_enabled = models.BooleanField(
+        "إظهار تحسين التقارير",
+        default=True,
+        db_index=True,
+        help_text="إظهار أداة تحسين صياغة التقرير والسماح باستدعائها.",
+    )
+    internal_ai_help_enabled = models.BooleanField(
+        "إظهار المساعدة داخل النظام",
+        default=True,
+        db_index=True,
+        help_text="إظهار أداة المساعدة العائمة داخل الصفحات بعد تسجيل الدخول.",
     )
 
     updated_by = models.ForeignKey(
@@ -310,6 +272,13 @@ class PlatformSettings(models.Model):
             from django.core.cache import cache
 
             cache.delete("platform_maintenance_state_v1")
+            cache.delete("platform_storage_mb_per_teacher_v1")
+        except Exception:
+            pass
+        try:
+            from ..ai_features import clear_platform_ai_feature_cache
+
+            clear_platform_ai_feature_cache()
         except Exception:
             pass
         return result

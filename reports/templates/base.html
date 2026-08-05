@@ -8,40 +8,29 @@
   <meta name="color-scheme" content="light dark" />
 
   <!-- Favicon (مهم لتفادي طلب /favicon.ico الافتراضي) -->
-  <link rel="icon" href="{% static 'img/logo1.png' %}">
-  <link rel="apple-touch-icon" href="{% static 'img/logo1.png' %}">
+  <link rel="icon" href="{% static 'img/brand-mark.svg' %}">
 
-  <!-- PWA -->
-  <link rel="manifest" href="{% static 'manifest.json' %}">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="توثيق">
+  {% include "reports/partials/pwa_install_head.html" %}
 
   <title>{% block title %}منصة توثيق لإدارة العمل المدرسي{% endblock %}</title>
   <meta name="robots" content="{% block robots %}noindex,nofollow,noarchive{% endblock %}">
   {% block seo_meta %}{% endblock %}
 
   <!-- Inject user auth state for JS -->
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     window.USER_IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
   </script>
   <!-- Theme: apply BEFORE CSS to avoid flash -->
-  <script nonce="{{ CSP_NONCE }}">
-    (function(){
-      try{
-        var m = document.cookie.match(/(?:^|; )theme=([^;]+)/);
-        var theme = m ? decodeURIComponent(m[1]) : '';
-        if(theme === 'dark' || theme === 'light'){
-          document.documentElement.setAttribute('data-theme', theme);
-          document.documentElement.style.colorScheme = theme;
-        }
-      }catch(e){}
-    })();
-  </script>
+  {% include "reports/partials/theme_bootstrap.html" %}
 
   <!-- Performance -->
-  <link rel="preload" href="{% static 'css/app.css' %}" as="style">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}" />
+  <link rel="preload" href="{% static 'css/app.css' %}?v=20260731.3" as="style">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260731.3" />
+  {% if request.user.is_authenticated %}
+  {% if request.user.is_authenticated and AI_INTERNAL_HELP_ENABLED %}
+    <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260801.3" />
+  {% endif %}
+  {% endif %}
 
   <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -129,8 +118,9 @@
       align-items: center;
       justify-content: space-between;
       height: 100%;
+      min-height: 0;
       width: 100%;
-      max-width: 1400px; /* Wider Global Layout */
+      max-width: 1760px;
       margin: 0 auto;
       padding: 0 24px;
     }
@@ -144,6 +134,9 @@
       color: var(--brand);
       transition: all 0.3s var(--ease-out);
       position: relative;
+      flex: 0 1 240px;
+      min-width: 0;
+      max-width: 240px;
     }
     
     .hdr-brand::before {
@@ -184,14 +177,41 @@
     /* Navigation Tabs (Modern Pill/Underline) */
     .hdr-nav {
       display: flex;
+      align-items: center;
+      justify-content: center;
       gap: 6px;
       background: var(--bg-sub);
       padding: 4px;
       border-radius: var(--r-full);
       border: 1px solid var(--border-light);
+      flex: 1 1 auto;
+      flex-wrap: nowrap;
+      min-width: 0;
+      margin-inline: 16px;
+      white-space: nowrap;
     }
-    
-    @media (max-width: 991px) { .hdr-nav { display: none; } } /* Hide on Mobile */
+
+    /*
+       The complete manager navigation and its action group need more room than
+       the old 1400px shell provided. Collapse before either group can wrap.
+    */
+    @media (max-width: 1599px) {
+      .hdr-nav { display: none; }
+      .hamburger {
+        display: flex;
+        flex: 0 0 44px;
+        flex-direction: column;
+      }
+      .hdr-brand {
+        flex: 1 1 auto;
+        max-width: none;
+        justify-content: center;
+      }
+      .hdr-brand-txt { max-width: min(320px, calc(100vw - 150px)); }
+      .hdr-actions .icon-btn,
+      .hdr-actions #openSchoolModal { display: none; }
+      .drawer-actions { display: flex; }
+    }
 
     .hdr-nav .tab {
       padding: 6px 16px;
@@ -228,6 +248,18 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      flex: 0 0 auto;
+    }
+
+    .hdr-actions #openSchoolModal { max-width: 260px; }
+
+    /* Installed apps extend below the OS status area without covering it. */
+    @media (display-mode: standalone), (display-mode: fullscreen) {
+      .site-header {
+        height: calc(72px + var(--safe-top));
+        padding-top: var(--safe-top);
+      }
+      .site-header.scrolled { height: calc(64px + var(--safe-top)); }
     }
 
     .icon-btn {
@@ -282,24 +314,37 @@
     }
     .avatar:hover { transform: scale(1.05) rotate(3deg); box-shadow: 0 0 0 3px var(--bg-sub); }
     
-    .userbox .menu {
-      position: absolute;
-      top: 120%;
-      left: 0; /* RTL adjusted */
+    #userMenu.menu {
+      position: fixed;
+      top: 0;
+      right: auto;
+      left: 0;
+      width: max-content;
       min-width: 220px;
+      max-width: min(320px, calc(100vw - 24px));
+      max-height: calc(100dvh - 24px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
       background: var(--surface);
       border: 1px solid var(--border-light);
       border-radius: var(--r-lg);
       box-shadow: var(--shadow-xl);
       padding: 8px;
+      display: none;
       opacity: 0;
       visibility: hidden;
+      pointer-events: none;
       transform: translateY(10px);
       transition: all 0.2s var(--ease-out);
-      z-index: 1001;
+      z-index: 10000;
     }
-    .userbox .menu[aria-expanded="true"], .userbox:focus-within .menu, .userbox:hover .menu {
-      opacity: 1; visibility: visible; transform: translateY(0);
+    #userMenu.menu.open {
+      display: block;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(0);
     }
     
     .mi {
@@ -315,6 +360,9 @@
     .mi i { width: 20px; text-align: center; color: var(--text-muted); }
     .mi:hover i { color: var(--accent); }
     .mi .meta { font-size: 0.8rem; color: var(--text-muted); font-weight: normal; }
+
+    .drawer-overlay { z-index: 1100 !important; }
+    .drawer { z-index: 1200 !important; }
 
     /* --- TOAST MESSAGES (Luxury) --- */
     .messages {
@@ -661,6 +709,9 @@
       margin: 0 auto;
       padding: 0 24px;
     }
+
+    /* The application header has three wide groups; content pages stay at 1400px. */
+    .site-header .container.hdr { max-width: 1760px; }
     
     @media (max-width: 768px) {
       .hdr-brand-name { display: none; } /* Simpler mobile brand */
@@ -760,10 +811,12 @@
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/v4-shims.min.css' %}">
 
-  <link rel="stylesheet" href="{% static 'css/mobile-professional.css' %}" />
-  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/mobile-professional.css' %}?v=20260731.3" />
+  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}?v=20260802.1" />
 
   {% block head %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260804.1" />
+  <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 
 <body class="page {% if request.resolver_match and request.resolver_match.url_name == 'home' %}is-home{% else %}not-home{% endif %}">
@@ -775,14 +828,14 @@
   <header class="site-header" id="siteHeader">
     <div class="container hdr">
 
-      <button class="hamburger" id="hamburger" aria-label="فتح القائمة" aria-controls="mobileDrawer" aria-expanded="false">
+      <button class="hamburger" id="hamburger" type="button" aria-label="فتح القائمة" aria-controls="mobileDrawer" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
 
       <a class="hdr-brand" href="{% if request.user.is_superuser %}{% url 'reports:platform_admin_dashboard' %}{% elif IS_REPORT_VIEWER %}{% url 'reports:school_reports_readonly' %}{% elif request.user.is_platform_admin %}{% if SCHOOL_ID %}{% url 'reports:platform_school_dashboard' %}{% else %}{% url 'reports:platform_schools_directory' %}{% endif %}{% elif IS_SCHOOL_MANAGER %}{% url 'reports:admin_dashboard' %}{% else %}{% url 'reports:home' %}{% endif %}">
-        <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="الشعار" width="42" height="42" loading="eager" decoding="async">
+        <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/brand-mark.svg' %}{% endif %}" alt="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}شعار المدرسة{% else %}شعار منصة توثيق{% endif %}" width="42" height="42" loading="eager" decoding="async">
         <div class="hdr-brand-txt">
-          <div class="hdr-brand-name">{% if request.user.is_superuser %}إدارة المنصة{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}</div>
+          <div class="hdr-brand-name">{% if request.user.is_superuser %}إدارة المنصة{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}منصة توثيق{% endif %}</div>
           <div class="hdr-brand-sub">{% if request.user.is_superuser %}مركز التشغيل{% else %}منصة توثيق{% endif %}</div>
         </div>
       </a>
@@ -796,11 +849,12 @@
             <a class="tab {% if active == 'platform_subscriptions_list' or active == 'platform_subscription_detail' or active == 'platform_subscription_add' %}is-active{% endif %}" href="{% url 'reports:platform_subscriptions_list' %}">الاشتراكات</a>
             <a class="tab {% if active == 'platform_payments_list' or active == 'platform_payment_detail' %}is-active{% endif %}" href="{% url 'reports:platform_payments_list' %}">المالية</a>
             <a class="tab {% if active == 'platform_tickets_list' %}is-active{% endif %}" href="{% url 'reports:platform_tickets_list' %}">الدعم</a>
-            <a class="tab {% if active == 'platform_settings' or active == 'platform_archive_addons_list' or active == 'platform_plans_list' %}is-active{% endif %}" href="{% url 'reports:platform_settings' %}">الإعدادات</a>
+            <a class="tab {% if active == 'platform_complaints_list' or active == 'platform_complaint_detail' %}is-active{% endif %}" href="{% url 'reports:platform_complaints_list' %}">الشكاوى</a>
+            <a class="tab {% if active == 'platform_settings' or active == 'platform_archive_addons_list' or active == 'platform_plans_list' or active == 'platform_mansour_content' %}is-active{% endif %}" href="{% url 'reports:platform_settings' %}">الإعدادات</a>
           {% elif IS_REPORT_VIEWER %}
             <a class="tab {% if active == 'school_reports_readonly' %}is-active{% endif %}" href="{% url 'reports:school_reports_readonly' %}">التقارير</a>
             <a class="tab {% if active == 'achievement_school_files' or active == 'achievement_school_teachers' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_school_files' %}">ملفات الإنجاز</a>
-            {% if SHOW_ARCHIVE_LINK %}
+            {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
               <a class="tab {% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">الأرشيف</a>
             {% endif %}
           {% elif request.user.is_platform_admin and not request.user.is_superuser %}
@@ -855,7 +909,7 @@
             {% if SHOW_ADMIN_DASHBOARD_LINK and not IS_SCHOOL_MANAGER %}
               <a class="tab {% if active == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدرسة</a>
             {% endif %}
-            {% if SHOW_ARCHIVE_LINK %}
+            {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
               <a class="tab {% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">الأرشيف</a>
             {% endif %}
           {% endif %}
@@ -920,11 +974,13 @@
 
           <div class="userbox">
             {% firstof request.user.name request.user.phone request.user.national_id "حسابي" as display_name %}
-            <button class="avatar" id="userAvatar" type="button" aria-haspopup="menu" aria-expanded="false" title="{{ display_name }}">
+            <button class="avatar" id="userAvatar" type="button" aria-haspopup="dialog" aria-controls="mobileDrawer" aria-expanded="false" title="فتح القائمة - {{ display_name }}">
               {{ display_name|slice:":1" }}
             </button>
-            <div class="menu" id="userMenu" role="menu" aria-label="قائمة المستخدم">
-              <div class="mi" tabindex="0" style="cursor:default">
+            {% comment %}Legacy account popover replaced by the unified drawer below.{% endcomment %}
+            {% comment %}
+            <div class="menu" id="userMenu" role="menu" aria-labelledby="userAvatar" aria-hidden="true">
+              <div class="mi menu-profile" role="presentation" style="cursor:default">
                 <div>
                   <div style="font-weight:950">{{ display_name }}</div>
                   <div class="meta">مرحباً 👋</div>
@@ -993,7 +1049,7 @@
                     <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                     ملفات الإنجاز
                   </a>
-                  {% if SHOW_ARCHIVE_LINK %}
+                  {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
                     <a href="{% url 'reports:school_archive' %}" class="mi" role="menuitem">
                       <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
                       الأرشيف
@@ -1004,7 +1060,7 @@
                     <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                     ملف الإنجاز
                   </a>
-                  {% if SHOW_ARCHIVE_LINK %}
+                  {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
                     <a href="{% url 'reports:school_archive' %}" class="mi" role="menuitem">
                       <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
                       الأرشيف
@@ -1020,6 +1076,62 @@
 
               <a href="{% url 'reports:logout' %}" class="mi" role="menuitem">تسجيل الخروج</a>
             </div>
+            <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+              (function(){
+                window.setTimeout(()=>{
+                  if(window.__userMenuScriptReady) return;
+
+                  const avatar = document.getElementById('userAvatar');
+                  const menu = document.getElementById('userMenu');
+                  if(!avatar || !menu || window.__userMenuInlineToggle) return;
+
+                  let suppressClickUntil = 0;
+
+                  const positionInlineMenu = ()=>{
+                    const triggerRect = avatar.getBoundingClientRect();
+                    const menuWidth = menu.offsetWidth || 220;
+                    const left = Math.max(12, Math.min(triggerRect.right - menuWidth, window.innerWidth - menuWidth - 12));
+                    const top = Math.max(12, triggerRect.bottom + 8);
+                    menu.style.left = `${Math.round(left)}px`;
+                    menu.style.top = `${Math.round(top)}px`;
+                    menu.style.right = 'auto';
+                  };
+
+                  const setOpen = (open)=>{
+                    menu.classList.toggle('open', open);
+                    menu.style.display = open ? 'block' : 'none';
+                    menu.setAttribute('aria-hidden', open ? 'false' : 'true');
+                    avatar.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    if(open) positionInlineMenu();
+                  };
+
+                  window.__userMenuInlineToggle = (event)=>{
+                    if(event && event.type === 'pointerup' && event.button !== 0) return false;
+                    if(event){
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }
+
+                    const nowMs = Date.now();
+                    if(event && event.type === 'click' && nowMs < suppressClickUntil) return false;
+                    if(event && event.type === 'pointerup') suppressClickUntil = nowMs + 450;
+
+                    setOpen(!menu.classList.contains('open'));
+                    return false;
+                  };
+
+                  avatar.addEventListener('pointerup', window.__userMenuInlineToggle);
+                  avatar.addEventListener('click', window.__userMenuInlineToggle);
+                  document.addEventListener('click', (event)=>{
+                    if(!event.target.closest('#userMenu') && !event.target.closest('#userAvatar')) setOpen(false);
+                  });
+                  window.addEventListener('resize', ()=>{
+                    if(menu.classList.contains('open')) positionInlineMenu();
+                  }, {passive:true});
+                }, 0);
+              })();
+            </script>
+            {% endcomment %}
           </div>
 
         {% else %}
@@ -1030,10 +1142,10 @@
   </header>
 
   <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
-  <aside class="drawer" id="mobileDrawer" aria-hidden="true" aria-labelledby="drawerTitle">
+  <aside class="drawer" id="mobileDrawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="drawerTitle" inert>
     <div class="drawer-head">
       <div id="drawerTitle" class="drawer-title">القائمة</div>
-      <button class="btn btn-sm" id="drawerClose" aria-label="إغلاق">إغلاق</button>
+      <button class="btn btn-sm" id="drawerClose" type="button" aria-label="إغلاق">إغلاق</button>
     </div>
 
     {% if request.user.is_authenticated and not IS_REPORT_VIEWER %}
@@ -1103,6 +1215,10 @@
             <span>الدعم الفني</span>
             <i class="fa-solid fa-headset"></i>
           </a>
+          <a class="{% if active == 'platform_complaints_list' or active == 'platform_complaint_detail' %}is-active{% endif %}" href="{% url 'reports:platform_complaints_list' %}">
+            <span>شكاوى العملاء</span>
+            <i class="fa-solid fa-comments"></i>
+          </a>
           <a class="{% if active == 'platform_archive_addons_list' %}is-active{% endif %}" href="{% url 'reports:platform_archive_addons_list' %}">
             <span>التخزين والأرشيف</span>
             <i class="fa-solid fa-box-archive"></i>
@@ -1136,7 +1252,7 @@
             <span>ملفات الإنجاز</span>
             <i class="fa-solid fa-file-lines"></i>
           </a>
-          {% if SHOW_ARCHIVE_LINK %}
+          {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
             <a class="{% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">
               <span>الأرشيف</span>
               <i class="fa-solid fa-box-archive"></i>
@@ -1263,10 +1379,17 @@
           </a>
         {% endif %}
 
-        {% if SHOW_ARCHIVE_LINK %}
+        {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
           <a class="{% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">
             <span>الأرشيف</span>
             <i class="fa-solid fa-box-archive"></i>
+          </a>
+        {% endif %}
+
+        {% if request.user.is_superuser %}
+          <a class="{% if active == 'platform_mansour_content' %}is-active{% endif %}" href="{% url 'reports:platform_mansour_content' %}">
+            <span>محتوى منصور</span>
+            <i class="fa-solid fa-robot"></i>
           </a>
         {% endif %}
 
@@ -1327,6 +1450,10 @@
     {% block content %}{% endblock %}
   </main>
 
+  {% if request.user.is_authenticated and AI_INTERNAL_HELP_ENABLED %}
+    {% include "reports/partials/mansour_assistant.html" with mansour_internal=True %}
+  {% endif %}
+
   <footer class="site-footer" aria-label="تذييل النظام">
     <div class="container">
       <div class="footer-grid">
@@ -1334,10 +1461,10 @@
         {# About Section #}
         <div class="footer-col footer-about">
           <div class="footer-logo">
-            <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="شعار النظام">
+            <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/brand-mark.svg' %}{% endif %}" alt="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}شعار المدرسة{% else %}شعار منصة توثيق{% endif %}">
             <div class="footer-logo-text">
-              <h3>{% if request.user.is_superuser %}إدارة منصة توثيق{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}توثيق{% endif %}</h3>
-              <p>منصة تــوثيق </p>
+              <h3>{% if request.user.is_superuser %}إدارة منصة توثيق{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}منصة توثيق{% endif %}</h3>
+              <p>منصة توثيق</p>
             </div>
           </div>
           <p class="footer-desc">
@@ -1355,6 +1482,7 @@
                 <li><a href="{% url 'reports:schools_admin_list' %}"><i class="fa-solid fa-chevron-left"></i> المدارس</a></li>
                 <li><a href="{% url 'reports:platform_payments_list' %}"><i class="fa-solid fa-chevron-left"></i> المالية</a></li>
                 <li><a href="{% url 'reports:platform_tickets_list' %}"><i class="fa-solid fa-chevron-left"></i> الدعم الفني</a></li>
+                <li><a href="{% url 'reports:platform_complaints_list' %}"><i class="fa-solid fa-chevron-left"></i> شكاوى العملاء</a></li>
               {% elif IS_REPORT_VIEWER %}
                 <li><a href="{% url 'reports:school_reports_readonly' %}"><i class="fa-solid fa-chevron-left"></i> التقارير</a></li>
                 <li><a href="{% url 'reports:achievement_school_files' %}"><i class="fa-solid fa-chevron-left"></i> ملفات الإنجاز</a></li>
@@ -1386,26 +1514,11 @@
               <li><a href="{% url 'reports:support_ticket_create' %}"><i class="fa-solid fa-chevron-left"></i> الدعم الفني</a></li>
             {% endif %}
             <li><a href="{% url 'reports:privacy_policy' %}"><i class="fa-solid fa-chevron-left"></i> سياسة الخصوصية</a></li>
+            <li><a href="{% url 'reports:terms_conditions' %}"><i class="fa-solid fa-chevron-left"></i> الشروط والأحكام</a></li>
+            <li><a href="{% url 'reports:refund_policy' %}"><i class="fa-solid fa-chevron-left"></i> الإلغاء والاسترجاع</a></li>
+            <li><a href="{% url 'reports:service_delivery_policy' %}"><i class="fa-solid fa-chevron-left"></i> تقديم الخدمة</a></li>
+            <li><a href="{% url 'reports:complaints_policy' %}"><i class="fa-solid fa-chevron-left"></i> الشكاوى والمقترحات</a></li>
           </ul>
-        </div>
-
-        {# Contact #}
-        <div class="footer-col">
-          <h4><i class="fa-solid fa-phone"></i> تواصل معنا</h4>
-          <div class="footer-contact">
-            <div class="footer-contact-item">
-              <i class="fa-solid fa-envelope"></i>
-              <span>xmansx1122@gmail.com</span>
-            </div>
-            <div class="footer-contact-item">
-              <i class="fa-brands fa-whatsapp"></i>
-              <span>+966 537720207</span>
-            </div>
-            <div class="footer-contact-item">
-              <i class="fa-solid fa-location-dot"></i>
-              <span>الرياض، المملكة العربية السعودية</span>
-            </div>
-          </div>
         </div>
 
       </div>
@@ -1577,7 +1690,7 @@
     {% endif %}
   {% endif %}
 
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     // ===== Cookies (SameSite=Lax + Secure on https) =====
     (function(){
       window.getCookie = function(name){
@@ -1628,43 +1741,6 @@
       };
     })();
 
-    // ===== Theme (data-theme) =====
-    (function(){
-      const root = document.documentElement;
-      const btns = document.querySelectorAll('.theme-toggle');
-
-      const apply = (theme)=>{
-        root.setAttribute('data-theme', theme);
-        window.setCookie('theme', theme, 365);
-        btns.forEach(btn => {
-          const icon = btn.querySelector('i');
-          if(icon){
-            icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-          }
-        });
-      };
-
-      const saved = window.getCookie('theme');
-      if(saved === 'dark' || saved === 'light'){
-        apply(saved);
-      }else{
-        if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
-          root.setAttribute('data-theme', 'dark');
-          btns.forEach(btn => {
-            const icon = btn.querySelector('i');
-            if(icon) icon.className = 'fa-solid fa-sun';
-          });
-        }
-      }
-
-      btns.forEach(btn => {
-        btn.addEventListener('click', ()=>{
-          const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-          apply(current === 'dark' ? 'light' : 'dark');
-        });
-      });
-    })();
-
     // ===== Progress + Header shadow =====
     (function(){
       const bar = document.getElementById('scrollProgress');
@@ -1712,18 +1788,28 @@
 
     // ===== Drawer =====
     (function(){
+      if(window.__drawerScriptReady) return;
+
       const drawer    = document.getElementById('mobileDrawer');
       const overlay   = document.getElementById('drawerOverlay');
       const hamburger = document.getElementById('hamburger');
+      const avatar    = document.getElementById('userAvatar');
       const closeBtn  = document.getElementById('drawerClose');
       if(!drawer || !overlay || !hamburger) return;
 
-      const open = ()=>{
+      window.__drawerScriptReady = true;
+      let lastTrigger = hamburger;
+      let suppressClickUntil = 0;
+
+      const open = (trigger = hamburger)=>{
+        lastTrigger = trigger;
+        drawer.removeAttribute('inert');
         drawer.classList.add('open');
         overlay.classList.add('show');
         overlay.setAttribute('aria-hidden', 'false');
         hamburger.classList.add('active');
         hamburger.setAttribute('aria-expanded','true');
+        if(avatar) avatar.setAttribute('aria-expanded','true');
         drawer.setAttribute('aria-hidden','false');
         window.__lockScroll(true);
         window.__trapFocus(drawer, true);
@@ -1732,21 +1818,47 @@
       };
 
       const close = ()=>{
+        if(!drawer.classList.contains('open')) return;
         drawer.classList.remove('open');
         overlay.classList.remove('show');
         overlay.setAttribute('aria-hidden', 'true');
         hamburger.classList.remove('active');
         hamburger.setAttribute('aria-expanded','false');
+        if(avatar) avatar.setAttribute('aria-expanded','false');
         drawer.setAttribute('aria-hidden','true');
+        drawer.setAttribute('inert', '');
         window.__lockScroll(false);
         window.__trapFocus(drawer, false);
-        hamburger.focus();
+        if(lastTrigger) lastTrigger.focus();
       };
 
-      hamburger.addEventListener('click', ()=> drawer.classList.contains('open') ? close() : open());
+      const toggle = (trigger, event)=>{
+        if(event){
+          if(event.type === 'pointerup' && event.button !== 0) return;
+          event.preventDefault();
+          event.stopPropagation();
+
+          const nowMs = Date.now();
+          if(event.type === 'click' && nowMs < suppressClickUntil) return;
+          if(event.type === 'pointerup') suppressClickUntil = nowMs + 450;
+        }
+        drawer.classList.contains('open') ? close() : open(trigger);
+      };
+
+      // Delegated handlers survive any dynamic header re-render that swaps nodes.
+      document.addEventListener('pointerup', (e)=>{
+        const trigger = e.target && e.target.closest ? e.target.closest('#hamburger, #userAvatar') : null;
+        if(!trigger) return;
+        toggle(trigger, e);
+      }, true);
+      document.addEventListener('click', (e)=>{
+        const trigger = e.target && e.target.closest ? e.target.closest('#hamburger, #userAvatar') : null;
+        if(!trigger) return;
+        toggle(trigger, e);
+      }, true);
       if(closeBtn) closeBtn.addEventListener('click', close);
       overlay.addEventListener('click', (e)=>{ if(e.target === overlay) close(); });
-      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') close(); });
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && drawer.classList.contains('open')) close(); });
 
       drawer.addEventListener('click', (e)=>{
         const a = e.target.closest('a');
@@ -1760,17 +1872,133 @@
       const menu = document.getElementById('userMenu');
       if(!avatar || !menu) return;
 
-      const close = ()=>{ menu.classList.remove('open'); avatar.setAttribute('aria-expanded','false'); };
+      window.__userMenuScriptReady = true;
 
-      avatar.addEventListener('click', ()=>{
-        const isOpen = menu.classList.toggle('open');
-        avatar.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      // Move the popover outside the sticky header so no parent can clip it.
+      document.body.appendChild(menu);
+
+      let ignoreNextOutsidePointer = false;
+      let suppressClickToggleUntil = 0;
+      const items = ()=> Array.from(menu.querySelectorAll('[role="menuitem"]'));
+      const positionMenu = ()=>{
+        const viewport = window.visualViewport;
+        const viewportLeft = viewport ? viewport.offsetLeft : 0;
+        const viewportTop = viewport ? viewport.offsetTop : 0;
+        const viewportWidth = viewport ? viewport.width : document.documentElement.clientWidth;
+        const viewportHeight = viewport ? viewport.height : document.documentElement.clientHeight;
+        const edgeGap = 12;
+        const triggerRect = avatar.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        const preferredLeft = triggerRect.right - menuRect.width;
+        const maxLeft = viewportLeft + viewportWidth - menuRect.width - edgeGap;
+        const left = Math.max(
+          viewportLeft + edgeGap,
+          Math.min(preferredLeft, maxLeft)
+        );
+        const preferredTop = triggerRect.bottom + 10;
+        const maxTop = viewportTop + viewportHeight - menuRect.height - edgeGap;
+        const top = Math.max(
+          viewportTop + edgeGap,
+          Math.min(preferredTop, maxTop)
+        );
+
+        menu.style.left = `${Math.round(left)}px`;
+        menu.style.right = 'auto';
+        menu.style.top = `${Math.round(top)}px`;
+      };
+      const open = (focusFirst = false)=>{
+        if(menu.classList.contains('open')) return;
+        menu.style.display = 'block';
+        menu.classList.add('open');
+        menu.setAttribute('aria-hidden','false');
+        avatar.setAttribute('aria-expanded','true');
+        positionMenu();
+        window.requestAnimationFrame(positionMenu);
+        if(focusFirst){
+          const first = items()[0];
+          if(first) first.focus();
+        }
+      };
+      const close = (returnFocus = false)=>{
+        if(!menu.classList.contains('open')) return;
+        menu.classList.remove('open');
+        menu.setAttribute('aria-hidden','true');
+        avatar.setAttribute('aria-expanded','false');
+        menu.style.display = 'none';
+        if(returnFocus) avatar.focus();
+      };
+
+      const toggleFromAvatar = (event)=>{
+        if(event.type === 'pointerup' && event.button !== 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const nowMs = Date.now();
+        if(event.type === 'click' && nowMs < suppressClickToggleUntil) return;
+        if(event.type === 'pointerup') suppressClickToggleUntil = nowMs + 450;
+
+        if(menu.classList.contains('open')){
+          close();
+        }else{
+          ignoreNextOutsidePointer = true;
+          open(true);
+          window.setTimeout(()=>{ ignoreNextOutsidePointer = false; }, 0);
+        }
+      };
+      avatar.addEventListener('pointerup', toggleFromAvatar);
+      avatar.addEventListener('click', toggleFromAvatar);
+
+      avatar.addEventListener('keydown', (event)=>{
+        if(event.key === 'ArrowDown'){
+          event.preventDefault();
+          open(true);
+        }
       });
 
-      document.addEventListener('click', (e)=>{
+      menu.addEventListener('keydown', (event)=>{
+        const menuItems = items();
+        if(!menuItems.length) return;
+        const current = menuItems.indexOf(document.activeElement);
+        let next = current;
+        if(event.key === 'ArrowDown') next = current < 0 ? 0 : (current + 1) % menuItems.length;
+        else if(event.key === 'ArrowUp') next = current < 0 ? menuItems.length - 1 : (current - 1 + menuItems.length) % menuItems.length;
+        else if(event.key === 'Home') next = 0;
+        else if(event.key === 'End') next = menuItems.length - 1;
+        else if(event.key === 'Escape'){
+          event.preventDefault();
+          close(true);
+          return;
+        }else{
+          return;
+        }
+        event.preventDefault();
+        menuItems[next].focus();
+      });
+
+      menu.addEventListener('click', (event)=>{
+        if(event.target.closest('[role="menuitem"]')) close();
+      });
+
+      document.addEventListener('pointerdown', (e)=>{
+        if(ignoreNextOutsidePointer){
+          ignoreNextOutsidePointer = false;
+          return;
+        }
         if(!e.target.closest('#userMenu') && !e.target.closest('#userAvatar')) close();
       });
-      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') close(); });
+      document.addEventListener('keydown', (e)=>{
+        if(e.key === 'Escape' && menu.classList.contains('open')) close(true);
+      });
+
+      const repositionIfOpen = ()=>{
+        if(menu.classList.contains('open')) positionMenu();
+      };
+      window.addEventListener('resize', repositionIfOpen, {passive:true});
+      window.addEventListener('scroll', repositionIfOpen, {passive:true});
+      if(window.visualViewport){
+        window.visualViewport.addEventListener('resize', repositionIfOpen, {passive:true});
+        window.visualViewport.addEventListener('scroll', repositionIfOpen, {passive:true});
+      }
     })();
 
     // ===== To top =====
@@ -1844,80 +2072,9 @@
     })();
   </script>
 
-  <!-- PWA Install Banner -->
-  <div id="pwaInstallBanner" class="pwa-banner" role="region" aria-label="تثبيت التطبيق">
-    <div class="pwa-card">
-      <div class="pwa-text">
-        <p class="pwa-title">ثبت منصة توثيق على جهازك</p>
-        <p id="pwaInstallHint" class="pwa-sub">يمكنك تثبيت التطبيق للوصول السريع والعمل بشكل أفضل.</p>
-      </div>
-      <div class="pwa-actions">
-        <button id="pwaInstallBtn" class="pwa-btn" type="button" style="display:none">تثبيت</button>
-        <button id="pwaInstallClose" class="pwa-close" type="button" aria-label="إغلاق">
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
-      </div>
-    </div>
-  </div>
+  {% include "reports/partials/pwa_install.html" %}
 
-  <script nonce="{{ CSP_NONCE }}">
-    // Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
-      });
-    }
-
-    // PWA Install Prompt + iOS guidance
-    (function(){
-      const banner = document.getElementById('pwaInstallBanner');
-      const btn = document.getElementById('pwaInstallBtn');
-      const closeBtn = document.getElementById('pwaInstallClose');
-      const hint = document.getElementById('pwaInstallHint');
-      if (!banner || !btn || !closeBtn || !hint) return;
-
-      const dismissedKey = 'pwa_install_dismissed_v1';
-      const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
-      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      const isSafari = isIOS && /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
-      const iosStandalone = Boolean(window.navigator.standalone);
-
-      try { if (localStorage.getItem(dismissedKey) === '1') return; } catch (e) {}
-      if (isStandalone || iosStandalone) return;
-
-      function openBanner(){ banner.classList.add('open'); }
-      function closeBanner(){
-        banner.classList.remove('open');
-        try{ localStorage.setItem(dismissedKey, '1'); }catch(e){}
-      }
-
-      closeBtn.addEventListener('click', closeBanner);
-
-      let deferredPrompt = null;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        btn.style.display = '';
-        hint.textContent = 'اضغط تثبيت لإضافة التطبيق للشاشة الرئيسية.';
-        openBanner();
-      });
-
-      btn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        try { await deferredPrompt.userChoice; }
-        finally { deferredPrompt = null; closeBanner(); }
-      });
-
-      window.addEventListener('appinstalled', closeBanner);
-
-      if (isSafari) {
-        hint.textContent = 'على iPhone: من زر المشاركة ثم "إضافة إلى الشاشة الرئيسية".';
-        btn.style.display = 'none';
-        openBanner();
-      }
-    })();
-
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     {% if request.user.is_authenticated %}
     var __srTabId = 'tab-fallback';
     try {
@@ -1978,7 +2135,10 @@
     })();
   </script>
   {% if request.user.is_authenticated %}
-  <script src="{% static 'js/notifications-ws-manager.js' %}" defer></script>
+  <script src="{% static 'js/notifications-ws-manager.js' %}" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+  {% if request.user.is_authenticated and AI_INTERNAL_HELP_ENABLED %}
+    <script src="{% static 'js/mansour-assistant.js' %}?v=20260801.3" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+  {% endif %}
   {% endif %}
 
   {% comment %}
@@ -2064,7 +2224,7 @@
     @media (prefers-reduced-motion: reduce){ .rc-dialog,.rc-backdrop{ animation:none; } .rc-btn:hover{ transform:none; } }
   </style>
 
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function(){
     var overlay = document.getElementById('rcOverlay');
     if(!overlay) return;

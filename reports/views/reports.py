@@ -3,14 +3,31 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import re
 
 from django.contrib.auth.decorators import user_passes_test
 from django.conf import settings
 from django.core.cache import cache
+from django.http import JsonResponse
+from django.views.decorators.cache import never_cache
+
+from ..report_ai import (
+    REPORT_AI_DAILY_LIMIT,
+    ReportAIError,
+    ReportAIUnavailable,
+    improve_report_text as improve_report_text_with_ai,
+    release_report_ai_daily_slot,
+    report_ai_daily_remaining,
+    reserve_report_ai_daily_slot,
+    validate_report_text,
+)
+from ..gender_labels import school_gender_labels, school_gender_template_context
 
 from ._helpers import *
+# Star imports skip underscore names; the size formatter is needed by name.
+from ..services_archive import _human_size
 from ._helpers import (
     _is_staff, _is_staff_or_officer, _is_manager_in_school,
     _parse_date_safe, _filter_by_school, _safe_next_url, _safe_redirect,
@@ -22,9 +39,44 @@ from ._helpers import (
 
 from ..utils import _resolve_department_for_category, _build_head_decision
 from core import opmetrics
+from ..ai_features import (
+    FEATURE_REPORT_IMPROVEMENT,
+    platform_ai_toggle_enabled,
+)
 
 
 logger = logging.getLogger(__name__)
+
+
+def _leadership_section_for_new_report(request, active_school):
+    """Resolve an optional leadership destination without trusting form input."""
+    raw_section_id = request.POST.get("leadership_section") or request.GET.get(
+        "leadership_section"
+    )
+    if not raw_section_id:
+        return None
+    if active_school is None or not is_school_manager(
+        request.user, active_school=active_school
+    ):
+        raise Http404
+    return get_object_or_404(
+        LeadershipPortfolioSection.objects.select_related("portfolio"),
+        pk=raw_section_id,
+        portfolio__school=active_school,
+        portfolio__academic_year=(active_school.current_academic_year or "").strip(),
+    )
+
+
+def _report_ai_template_context(user) -> dict[str, int | bool]:
+    return {
+        "report_ai_enabled": bool(
+            platform_ai_toggle_enabled(FEATURE_REPORT_IMPROVEMENT)
+            and getattr(settings, "REPORT_AI_ENABLED", False)
+            and getattr(settings, "OPENAI_API_KEY", "")
+        ),
+        "report_ai_daily_limit": REPORT_AI_DAILY_LIMIT,
+        "report_ai_daily_remaining": report_ai_daily_remaining(user.pk),
+    }
 
 
 def _notify_report_created(report, active_school):
@@ -61,9 +113,10 @@ def _notify_report_created(report, active_school):
 
         teacher_name = getattr(report.teacher, "name", "") if report.teacher else ""
         category_name = getattr(report.category, "name", "") if getattr(report, "category", None) else ""
+        added_verb = "أضافت" if school_gender_labels(school)["is_girls"] else "أضاف"
         create_system_notification(
             title=f"📝 تقرير جديد: {report.title[:80]}",
-            message=f"أضاف {teacher_name} تقريراً جديداً ({category_name}).",
+            message=f"{added_verb} {teacher_name} تقريراً جديداً ({category_name}).",
             school=school,
             teacher_ids=list(recipients),
         )
@@ -78,13 +131,17 @@ def _notify_report_created(report, active_school):
 @ratelimit(key="user", rate="30/h", method="POST", block=True)
 @require_http_methods(["GET", "POST"])
 def add_report(request: HttpRequest) -> HttpResponse:
-    import json as _json
-    from .report_templates import active_templates_for_school
-
     active_school = _get_active_school(request)
-    report_templates_json = _json.dumps(
-        active_templates_for_school(active_school), ensure_ascii=False
-    )
+    leadership_section = _leadership_section_for_new_report(request, active_school)
+
+    def _has_report_types(bound_form) -> bool:
+        """Empty choices mean the school has not defined report types for this
+        teacher yet. The form then cannot be completed, so the page has to say
+        why instead of showing a dead select."""
+        try:
+            return any(value for value, _label in bound_form.fields["category"].choices)
+        except Exception:
+            return True
     if request.method == "POST":
         form = ReportForm(request.POST, request.FILES, active_school=active_school)
         if form.is_valid():
@@ -94,7 +151,12 @@ def add_report(request: HttpRequest) -> HttpResponse:
                 return render(
                     request,
                     "reports/add_report.html",
-                    {"form": form, "report_templates_json": report_templates_json},
+                    {
+                        "form": form,
+                        "leadership_section": leadership_section,
+                        "has_report_types": _has_report_types(form),
+                        **_report_ai_template_context(request.user),
+                    },
                 )
 
             report = form.save(commit=False)
@@ -111,6 +173,11 @@ def add_report(request: HttpRequest) -> HttpResponse:
                 report.teacher_name = teacher_name_final
 
             report.save()
+            if leadership_section is not None:
+                LeadershipEvidenceReport.objects.get_or_create(
+                    section=leadership_section,
+                    report=report,
+                )
             sync_school_archive_storage_usage(getattr(report, "school", active_school))
 
             # إشعار مدير المدرسة ورئيس القسم بتقرير جديد
@@ -125,6 +192,15 @@ def add_report(request: HttpRequest) -> HttpResponse:
             )
             opmetrics.increment("report.create.success")
 
+            if leadership_section is not None:
+                messages.success(
+                    request,
+                    "تم إنشاء التقرير وإضافته إلى محور الأداء القيادي ✅",
+                )
+                return redirect(
+                    "reports:leadership_portfolio_detail",
+                    pk=leadership_section.portfolio_id,
+                )
             messages.success(request, "تم إضافة التقرير بنجاح ✅")
             return redirect("reports:my_reports")
         logger.warning(
@@ -142,8 +218,126 @@ def add_report(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "reports/add_report.html",
-        {"form": form, "report_templates_json": report_templates_json},
+        {
+            "form": form,
+            "leadership_section": leadership_section,
+            "has_report_types": _has_report_types(form),
+            **_report_ai_template_context(request.user),
+        },
     )
+
+
+@login_required(login_url="reports:login")
+@never_cache
+@require_http_methods(["POST"])
+def improve_report_text(request: HttpRequest) -> JsonResponse:
+    """Improve one report description without reading or changing saved reports."""
+    if not platform_ai_toggle_enabled(FEATURE_REPORT_IMPROVEMENT):
+        response = JsonResponse(
+            {"ok": False, "message": "ميزة تحسين التقارير غير متاحة حالياً."},
+            status=404,
+            json_dumps_params={"ensure_ascii": False},
+        )
+        response["Cache-Control"] = "no-store"
+        return response
+
+    if request.content_type != "application/json":
+        return JsonResponse(
+            {"ok": False, "message": "صيغة الطلب غير صحيحة."},
+            status=415,
+            json_dumps_params={"ensure_ascii": False},
+        )
+    if len(request.body) > 30000:
+        return JsonResponse(
+            {"ok": False, "message": "النص أطول من الحد المسموح."},
+            status=413,
+            json_dumps_params={"ensure_ascii": False},
+        )
+
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        payload = None
+    if not isinstance(payload, dict):
+        return JsonResponse(
+            {"ok": False, "message": "تعذر قراءة نص التقرير."},
+            status=400,
+            json_dumps_params={"ensure_ascii": False},
+        )
+
+    try:
+        original_text = validate_report_text(payload.get("text"))
+    except ReportAIError as exc:
+        response = JsonResponse(
+            {"ok": False, "message": str(exc)},
+            status=400,
+            json_dumps_params={"ensure_ascii": False},
+        )
+        response["Cache-Control"] = "no-store"
+        return response
+
+    try:
+        remaining = reserve_report_ai_daily_slot(request.user.pk)
+    except ReportAIUnavailable as exc:
+        response = JsonResponse(
+            {"ok": False, "message": str(exc)},
+            status=503,
+            json_dumps_params={"ensure_ascii": False},
+        )
+        response["Cache-Control"] = "no-store"
+        return response
+    if remaining is None:
+        response = JsonResponse(
+            {
+                "ok": False,
+                "message": "استخدمت تحسيناتك الثلاثة المتاحة اليوم. يعود الرصيد تلقائيًا غدًا.",
+                "remaining": 0,
+                "daily_limit": REPORT_AI_DAILY_LIMIT,
+            },
+            status=429,
+            json_dumps_params={"ensure_ascii": False},
+        )
+        response["Cache-Control"] = "no-store"
+        return response
+
+    try:
+        improved_text = improve_report_text_with_ai(original_text)
+    except ReportAIUnavailable as exc:
+        release_report_ai_daily_slot(request.user.pk)
+        response = JsonResponse(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": report_ai_daily_remaining(request.user.pk),
+                "daily_limit": REPORT_AI_DAILY_LIMIT,
+            },
+            status=503,
+            json_dumps_params={"ensure_ascii": False},
+        )
+    except ReportAIError as exc:
+        release_report_ai_daily_slot(request.user.pk)
+        response = JsonResponse(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": report_ai_daily_remaining(request.user.pk),
+                "daily_limit": REPORT_AI_DAILY_LIMIT,
+            },
+            status=400,
+            json_dumps_params={"ensure_ascii": False},
+        )
+    else:
+        response = JsonResponse(
+            {
+                "ok": True,
+                "improved_text": improved_text,
+                "remaining": remaining,
+                "daily_limit": REPORT_AI_DAILY_LIMIT,
+            },
+            json_dumps_params={"ensure_ascii": False},
+        )
+    response["Cache-Control"] = "no-store"
+    return response
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
@@ -165,7 +359,7 @@ def my_reports(request: HttpRequest) -> HttpResponse:
         try:
             sid = int(getattr(active_school, "id", 0) or 0)
             key_basis = f"u={int(request.user.id)}|s={sid}|sd={start_date}|ed={end_date}|q={q}"
-            key_hash = hashlib.sha1(key_basis.encode("utf-8")).hexdigest()
+            key_hash = hashlib.sha256(key_basis.encode("utf-8")).hexdigest()
             cache_key = f"reports:my-stats:v1:{key_hash}"
             stats = cache.get(cache_key)
             if stats is None:
@@ -339,10 +533,61 @@ def school_archive(request: HttpRequest) -> HttpResponse:
         teacher_id=teacher_id,
         category_id=category_id,
     )
+    snapshot_payload = (
+        archive_payload(
+            school=active_school,
+            selected_year=selected_year,
+            teacher=request.user,
+            school_wide=True,
+        )
+        if school_wide
+        else payload
+    )
     administrative_stats = (
         school_administrative_archive_stats(active_school)
         if school_wide
-        else {"tickets": 0, "circulars": 0, "notifications": 0}
+        else {
+            "tickets": 0,
+            "circulars": 0,
+            "notifications": 0,
+            "system_notifications": 0,
+            "user_notifications": 0,
+            "total": 0,
+        }
+    )
+    administrative_payload = (
+        school_administrative_archive_payload(active_school, search=search)
+        if school_wide
+        else {
+            "tickets_qs": Ticket.objects.none(),
+            "circulars_qs": Notification.objects.none(),
+            "notifications_qs": Notification.objects.none(),
+            "matches": {"tickets": 0, "circulars": 0, "notifications": 0, "total": 0},
+        }
+    )
+    leadership_portfolios = (
+        SchoolLeadershipPortfolio.objects.filter(
+            school=active_school,
+            academic_year=selected_year,
+        )
+        .select_related("manager")
+        .annotate(
+            completed_count=Count(
+                "sections",
+                filter=Q(sections__is_completed=True),
+                distinct=True,
+            ),
+            evidence_count=Count("sections__evidence_images", distinct=True),
+        )
+        if school_wide and selected_year and selected_year != UNCLASSIFIED_YEAR
+        else SchoolLeadershipPortfolio.objects.none()
+    )
+    leadership_count = leadership_portfolios.count()
+    snapshot_total_records = (
+        snapshot_payload["report_stats"]["total"]
+        + snapshot_payload["achievement_stats"]["total"]
+        + leadership_count
+        + administrative_stats["total"]
     )
 
     reports_page = svc_paginate(payload["reports_qs"], per_page=15, page=request.GET.get("reports_page", 1))
@@ -350,6 +595,21 @@ def school_archive(request: HttpRequest) -> HttpResponse:
         payload["achievement_files_qs"],
         per_page=20,
         page=request.GET.get("files_page", 1),
+    )
+    tickets_page = svc_paginate(
+        administrative_payload["tickets_qs"],
+        per_page=10,
+        page=request.GET.get("tickets_page", 1),
+    )
+    circulars_page = svc_paginate(
+        administrative_payload["circulars_qs"],
+        per_page=10,
+        page=request.GET.get("circulars_page", 1),
+    )
+    notifications_page = svc_paginate(
+        administrative_payload["notifications_qs"],
+        per_page=10,
+        page=request.GET.get("notifications_page", 1),
     )
 
     if archive_addon is not None:
@@ -431,8 +691,24 @@ def school_archive(request: HttpRequest) -> HttpResponse:
             "achievement_files": achievement_files_page,
             "report_stats": payload["report_stats"],
             "achievement_stats": payload["achievement_stats"],
+            "snapshot_report_stats": snapshot_payload["report_stats"],
+            "snapshot_achievement_stats": snapshot_payload["achievement_stats"],
+            "leadership_portfolios": leadership_portfolios,
+            "leadership_count": leadership_count,
+            "snapshot_total_records": snapshot_total_records,
             "administrative_stats": administrative_stats,
+            "administrative_matches": administrative_payload["matches"],
+            "tickets": tickets_page,
+            "circulars": circulars_page,
+            "archive_notifications": notifications_page,
             "storage_overview": school_storage_overview(active_school),
+            # The snapshot bucket is reported separately so a full archive never
+            # reads as "the platform is out of space".
+            "archive_overview": school_archive_overview(active_school),
+            "can_delete_archive": bool(
+                getattr(request.user, "is_superuser", False)
+                or is_school_manager(request.user, active_school=active_school)
+            ),
             "unclassified_year": UNCLASSIFIED_YEAR,
             "archived_at": timezone.localtime(),
             "archive_versions": archive_versions,
@@ -480,6 +756,10 @@ def school_archive_create(request: HttpRequest) -> HttpResponse:
     source_count = (
         payload["report_stats"]["total"]
         + payload["achievement_stats"]["total"]
+        + SchoolLeadershipPortfolio.objects.filter(
+            school=active_school,
+            academic_year=selected_year,
+        ).count()
         + administrative_stats["tickets"]
         + administrative_stats["circulars"]
         + administrative_stats["notifications"]
@@ -500,11 +780,11 @@ def school_archive_create(request: HttpRequest) -> HttpResponse:
             return_metadata=True,
         )
 
-        class _ArchiveUpload:
-            name = "school-year-archive.zip"
-            size = metadata["archive_size_bytes"]
-
-        capacity_error = archive_storage_capacity_error(active_school, [_ArchiveUpload()])
+        # Snapshots draw on their own bucket. Charging them to the work bucket
+        # meant one archive run could stop every teacher from uploading.
+        capacity_error = archive_snapshot_capacity_error(
+            active_school, metadata["archive_size_bytes"]
+        )
         if capacity_error:
             messages.error(request, capacity_error)
             return redirect(f"{reverse('reports:school_archive')}?year={selected_year}")
@@ -536,6 +816,7 @@ def school_archive_create(request: HttpRequest) -> HttpResponse:
                 failed_pdf_count=metadata["failed_pdf_count"],
                 report_count=metadata["report_count"],
                 achievement_count=metadata["achievement_count"],
+                leadership_count=metadata["leadership_count"],
                 ticket_count=metadata["ticket_count"],
                 circular_count=metadata["circular_count"],
                 notification_count=metadata["notification_count"],
@@ -621,6 +902,71 @@ def school_archive_download(request: HttpRequest, pk: int) -> HttpResponse:
         filename=f"archive-{active_school.code}-{safe_year}-v{archive.version}.zip",
         content_type="application/zip",
     )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def school_archive_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Free archive space by removing a snapshot the manager has downloaded.
+
+    This is the release valve for the snapshot bucket: without it a school that
+    fills its archive space can never take another yearly snapshot. Deleting is
+    destructive — the snapshot is the school's immutable record of that year —
+    so it is restricted to the manager, requires the year to be typed back, and
+    is written to the audit log.
+    """
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
+        return redirect("reports:select_school")
+
+    # Deliberately narrower than download: report viewers and platform admins
+    # may read a snapshot, only the school's own manager may destroy it.
+    if not (
+        getattr(request.user, "is_superuser", False)
+        or is_school_manager(request.user, active_school=active_school)
+    ):
+        messages.error(request, "حذف نسخ الأرشيف من صلاحية مدير المدرسة فقط.")
+        return redirect("reports:school_archive")
+
+    archive = get_object_or_404(SchoolYearArchive, pk=pk, school=active_school)
+    redirect_url = f"{reverse('reports:school_archive')}?year={archive.academic_year}"
+
+    confirmation = (request.POST.get("confirm_year") or "").strip()
+    if confirmation != (archive.academic_year or "").strip():
+        messages.error(
+            request,
+            "لتأكيد الحذف اكتب السنة الدراسية للنسخة كما تظهر أمامك.",
+        )
+        return redirect(redirect_url)
+
+    freed_bytes = int(getattr(archive, "storage_bytes", 0) or 0)
+    year = archive.academic_year
+    version = archive.version
+
+    try:
+        AuditLog.objects.create(
+            school=active_school,
+            teacher=request.user,
+            action="delete",
+            model_name="SchoolYearArchive",
+            object_id=archive.pk,
+            object_repr=f"نسخة أرشيف {year} الإصدار {version}"[:255],
+            changes={"freed_bytes": freed_bytes},
+            ip_address=request.META.get("REMOTE_ADDR"),
+            user_agent=request.META.get("HTTP_USER_AGENT", "")[:500],
+        )
+    except Exception:
+        logger.exception("Archive delete audit failed archive_id=%s", archive.pk)
+
+    archive.delete()
+
+    messages.success(
+        request,
+        f"تم حذف نسخة {year} من المنصة وتحرير {_human_size(freed_bytes)} من مساحة الأرشيف. "
+        "النسخة التي نزّلتها على جهازك تبقى معك.",
+    )
+    return redirect(redirect_url)
 
 
 @login_required(login_url="reports:login")
@@ -1225,15 +1571,10 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
             school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
 
         # مسمّى المنفّذ حسب نوع المدرسة (بنين/بنات)
-        try:
-            _gender = (getattr(school_scope, "gender", "") or "").strip().lower()
-            _girls_val = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-            executor_label = "المنفّذة" if _gender == _girls_val else "المنفّذ"
-        except Exception:
-            executor_label = "المنفّذ"
+        executor_label = school_gender_labels(school_scope)["executor"]
 
         # إعدادات المدرسة (الاسم + المرحلة + الشعار)
-        school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
+        school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة توثيق")
         school_stage = ""
         school_logo_url = ""
         if school_scope:
@@ -1275,6 +1616,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                 "head_decision": head_decision,
                 "SCHOOL_PRINCIPAL": school_principal,
                 "executor_label": executor_label,
+                **school_gender_template_context(school_scope),
                 "SCHOOL_NAME": school_name,
                 "SCHOOL_STAGE": school_stage,
                 "SCHOOL_LOGO_URL": school_logo_url,
@@ -1535,7 +1877,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
             school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
 
         # إعدادات المدرسة
-        school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
+        school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة توثيق")
         school_stage = ""
         school_logo_url = ""
         if school_scope:
@@ -1560,12 +1902,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
             moe_logo_url = static("img/UntiTtled-1.png")
 
         # مسمّى المنفّذ حسب نوع المدرسة (بنين/بنات)
-        try:
-            _gender = (getattr(school_scope, "gender", "") or "").strip().lower()
-            _girls_val = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-            executor_label = "المنفّذة" if _gender == _girls_val else "المنفّذ"
-        except Exception:
-            executor_label = "المنفّذ"
+        executor_label = school_gender_labels(school_scope)["executor"]
 
         return render(
             request,
@@ -1575,6 +1912,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
                 "head_decision": head_decision,
                 "SCHOOL_PRINCIPAL": school_principal,
                 "executor_label": executor_label,
+                **school_gender_template_context(school_scope),
                 "SCHOOL_NAME": school_name,
                 "SCHOOL_STAGE": school_stage,
                 "SCHOOL_LOGO_URL": school_logo_url,
@@ -1680,6 +2018,7 @@ def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpRespo
         raise
 
 
+@ratelimit(key="ip", rate="30/h", method="GET", block=True)
 @require_http_methods(["GET"])
 def share_achievement_pdf(request: HttpRequest, token: str) -> HttpResponse:
     link = _valid_sharelink_or_404(token, kind=ShareLink.Kind.ACHIEVEMENT)
@@ -1798,7 +2137,15 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
             )
             if capacity_error:
                 messages.error(request, capacity_error)
-                return render(request, "reports/edit_report.html", {"form": form, "report": r})
+                return render(
+                    request,
+                    "reports/edit_report.html",
+                    {
+                        "form": form,
+                        "report": r,
+                        **_report_ai_template_context(request.user),
+                    },
+                )
 
             form.save()
             sync_school_archive_storage_usage(report_school)
@@ -1814,7 +2161,15 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
     else:
         form = ReportForm(instance=r, active_school=form_school)
 
-    return render(request, "reports/edit_report.html", {"form": form, "report": r})
+    return render(
+        request,
+        "reports/edit_report.html",
+        {
+            "form": form,
+            "report": r,
+            **_report_ai_template_context(request.user),
+        },
+    )
 
 @login_required(login_url="reports:login")
 @require_http_methods(["POST"])

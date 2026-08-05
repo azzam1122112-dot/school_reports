@@ -666,7 +666,7 @@
 {% endblock content %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   // فلترة فورية على الاسم (بدون طلبات للشبكة)
   (function(){
     var input = document.getElementById('q');

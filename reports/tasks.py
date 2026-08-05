@@ -10,9 +10,10 @@ from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache as django_cache
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives, send_mail
 from django.core.validators import validate_email
 from django.db.models import Count, Q
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from .storage import _compress_image_file
@@ -134,6 +135,128 @@ def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 200
         retention_days,
     )
     opmetrics.increment("celery.task.success.cleanup_audit_logs_task")
+    return deleted_total
+
+
+@shared_task(bind=True, ignore_result=True)
+def monitor_infrastructure_capacity_task(self) -> dict:
+    """Warn before Redis or the session table runs the platform into trouble.
+
+    Redis holds the cache, the sessions and the Celery queues on one instance.
+    ``volatile-lru`` keeps a full instance from rejecting writes, but silent
+    eviction still shows up as users being logged out and rate limits resetting,
+    so the memory ratio needs to be visible *before* it gets there.
+    """
+    task_id, retries, trace_id = _task_ctx(self)
+    report: dict = {"redis_used_percent": None, "expired_sessions": None, "alerts": []}
+
+    def _threshold(name: str, default: int) -> int:
+        # Deliberately not `value or default`: a configured 0 means "always
+        # alert" and must survive, not fall back to the default.
+        value = getattr(settings, name, default)
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    threshold = _threshold("REDIS_MEMORY_ALERT_PERCENT", 80)
+
+    try:
+        from django_redis import get_redis_connection
+
+        info = get_redis_connection("default").info(section="memory")
+        used = int(info.get("used_memory") or 0)
+        limit = int(info.get("maxmemory") or 0)
+        if limit > 0 and used > 0:
+            percent = round((used / limit) * 100, 1)
+            report["redis_used_percent"] = percent
+            if percent >= threshold:
+                message = (
+                    f"Redis memory at {percent}% of its limit "
+                    f"({round(used / (1024 * 1024), 1)} MB of {round(limit / (1024 * 1024), 1)} MB)."
+                )
+                report["alerts"].append(message)
+                logger.error("Infrastructure capacity warning: %s", message)
+                opmetrics.increment("infra.redis.memory_high")
+    except Exception:
+        # A missing Redis (local/dev) must not fail the periodic job.
+        logger.debug("Redis memory probe unavailable", exc_info=True)
+
+    try:
+        Session = apps.get_model("sessions", "Session")
+        expired = Session.objects.filter(expire_date__lt=timezone.now()).count()
+        report["expired_sessions"] = expired
+        if expired > _threshold("EXPIRED_SESSION_ALERT_THRESHOLD", 100_000):
+            message = f"{expired} expired session rows are still pending cleanup."
+            report["alerts"].append(message)
+            logger.error("Infrastructure capacity warning: %s", message)
+            opmetrics.increment("infra.sessions.backlog_high")
+    except Exception:
+        logger.debug("Session backlog probe failed", exc_info=True)
+
+    if report["alerts"]:
+        try:
+            from .telegram_alerts import TelegramAlert, queue_telegram_alert
+
+            queue_telegram_alert(
+                TelegramAlert(
+                    # Bucketed by day so a sustained condition alerts once daily
+                    # rather than on every run.
+                    event_key=f"infra:capacity:{timezone.localdate().isoformat()}",
+                    category="support",
+                    text="⚠️ <b>تنبيه سعة البنية التحتية</b>\n" + "\n".join(report["alerts"]),
+                )
+            )
+        except Exception:
+            logger.exception("Unable to queue infrastructure capacity alert")
+
+    logger.info(
+        "Task success name=monitor_infrastructure_capacity_task task_id=%s trace_id=%s retries=%s report=%s",
+        task_id,
+        trace_id,
+        retries,
+        report,
+    )
+    return report
+
+
+@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={"max_retries": 3})
+def cleanup_expired_sessions_task(self, chunk_size: int = 5000) -> int:
+    """Delete expired ``django_session`` rows.
+
+    Django never prunes this table on its own. Public traffic (registration
+    forms, logins, checkout returns) keeps adding rows, so without this job the
+    table grows without bound and every ``cached_db`` session miss gets slower.
+    Deleting in chunks keeps the statement short enough to avoid long locks on
+    a busy database.
+    """
+    Session = apps.get_model("sessions", "Session")
+    task_id, retries, trace_id = _task_ctx(self)
+    logger.info(
+        "Task start name=cleanup_expired_sessions_task task_id=%s trace_id=%s retries=%s",
+        task_id,
+        trace_id,
+        retries,
+    )
+
+    chunk_size = max(int(chunk_size), 100)
+    expired = Session.objects.filter(expire_date__lt=timezone.now()).order_by("expire_date")
+
+    deleted_total = 0
+    while True:
+        batch_keys = list(expired.values_list("session_key", flat=True)[:chunk_size])
+        if not batch_keys:
+            break
+        deleted, _ = Session.objects.filter(session_key__in=batch_keys).delete()
+        deleted_total += int(deleted)
+
+    logger.info(
+        "Task success name=cleanup_expired_sessions_task task_id=%s trace_id=%s deleted=%s",
+        task_id,
+        trace_id,
+        deleted_total,
+    )
+    opmetrics.increment("celery.task.success.cleanup_expired_sessions_task")
     return deleted_total
 
 
@@ -427,23 +550,74 @@ def _build_school_details_url(school_id: int) -> str:
     return path
 
 
-def _build_daily_message(
+def _build_weekly_message(
     school_name: str,
-    report_date_text: str,
+    period_text: str,
     reports_count: int,
     open_tickets_count: int,
     closed_tickets_count: int,
     details_url: str,
 ) -> str:
     return (
-        f"تقرير اليوم - {school_name}\n\n"
-        f"تاريخ التقرير: {report_date_text}\n"
+        f"الملخص الأسبوعي - {school_name}\n\n"
+        f"فترة التقرير: {period_text}\n"
         f"عدد التقارير: {int(reports_count)}\n"
         f"البلاغات المفتوحة: {int(open_tickets_count)}\n"
         f"البلاغات المغلقة: {int(closed_tickets_count)}\n\n"
         "عرض التفاصيل:\n"
         f"{details_url}"
     )
+
+
+def _build_weekly_email_html(
+    *,
+    manager_name: str,
+    school_name: str,
+    period_text: str,
+    reports_count: int,
+    open_tickets_count: int,
+    closed_tickets_count: int,
+    details_url: str,
+) -> str:
+    site_url = (getattr(settings, "SITE_URL", "") or "").strip().rstrip("/")
+    static_url = (getattr(settings, "STATIC_URL", "/static/") or "/static/").strip()
+    if not static_url.startswith("/"):
+        static_url = f"/{static_url}"
+    logo_url = f"{site_url}{static_url.rstrip('/')}/img/logo1.png" if site_url else ""
+
+    return render_to_string(
+        "reports/emails/weekly_manager_summary.html",
+        {
+            "platform_name": "منصة توثيق",
+            "manager_name": manager_name or "إدارة المدرسة",
+            "school_name": school_name,
+            "period_text": period_text,
+            "reports_count": int(reports_count),
+            "open_tickets_count": int(open_tickets_count),
+            "closed_tickets_count": int(closed_tickets_count),
+            "details_url": details_url,
+            "logo_url": logo_url,
+        },
+    )
+
+
+def _weekly_summary_window(reference_dt=None):
+    """Return the weekly reporting window: Sunday 00:00 -> Thursday 16:00 (exclusive)."""
+    tz = timezone.get_current_timezone()
+    now_local = timezone.localtime(reference_dt or timezone.now(), tz)
+
+    # Python weekday: Monday=0 ... Sunday=6, Thursday=3
+    days_since_thursday = (now_local.weekday() - 3) % 7
+    thursday_date = (now_local - timedelta(days=days_since_thursday)).date()
+    end_dt = timezone.make_aware(datetime.combine(thursday_date, dt_time(hour=16, minute=0)), tz)
+
+    # If run before this week's Thursday 16:00, use the previous week's window.
+    if now_local < end_dt:
+        end_dt -= timedelta(days=7)
+
+    start_date = (end_dt - timedelta(days=4)).date()  # Sunday
+    start_dt = timezone.make_aware(datetime.combine(start_date, dt_time.min), tz)
+    return start_dt, end_dt
 
 
 def _post_json(url: str, payload: dict, timeout_seconds: float = 10.0, token: str = "") -> bool:
@@ -554,7 +728,7 @@ def _send_inapp_notification(
 
 @shared_task(ignore_result=True, soft_time_limit=60, time_limit=120)
 def _daily_summary_for_school(school_id: int) -> dict:
-    """Process daily manager summary for a single school (fan-out subtask)."""
+    """Process weekly manager summary for a single school (fan-out subtask)."""
     School = apps.get_model("reports", "School")
     SchoolMembership = apps.get_model("reports", "SchoolMembership")
     Report = apps.get_model("reports", "Report")
@@ -565,11 +739,8 @@ def _daily_summary_for_school(school_id: int) -> dict:
     whatsapp_enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_WHATSAPP_ENABLED", False))
     from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
 
-    today = timezone.localdate()
-    tz = timezone.get_current_timezone()
-    day_start = timezone.make_aware(datetime.combine(today, dt_time.min), tz)
-    day_end = day_start + timedelta(days=1)
-    report_date_text = today.strftime("%Y-%m-%d")
+    week_start, week_end = _weekly_summary_window()
+    period_text = f"{week_start.strftime('%Y-%m-%d')} إلى {week_end.strftime('%Y-%m-%d %H:%M')}"
     open_ticket_statuses = ("open", "in_progress")
     closed_ticket_statuses = ("done", "rejected")
 
@@ -591,38 +762,53 @@ def _daily_summary_for_school(school_id: int) -> dict:
     manager_memberships = (
         SchoolMembership.objects.select_related("teacher")
         .filter(school=school, role_type="manager", is_active=True, teacher__is_active=True)
-        .only("teacher__id", "teacher__name", "teacher__phone", "teacher__email")
+        .only(
+            "teacher__id",
+            "teacher__name",
+            "teacher__phone",
+            "teacher__email",
+            "weekly_summary_email_enabled",
+        )
     )
-    manager_by_id: dict[int, object] = {}
+    manager_by_id: dict[int, dict[str, object]] = {}
     for membership in manager_memberships:
         manager = getattr(membership, "teacher", None)
         mid = int(getattr(manager, "id", 0) or 0)
         if manager is not None and mid and mid not in manager_by_id:
-            manager_by_id[mid] = manager
+            manager_by_id[mid] = {
+                "teacher": manager,
+                "weekly_summary_email_enabled": bool(
+                    getattr(membership, "weekly_summary_email_enabled", True)
+                ),
+            }
 
     managers = list(manager_by_id.values())
     if not managers:
         return result
 
     reports_count = Report.objects.filter(
-        school=school, created_at__gte=day_start, created_at__lt=day_end,
+        school=school, created_at__gte=week_start, created_at__lt=week_end,
     ).count()
 
-    ticket_agg = Ticket.objects.filter(school=school).aggregate(
+    ticket_agg = Ticket.objects.filter(
+        school=school,
+        created_at__gte=week_start,
+        created_at__lt=week_end,
+    ).aggregate(
         open=Count("id", filter=Q(status__in=open_ticket_statuses)),
         closed=Count("id", filter=Q(status__in=closed_ticket_statuses)),
     )
 
     details_url = _build_school_details_url(school.id)
-    message_text = _build_daily_message(
+    message_text = _build_weekly_message(
         school_name=getattr(school, "name", "") or "المدرسة",
-        report_date_text=report_date_text,
+        period_text=period_text,
         reports_count=reports_count,
         open_tickets_count=ticket_agg["open"],
         closed_tickets_count=ticket_agg["closed"],
         details_url=details_url,
     )
-    subject = f"تقرير اليوم - {getattr(school, 'name', '') or 'المدرسة'}"
+    subject = f"الملخص الأسبوعي - {getattr(school, 'name', '') or 'المدرسة'}"
 
     manager_ids = list(manager_by_id.keys())
     inapp_recipient_ids: set[int] = set()
@@ -635,20 +821,36 @@ def _daily_summary_for_school(school_id: int) -> dict:
             inapp_recipient_ids.update(manager_ids)
             result["inapp_sent"] += len(manager_ids)
 
-    for manager in managers:
+    for manager_item in managers:
+        manager = manager_item.get("teacher")
         mid = int(getattr(manager, "id", 0) or 0)
         if not mid:
             continue
         manager_email = (getattr(manager, "email", "") or "").strip()
         manager_phone = (getattr(manager, "phone", "") or "").strip()
+        email_pref_enabled = bool(manager_item.get("weekly_summary_email_enabled", True))
 
-        if email_enabled and _is_valid_email(manager_email):
+        if email_enabled and email_pref_enabled and _is_valid_email(manager_email):
             try:
-                send_mail(
-                    subject=subject, message=message_text,
-                    from_email=from_email, recipient_list=[manager_email],
-                    fail_silently=False,
+                email = EmailMultiAlternatives(
+                    subject=subject,
+                    body=message_text,
+                    from_email=from_email,
+                    to=[manager_email],
                 )
+                email.attach_alternative(
+                    _build_weekly_email_html(
+                        manager_name=(getattr(manager, "name", "") or "").strip(),
+                        school_name=getattr(school, "name", "") or "المدرسة",
+                        period_text=period_text,
+                        reports_count=reports_count,
+                        open_tickets_count=ticket_agg["open"],
+                        closed_tickets_count=ticket_agg["closed"],
+                        details_url=details_url,
+                    ),
+                    "text/html",
+                )
+                email.send(fail_silently=False)
                 result["emails_sent"] += 1
             except Exception:
                 logger.exception("Daily summary email failed school=%s manager=%s", school_id, mid)
@@ -661,7 +863,7 @@ def _daily_summary_for_school(school_id: int) -> dict:
                 reports_count=reports_count,
                 open_tickets_count=ticket_agg["open"],
                 closed_tickets_count=ticket_agg["closed"],
-                report_date_text=report_date_text,
+                report_date_text=period_text,
             )
             if ok:
                 result["whatsapp_sent"] += 1
@@ -673,7 +875,7 @@ def _daily_summary_for_school(school_id: int) -> dict:
 @shared_task(ignore_result=True, soft_time_limit=300, time_limit=600)
 def send_daily_manager_summary_task() -> dict:
     """
-    Daily summary dispatcher — fans out to one subtask per active school.
+    Weekly summary dispatcher — fans out to one subtask per active school.
 
     Channels:
     - In-app notification (internal)
@@ -686,7 +888,7 @@ def send_daily_manager_summary_task() -> dict:
     enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_ENABLED", True))
 
     if not _periodic_lock("daily_manager_summary", ttl=600):
-        logger.info("Daily manager summary task skipped: another instance is running.")
+        logger.info("Weekly manager summary task skipped: another instance is running.")
         return {"enabled": enabled, "skipped": "lock"}
 
     summary = {
@@ -704,7 +906,7 @@ def send_daily_manager_summary_task() -> dict:
     }
 
     if not enabled:
-        logger.info("Daily manager summary task skipped: feature disabled.")
+        logger.info("Weekly manager summary task skipped: feature disabled.")
         return summary
 
     School = apps.get_model("reports", "School")
@@ -722,10 +924,10 @@ def send_daily_manager_summary_task() -> dict:
             _daily_summary_for_school.delay(sid)
             dispatched += 1
         except Exception:
-            logger.exception("Failed to dispatch daily summary for school=%s", sid)
+            logger.exception("Failed to dispatch weekly summary for school=%s", sid)
 
     summary["schools_processed"] = dispatched
-    logger.info("Daily manager summary dispatched %d/%d school subtasks", dispatched, len(school_ids))
+    logger.info("Weekly manager summary dispatched %d/%d school subtasks", dispatched, len(school_ids))
     opmetrics.timing("celery.periodic.daily_manager_summary", (_time.monotonic() - _t0) * 1000)
     return summary
 
@@ -1053,13 +1255,13 @@ def send_password_change_email_task(self, teacher_id: int) -> bool:
     from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
     now_text = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M")
 
-    subject = "🔐 تم تغيير كلمة المرور - تَوثيق"
+    subject = "🔐 تم تغيير كلمة المرور - منصة توثيق"
     message = (
         f"مرحباً {teacher_name}،\n\n"
-        f"تم تغيير كلمة المرور لحسابك في منصة تَوثيق بنجاح.\n"
+        f"تم تغيير كلمة المرور لحسابك في منصة توثيق بنجاح.\n"
         f"الوقت: {now_text}\n\n"
         "إذا لم تقم بهذا التغيير، يرجى التواصل مع إدارة المدرسة أو الدعم الفني فوراً.\n\n"
-        "مع تحيات فريق تَوثيق"
+        "مع تحيات فريق منصة توثيق"
     )
 
     try:
@@ -1088,3 +1290,291 @@ def send_password_change_email_task(self, teacher_id: int) -> bool:
         )
         opmetrics.increment("celery.task.failure.send_password_change_email_task")
         raise  # auto-retry
+
+
+@shared_task(bind=True, ignore_result=True)
+def check_archive_addon_expiry_task(self) -> dict:
+    """Warn managers before the yearly-archive add-on lapses.
+
+    Storage is a separate product, so lapsing no longer freezes uploads — it
+    only stops the school creating new yearly snapshots. Snapshots already saved
+    stay downloadable either way, and the reminder says so.
+    """
+    task_id, retries, trace_id = _task_ctx(self)
+    summary = {"addons_checked": 0, "reminders_sent": 0, "skipped_duplicate": 0}
+
+    if not bool(getattr(settings, "ARCHIVE_ADDON_EXPIRY_REMINDER_ENABLED", True)):
+        return summary
+
+    if not _periodic_lock("check_archive_addon_expiry", ttl=300):
+        logger.info("Archive add-on expiry task skipped: another instance is running.")
+        return {**summary, "skipped": "lock"}
+
+    reminder_days = getattr(settings, "SUBSCRIPTION_EXPIRY_REMINDER_DAYS", [14, 7, 3, 1])
+
+    SchoolArchiveAddon = apps.get_model("reports", "SchoolArchiveAddon")
+    SchoolMembership = apps.get_model("reports", "SchoolMembership")
+    Notification = apps.get_model("reports", "Notification")
+    NotificationRecipient = apps.get_model("reports", "NotificationRecipient")
+    School = apps.get_model("reports", "School")
+
+    today = timezone.localdate()
+    dedup_cutoff = timezone.now() - timedelta(hours=24)
+
+    addons = (
+        SchoolArchiveAddon.objects.filter(is_enabled=True, end_date__isnull=False)
+        .select_related("school")
+        .only("id", "end_date", "storage_limit_gb", "school__id", "school__name")
+    )
+
+    for addon in addons.iterator():
+        days_left = (addon.end_date - today).days
+        if days_left < 0 or days_left not in reminder_days:
+            continue
+
+        summary["addons_checked"] += 1
+        school = addon.school
+        school_name = getattr(school, "name", "")
+
+        dedup_title = f"🗄️ أرشفة {school_name} تنتهي خلال {days_left}"
+        if Notification.objects.filter(
+            title=dedup_title, school=school, created_at__gte=dedup_cutoff
+        ).exists():
+            summary["skipped_duplicate"] += 1
+            continue
+
+        manager_ids = list(
+            SchoolMembership.objects.filter(
+                school=school,
+                role_type="manager",
+                is_active=True,
+                teacher__is_active=True,
+            ).values_list("teacher_id", flat=True)
+        )
+        if not manager_ids:
+            continue
+
+        lines = [
+            f"إضافة الأرشفة السنوية لمدرسة {school_name} تنتهي خلال {days_left} يوماً "
+            f"(بتاريخ {addon.end_date}).",
+            "بعد الانتهاء لن تتمكن المدرسة من إنشاء نسخة سنوية جديدة حتى التجديد.",
+            # Say plainly what does NOT break, so nobody renews out of fear of
+            # losing data or storage.
+            "النسخ المحفوظة تبقى قابلة للتنزيل، ومساحة التخزين لا تتأثر إطلاقاً "
+            "لأنها مستقلة عن الأرشفة السنوية.",
+        ]
+
+        notification = Notification.objects.create(
+            title=dedup_title,
+            message="\n".join(lines),
+            school=school,
+            is_important=(days_left <= 3),
+        )
+        NotificationRecipient.objects.bulk_create(
+            [
+                NotificationRecipient(notification=notification, teacher_id=mid)
+                for mid in manager_ids
+            ],
+            ignore_conflicts=True,
+        )
+        try:
+            from .realtime_notifications import push_new_notification_to_teachers
+
+            push_new_notification_to_teachers(
+                notification=notification, teacher_ids=manager_ids
+            )
+        except Exception:
+            pass
+
+        summary["reminders_sent"] += 1
+
+    logger.info(
+        "Task success name=check_archive_addon_expiry_task task_id=%s trace_id=%s retries=%s summary=%s",
+        task_id,
+        trace_id,
+        retries,
+        summary,
+    )
+    opmetrics.increment("celery.task.success.check_archive_addon_expiry_task")
+    return summary
+
+
+@shared_task(bind=True, ignore_result=True)
+def check_storage_thresholds_task(self) -> dict:
+    """Warn managers before their school runs out of storage.
+
+    Discovering a full disk from a failed upload — mid-lesson, with a photo the
+    teacher wanted to file — is the worst possible moment. This gives managers
+    days of notice and names both ways out: raise the limit, or clear a year
+    that a saved snapshot already preserves.
+    """
+    task_id, retries, trace_id = _task_ctx(self)
+    summary = {"schools_checked": 0, "warnings_sent": 0, "skipped_duplicate": 0}
+
+    if not bool(getattr(settings, "STORAGE_THRESHOLD_ALERTS_ENABLED", True)):
+        return summary
+
+    if not _periodic_lock("check_storage_thresholds", ttl=300):
+        logger.info("Storage threshold task skipped: another instance is running.")
+        return {**summary, "skipped": "lock"}
+
+    from .services_archive import STORAGE_CRITICAL_PERCENT, school_storage_overview
+
+    School = apps.get_model("reports", "School")
+    SchoolMembership = apps.get_model("reports", "SchoolMembership")
+    Notification = apps.get_model("reports", "Notification")
+    NotificationRecipient = apps.get_model("reports", "NotificationRecipient")
+
+    dedup_cutoff = timezone.now() - timedelta(days=3)
+
+    schools = School.objects.filter(is_active=True).select_related(
+        "subscription", "subscription__plan"
+    )
+
+    for school in schools.iterator():
+        overview = school_storage_overview(school)
+        if not overview["needs_attention"]:
+            continue
+
+        summary["schools_checked"] += 1
+        percent = overview["usage_percent"]
+        level = overview["warning_level"]
+
+        # One title per level, so crossing from warning to critical still gets
+        # through while a steady state does not repeat every day.
+        dedup_title = f"💾 مساحة تخزين {school.name} ({level})"
+        if Notification.objects.filter(
+            title=dedup_title, school=school, created_at__gte=dedup_cutoff
+        ).exists():
+            summary["skipped_duplicate"] += 1
+            continue
+
+        manager_ids = list(
+            SchoolMembership.objects.filter(
+                school=school,
+                role_type="manager",
+                is_active=True,
+                teacher__is_active=True,
+            ).values_list("teacher_id", flat=True)
+        )
+        if not manager_ids:
+            continue
+
+        if level == "full":
+            headline = (
+                f"امتلأت مساحة تخزين {school.name} ({overview['used_label']} من "
+                f"{overview['limit_label']}). رفع أي ملف جديد متوقف الآن."
+            )
+        else:
+            headline = (
+                f"مساحة تخزين {school.name} وصلت {percent}% "
+                f"({overview['used_label']} من {overview['limit_label']})."
+            )
+
+        lines = [headline, "", "أمامك خياران:"]
+        lines.append("• رفع حد التخزين من صفحة الاشتراك.")
+        if overview["reclaimable_years"]:
+            biggest = overview["reclaimable_years"][0]
+            lines.append(
+                f"• تفريغ {overview['reclaimable_label']} بحذف ملفات سنوات لها نسخة "
+                f"سنوية محفوظة (أكبرها {biggest['label']} بحجم {biggest['size_label']}). "
+                "النسخة المحفوظة تحتفظ بالسنة كاملة."
+            )
+        else:
+            lines.append(
+                "• أو حفظ نسخة سنوية لسنة سابقة ثم حذف ملفاتها الحية لتفريغ مساحتها."
+            )
+
+        notification = Notification.objects.create(
+            title=dedup_title,
+            message="\n".join(lines),
+            school=school,
+            is_important=(level in {"critical", "full"}),
+        )
+        NotificationRecipient.objects.bulk_create(
+            [
+                NotificationRecipient(notification=notification, teacher_id=mid)
+                for mid in manager_ids
+            ],
+            ignore_conflicts=True,
+        )
+        try:
+            from .realtime_notifications import push_new_notification_to_teachers
+
+            push_new_notification_to_teachers(
+                notification=notification, teacher_ids=manager_ids
+            )
+        except Exception:
+            pass
+
+        summary["warnings_sent"] += 1
+        if percent >= STORAGE_CRITICAL_PERCENT:
+            opmetrics.increment("storage.school.critical")
+
+    logger.info(
+        "Task success name=check_storage_thresholds_task task_id=%s trace_id=%s retries=%s summary=%s",
+        task_id,
+        trace_id,
+        retries,
+        summary,
+    )
+    opmetrics.increment("celery.task.success.check_storage_thresholds_task")
+    return summary
+
+
+@shared_task(bind=True, ignore_result=True)
+def reconcile_pending_gateway_payments_task(self) -> dict:
+    """Finish electronic payments the gateway never told us about.
+
+    Activation used to hinge on the customer's browser returning to the site or
+    on the gateway's callback reaching us. Either can fail, and nothing retried —
+    leaving a school that had genuinely paid with no active subscription.
+    """
+    task_id, retries, trace_id = _task_ctx(self)
+
+    if not bool(getattr(settings, "PAYMENT_RECONCILIATION_ENABLED", True)):
+        return {"enabled": False}
+
+    if not _periodic_lock("reconcile_gateway_payments", ttl=600):
+        logger.info("Payment reconciliation skipped: another instance is running.")
+        return {"skipped": "lock"}
+
+    from .views.subscriptions import reconcile_pending_gateway_payments
+
+    summary = reconcile_pending_gateway_payments()
+
+    recovered_ids = summary.get("recovered_payment_ids") or []
+    if summary.get("activated"):
+        # A recovered payment means a customer-facing failure happened upstream;
+        # make it visible instead of quietly papering over it.
+        logger.warning(
+            "Recovered %s payment(s) the gateway never confirmed to us: %s",
+            summary["activated"],
+            summary,
+        )
+        opmetrics.increment("payments.reconciled.activated", summary["activated"])
+
+        # Tell the team as well. One alert per rescued payment, so a burst of
+        # them reads as the webhook outage it is.
+        if recovered_ids:
+            try:
+                Payment = apps.get_model("reports", "Payment")
+                from .telegram_alerts import build_payment_recovery_alert, queue_telegram_alert
+
+                for payment in Payment.objects.filter(pk__in=recovered_ids).select_related("school"):
+                    queue_telegram_alert(build_payment_recovery_alert(payment))
+            except Exception:
+                # Alerting must never undo a successful recovery.
+                logger.exception("Unable to queue payment recovery alerts")
+    if summary.get("failed"):
+        opmetrics.increment("payments.reconciled.failed", summary["failed"])
+
+    logger.info(
+        "Task success name=reconcile_pending_gateway_payments_task task_id=%s trace_id=%s retries=%s summary=%s",
+        task_id,
+        trace_id,
+        retries,
+        summary,
+    )
+    opmetrics.increment("celery.task.success.reconcile_pending_gateway_payments_task")
+    return summary

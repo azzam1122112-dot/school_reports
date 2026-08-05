@@ -9,14 +9,26 @@ from core.trace_context import get_trace_id
 
 logger = logging.getLogger(__name__)
 
-def run_task_safe(task_func, *args, force_thread: bool = False, **kwargs):
+def run_task_safe(
+    task_func,
+    *args,
+    force_thread: bool = False,
+    inline_fallback: bool = True,
+    **kwargs,
+):
     """
-    محاولة تشغيل المهمة عبر Celery، وإذا فشل (بسبب عدم وجود Redis مثلاً) 
+    محاولة تشغيل المهمة عبر Celery، وإذا فشل (بسبب عدم وجود Redis مثلاً)
     يتم تشغيلها بشكل آمن بدون كسر النظام.
 
     سياسة التنفيذ:
     - في التطوير (DEBUG=True) أو force_thread=True: نسمح بالـ Thread fallback.
     - في الإنتاج: نتجنب Threads (غير موثوقة مع worker/dyno) ونستخدم تنفيذ inline عند تعذر Celery.
+
+    ``inline_fallback=False`` يمنع التنفيذ داخل الطلب نهائيًا. استخدمه للمهام
+    الثقيلة التي تُحسّن النتيجة ولا تُنتجها: إن تعطّل Celery فإن تشغيلها داخل
+    الطلب يحوّل بطئًا في مهمة خلفية إلى بطء في كل صفحة، وقد يستنفد عمال الويب.
+    المهام التي بدونها تضيع بيانات (مثل إنشاء مستلمي الإشعارات) تبقى
+    ``inline_fallback=True``.
     """
     def _thread_wrapper(func, *f_args, **f_kwargs):
         from django.db import connections
@@ -58,6 +70,14 @@ def run_task_safe(task_func, *args, force_thread: bool = False, **kwargs):
                 trace_id,
                 e,
             )
+            # A broker outage degrades the whole platform silently otherwise;
+            # surface it as a counter so alerting can see it immediately.
+            try:
+                from core import opmetrics
+
+                opmetrics.increment("celery.enqueue.failed")
+            except Exception:
+                pass
 
         # 2) Development fallback: background thread
         if allow_thread:
@@ -74,6 +94,21 @@ def run_task_safe(task_func, *args, force_thread: bool = False, **kwargs):
             return
 
         # 3) Production-safe fallback: inline execution
+        if not inline_fallback:
+            logger.error(
+                "Task dropped (inline fallback disabled) task=%s trace_id=%s args_count=%s",
+                getattr(task_func, "__name__", str(task_func)),
+                trace_id,
+                len(args),
+            )
+            try:
+                from core import opmetrics
+
+                opmetrics.increment("celery.task.dropped")
+            except Exception:
+                pass
+            return
+
         try:
             if hasattr(task_func, "apply"):
                 task_func.apply(args=args, kwargs=kwargs, throw=True)

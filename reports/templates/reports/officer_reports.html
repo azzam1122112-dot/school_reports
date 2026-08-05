@@ -716,7 +716,7 @@
           </div>
 
           <div class="filter-group">
-            <label for="orTeacherName">👨‍🏫 اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</label>
+            <label for="orTeacherName">👤 اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</label>
             <input
               id="orTeacherName"
               type="text"
@@ -762,10 +762,10 @@
             <thead>
               <tr>
                 <th>📅 التاريخ</th>
-                <th>👨‍🏫 {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</th>
+                <th>👤 {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</th>
                 <th>📖 العنوان</th>
                 <th>🏷️ التصنيف</th>
-                <th class="text-center">👥 المستفيدون</th>
+                <th class="text-center">👥 {{ SCHOOL_BENEFICIARIES_LABEL|default:"المستفيدون" }}</th>
                 <th>💡 الفكرة</th>
                 <th>🖼 الصور</th>
                 <th>⚙️ الإجراءات</th>
@@ -963,7 +963,7 @@
       <div id="modalIdea" class="modal-idea"></div>
 
       <div class="modal-meta">
-        <div>👨‍🏫 <b>{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}:</b> <span id="modalTeacher"></span></div>
+        <div>👤 <b>{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}:</b> <span id="modalTeacher"></span></div>
         <div>📖 <b>العنوان:</b> <span id="modalTitle"></span></div>
         <div>📅 <b>التاريخ:</b> <span id="modalDate"></span></div>
       </div>
@@ -975,7 +975,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function(){
     var modal = document.getElementById('ideaModal');
     if(!modal) return;

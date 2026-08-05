@@ -155,10 +155,100 @@
         line-height: 1.8;
     }
 
+    .matrix-cta {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding: 1rem 1.25rem;
+        border: 1px solid rgba(33, 98, 78, .2);
+        border-radius: 14px;
+        background: rgba(33, 98, 78, .05);
+    }
+    .matrix-cta strong { display: block; font-size: .92rem; font-weight: 900; }
+    .matrix-cta span { display: block; margin-top: .25rem; font-size: .78rem; font-weight: 700; opacity: .8; }
+
+    .pricing-alert {
+        margin-bottom: 1.5rem;
+        padding: 1.15rem 1.35rem;
+        border: 1px solid #f0b429;
+        border-inline-start-width: 5px;
+        border-radius: 14px;
+        background: #fff8e6;
+        color: #6b4708;
+    }
+    .pricing-alert h2 { margin: 0 0 .55rem; font-size: 1rem; font-weight: 900; }
+    .pricing-alert ul { margin: 0; padding-inline-start: 1.15rem; font-size: .82rem; line-height: 1.9; font-weight: 700; }
+    .pricing-alert p { margin: .6rem 0 0; font-size: .78rem; font-weight: 700; }
+    .pricing-alert code { padding: .1rem .35rem; border-radius: 6px; background: rgba(107, 71, 8, .1); }
+    html[data-theme="dark"] .pricing-alert { background: #2f2712; color: #f6e3b6; border-color: #a97b18; }
+    html[data-theme="dark"] .pricing-alert code { background: rgba(246, 227, 182, .12); }
+
+    .flex-policy-board {
+        margin-bottom: 1.5rem;
+        padding: 1.25rem;
+        border: 1px solid rgba(33, 98, 78, .16);
+        border-radius: 20px;
+        background: linear-gradient(145deg, #fff, #f4f8f6);
+        box-shadow: 0 12px 30px rgba(19, 63, 52, .07);
+    }
+
+    .flex-policy-board__head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+
+    .flex-policy-board__head h2 { margin: 0 0 .3rem; color: var(--plans-green-deep); font-size: 1.12rem; font-weight: 950; }
+    .flex-policy-board__head p { margin: 0; color: #71807b; font-size: .82rem; line-height: 1.75; }
+    .flex-policy-board__badge { flex: 0 0 auto; padding: .45rem .7rem; border-radius: 999px; color: #176d4d; background: #e8f7ef; font-size: .72rem; font-weight: 900; }
+    .flex-policy-periods { display: grid; gap: .8rem; }
+    .flex-policy-period {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: .8rem;
+        align-items: center;
+        padding: .9rem;
+        border: 1px solid rgba(33, 98, 78, .1);
+        border-radius: 14px;
+        background: var(--surface-color, #fff);
+    }
+    .flex-policy-period__title strong,
+    .flex-policy-period__title small { display: block; }
+    .flex-policy-period__title strong { color: var(--plans-green-deep); font-size: .88rem; }
+    .flex-policy-period__title small { margin-top: .2rem; color: #7b8984; font-size: .68rem; }
+    .flex-policy-quotes { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; scrollbar-width: thin; }
+    .flex-policy-quote { min-width: 92px; padding: .65rem .55rem; border-radius: 11px; text-align: center; background: #edf5f1; }
+    .flex-policy-quote strong,
+    .flex-policy-quote span { display: block; }
+    .flex-policy-quote strong { color: var(--plans-green-deep); font-size: .83rem; }
+    .flex-policy-quote span { margin-top: .15rem; color: #65756f; font-size: .68rem; font-weight: 800; }
+
     .plans-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 1rem;
+    }
+
+    .plans-section-heading {
+        margin: 1.6rem 0 .85rem;
+    }
+
+    .plans-section-heading h2 {
+        margin: 0 0 .25rem;
+        color: var(--plans-green-deep);
+        font-size: 1.15rem;
+        font-weight: 900;
+    }
+
+    .plans-section-heading p {
+        margin: 0;
+        color: #71807b;
+        font-size: .86rem;
     }
 
     .plan-card {
@@ -368,6 +458,9 @@
             grid-template-columns: 1fr;
         }
 
+        .flex-policy-board__head { flex-direction: column; }
+        .flex-policy-period { grid-template-columns: 1fr; }
+
         .plans-actions .btn {
             width: 100%;
         }
@@ -380,8 +473,8 @@
     <section class="plans-hero">
         <div class="plans-hero__content">
             <span class="plans-hero__eyebrow"><i class="fas fa-tags"></i> إدارة الاشتراكات</span>
-            <h1>الباقات والأسعار</h1>
-            <p>إدارة دورة الاشتراك والسعة والأسعار من مكان واحد، مع عرض واضح للقيمة الشهرية ووفر الاشتراك السنوي.</p>
+            <h1>التسعير حسب عدد المعلمين</h1>
+            <p>البيع للعميل يتم بعدد المعلمين والمدة فقط. تُدار هنا الأسعار المرجعية التي تُحتسب منها كل السعات، مع عرض القيمة الشهرية ووفر الاشتراك السنوي.</p>
         </div>
         <div class="plans-actions">
             <a class="btn btn-primary" href="{% url 'reports:platform_plan_add' %}">
@@ -409,6 +502,10 @@
             <strong class="plans-metric__value">{{ stats.capacity_count }}</strong>
         </article>
         <article class="plans-metric">
+            <span class="plans-metric__label">الباقات الشهرية</span>
+            <strong class="plans-metric__value">{{ stats.monthly_count }}</strong>
+        </article>
+        <article class="plans-metric">
             <span class="plans-metric__label">باقات 6 أشهر</span>
             <strong class="plans-metric__value">{{ stats.semiannual_count }}</strong>
         </article>
@@ -426,54 +523,99 @@
         <span class="pricing-policy__icon"><i class="fas fa-balance-scale"></i></span>
         <div>
             <h2>سياسة التسعير المعتمدة</h2>
-            <p>جميع الباقات المدفوعة تشمل الوظائف الأساسية نفسها، ويختلف السعر حسب عدد المعلمين ومدة الاشتراك. الباقة السنوية تمنح وفراً مباشراً، وجميع الأسعار المعروضة قبل ضريبة القيمة المضافة.</p>
+            <p>الباقات 25 و50 و100 هي نقاط التسعير المرجعية. يحسب النظام السعات البينية تلقائياً كل 5 معلمين حتى 50، ثم كل 10 معلمين حتى 100. مزايا جميع الباقات المدفوعة متطابقة عمداً، والسعر وحده يتغير حسب السعة؛ أي اختلاف في المزايا يخلق سعة يدفع فيها العميل أكثر ويحصل على أقل.</p>
         </div>
     </section>
 
-    {% if plans %}
-        <section class="plans-grid" aria-label="قائمة الباقات">
-            {% for plan in plans %}
-                <article class="plan-card{% if plan.is_recommended %} plan-card--recommended{% endif %}{% if not plan.is_active %} plan-card--inactive{% endif %}">
+    <section class="matrix-cta">
+        <div>
+            <strong><i class="fas fa-table-cells ms-1"></i> إدارة الأسعار من مكان واحد</strong>
+            <span>حرّر الأسعار المرجعية التسعة معاً مع تحقق يمنع أن تكون سعة أكبر أرخص من سعة أصغر.</span>
+        </div>
+        <a class="btn btn-primary" href="{% url 'reports:platform_pricing_matrix' %}">فتح مصفوفة الأسعار</a>
+    </section>
+
+    {% if pricing_warnings %}
+      <section class="pricing-alert" role="alert">
+        <h2><i class="fas fa-triangle-exclamation ms-1"></i> تنبيه: إعدادات التسعير غير متسقة</h2>
+        <ul>
+          {% for warning in pricing_warnings %}<li>{{ warning }}</li>{% endfor %}
+        </ul>
+        <p>صحّح الباقات المرجعية أدناه، أو أعد ضبط المصفوفة المعتمدة بأمر <code>sync_default_pricing</code>.</p>
+      </section>
+    {% endif %}
+
+    {% if flexible_pricing_catalog %}
+      <section class="flex-policy-board" aria-label="معاينة أسعار السعات المرنة">
+        <div class="flex-policy-board__head">
+          <div>
+            <h2><i class="fas fa-sliders ms-1"></i> السعات المرنة المنشورة تلقائياً</h2>
+            <p>هذه هي الأسعار التي يراها العميل في صفحة الهبوط وصفحة التجديد. تعديل أسعار باقات 25 أو 50 أو 100 يعيد احتساب القيم البينية تلقائياً.</p>
+          </div>
+          <span class="flex-policy-board__badge"><i class="fas fa-circle-check ms-1"></i> متزامنة مع الدفع</span>
+        </div>
+        <div class="flex-policy-periods">
+          {% for period in flexible_pricing_catalog %}
+            <article class="flex-policy-period">
+              <div class="flex-policy-period__title"><strong>{{ period.label }}</strong><small>{{ period.quotes|length }} خيارات سعة</small></div>
+              <div class="flex-policy-quotes">
+                {% for quote in period.quotes %}
+                  <div class="flex-policy-quote"><strong>{{ quote.capacity }} معلماً</strong><span>{{ quote.price|floatformat:0 }} ريال</span></div>
+                {% endfor %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    {% if renewal_catalog %}
+        <div class="plans-section-heading">
+            <h2>الأسعار المرجعية التي تُغذّي الحاسبة</h2>
+            <p>
+              العميل لا يرى هذه البطاقات؛ يرى حاسبة يُدخل فيها عدد المعلمين ويختار المدة
+              (شهري أو 6 أشهر أو سنوي). تُستخدم أسعار السعات 25 و50 و100 أدناه كنقاط مرجعية
+              يحسب منها النظام بقية السعات تلقائيًا، وأي تعديل هنا ينعكس فورًا على ما يراه العميل.
+            </p>
+        </div>
+        <section class="plans-grid" aria-label="الأسعار المرجعية للسعات">
+            {% for group in renewal_catalog %}
+              {% for option in group.options %}
+                {% with plan=option.plan %}
+                <article class="plan-card{% if group.is_recommended %} plan-card--recommended{% endif %}">
                     <div class="plan-card__badges">
-                        <span class="plan-badge{% if plan.period_key == 'annual' %} plan-badge--gold{% endif %}">{{ plan.period_label }}</span>
-                        {% if plan.is_recommended %}<span class="plan-badge plan-badge--gold">الأكثر طلباً</span>{% endif %}
-                        {% if not plan.is_active %}<span class="plan-badge plan-badge--muted">غير نشطة</span>{% endif %}
+                        <span class="plan-badge{% if option.duration_label == 'سنة' %} plan-badge--gold{% endif %}">{{ option.duration_label }}</span>
+                        <span class="plan-badge">{{ group.capacity_label }}</span>
+                        {% if group.is_recommended %}<span class="plan-badge plan-badge--gold">الأكثر طلباً</span>{% endif %}
                     </div>
 
                     <h3>{{ plan.name }}</h3>
-                    <p class="plan-card__capacity">
-                        {% if plan.max_teachers > 0 %}
-                            حتى {{ plan.max_teachers }} معلماً
-                        {% else %}
-                            عدد معلمين مخصص
-                        {% endif %}
-                    </p>
+                    <p class="plan-card__capacity">{{ group.capacity_label }}</p>
 
                     <div class="plan-card__price">
-                        {% if plan.price > 0 %}
-                            <strong class="plan-card__amount">{{ plan.price|floatformat:0 }}</strong>
-                            <span class="plan-card__currency">ريال / {{ plan.period_label }}</span>
-                        {% else %}
-                            <strong class="plan-card__amount">مجاناً</strong>
-                        {% endif %}
+                        <strong class="plan-card__amount">{{ plan.price|floatformat:0 }}</strong>
+                        <span class="plan-card__currency">ريال / {{ option.duration_label }}</span>
                     </div>
                     <div class="plan-card__equivalent">
-                        {% if plan.monthly_equivalent %}
-                            ما يعادل {{ plan.monthly_equivalent|floatformat:0 }} ريال شهرياً
-                        {% else %}
-                            تجربة كاملة دون التزام مالي
-                        {% endif %}
+                        {% if option.monthly_equivalent %}ما يعادل {{ option.monthly_equivalent|floatformat:0 }} ريال شهرياً{% endif %}
                     </div>
 
-                    {% if plan.annual_savings %}
+                    {% if plan.onboarding_sessions %}
+                        <div class="plan-card__saving"><i class="fas fa-chalkboard-user ms-1"></i>{{ plan.onboarding_sessions }} جلسة إعداد وتدريب مشمولة</div>
+                    {% endif %}
+                    {% if plan.included_archive_storage_gb %}
+                        <div class="plan-card__saving"><i class="fas fa-box-archive ms-1"></i>أرشيف {{ plan.included_archive_storage_gb }}GB مشمول</div>
+                    {% endif %}
+
+                    {% if option.annual_savings %}
                         <div class="plan-card__saving">
                             <i class="fas fa-piggy-bank ms-1"></i>
-                            وفّر {{ plan.annual_savings|floatformat:0 }} ريال سنوياً ({{ plan.annual_discount_percent }}%)
+                            وفّر {{ option.annual_savings|floatformat:0 }} ريال سنوياً
                         </div>
                     {% endif %}
 
                     <ul class="plan-card__features">
-                        {% for feature in plan.feature_lines %}
+                        {% for feature in group.features %}
                             <li><i class="fas fa-check-circle"></i><span>{{ feature }}</span></li>
                         {% empty %}
                             <li><i class="fas fa-check-circle"></i><span>إدارة التقارير والتوثيق المدرسي</span></li>
@@ -492,6 +634,8 @@
                         </form>
                     </div>
                 </article>
+                {% endwith %}
+              {% endfor %}
             {% endfor %}
         </section>
     {% else %}
@@ -503,18 +647,50 @@
         </section>
     {% endif %}
 
+    {% if other_plans %}
+        <div class="plans-section-heading">
+            <h2>باقات إدارية أخرى</h2>
+            <p>التجربة المجانية والباقات غير المنشورة للعملاء.</p>
+        </div>
+        <section class="plans-grid" aria-label="الباقات الإدارية الأخرى">
+            {% for plan in other_plans %}
+                <article class="plan-card{% if not plan.is_active %} plan-card--inactive{% endif %}">
+                    <div class="plan-card__badges">
+                        <span class="plan-badge">{{ plan.period_label }}</span>
+                        {% if not plan.is_active %}<span class="plan-badge plan-badge--muted">غير نشطة</span>{% endif %}
+                    </div>
+                    <h3>{{ plan.name }}</h3>
+                    <p class="plan-card__capacity">{% if plan.max_teachers > 0 %}حتى {{ plan.max_teachers }} مستخدم{% else %}عدد مستخدمين غير محدود{% endif %}</p>
+                    <div class="plan-card__price">
+                        {% if plan.price > 0 %}<strong class="plan-card__amount">{{ plan.price|floatformat:0 }}</strong><span class="plan-card__currency">ريال</span>{% else %}<strong class="plan-card__amount">مجاناً</strong>{% endif %}
+                    </div>
+                    <ul class="plan-card__features">
+                        {% for feature in plan.feature_lines %}<li><i class="fas fa-check-circle"></i><span>{{ feature }}</span></li>{% endfor %}
+                    </ul>
+                    <div class="plan-card__footer">
+                        <a class="btn btn-outline-primary" href="{% url 'reports:platform_plan_edit' plan.pk %}"><i class="fas fa-pen ms-1"></i> تعديل</a>
+                        <form method="post" action="{% url 'reports:platform_plan_delete' plan.pk %}" class="plan-delete-form" data-plan-name="{{ plan.name }}">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger w-100" type="submit"><i class="fas fa-trash ms-1"></i> حذف</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+    {% endif %}
+
     <aside class="archive-note">
         <i class="fas fa-archive"></i>
         <div>
             <strong>الأرشفة طويلة المدى: 399 ريال سنوياً وتشمل 50 جيجابايت</strong>
-            <span>يمكن إضافة كل 50 جيجابايت إضافية مقابل 149 ريالاً سنوياً. الأسعار قبل ضريبة القيمة المضافة.</span>
+            <span>يمكن إضافة كل 50 جيجابايت إضافية مقابل 149 ريالاً سنوياً. السعر نهائي ولا توجد ضريبة قيمة مضافة.</span>
         </div>
     </aside>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     document.querySelectorAll(".plan-delete-form").forEach(function (form) {
         form.addEventListener("submit", function (event) {
             const planName = form.dataset.planName || "هذه الباقة";

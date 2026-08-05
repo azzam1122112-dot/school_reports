@@ -63,14 +63,14 @@ def _resolved_school_id(
 
 
 def _school_role_labels(active_school: Optional[School]) -> dict[str, str]:
-    gender = (getattr(active_school, "gender", "") or "").strip().lower()
-    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-    is_girls = gender == girls_value
+    from .gender_labels import school_gender_labels
+
+    labels = school_gender_labels(active_school)
     return {
-        "manager": "مديرة المدرسة" if is_girls else "مدير المدرسة",
-        "teacher": "المعلمة" if is_girls else "المعلم",
-        "admin_staff": "موظفة إدارية" if is_girls else "موظف إداري",
-        "lab_tech": "محضرة مختبر" if is_girls else "محضر مختبر",
+        "manager": str(labels["manager"]),
+        "teacher": str(labels["teacher"]),
+        "admin_staff": str(labels["admin_staff"]),
+        "lab_tech": str(labels["lab_tech"]),
     }
 
 

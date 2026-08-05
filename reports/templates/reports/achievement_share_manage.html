@@ -378,7 +378,7 @@
 
         <div class="share-intro">
           <h2>مشاركة ملف الإنجاز مع الآخرين</h2>
-          <p>عند تفعيل الرابط، سيتم إنشاء صفحة عامة لملف الإنجاز تسهل إرسالها لـ{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }} أو المشرفين عبر واتساب.</p>
+          <p>عند تفعيل الرابط، سيتم إنشاء صفحة عامة لملف الإنجاز تسهل إرسالها {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} أو المشرفين عبر واتساب.</p>
         </div>
 
         <form method="post">
@@ -401,7 +401,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   function copyLink() {
     var copyText = document.getElementById("shareUrl");
     if(!copyText) return;

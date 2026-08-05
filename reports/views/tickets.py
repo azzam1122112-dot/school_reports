@@ -607,7 +607,7 @@ def ticket_print(request: HttpRequest, pk: int) -> HttpResponse:
 
     # إعدادات المدرسة/الشعارات مثل report_print
     school_scope = getattr(t, "school", None) or active_school
-    school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
+    school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة توثيق")
     school_stage = ""
     school_logo_url = ""
     if school_scope:

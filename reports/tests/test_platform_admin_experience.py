@@ -1,12 +1,23 @@
 from datetime import timedelta
 from decimal import Decimal
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from reports.models import AuditLog, Payment, School, Teacher
+from reports.models import (
+    ArchiveStorageOption,
+    AuditLog,
+    Payment,
+    PlatformSettings,
+    School,
+    Teacher,
+)
 
 
 @override_settings(
@@ -141,3 +152,116 @@ class PlatformAdminExperienceTests(TestCase):
             f"{reverse('reports:platform_login')}?next={reverse('reports:schools_admin_list')}",
             fetch_redirect_response=False,
         )
+
+    def test_platform_can_open_mansour_content_editor_page(self):
+        response = self.client.get(reverse("reports:platform_mansour_content"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "محرر محتوى منصور")
+        self.assertContains(response, "حفظ المحتوى")
+
+    def test_platform_settings_can_control_ai_feature_visibility_independently(self):
+        page = self.client.get(reverse("reports:platform_settings"))
+
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "ظهور ميزات الذكاء الاصطناعي")
+        self.assertContains(page, "المساعد منصور")
+        self.assertContains(page, "تحسين التقارير")
+        self.assertContains(page, "المساعدة داخل النظام")
+
+        settings_obj = PlatformSettings.get_solo()
+        option = ArchiveStorageOption.objects.order_by("id").first()
+        self.assertIsNotNone(option)
+        response = self.client.post(
+            reverse("reports:platform_settings"),
+            data={
+                "maintenance_message": settings_obj.maintenance_message,
+                "report_ai_enabled": "on",
+                "archive_addon_annual_price": str(settings_obj.archive_addon_annual_price),
+                "archive_included_storage_gb": str(settings_obj.archive_included_storage_gb),
+                "storage_mb_per_teacher": str(settings_obj.storage_mb_per_teacher),
+                "free_storage_mb": str(settings_obj.free_storage_mb),
+                "storage_options-TOTAL_FORMS": "1",
+                "storage_options-INITIAL_FORMS": "1",
+                "storage_options-MIN_NUM_FORMS": "0",
+                "storage_options-MAX_NUM_FORMS": "1000",
+                "storage_options-0-id": str(option.pk),
+                "storage_options-0-storage_gb": str(option.storage_gb),
+                "storage_options-0-price": str(option.price),
+                "storage_options-0-sort_order": str(option.sort_order),
+                "storage_options-0-is_active": "on",
+            },
+        )
+
+        self.assertRedirects(response, reverse("reports:platform_settings"))
+        settings_obj.refresh_from_db()
+        self.assertFalse(settings_obj.mansour_public_enabled)
+        self.assertTrue(settings_obj.report_ai_enabled)
+        self.assertFalse(settings_obj.internal_ai_help_enabled)
+
+    def test_platform_can_save_mansour_content_json(self):
+        payload = {
+            "role_guidance": {
+                "general": "توجيه عام",
+                "teacher": "توجيه معلم",
+                "manager": "توجيه مدير",
+                "supervisor": "توجيه مشرف",
+                "report_supervisor": "توجيه مشرف تقارير",
+                "platform_supervisor": "توجيه مشرف منصة",
+            },
+            "role_default_slugs": {
+                "general": ["sample"],
+                "teacher": ["sample"],
+                "manager": ["sample"],
+                "supervisor": ["sample"],
+                "report_supervisor": ["sample"],
+                "platform_supervisor": ["sample"],
+            },
+            "knowledge_items": [
+                {
+                    "slug": "sample",
+                    "title": "عنوان",
+                    "url": "/guide/#sample",
+                    "text": "نص المعرفة",
+                    "topics": ["موضوع"],
+                    "audiences": ["teacher"],
+                    "keywords": "كلمات",
+                    "priority": 3,
+                }
+            ],
+        }
+
+        with TemporaryDirectory() as temp_dir:
+            file_path = Path(temp_dir) / "mansour_knowledge_content.json"
+            file_path.write_text("{}", encoding="utf-8")
+
+            with patch("reports.views.subscriptions.MANSOUR_KNOWLEDGE_CONTENT_PATH", file_path):
+                with patch("reports.mansour_assistant.reload_mansour_knowledge_runtime") as reload_mock:
+                    response = self.client.post(
+                        reverse("reports:platform_mansour_content"),
+                        data={"content": json.dumps(payload, ensure_ascii=False)},
+                    )
+
+                    self.assertEqual(response.status_code, 302)
+                    self.assertEqual(response.url, reverse("reports:platform_mansour_content"))
+
+                    saved = json.loads(file_path.read_text(encoding="utf-8"))
+                    self.assertEqual(saved["knowledge_items"][0]["slug"], "sample")
+                    reload_mock.assert_called_once()
+
+    def test_school_manager_creation_requires_email(self):
+        response = self.client.post(
+            reverse("reports:school_manager_create"),
+            data={
+                "name": "مدير بدون بريد",
+                "phone": "0551234511",
+                "email": "",
+                "password": "ManagerPass#2026",
+                "is_active": "on",
+                "schools": [str(self.school.id)],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "هذا الحقل مطلوب")
+        self.assertFalse(Teacher.objects.filter(phone="0551234511").exists())

@@ -526,7 +526,12 @@
 
     /* Adjust Filters */
     .mr-filters { padding: 16px; gap: 12px; }
-    .mr-field { min-width: 100%; }
+    .mr-field,
+    .mr-field.grow {
+      width: 100%;
+      min-width: 0;
+    }
+    .mr-input { width: 100%; min-width: 0; }
     .mr-actions { width: 100%; }
     .mr-actions .btn { flex: 1; }
 
@@ -791,8 +796,10 @@
       padding: 20px 16px;
     }
 
-    .mr-field {
-      min-width: 100%;
+    .mr-field,
+    .mr-field.grow {
+      width: 100%;
+      min-width: 0;
     }
 
     .mr-actions {
@@ -1054,7 +1061,7 @@
             <tr>
               <th>التاريخ</th>
               <th>التقرير</th>
-              <th style="text-align:center">المستفيدون</th>
+              <th style="text-align:center">{{ SCHOOL_BENEFICIARIES_LABEL|default:"المستفيدون" }}</th>
               <th>الوصف</th>
               <th>الصور</th>
               <th>الإجراءات</th>
@@ -1112,10 +1119,6 @@
 
                     <a href="{% url 'reports:report_print' report.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="mr-iconbtn" title="عرض التقرير" aria-label="عرض التقرير">
                       <i class="fa-solid fa-eye"></i>
-                    </a>
-
-                    <a href="{% url 'reports:report_share_manage' report.pk %}" class="mr-iconbtn" title="مشاركة" aria-label="مشاركة">
-                      <i class="fa-solid fa-link"></i>
                     </a>
 
                     <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form">
@@ -1243,7 +1246,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function(){
     // ===== Delete confirm (بدون inline confirm في الفورم) =====
     document.querySelectorAll('.mr-del-form').forEach(function(f){

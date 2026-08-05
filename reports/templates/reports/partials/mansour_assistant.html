@@ -1,0 +1,89 @@
+{% load static %}
+<aside
+  class="mansour-assistant"
+  id="mansourAssistant"
+  data-endpoint="{% url 'reports:mansour_assistant_reply' %}"
+  data-audience=""
+  data-internal="{% if mansour_internal %}true{% else %}false{% endif %}"
+  data-role-label="{% if mansour_internal %}{{ USER_ROLE_LABEL|default:'' }}{% endif %}"
+  aria-label="المساعد الذكي منصور"
+>
+  <button
+    class="mansour-launcher"
+    id="mansourLauncher"
+    type="button"
+    aria-controls="mansourPanel"
+    aria-expanded="false"
+  >
+    <span class="mansour-launcher-copy">
+      <strong>اسأل منصور</strong>
+      <small>متاح الآن</small>
+    </span>
+    <span class="mansour-launcher-avatar" aria-hidden="true">
+      <img src="{% static 'img/mansour-avatar-v2.png' %}?v=20260731.1" alt="">
+    </span>
+  </button>
+
+  <section
+    class="mansour-panel"
+    id="mansourPanel"
+    role="dialog"
+    aria-modal="false"
+    aria-labelledby="mansourTitle"
+    hidden
+  >
+    <header class="mansour-head">
+      <span class="mansour-avatar" aria-hidden="true">
+        <img src="{% static 'img/mansour-avatar-v2.png' %}?v=20260731.1" alt="">
+      </span>
+      <div class="mansour-identity">
+        <strong id="mansourTitle">منصور</strong>
+        <small><span class="mansour-status-dot" aria-hidden="true"></span>مساعد منصة توثيق الذكي · جاهز لمساعدتك</small>
+      </div>
+      <button class="mansour-reset" id="mansourReset" type="button" aria-label="بدء محادثة جديدة" title="محادثة جديدة">
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+      </button>
+      <button class="mansour-close" id="mansourClose" type="button" aria-label="إغلاق المساعد">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="mansour-conversation" id="mansourConversation" aria-live="polite" aria-relevant="additions">
+      <p class="mansour-message assistant">{% if mansour_internal %}أهلًا بك، أنا منصور. أشرح لك الصفحة الحالية وأساعدك في إنجاز عملك داخل منصة توثيق وفق صلاحياتك.{% else %}أهلًا بك، أنا منصور. أساعدك في فهم منصة توثيق، اختيار البداية المناسبة، وحل المشكلات بخطوات واضحة وآمنة.{% endif %}</p>
+    </div>
+
+    <div class="mansour-quick-actions" id="mansourQuickActions" aria-label="أسئلة مقترحة">
+      {% if mansour_internal %}
+        <button class="mansour-quick-action" type="button" data-question="اشرح لي هذه الصفحة">اشرح هذه الصفحة</button>
+        <button class="mansour-quick-action" type="button" data-question="كيف أنجز عملي هنا؟">كيف أنجز عملي هنا؟</button>
+        <button class="mansour-quick-action" type="button" data-question="ما الخطوة التالية المناسبة لدوري؟">ما الخطوة التالية؟</button>
+      {% else %}
+        <button class="mansour-quick-action" type="button" data-question="ما هي منصة توثيق؟">ما هي منصة توثيق؟</button>
+        <button class="mansour-quick-action" type="button" data-question="كيف أبدأ التجربة؟">كيف أبدأ التجربة؟</button>
+        <button class="mansour-quick-action" type="button" data-question="ما الباقات المتاحة؟">ما الباقات المتاحة؟</button>
+      {% endif %}
+    </div>
+
+    <form class="mansour-form" id="mansourForm">
+      <div class="mansour-input-row">
+        <textarea
+          id="mansourInput"
+          rows="1"
+          maxlength="500"
+          autocomplete="off"
+          placeholder="اكتب سؤالك هنا…"
+          aria-label="اكتب استفسارك لمنصور"
+          aria-describedby="mansourComposerHint"
+        ></textarea>
+        <button class="mansour-send" id="mansourSend" type="submit" aria-label="إرسال الاستفسار">
+          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="mansour-composer-meta" id="mansourComposerHint">
+        <span>Enter للإرسال · Shift+Enter لسطر جديد</span>
+        <span id="mansourCharCount">0/500</span>
+      </div>
+      <p class="mansour-disclaimer"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> مساعد آلي؛ لا ترسل بيانات شخصية أو مدرسية حساسة.</p>
+    </form>
+  </section>
+</aside>
