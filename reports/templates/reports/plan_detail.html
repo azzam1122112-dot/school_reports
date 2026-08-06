@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}{{ plan.title }} | الخطط{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .pl-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; }
+  @media (max-width: 900px) { .pl-grid { grid-template-columns: 1fr; } }
+
+  .pl-row {
+    display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+    padding: .6rem .75rem; border-radius: 11px; margin-bottom: .45rem;
+    border: 1px solid var(--asg-line); background: var(--asg-surface);
+  }
+  .pl-row__main { flex: 1; min-width: 160px; }
+  .pl-row__title { font-size: .86rem; font-weight: 800; }
+  .pl-row__sub { font-size: .75rem; color: var(--asg-muted); margin-top: .15rem; line-height: 1.7; }
+  .pl-num {
+    width: 24px; height: 24px; flex: none; border-radius: 8px;
+    display: grid; place-items: center; font-size: .74rem; font-weight: 900;
+    background: var(--asg-soft); color: var(--asg-green);
+  }
+  .pl-task[data-state="late"] { border-inline-start: 3px solid var(--asg-danger); }
+  .pl-task[data-state="done"] { border-inline-start: 3px solid var(--asg-green); }
+  .pl-task[data-state="running"] { border-inline-start: 3px solid var(--asg-info); }
+
+  .pl-goal__meter { display: flex; align-items: center; gap: .4rem; min-width: 96px; }
+  .pl-goal__track { flex: 1; height: 5px; border-radius: 999px; background: var(--asg-soft); overflow: hidden; }
+  .pl-goal__fill { height: 100%; background: var(--asg-green); }
+
+  .pl-inline { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .pl-actions { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .8rem; }
+  .pl-hero-bar { margin-top: 1.1rem; }
+  .pl-hero-bar__track { height: 8px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; }
+  .pl-hero-bar__fill { height: 100%; background: #fff; border-radius: 999px; }
+  .pl-hero-bar__n { font-size: .82rem; font-weight: 800; margin-top: .35rem; opacity: .95; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <a class="asg-hero__eyebrow" href="{% url 'reports:plan_list' %}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      الخطط
+    </a>
+    <h1 class="asg-hero__title">{{ plan.title }}</h1>
+    <p class="asg-hero__meta">
+      {{ plan.owner_name|default:"—" }}
+      {% if plan.academic_year %} · {{ plan.academic_year }}{% endif %}
+      · {{ plan.get_stage_display }} · {{ plan.get_approval_state_display }}
+    </p>
+    <div class="pl-hero-bar">
+      <div class="pl-hero-bar__track">
+        <div class="pl-hero-bar__fill" style="width:{{ percent }}%"></div>
+      </div>
+      <div class="pl-hero-bar__n">
+        {{ summary.done }} من {{ summary.total }} مهمة منجَزة — {{ percent }}%
+        {% if summary.late %} · {{ summary.late }} متأخرة{% endif %}
+      </div>
+    </div>
+  </header>
+
+  <div class="pl-grid">
+    <div>
+      {% if plan.description %}
+        <section class="asg-card" style="margin-top:1.2rem">
+          <h2 class="asg-card__title">وصف الخطة</h2>
+          <div style="font-size:.88rem;line-height:1.95;white-space:pre-wrap">{{ plan.description }}</div>
+          {% if plan.review_note %}
+            <div style="margin-top:1rem;padding:.75rem .9rem;border-radius:12px;background:var(--asg-soft);border-inline-start:3px solid var(--asg-gold);font-size:.84rem;line-height:1.85;white-space:pre-wrap">
+              <strong>آخر ملاحظة:</strong> {{ plan.review_note }}
+            </div>
+          {% endif %}
+        </section>
+      {% endif %}
+
+      {# ═══ الأهداف ═════════════════════════════════════ #}
+      <section class="asg-card" {% if not plan.description %}style="margin-top:1.2rem"{% endif %}>
+        <h2 class="asg-card__title">الأهداف ومؤشراتها</h2>
+        <p class="asg-card__hint">
+          المؤشر نصٌّ حر — مؤشرات المدارس تُصاغ بلغتها ولا تُختزل في قائمة
+          مغلقة. والقياس يقع على المهام المرتبطة بالهدف.
+        </p>
+
+        {% for goal in goals %}
+          <div class="pl-row">
+            <span class="pl-num">{{ goal.order }}</span>
+            <div class="pl-row__main">
+              <div class="pl-row__title">{{ goal.title }}</div>
+              {% if goal.indicator %}
+                <div class="pl-row__sub">
+                  المؤشر: {{ goal.indicator }}{% if goal.target %} · المستهدف: {{ goal.target }}{% endif %}
+                </div>
+              {% endif %}
+            </div>
+            <div class="pl-goal__meter">
+              <span class="pl-goal__track"><span class="pl-goal__fill" style="width:{{ goal.progress_percent }}%"></span></span>
+              <span style="font-size:.74rem;font-weight:800">{{ goal.progress_percent }}%</span>
+            </div>
+            {% if may_edit %}
+              <form method="post" action="{% url 'reports:plan_action' plan.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="plan_action" value="remove_goal">
+                <input type="hidden" name="goal_id" value="{{ goal.pk }}">
+                <button type="submit" class="asg-btn asg-btn--danger asg-btn--sm">حذف</button>
+              </form>
+            {% endif %}
+          </div>
+        {% empty %}
+          <p class="asg-card__hint" style="margin:0">لم تُضف أهداف بعد.</p>
+        {% endfor %}
+
+        {% if may_edit %}
+          <form method="post" action="{% url 'reports:plan_action' plan.pk %}" style="margin-top:1rem">
+            {% csrf_token %}
+            <input type="hidden" name="plan_action" value="add_goal">
+            <div class="pl-inline">
+              <div class="asg-field"><label>هدف جديد</label>{{ goal_form.title }}</div>
+              <div class="asg-field"><label>{{ goal_form.indicator.label }}</label>{{ goal_form.indicator }}</div>
+              <div class="asg-field"><label>{{ goal_form.target.label }}</label>{{ goal_form.target }}</div>
+            </div>
+            <button type="submit" class="asg-btn asg-btn--ghost">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+              إضافة هدف
+            </button>
+          </form>
+        {% endif %}
+      </section>
+
+      {# ═══ المهام ══════════════════════════════════════ #}
+      <section class="asg-card">
+        <h2 class="asg-card__title">المهام</h2>
+        <p class="asg-card__hint">
+          المهمة تتحوّل إلى تكليف ولا تُنسخ إليه — فمتابعتها هي متابعة تكليفها
+          بموعده وشواهده واعتماده.
+        </p>
+
+        {% for task in tasks %}
+          <div class="pl-row pl-task" data-state="{{ task.state }}">
+            <span class="pl-num">{{ task.order }}</span>
+            <div class="pl-row__main">
+              <div class="pl-row__title">{{ task.title }}</div>
+              <div class="pl-row__sub">
+                {% if task.goal %}الهدف: {{ task.goal.title }} · {% endif %}
+                {% if task.responsible %}{{ task.responsible.name }}{% else %}بلا مسؤول{% endif %}
+                {% if task.due_at %} · يستحق {{ task.due_at|date:"Y-m-d" }}{% endif %}
+              </div>
+            </div>
+            <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
+              {% if task.state == 'done' %}<span class="asg-tag asg-tag--done">منجَزة</span>
+              {% elif task.state == 'late' %}<span class="asg-tag asg-tag--late">متأخرة</span>
+              {% elif task.state == 'running' %}<span class="asg-tag asg-tag--soon">قيد التنفيذ</span>
+              {% else %}<span class="asg-tag">لم تُكلَّف بعد</span>{% endif %}
+
+              {% if may_edit and task.can_become_assignment %}
+                <form method="post" action="{% url 'reports:plan_action' plan.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="plan_action" value="track_task">
+                  <input type="hidden" name="task_id" value="{{ task.pk }}">
+                  <button type="submit" class="asg-btn asg-btn--primary asg-btn--sm">
+                    <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i>
+                    حوّلها إلى تكليف
+                  </button>
+                </form>
+              {% elif may_edit and not task.is_tracked %}
+                <form method="post" action="{% url 'reports:plan_action' plan.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="plan_action" value="remove_task">
+                  <input type="hidden" name="task_id" value="{{ task.pk }}">
+                  <button type="submit" class="asg-btn asg-btn--danger asg-btn--sm">حذف</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <p class="asg-card__hint" style="margin:0">لم تُضف مهام بعد.</p>
+        {% endfor %}
+
+        {% if may_edit %}
+          <form method="post" action="{% url 'reports:plan_action' plan.pk %}" style="margin-top:1.1rem">
+            {% csrf_token %}
+            <input type="hidden" name="plan_action" value="add_task">
+            <div class="asg-field"><label>مهمة جديدة</label>{{ task_form.title }}</div>
+            <div class="asg-field">{{ task_form.description }}</div>
+            <div class="pl-inline">
+              <div class="asg-field"><label>{{ task_form.goal.label }}</label>{{ task_form.goal }}</div>
+              <div class="asg-field"><label>{{ task_form.responsible.label }}</label>{{ task_form.responsible }}</div>
+              <div class="asg-field"><label>{{ task_form.department.label }}</label>{{ task_form.department }}</div>
+              <div class="asg-field">
+                <label>{{ task_form.due_at.label }}</label>{{ task_form.due_at }}
+                <div class="asg-field__help">{{ task_form.due_at.help_text }}</div>
+              </div>
+            </div>
+            <button type="submit" class="asg-btn asg-btn--ghost">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+              إضافة مهمة
+            </button>
+          </form>
+        {% endif %}
+      </section>
+    </div>
+
+    {# ═══ العمود الثاني ══════════════════════════════ #}
+    <div>
+      <section class="asg-card" style="margin-top:1.2rem">
+        <h2 class="asg-card__title">اعتماد الخطة</h2>
+        {% if actions %}
+          <form method="post" action="{% url 'reports:plan_approval_action' plan.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="approval_action" id="planAction" value="">
+            <div class="asg-field">
+              <textarea name="note" rows="3" placeholder="ملاحظتك (اختياري)…"></textarea>
+            </div>
+            <div class="pl-actions" style="margin-top:0">
+              {% if 'issue' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-pl="issue">
+                  <i class="fa-solid fa-stamp" aria-hidden="true"></i>
+                  اعتماد وإصدار الخطة
+                </button>
+              {% endif %}
+              {% if 'submit' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-pl="submit">
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                  إرسال للاعتماد
+                </button>
+              {% endif %}
+              {% if 'withdraw' in actions %}
+                <button type="submit" class="asg-btn asg-btn--ghost" data-pl="withdraw">سحب للتعديل</button>
+              {% endif %}
+              {% if 'return' in actions %}
+                <button type="submit" class="asg-btn asg-btn--warn" data-pl="return">إعادة للملاحظة</button>
+              {% endif %}
+              {% if 'approve' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-pl="approve">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  اعتماد
+                </button>
+              {% endif %}
+            </div>
+          </form>
+          <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+            (function () {
+              var field = document.getElementById('planAction');
+              if (!field) return;
+              document.querySelectorAll('[data-pl]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                  field.value = button.getAttribute('data-pl');
+                });
+              });
+            })();
+          </script>
+        {% else %}
+          <p class="asg-card__hint" style="margin:0">
+            {% if plan.is_final %}
+              الخطة معتمدة. تُتابَع مهامها ولا تُعدَّل بنودها.
+            {% else %}
+              لا إجراءات متاحة لك في الحالة الحالية.
+            {% endif %}
+          </p>
+        {% endif %}
+
+        {% if timeline %}
+          <div style="margin-top:1.1rem">
+            {% for step in timeline %}
+              <div style="font-size:.79rem;color:var(--asg-muted);padding:.35rem 0;border-bottom:1px solid var(--asg-line)">
+                <strong style="color:var(--asg-ink)">{{ step.get_action_display }}</strong>
+                · {{ step.actor_display }} · {{ step.created_at|date:"Y-m-d H:i" }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </section>
+
+      {% if may_edit and plan.stage != 'closed' %}
+        <section class="asg-card">
+          <h2 class="asg-card__title">إغلاق الخطة</h2>
+          <p class="asg-card__hint">
+            الإغلاق يوقف إضافة المهام ويُبقي الخطة وسجلها كاملين.
+          </p>
+          <form method="post" action="{% url 'reports:plan_action' plan.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="plan_action" value="close">
+            <button type="submit" class="asg-btn asg-btn--ghost">
+              <i class="fa-solid fa-flag-checkered" aria-hidden="true"></i>
+              إغلاق الخطة
+            </button>
+          </form>
+        </section>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

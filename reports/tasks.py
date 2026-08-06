@@ -119,12 +119,17 @@ def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 200
 
     qs = AuditLog.objects.filter(timestamp__lt=cutoff).order_by("pk")
 
+    from .model_parts.audit import audit_retention_purge
+
     deleted_total = 0
     while True:
         batch_pks = list(qs.values_list("pk", flat=True)[:chunk_size])
         if not batch_pks:
             break
-        deleted, _ = AuditLog.objects.filter(pk__in=batch_pks).delete()
+        # سجل الإجراءات محصَّن ضد الحذف؛ سياسة الاحتفاظ هي الاستثناء الوحيد،
+        # وتُعلن عن نفسها هنا صراحةً بدل أن تمر ضمناً.
+        with audit_retention_purge():
+            deleted, _ = AuditLog.objects.filter(pk__in=batch_pks).delete()
         deleted_total += int(deleted)
 
     logger.info(

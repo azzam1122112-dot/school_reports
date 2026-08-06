@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}تكليف جديد للمجموعة | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .gnew-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .gnew-schools { display: grid; gap: .45rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .gnew-schools label { display: flex; gap: .55rem; align-items: flex-start; font-size: .86rem; font-weight: 700; }
+  .gnew-schools input { margin-top: .2rem; }
+  .gnew-check { display: flex; gap: .55rem; align-items: flex-start; font-size: .86rem; font-weight: 700; }
+  .gnew-check input { margin-top: .2rem; }
+  .gnew-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.3rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <a class="asg-hero__eyebrow" href="{% url 'reports:group_assignment_board' %}?group={{ group.pk }}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      تكليفات المجموعة
+    </a>
+    <h1 class="asg-hero__title">تكليف جديد</h1>
+    <p class="asg-hero__meta">
+      سيصل مدير كل مدرسة تختارها، ويعود ردّه إليك لاعتماده.
+    </p>
+  </header>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="group" value="{{ group.pk }}">
+
+    <section class="asg-card">
+      <h2 class="asg-card__title">المطلوب</h2>
+
+      <div class="asg-field">
+        <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+        {{ form.title }}
+        {% if form.title.errors %}<ul class="asg-errors">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="asg-field">
+        <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+        {{ form.description }}
+        <div class="asg-field__help">
+          كلّما وضح المطلوب قلّت الاستفسارات وتقاربت ردود المدارس في شكلها.
+        </div>
+      </div>
+
+      <div class="gnew-grid">
+        <div class="asg-field">
+          <label for="{{ form.priority.id_for_label }}">{{ form.priority.label }}</label>
+          {{ form.priority }}
+        </div>
+        <div class="asg-field">
+          <label for="{{ form.due_at.id_for_label }}">{{ form.due_at.label }}</label>
+          {{ form.due_at }}
+          <div class="asg-field__help">{{ form.due_at.help_text }}</div>
+          {% if form.due_at.errors %}<ul class="asg-errors">{% for e in form.due_at.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="asg-card">
+      <h2 class="asg-card__title">الشواهد المطلوبة</h2>
+      <p class="asg-card__hint">
+        عند اشتراطها لن تستطيع المدرسة رفع ردّها قبل إرفاق العدد المطلوب — فالشرط
+        يُنفَّذ ولا يبقى توصية.
+      </p>
+      <div class="asg-field">
+        <label class="gnew-check">
+          {{ form.requires_evidence }}
+          <span>{{ form.requires_evidence.label }}</span>
+        </label>
+      </div>
+      <div class="asg-field" style="max-width:220px">
+        <label for="{{ form.min_evidence_count.id_for_label }}">{{ form.min_evidence_count.label }}</label>
+        {{ form.min_evidence_count }}
+      </div>
+    </section>
+
+    <section class="asg-card">
+      <h2 class="asg-card__title">المدارس المشمولة</h2>
+      <p class="asg-card__hint">
+        لكل مدرسة حالتها وشواهدها على حدة — فتكليفٌ واحد تُنجزه ثلاث مدارس
+        وتتأخر أربع دون أن تخفي حالةٌ واحدة ذلك.
+      </p>
+
+      <div class="gnew-schools">
+        {% for choice in form.schools %}
+          <label>{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
+        {% empty %}
+          <p class="asg-card__hint" style="margin:0">لا توجد مدارس نشطة في هذه المجموعة.</p>
+        {% endfor %}
+      </div>
+      {% if form.schools.errors %}<ul class="asg-errors">{% for e in form.schools.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+      <div class="asg-field__help" style="margin-top:.9rem">
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+        المدرسة التي ليس لها مدير نشط لن يصلها التكليف، وسيُنبَّهك باسمها بعد
+        الإصدار بدل أن تختفي بصمت.
+      </div>
+    </section>
+
+    {% if form.non_field_errors %}
+      <ul class="asg-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    <div class="gnew-actions">
+      <button type="submit" class="asg-btn asg-btn--primary">
+        <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+        إصدار التكليف
+      </button>
+      <a class="asg-btn asg-btn--ghost" href="{% url 'reports:group_assignment_board' %}?group={{ group.pk }}">إلغاء</a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

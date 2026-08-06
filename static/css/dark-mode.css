@@ -666,6 +666,114 @@ html[data-theme="dark"] .float-card { background: rgba(13, 36, 29, .96); border-
 html[data-theme="dark"] .float-card strong { color: #edf6f1; }
 html[data-theme="dark"] .float-card small { color: #abc0b6; }
 
+/* The landing page is light-on-white in the default theme, so every panel that
+   used to ship its own dark slab now needs an explicit dark counterpart. */
+html[data-theme="dark"] .hero {
+  color: #edf6f1;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(43, 182, 132, .16), transparent 42%),
+    linear-gradient(168deg, #0b201a 0%, #081a15 55%, #061512 100%);
+}
+html[data-theme="dark"] .hero::before { opacity: .16; background-image: linear-gradient(rgba(205, 225, 216, .16) 1px, transparent 1px), linear-gradient(90deg, rgba(205, 225, 216, .16) 1px, transparent 1px); }
+html[data-theme="dark"] .hero h1,
+html[data-theme="dark"] .hero-quote strong,
+html[data-theme="dark"] .section-heading h2,
+html[data-theme="dark"] .roles-copy h2,
+html[data-theme="dark"] .security-intro h2,
+html[data-theme="dark"] .faq-intro h2,
+html[data-theme="dark"] .leadership-copy h2,
+html[data-theme="dark"] .final-copy h2,
+html[data-theme="dark"] .value-card h3,
+html[data-theme="dark"] .feature-card h3,
+html[data-theme="dark"] .group-card h3,
+html[data-theme="dark"] .showcase-copy h3,
+html[data-theme="dark"] .executive-card strong,
+html[data-theme="dark"] .role-row strong,
+html[data-theme="dark"] .security-points strong,
+html[data-theme="dark"] .footer-links strong { color: #f0f8f4; }
+html[data-theme="dark"] .hero h1 span,
+html[data-theme="dark"] .leadership-copy h2 span,
+html[data-theme="dark"] .overline,
+html[data-theme="dark"] .section-kicker,
+html[data-theme="dark"] .section-heading-light .section-kicker,
+html[data-theme="dark"] .security-intro .section-kicker,
+html[data-theme="dark"] .leadership-eyebrow,
+html[data-theme="dark"] .feature-label,
+html[data-theme="dark"] .showcase-copy > span,
+html[data-theme="dark"] .final-copy > span,
+html[data-theme="dark"] .text-link,
+html[data-theme="dark"] .leadership-link,
+html[data-theme="dark"] .executive-card small { color: #6fd3ac; }
+html[data-theme="dark"] .hero h1 em,
+html[data-theme="dark"] .hero-lead,
+html[data-theme="dark"] .hero-quote p,
+html[data-theme="dark"] .assurance,
+html[data-theme="dark"] .trust-bar span { color: #b6cdc3; }
+html[data-theme="dark"] .hero-personas span { color: #b6cdc3; background: rgba(205, 225, 216, .06); border-color: rgba(205, 225, 216, .16); }
+html[data-theme="dark"] .hero-personas b { color: #edf6f1; }
+html[data-theme="dark"] .hero-quote { border-color: rgba(205, 225, 216, .14); }
+html[data-theme="dark"] .trust-bar { background: rgba(205, 225, 216, .05); border-color: rgba(205, 225, 216, .14); }
+html[data-theme="dark"] .trust-bar > div { border-color: rgba(205, 225, 216, .12); }
+html[data-theme="dark"] .trust-bar strong,
+html[data-theme="dark"] .trust-bar i { color: #6fd3ac; }
+html[data-theme="dark"] .features-section,
+html[data-theme="dark"] .group-section,
+html[data-theme="dark"] .leadership-section,
+html[data-theme="dark"] .security-section,
+html[data-theme="dark"] .start-section,
+html[data-theme="dark"] .final-cta { background-color: #071a15 !important; }
+html[data-theme="dark"] .feature-card,
+html[data-theme="dark"] .group-card,
+html[data-theme="dark"] .executive-card,
+html[data-theme="dark"] .start-step,
+html[data-theme="dark"] .value-card.featured,
+html[data-theme="dark"] .security-points > div,
+html[data-theme="dark"] .pricing-guide > div,
+html[data-theme="dark"] .product-lightbox {
+  background: #0d241d !important;
+  border-color: rgba(205, 225, 216, .16) !important;
+  color: #edf6f1;
+}
+html[data-theme="dark"] .leadership-stage,
+html[data-theme="dark"] .security-panel,
+html[data-theme="dark"] .final-panel,
+html[data-theme="dark"] .compare-head-after {
+  color: #edf6f1;
+  border-color: rgba(205, 225, 216, .16);
+  background: linear-gradient(135deg, #10291f, #0b1f19) !important;
+}
+html[data-theme="dark"] .leadership-stage::before { opacity: .12; background-image: linear-gradient(rgba(205, 225, 216, .18) 1px, transparent 1px), linear-gradient(90deg, rgba(205, 225, 216, .18) 1px, transparent 1px); }
+html[data-theme="dark"] .executive-board,
+html[data-theme="dark"] .pricing-guide { background: rgba(205, 225, 216, .05); border-color: rgba(205, 225, 216, .14); }
+html[data-theme="dark"] .feature-proof li { color: #c2d8ce; background: rgba(205, 225, 216, .06); border-color: rgba(205, 225, 216, .16); }
+html[data-theme="dark"] .feature-extras { background: #0d241d !important; border-color: rgba(205, 225, 216, .16) !important; }
+html[data-theme="dark"] .feature-extras > strong { color: #f0f8f4; }
+html[data-theme="dark"] .feature-extras li { color: #c2d8ce; }
+html[data-theme="dark"] .feature-extras li i,
+html[data-theme="dark"] .feature-extras > strong i { color: #6fd3ac; background: rgba(205, 225, 216, .07); }
+html[data-theme="dark"] .feature-arrow { color: #6fd3ac; background: rgba(205, 225, 216, .06); border-color: rgba(205, 225, 216, .16); }
+html[data-theme="dark"] .multi-school-note,
+html[data-theme="dark"] .group-note,
+html[data-theme="dark"] .product-proof,
+html[data-theme="dark"] .compare-footnote { background: #102920 !important; border-color: rgba(111, 211, 172, .34) !important; color: #dcece4; }
+html[data-theme="dark"] .multi-school-note strong,
+html[data-theme="dark"] .group-note strong { color: #f0f8f4; }
+html[data-theme="dark"] .site-footer { color: #a9bfb5; background: #061512; border-color: rgba(205, 225, 216, .12); }
+html[data-theme="dark"] .site-footer .brand-text strong { color: #f0f8f4; }
+html[data-theme="dark"] .business-disclosure--footer,
+html[data-theme="dark"] .footer-payments,
+html[data-theme="dark"] .footer-bottom { border-color: rgba(205, 225, 216, .12); }
+html[data-theme="dark"] .footer-payments-copy strong,
+html[data-theme="dark"] .footer-verification__label { color: #e3efe9; }
+html[data-theme="dark"] .business-disclosure--footer dd,
+html[data-theme="dark"] .business-disclosure--footer summary { color: #b6cdc3; }
+html[data-theme="dark"] .sbc-seal-fallback { color: #dcece4; background: rgba(205, 225, 216, .07); border-color: rgba(111, 211, 172, .38); }
+html[data-theme="dark"] .sbc-seal-fallback i,
+html[data-theme="dark"] .footer-verification__label i { color: #6fd3ac; }
+html[data-theme="dark"] .button-dark-quiet { color: #dcece4; background: rgba(205, 225, 216, .07); border-color: rgba(205, 225, 216, .2); }
+html[data-theme="dark"] .browser-frame,
+html[data-theme="dark"] .showcase-image img { border-color: rgba(205, 225, 216, .2); }
+
 /* Authentication, registration, success, recovery and maintenance pages. */
 html[data-theme="dark"] .auth-wrapper,
 html[data-theme="dark"] .registration-shell,

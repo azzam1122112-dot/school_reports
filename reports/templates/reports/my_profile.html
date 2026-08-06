@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load hijri_tags %}
 
 {% block title %}حسابي{% endblock %}
 
@@ -726,6 +727,49 @@
     margin-top: .2rem;
   }
 
+  .profile-passkey-item > div:first-child { min-width: 0; }
+
+  .profile-passkey-meta {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    flex: 0 0 auto;
+  }
+
+  .profile-passkey-current {
+    padding: .2rem .5rem;
+    border-radius: 999px;
+    background: rgba(0,108,53,.1);
+    color: var(--prof-primary-dark);
+    font-size: .7rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  /* A lost or replaced phone must be revocable, otherwise enabling a passkey is
+     a one-way door. */
+  .profile-passkey-remove {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid var(--prof-border);
+    border-radius: var(--prof-radius-md);
+    color: var(--prof-danger-dark);
+    background: var(--prof-bg);
+    font-size: .9rem;
+    cursor: pointer;
+    transition: background .18s, border-color .18s;
+  }
+
+  .profile-passkey-remove:hover {
+    border-color: var(--prof-danger-dark);
+    background: rgba(239,68,68,.08);
+  }
+
+  .profile-passkey-remove:disabled { opacity: .55; cursor: wait; }
+
   .profile-passkey-status {
     display: none;
     padding: .85rem 1rem;
@@ -1251,17 +1295,39 @@
           {% endif %}
 
           {% if passkey_credentials %}
-            <ul class="profile-passkey-list" aria-label="الأجهزة المفعلة للدخول بالبصمة">
+            <ul class="profile-passkey-list" id="passkeyDeviceList" aria-label="الأجهزة المفعلة للدخول بالبصمة">
               {% for credential in passkey_credentials %}
-                <li class="profile-passkey-item">
+                <li class="profile-passkey-item" data-passkey-row>
                   <div>
-                    <strong>{{ credential.device_name|default:"جهاز مفعل" }}</strong>
-                    <span>أضيف في {{ credential.created_at|date:"Y-m-d H:i" }}</span>
+                    <strong>{{ credential.device_name|default:"جهاز مفعّل" }}</strong>
+                    <span>
+                      أضيف في {{ credential.created_at|hijri }} هـ ·
+                      {% if credential.last_used_at %}
+                        آخر استخدام قبل {{ credential.last_used_at|timesince }}
+                      {% else %}
+                        لم يُستخدم للدخول بعد
+                      {% endif %}
+                    </span>
                   </div>
-                  <i class="fa-solid fa-circle-check" style="color:var(--prof-success-dark)" aria-hidden="true"></i>
+                  <div class="profile-passkey-meta">
+                    <button
+                      type="button"
+                      class="profile-passkey-remove"
+                      data-passkey-remove
+                      data-url="{% url 'reports:passkey_delete' credential.pk %}"
+                      data-device="{{ credential.device_name|default:'هذا الجهاز' }}"
+                      aria-label="إلغاء الدخول بالبصمة من {{ credential.device_name|default:'هذا الجهاز' }}"
+                      title="إلغاء هذا الجهاز"
+                    >
+                      <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                    </button>
+                  </div>
                 </li>
               {% endfor %}
             </ul>
+            <p class="profile-passkey-copy" style="font-size:.84rem">
+              فقدت جهازًا أو غيّرته؟ ألغِه من هنا فورًا؛ لن يعود قادرًا على الدخول لحسابك.
+            </p>
           {% endif %}
         </div>
       </div>
@@ -1461,10 +1527,10 @@
           return 'هذا الجهاز أو المتصفح لا يدعم إنشاء مفتاح مرور. حدّث Chrome أو Safari واستخدم قفل الشاشة، أو تابع بكلمة المرور.';
         }
         if (error && error.name === 'SecurityError') {
-          return 'تعذر التحقق من نطاق المنصة. افتح https://tawtheeq-ksa.com مباشرة في Chrome أو Safari ثم أعد المحاولة.';
+          return 'تعذر التحقق من نطاق المنصة. افتح ' + window.location.origin + ' مباشرة في Chrome أو Safari ثم أعد المحاولة.';
         }
         if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
-          return 'لم يكتمل التفعيل. افتح tawtheeq-ksa.com مباشرة في Chrome وتأكد من تفعيل قفل الشاشة، ثم أعد المحاولة.';
+          return 'لم يكتمل التفعيل. تأكد من تفعيل قفل الشاشة أو بصمة الجهاز، ثم أعد المحاولة.';
         }
         return error && error.message ? error.message : 'تعذر تفعيل الدخول بالبصمة.';
       }
@@ -1499,11 +1565,12 @@
 
       function credentialToJSON(credential) {
         const transports = credential.response.getTransports ? credential.response.getTransports() : ['internal'];
+        // The server names the device from the User-Agent; sending a generic
+        // label here only overwrote it with something less useful.
         return {
           id: credential.id,
           rawId: bufferToB64(credential.rawId),
           type: credential.type,
-          deviceName: navigator.userAgent.includes('Mobile') ? 'جوال المستخدم' : 'جهاز المستخدم',
           response: {
             attestationObject: bufferToB64(credential.response.attestationObject),
             clientDataJSON: bufferToB64(credential.response.clientDataJSON),
@@ -1529,17 +1596,18 @@
         return data;
       }
 
+      const buttonLabel = button.querySelector('span');
+      const defaultLabel = buttonLabel ? buttonLabel.textContent : '';
+
       button.addEventListener('click', async function () {
         let options = null;
         try {
           button.disabled = true;
+          button.setAttribute('aria-busy', 'true');
+          if (buttonLabel) buttonLabel.textContent = 'في انتظار تأكيد الجهاز...';
           showStatus('سيطلب المتصفح بصمة الجهاز أو قفل الشاشة لإكمال التفعيل...', false);
-          if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
-            const authenticatorAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-            if (!authenticatorAvailable) {
-              throw new DOMException('User verification unavailable', 'NotSupportedError');
-            }
-          }
+          /* No platform-authenticator gate here: a security key over USB/NFC, or
+             a phone paired over QR, is a perfectly valid passkey too. */
           options = await postJSON(button.dataset.optionsUrl, {});
           const credential = await navigator.credentials.create({
             publicKey: prepareCreationOptions(options.publicKey),
@@ -1553,13 +1621,64 @@
           if (error && error.name === 'InvalidStateError' && hasKnownCredential) {
             showStatus(registrationErrorMessage(error, true), false);
             button.disabled = true;
-            const label = button.querySelector('span');
-            if (label) label.textContent = 'البصمة مفعّلة بالفعل';
+            if (buttonLabel) buttonLabel.textContent = 'البصمة مفعّلة بالفعل';
             return;
           }
           showStatus(registrationErrorMessage(error, hasKnownCredential), true);
+          button.disabled = false;
+          if (buttonLabel) buttonLabel.textContent = defaultLabel;
         } finally {
-          if (button.textContent.indexOf('مفعّلة بالفعل') === -1) button.disabled = false;
+          button.setAttribute('aria-busy', 'false');
+        }
+      });
+    })();
+  </script>
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    /* Revoking a device is deliberately independent of the WebAuthn code above:
+       it must keep working on a browser that cannot create passkeys at all. */
+    (function () {
+      const list = document.getElementById('passkeyDeviceList');
+      const statusBox = document.getElementById('profilePasskeyStatus');
+      const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (!list) return;
+
+      function showStatus(text, isError) {
+        if (!statusBox) return;
+        statusBox.textContent = text;
+        statusBox.classList.toggle('is-error', !!isError);
+        statusBox.style.display = text ? 'block' : 'none';
+      }
+
+      list.addEventListener('click', async function (event) {
+        const trigger = event.target.closest('[data-passkey-remove]');
+        if (!trigger) return;
+
+        const device = trigger.dataset.device || 'هذا الجهاز';
+        if (!window.confirm('إلغاء الدخول بالبصمة من «' + device + '»؟ لن يستطيع هذا الجهاز الدخول لحسابك بعدها.')) return;
+
+        trigger.disabled = true;
+        try {
+          const response = await fetch(trigger.dataset.url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfInput ? csrfInput.value : '',
+            },
+            body: '{}',
+          });
+          const data = await response.json();
+          if (!response.ok || !data.ok) throw new Error(data.message || 'تعذر إلغاء الجهاز.');
+
+          const row = trigger.closest('[data-passkey-row]');
+          if (row) row.remove();
+          showStatus(data.message || 'تم إلغاء الجهاز.', false);
+          // The panel's wording and button label depend on whether any device
+          // is left, so reload once the last one is gone.
+          if (!data.remaining) setTimeout(() => window.location.reload(), 900);
+        } catch (error) {
+          showStatus(error && error.message ? error.message : 'تعذر إلغاء الجهاز.', true);
+          trigger.disabled = false;
         }
       });
     })();

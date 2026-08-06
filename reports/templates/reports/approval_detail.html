@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% load hijri_tags %}
+
+{% block title %}{{ report.title }} | المراجعة والاعتماد{% endblock %}
+
+{% block head %}
+{% include "reports/_approval_theme.html" %}
+<style>
+  .det-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; }
+  @media (max-width: 900px) { .det-grid { grid-template-columns: 1fr; } }
+
+  .det-meta { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .det-meta__item { font-size: .82rem; }
+  .det-meta__label { color: var(--apr-muted); font-weight: 700; font-size: .74rem; }
+  .det-meta__value { font-weight: 800; margin-top: .12rem; }
+
+  .det-section { margin-top: 1rem; }
+  .det-section__name {
+    font-size: .76rem; font-weight: 900; color: var(--apr-green);
+    padding-bottom: .3rem; border-bottom: 1px solid var(--apr-line); margin-bottom: .5rem;
+  }
+  .det-section__body { font-size: .87rem; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  .det-note {
+    margin-top: 1rem; padding: .8rem .95rem; border-radius: 12px;
+    background: var(--apr-soft); border-inline-start: 3px solid var(--apr-gold);
+    font-size: .85rem; line-height: 1.85; white-space: pre-wrap;
+  }
+  .det-note__label { font-size: .74rem; font-weight: 900; color: var(--apr-gold); display: block; margin-bottom: .2rem; }
+
+  /* ── لوحة الإجراءات ───────────────────────────────────────── */
+  .det-actions { display: grid; gap: .5rem; }
+  .det-actions__row { display: flex; gap: .45rem; flex-wrap: wrap; }
+  .det-note-field {
+    width: 100%; min-height: 92px; padding: .6rem .75rem; border-radius: 11px;
+    border: 1px solid var(--apr-line); background: var(--apr-surface);
+    color: var(--apr-ink); font-family: inherit; font-size: .86rem; line-height: 1.8;
+    resize: vertical;
+  }
+  .det-note-field:focus { outline: 2px solid var(--apr-green); outline-offset: 1px; }
+
+  /* ── الخط الزمني ──────────────────────────────────────────── */
+  .det-timeline { list-style: none; margin: .6rem 0 0; padding: 0; padding-inline-start: 1.85rem; position: relative; }
+  .det-timeline::before {
+    content: ""; position: absolute; inset-block: .7rem; inset-inline-start: .8rem;
+    width: 2px; background: var(--apr-line); border-radius: 2px;
+  }
+  .det-step { position: relative; padding-bottom: .95rem; }
+  .det-step__dot {
+    position: absolute; inset-inline-start: -1.85rem; inset-block-start: .1rem;
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; font-size: .66rem;
+    background: var(--apr-soft); color: var(--apr-green);
+    border: 2px solid var(--apr-surface); box-shadow: 0 0 0 1px var(--apr-line);
+  }
+  .det-step[data-action="return"] .det-step__dot,
+  .det-step[data-action="request_info"] .det-step__dot { color: var(--apr-gold); }
+  .det-step[data-action="recommend"] .det-step__dot { color: var(--apr-violet); }
+  .det-step__head { font-size: .85rem; font-weight: 800; display: flex; gap: .4rem; align-items: baseline; flex-wrap: wrap; }
+  .det-step__who { font-size: .77rem; color: var(--apr-muted); margin-top: .15rem; }
+  .det-step__note { font-size: .82rem; line-height: 1.8; margin-top: .35rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .det-proxy {
+    font-size: .68rem; font-weight: 800; padding: .08rem .45rem; border-radius: 999px;
+    color: var(--apr-violet); border: 1px solid currentColor;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="apr-page">
+
+  <header class="apr-hero">
+    <a class="apr-hero__eyebrow" href="{% url 'reports:approval_inbox' %}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      صندوق المراجعة
+    </a>
+    <h1 class="apr-hero__title">{{ report.title }}</h1>
+    <p class="apr-hero__meta">
+      {{ report.teacher_display_name }}
+      {% if report.category %} · {{ report.category.name }}{% endif %}
+    </p>
+  </header>
+
+  <div class="det-grid">
+
+    {# ═══ العمود الأول: التقرير ═════════════════════════════ #}
+    <div>
+      <section class="apr-card">
+        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
+          <h2 class="apr-card__title" style="margin:0">تفاصيل التقرير</h2>
+          <span class="apr-state" data-tone="{{ report.approval_tone }}">
+            {{ report.get_approval_state_display }}
+          </span>
+        </div>
+
+        <div class="det-meta">
+          <div class="det-meta__item">
+            {# التاريخ هجري في كل شاشة — يحرسه اختبار في المشروع، والمعلّم
+               يجب أن يرى تاريخ تقريره نفسه هنا وفي «تقاريري». #}
+            <div class="det-meta__label">التاريخ</div>
+            <div class="det-meta__value">{{ report.report_date|hijri }}</div>
+          </div>
+          <div class="det-meta__item">
+            <div class="det-meta__label">السنة الدراسية</div>
+            <div class="det-meta__value">{{ report.academic_year|default:"—" }}</div>
+          </div>
+          {% if report.submitted_at %}
+            <div class="det-meta__item">
+              <div class="det-meta__label">أُرسل للمراجعة</div>
+              <div class="det-meta__value">{{ report.submitted_at|date:"Y-m-d H:i" }}</div>
+            </div>
+          {% endif %}
+          {% if report.decided_by %}
+            <div class="det-meta__item">
+              <div class="det-meta__label">اعتمده</div>
+              <div class="det-meta__value">{{ report.decided_by.name }}</div>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if report.idea %}
+          <div class="det-section">
+            <div class="det-section__name">الوصف</div>
+            <div class="det-section__body">{{ report.idea }}</div>
+          </div>
+        {% endif %}
+        {% if report.goal %}
+          <div class="det-section">
+            <div class="det-section__name">الهدف</div>
+            <div class="det-section__body">{{ report.goal }}</div>
+          </div>
+        {% endif %}
+        {% if report.results %}
+          <div class="det-section">
+            <div class="det-section__name">النتائج</div>
+            <div class="det-section__body">{{ report.results }}</div>
+          </div>
+        {% endif %}
+        {% if report.recommendations %}
+          <div class="det-section">
+            <div class="det-section__name">التوصيات</div>
+            <div class="det-section__body">{{ report.recommendations }}</div>
+          </div>
+        {% endif %}
+
+        {% if report.review_note %}
+          <div class="det-note">
+            <span class="det-note__label">آخر ملاحظة</span>
+            {{ report.review_note }}
+          </div>
+        {% endif %}
+      </section>
+
+      {# ═══ تاريخ الاعتماد ═════════════════════════════════ #}
+      <section class="apr-card">
+        <h2 class="apr-card__title">تاريخ الاعتماد</h2>
+        <p class="apr-card__hint">
+          كل خطوة بمن نفّذها ووقتها وملاحظتها. لا يُعدَّل سطر منه بعد كتابته.
+        </p>
+
+        {% if timeline %}
+          <ul class="det-timeline">
+            {% for step in timeline %}
+              <li class="det-step" data-action="{{ step.action }}">
+                <span class="det-step__dot" aria-hidden="true">
+                  {% if step.action == 'approve' %}<i class="fa-solid fa-check"></i>
+                  {% elif step.action == 'recommend' %}<i class="fa-solid fa-thumbs-up"></i>
+                  {% elif step.action == 'return' %}<i class="fa-solid fa-rotate-left"></i>
+                  {% elif step.action == 'request_info' %}<i class="fa-solid fa-circle-question"></i>
+                  {% elif step.action == 'submit' %}<i class="fa-solid fa-paper-plane"></i>
+                  {% elif step.action == 'withdraw' %}<i class="fa-solid fa-arrow-turn-down"></i>
+                  {% else %}<i class="fa-solid fa-eye"></i>{% endif %}
+                </span>
+                <div class="det-step__head">
+                  <span>{{ step.get_action_display }}</span>
+                  {% if step.by_proxy %}
+                    <span class="det-proxy">
+                      بالنيابة عن {{ step.on_behalf_of.name|default:"المدير" }}
+                    </span>
+                  {% endif %}
+                </div>
+                <div class="det-step__who">
+                  {{ step.actor_display }}
+                  {% if step.actor_role %} · {{ step.actor_role }}{% endif %}
+                  · {{ step.created_at|date:"Y-m-d H:i" }}
+                </div>
+                {% if step.note %}
+                  <div class="det-step__note">{{ step.note }}</div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="apr-card__hint" style="margin:0">
+            لم تبدأ دورة الاعتماد بعد. ستظهر الخطوات هنا فور إرسال التقرير للمراجعة.
+          </p>
+        {% endif %}
+      </section>
+    </div>
+
+    {# ═══ العمود الثاني: الإجراءات ══════════════════════════ #}
+    <div>
+      <section class="apr-card" style="margin-top:0">
+        <h2 class="apr-card__title">
+          {% if is_owner %}إجراءاتك على تقريرك{% else %}قرارك{% endif %}
+        </h2>
+        <p class="apr-card__hint">
+          {% if is_owner %}
+            هذا تقريرك — تستطيع إرساله وسحبه، ولا تستطيع اعتماده بنفسك.
+          {% else %}
+            الإعادة وطلب الاستكمال يستلزمان ملاحظة: قرارٌ بلا سبب يُرجع صاحبه حائراً.
+          {% endif %}
+        </p>
+
+        {% if actions %}
+          <form method="post" action="{% url 'reports:approval_action' report.pk %}" class="det-actions">
+            {% csrf_token %}
+            <input type="hidden" name="approval_action" id="approvalAction" value="">
+
+            {% if not is_owner %}
+              <textarea name="note" class="det-note-field"
+                        placeholder="ملاحظتك على هذا العمل…"></textarea>
+            {% endif %}
+
+            <div class="det-actions__row">
+              {% if 'submit' in actions %}
+                <button type="submit" class="apr-btn apr-btn--primary" data-approval="submit">
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                  إرسال للمراجعة
+                </button>
+              {% endif %}
+              {% if 'withdraw' in actions %}
+                <button type="submit" class="apr-btn apr-btn--ghost" data-approval="withdraw">
+                  <i class="fa-solid fa-arrow-turn-down" aria-hidden="true"></i>
+                  سحب للتعديل
+                </button>
+              {% endif %}
+              {% if 'start_review' in actions %}
+                <button type="submit" class="apr-btn apr-btn--ghost" data-approval="start_review">
+                  <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                  بدء المراجعة
+                </button>
+              {% endif %}
+              {% if 'recommend' in actions %}
+                <button type="submit" class="apr-btn apr-btn--violet" data-approval="recommend">
+                  <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
+                  توصية بالاعتماد
+                </button>
+              {% endif %}
+              {% if 'request_info' in actions %}
+                <button type="submit" class="apr-btn apr-btn--warn" data-approval="request_info">
+                  <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+                  طلب استكمال
+                </button>
+              {% endif %}
+              {% if 'return' in actions %}
+                <button type="submit" class="apr-btn apr-btn--warn" data-approval="return">
+                  <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                  إعادة للملاحظة
+                </button>
+              {% endif %}
+              {% if 'approve' in actions %}
+                <button type="submit" class="apr-btn apr-btn--primary" data-approval="approve">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  اعتماد نهائي
+                </button>
+              {% endif %}
+            </div>
+          </form>
+
+          <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+            /* زر واحد لكل إجراء، وحقل مخفي واحد يحمل أيّها ضُغط.
+               البديل — نموذج لكل زر — يكرّر حقل الملاحظة فيفقد المستخدم ما كتبه
+               عند اختيار إجراء آخر. */
+            (function () {
+              var form = document.querySelector('.det-actions');
+              if (!form) return;
+              var field = form.querySelector('#approvalAction');
+              form.querySelectorAll('[data-approval]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                  field.value = button.getAttribute('data-approval');
+                });
+              });
+            })();
+          </script>
+        {% else %}
+          <p class="apr-card__hint" style="margin:0">
+            {% if report.is_final %}
+              هذا التقرير معتمد. لا يُعدَّل ولا يُحذف بعد اعتماده.
+            {% else %}
+              لا توجد إجراءات متاحة لك على هذا التقرير في حالته الحالية.
+            {% endif %}
+          </p>
+        {% endif %}
+      </section>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,11 +1,11 @@
 .flex-pricing-shell {
-  --flex-ink: #0f3025;
-  --flex-muted: #62736b;
-  --flex-green: #087443;
-  --flex-green-deep: #043c27;
-  --flex-gold: #c7a15a;
+  --flex-ink: #0f2a21;
+  --flex-muted: #5d716a;
+  --flex-green: #0f7a56;
+  --flex-green-deep: #0d4a35;
+  --flex-mint: #5bc6a0;
   --flex-surface: #ffffff;
-  --flex-soft: #f2f7f4;
+  --flex-soft: #f2faf6;
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(290px, .92fr);
@@ -17,9 +17,9 @@
   border-radius: 24px;
   color: var(--flex-ink);
   background:
-    radial-gradient(circle at 0 0, rgba(199, 161, 90, .15), transparent 28%),
-    linear-gradient(135deg, #fff, #f7faf8);
-  box-shadow: 0 22px 55px rgba(4, 60, 39, .09);
+    radial-gradient(circle at 0 0, rgba(91, 198, 160, .2), transparent 28%),
+    linear-gradient(135deg, #fff, #f5fcf9);
+  box-shadow: 0 22px 55px rgba(13, 74, 53, .08);
 }
 .flex-pricing-shell::after {
   content: "";
@@ -87,36 +87,41 @@
   flex-direction: column;
   justify-content: center;
   padding: clamp(20px, 3vw, 30px);
-  border: 1px solid rgba(255, 255, 255, .12);
+  border: 1px solid rgba(91, 198, 160, .4);
   border-radius: 19px;
-  color: #fff;
+  color: var(--flex-ink);
   background:
-    radial-gradient(circle at 10% 0, rgba(199, 161, 90, .3), transparent 34%),
-    linear-gradient(145deg, #073f2b, #052b20);
-  box-shadow: 0 16px 36px rgba(4, 44, 31, .18);
+    radial-gradient(circle at 10% 0, rgba(91, 198, 160, .3), transparent 40%),
+    linear-gradient(145deg, #e8f9f1, #f7fdfa);
+  box-shadow: 0 16px 34px rgba(13, 74, 53, .09);
 }
-.flex-result-label { color: rgba(255, 255, 255, .62); font-size: .72rem; font-weight: 800; }
+.flex-result-label { color: var(--flex-muted); font-size: .72rem; font-weight: 800; }
 .flex-result-capacity { margin-top: 5px; font-size: 1.05rem; font-weight: 950; }
 .flex-result-price { display: flex; align-items: baseline; gap: 8px; margin: 14px 0 4px; }
-.flex-result-price strong { color: #f3d79d; font-size: clamp(2.2rem, 5vw, 3.35rem); line-height: 1; font-weight: 950; letter-spacing: -.04em; }
-.flex-result-price span { color: rgba(255, 255, 255, .68); font-size: .73rem; font-weight: 800; }
-.flex-result-monthly { color: rgba(255, 255, 255, .72); font-size: .72rem; }
+.flex-result-price strong { color: var(--flex-green); font-size: clamp(2.2rem, 5vw, 3.35rem); line-height: 1; font-weight: 950; letter-spacing: -.04em; }
+.flex-result-price span { color: var(--flex-muted); font-size: .73rem; font-weight: 800; }
+.flex-result-monthly { color: var(--flex-muted); font-size: .72rem; }
 .flex-result-proof {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 18px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, .12);
+  border-top: 1px solid rgba(15, 122, 86, .18);
 }
-.flex-result-proof div { padding: 9px; border-radius: 10px; background: rgba(255, 255, 255, .06); }
+.flex-result-proof div { padding: 9px; border-radius: 10px; background: rgba(255, 255, 255, .78); }
 .flex-result-proof small,
 .flex-result-proof strong { display: block; }
-.flex-result-proof small { color: rgba(255, 255, 255, .55); font-size: .62rem; }
-.flex-result-proof strong { margin-top: 2px; color: #fff; font-size: .8rem; }
-.flex-result-status { display: flex; gap: 7px; align-items: flex-start; margin: 14px 0 0; color: #d8eee3; font-size: .69rem; font-weight: 800; line-height: 1.65; }
-.flex-result-status i { margin-top: 3px; color: #f3d79d; }
-.flex-pricing-shell.is-over-limit .flex-pricing-result { background: linear-gradient(145deg, #4a3721, #2f261b); }
+.flex-result-proof small { color: var(--flex-muted); font-size: .62rem; }
+.flex-result-proof strong { margin-top: 2px; color: var(--flex-ink); font-size: .8rem; }
+.flex-result-status { display: flex; gap: 7px; align-items: flex-start; margin: 14px 0 0; color: var(--flex-green-deep); font-size: .69rem; font-weight: 800; line-height: 1.65; }
+.flex-result-status i { margin-top: 3px; color: var(--flex-green); }
+/* Over the top capacity the panel warns instead of quoting: a warm amber tint
+   reads as "needs attention" without going dark. */
+.flex-pricing-shell.is-over-limit .flex-pricing-result { border-color: rgba(180, 120, 20, .4); background: linear-gradient(145deg, #fdf3e0, #fffaf2); }
+.flex-pricing-shell.is-over-limit .flex-result-price strong,
+.flex-pricing-shell.is-over-limit .flex-result-status { color: #8a5a08; }
+.flex-pricing-shell.is-over-limit .flex-result-status i { color: #b4780f; }
 
 @media (max-width: 760px) {
   .flex-pricing-shell { grid-template-columns: 1fr; border-radius: 19px; }
@@ -132,6 +137,18 @@ html[data-theme="dark"] .flex-pricing-shell {
   border-color: rgba(93, 196, 140, .2);
 }
 html[data-theme="dark"] .flex-count-control button:hover { background: #183b2b; }
+html[data-theme="dark"] .flex-pricing-result {
+  color: #edf8f2;
+  border-color: rgba(93, 196, 140, .26);
+  background: linear-gradient(145deg, #12291f, #0d2019);
+}
+html[data-theme="dark"] .flex-result-price strong { color: #6fd3ac; }
+html[data-theme="dark"] .flex-result-proof div { background: rgba(205, 225, 216, .07); }
+html[data-theme="dark"] .flex-result-proof strong { color: #edf8f2; }
+html[data-theme="dark"] .flex-result-status { color: #b6cdc3; }
+html[data-theme="dark"] .flex-pricing-shell.is-over-limit .flex-pricing-result { border-color: rgba(212, 177, 109, .34); background: linear-gradient(145deg, #2c2418, #201b12); }
+html[data-theme="dark"] .flex-pricing-shell.is-over-limit .flex-result-price strong,
+html[data-theme="dark"] .flex-pricing-shell.is-over-limit .flex-result-status { color: #e8c98a; }
 
 /* ── What the subscription includes (shown before payment) ───────── */
 .sub-includes {

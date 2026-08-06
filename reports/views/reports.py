@@ -172,6 +172,17 @@ def add_report(request: HttpRequest) -> HttpResponse:
             if hasattr(report, "teacher_name"):
                 report.teacher_name = teacher_name_final
 
+            # دورة الاعتماد اختيار واعٍ لكل مدرسة. مدرسة لم تفعّلها يبقى تقريرها
+            # نهائياً بمجرد حفظه كما كان — فترقية المنصة لا يجوز أن تُخفي عمل كل
+            # معلّم خلف موافقة لم يطلبها أحد.
+            from ..model_parts.approvals import ApprovalState
+
+            if getattr(active_school, "report_approval_enabled", False):
+                report.approval_state = ApprovalState.DRAFT
+            else:
+                report.approval_state = ApprovalState.APPROVED
+                report.decided_at = timezone.now()
+
             report.save()
             if leadership_section is not None:
                 LeadershipEvidenceReport.objects.get_or_create(
@@ -600,7 +611,7 @@ def school_archive(request: HttpRequest) -> HttpResponse:
     teacher_options = (
         Teacher.objects.filter(
             school_memberships__school=active_school,
-            school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
+            school_memberships__role_type__in=SchoolMembership.STAFF_ROLES,
             school_memberships__is_active=True,
         )
         .distinct()

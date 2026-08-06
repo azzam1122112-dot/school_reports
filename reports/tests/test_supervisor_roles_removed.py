@@ -83,11 +83,47 @@ class SupervisorRolesFullyRemovedTests(TestCase):
             "المشروع يجب أن يخلو من أي أثر للدورين المحذوفين:\n" + "\n".join(offenders),
         )
 
-    def test_school_membership_offers_only_teacher_and_manager(self):
+    def test_school_membership_offers_no_removed_supervisor_role(self):
+        """الأدوار المحذوفة لا تعود — والقائمة تتوسّع بأدوار مقصودة.
+
+        كان هذا الاختبار يجمّد القائمة على ``["teacher", "manager"]``، فحرس
+        المقصد ومنع النمو معاً. والغرض من حذف الدورين السابقين لم يكن تجميد
+        عدد الأدوار بل منع عودة **دورٍ بلا نطاق**؛ فالأدوار المضافة بعده
+        (وكيل، موظف إداري) عضوياتٌ مُنطَقة بمدرسة بعينها، وهي عين ما كان
+        ينقص المحذوفين.
+
+        فيحرس الاختبار الآن أمرين: ألا يعود اسمٌ محذوف، وأن تبقى القائمة هي
+        المجموعة المقصودة — فأي إضافة جديدة تمر من هنا بقرار لا سهواً.
+        """
+        values = [value for value, _label in SchoolMembership.RoleType.choices]
+
+        for removed in ("report_viewer", "platform_admin", "supervisor"):
+            self.assertNotIn(removed, values)
+
         self.assertEqual(
-            [value for value, _label in SchoolMembership.RoleType.choices],
-            ["teacher", "manager"],
+            sorted(values),
+            sorted(["teacher", "manager", "deputy", "admin_staff"]),
         )
+
+    def test_every_role_is_scoped_to_a_school(self):
+        """لا دور يُقرأ من عَلَم على الحساب — كلها عضويات في مدرسة.
+
+        هذا هو الدرس المستخلص من حذف الدورين السابقين، وهو ما يجب أن يُحرَس
+        فعلاً: أي حقل منطقي على ``Teacher`` يمنح صلاحية إدارية يُعيد المشكلة.
+        """
+        boolean_flags = {
+            field.name
+            for field in Teacher._meta.get_fields()
+            if getattr(field, "get_internal_type", lambda: "")() == "BooleanField"
+        }
+        # ما يجوز بقاؤه: أعلام Django القياسية وحالة الحساب.
+        allowed = {"is_active", "is_staff", "is_superuser", "must_change_password"}
+        suspicious = {
+            name
+            for name in boolean_flags - allowed
+            if any(token in name for token in ("admin", "supervisor", "viewer", "manager"))
+        }
+        self.assertEqual(suspicious, set(), f"أعلام صلاحية على الحساب: {sorted(suspicious)}")
 
     def test_teacher_model_has_no_platform_admin_flag(self):
         field_names = {field.name for field in Teacher._meta.get_fields()}

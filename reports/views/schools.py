@@ -159,7 +159,7 @@ def _build_school_dashboard_payload(active_school: Optional[School], period: str
         teachers_qs = teachers_qs.filter(
             school_memberships__school=active_school,
             school_memberships__is_active=True,
-            school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
+            school_memberships__role_type__in=SchoolMembership.STAFF_ROLES,
         ).distinct()
 
     reports_qs = _filter_by_school(Report.objects.all(), active_school)
@@ -496,6 +496,9 @@ class _SchoolSettingsForm(forms.ModelForm):
             "email",
             "current_academic_year",
             "share_link_default_days",
+            # مفتاح دورة الاعتماد. مطفأ افتراضياً، فالمدرسة تتبنّاها عن قصد لا
+            # بترقية تفاجئها — والميزة التي لا يمكن تشغيلها لا وجود لها.
+            "report_approval_enabled",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -1292,18 +1295,44 @@ def admin_dashboard_data(request: HttpRequest) -> HttpResponse:
     return JsonResponse(payload, json_dumps_params={"ensure_ascii": False})
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff, login_url="reports:login")
-@role_required({"manager"})
 @require_http_methods(["GET"])
 def school_audit_logs(request: HttpRequest) -> HttpResponse:
-    """عرض سجل العمليات الخاص بالمدرسة للمدير."""
+    """سجل العمليات — للمدير على مدرسته، وللوكيل في نطاق إشرافه.
+
+    **النطاق يضيق بضيق الصلاحية.** المدير يرى كل ما جرى في مدرسته، والوكيل
+    الذي مُنح ``view_audit_log`` يرى إجراءات من يشرف عليهم في أقسامه وحدهم —
+    وهو بند صريح في توصيفه: «الاطلاع على سجل الإجراءات في نطاق اختصاصه».
+
+    ونطاقٌ بلا أقسام يعني سجلاً فارغاً لا سجلاً كاملاً، على نفس القاعدة
+    المطبَّقة في كل نطاقات هذا المشروع.
+    """
+    from ..capabilities import VIEW_AUDIT_LOG
+    from ..permissions import capability_source, supervised_department_ids
+
     active_school = _get_active_school(request)
     if active_school is None:
         return redirect("reports:select_school")
-    
-    if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
-        messages.error(request, "ليست لديك صلاحية كمدير على هذه المدرسة.")
-        return redirect("reports:select_school")
+
+    is_manager = request.user.is_superuser or active_school in _user_manager_schools(request.user)
+    may_view_scoped = (
+        not is_manager
+        and capability_source(request.user, VIEW_AUDIT_LOG, active_school) is not None
+    )
+    if not (is_manager or may_view_scoped):
+        messages.error(request, "لا تملك صلاحية الاطلاع على سجل الإجراءات.")
+        return redirect("reports:home")
+
+    # معرّفات من يقعون في نطاق الوكيل — تُحسب مرة وتُستعمل في التصفية.
+    scoped_actor_ids = None
+    if may_view_scoped:
+        supervised = supervised_department_ids(request.user, active_school)
+        scoped_actor_ids = set(
+            DepartmentMembership.objects.filter(
+                department_id__in=supervised
+            ).values_list("teacher_id", flat=True)
+        ) if supervised else set()
+        # الوكيل يرى إجراءاته أيضاً — فهو من نطاق نفسه.
+        scoped_actor_ids.add(request.user.pk)
 
     # ملاحظة: في بعض بيئات النشر قد لا تكون ترحيلات AuditLog مطبّقة بعد.
     # بدلاً من 500، نظهر الصفحة مع تنبيه واضح.
@@ -1316,6 +1345,9 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
     logs_qs = None
     try:
         logs_qs = AuditLog.objects.filter(school=active_school).select_related("teacher")
+        if scoped_actor_ids is not None:
+            # التصفية الأمنية على الاستعلام الأساس، قبل أي مرشّح من الطلب.
+            logs_qs = logs_qs.filter(teacher_id__in=scoped_actor_ids)
     except (OperationalError, ProgrammingError):
         messages.error(
             request,
@@ -1351,6 +1383,12 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
         # لا نستخدم QuerySet هنا حتى لا نلمس قاعدة البيانات.
         logs = Paginator([], 50).get_page(1)
 
+    # ترجمة أسماء الموديلات إلى العربية — نفس الوحدة التي تخدم «سجل أعمالي»،
+    # فلا تفترق تسمية الشيء الواحد بين شاشتين.
+    from ..audit_labels import attach_views as _attach_audit_views
+
+    _attach_audit_views(logs)
+
     # قائمة المعلمين في المدرسة للتصفية
     try:
         teachers = Teacher.objects.filter(
@@ -1380,6 +1418,7 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
         "q_start": start_date.isoformat() if start_date else "",
         "q_end": end_date.isoformat() if end_date else "",
         "qs": params.urlencode(),
+        "is_scoped_view": scoped_actor_ids is not None,
     }
     return render(request, "reports/audit_logs.html", ctx)
 

@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block title %}{{ assignment.title }} | التكليفات{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .dtl-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+  @media (max-width: 900px) { .dtl-grid { grid-template-columns: 1fr; } }
+
+  .dtl-meta { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .dtl-meta__l { font-size: .73rem; color: var(--asg-muted); font-weight: 700; }
+  .dtl-meta__v { font-size: .86rem; font-weight: 800; margin-top: .12rem; }
+
+  .dtl-body { font-size: .88rem; line-height: 1.95; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 1rem; }
+
+  .dtl-alert {
+    margin-top: 1rem; padding: .75rem .9rem; border-radius: 12px;
+    font-size: .84rem; line-height: 1.85; background: var(--asg-soft);
+    border-inline-start: 3px solid var(--asg-gold); white-space: pre-wrap;
+  }
+  .dtl-alert--late { border-inline-start-color: var(--asg-danger); }
+  .dtl-alert__l { font-size: .73rem; font-weight: 900; display: block; margin-bottom: .2rem; color: var(--asg-gold); }
+  .dtl-alert--late .dtl-alert__l { color: var(--asg-danger); }
+
+  .dtl-ev { display: grid; gap: .45rem; margin-top: .8rem; }
+  .dtl-ev__row {
+    display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+    padding: .55rem .75rem; border-radius: 11px;
+    border: 1px solid var(--asg-line); background: var(--asg-surface);
+  }
+  .dtl-ev__name { flex: 1; min-width: 140px; font-size: .84rem; font-weight: 700; }
+  .dtl-ev__name a { color: inherit; }
+  .dtl-ev__sub { font-size: .74rem; color: var(--asg-muted); }
+
+  .dtl-timeline { list-style: none; margin: .6rem 0 0; padding: 0; padding-inline-start: 1.85rem; position: relative; }
+  .dtl-timeline::before {
+    content: ""; position: absolute; inset-block: .7rem; inset-inline-start: .8rem;
+    width: 2px; background: var(--asg-line); border-radius: 2px;
+  }
+  .dtl-step { position: relative; padding-bottom: .9rem; }
+  .dtl-step__dot {
+    position: absolute; inset-inline-start: -1.85rem; inset-block-start: .1rem;
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; font-size: .65rem;
+    background: var(--asg-soft); color: var(--asg-green);
+    border: 2px solid var(--asg-surface); box-shadow: 0 0 0 1px var(--asg-line);
+  }
+  .dtl-step[data-action="return"] .dtl-step__dot,
+  .dtl-step[data-action="request_info"] .dtl-step__dot { color: var(--asg-gold); }
+  .dtl-step__head { font-size: .84rem; font-weight: 800; }
+  .dtl-step__who { font-size: .75rem; color: var(--asg-muted); margin-top: .12rem; }
+  .dtl-step__note { font-size: .81rem; line-height: 1.8; margin-top: .3rem; white-space: pre-wrap; }
+  .dtl-proxy {
+    font-size: .67rem; font-weight: 800; padding: .06rem .42rem; border-radius: 999px;
+    color: var(--asg-violet); border: 1px solid currentColor; margin-inline-start: .35rem;
+  }
+
+  .dtl-actions { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .8rem; }
+  .dtl-note { width: 100%; min-height: 84px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <a class="asg-hero__eyebrow"
+       href="{% if is_assignee %}{% url 'reports:my_assignments' %}{% else %}{% url 'reports:assignment_board' %}{% endif %}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      {% if is_assignee %}تكليفاتي{% else %}لوحة التكليفات{% endif %}
+    </a>
+    <h1 class="asg-hero__title">{{ assignment.title }}</h1>
+    <p class="asg-hero__meta">
+      المكلَّف: {{ target.assignee.name }} · من {{ assignment.issuer_name|default:"—" }}
+    </p>
+  </header>
+
+  <div class="dtl-grid">
+
+    {# ═══ العمود الأول ═══════════════════════════════════ #}
+    <div>
+      <section class="asg-card" style="margin-top:1.2rem">
+        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
+          <h2 class="asg-card__title" style="margin:0">تفاصيل التكليف</h2>
+          <span class="asg-tag">{{ target.get_approval_state_display }}</span>
+          {% if target.is_overdue %}
+            <span class="asg-tag asg-tag--late">متأخر</span>
+          {% endif %}
+          {% if assignment.is_cancelled %}
+            <span class="asg-tag asg-tag--late">ملغى</span>
+          {% endif %}
+        </div>
+
+        <div class="dtl-meta">
+          <div>
+            <div class="dtl-meta__l">موعد التسليم</div>
+            <div class="dtl-meta__v">{{ assignment.due_at|date:"Y-m-d H:i" }}</div>
+          </div>
+          <div>
+            <div class="dtl-meta__l">نسبة الإنجاز</div>
+            <div class="dtl-meta__v">{{ target.progress_percent }}%</div>
+          </div>
+          <div>
+            <div class="dtl-meta__l">القسم</div>
+            <div class="dtl-meta__v">{{ assignment.department.name|default:"—" }}</div>
+          </div>
+          <div>
+            <div class="dtl-meta__l">القبول</div>
+            <div class="dtl-meta__v">
+              {% if target.accepted_at %}{{ target.accepted_at|date:"Y-m-d" }}{% else %}لم يُقبل بعد{% endif %}
+            </div>
+          </div>
+        </div>
+
+        {% if assignment.description %}
+          <div class="dtl-body">{{ assignment.description }}</div>
+        {% endif %}
+
+        {% if assignment.requires_evidence %}
+          <div class="dtl-alert {% if shortfall %}dtl-alert--late{% endif %}">
+            <span class="dtl-alert__l">شرط الشواهد</span>
+            {% if shortfall %}
+              هذا التكليف يتطلب {{ assignment.min_evidence_count }} شاهداً على الأقل —
+              ينقص {{ shortfall }}. لن يُقبل الإرسال للمراجعة قبل استيفائها.
+            {% else %}
+              استُوفي شرط الشواهد ({{ evidence|length }} من {{ assignment.min_evidence_count }}).
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if target.clarification_note %}
+          <div class="dtl-alert">
+            <span class="dtl-alert__l">طلب توضيح من المكلَّف</span>
+            {{ target.clarification_note }}
+          </div>
+        {% endif %}
+
+        {% if target.review_note %}
+          <div class="dtl-alert">
+            <span class="dtl-alert__l">آخر ملاحظة من المراجع</span>
+            {{ target.review_note }}
+          </div>
+        {% endif %}
+
+        {% if target.progress_note %}
+          <div class="dtl-alert">
+            <span class="dtl-alert__l">ملاحظات التنفيذ</span>
+            {{ target.progress_note }}
+          </div>
+        {% endif %}
+      </section>
+
+      {# ═══ الشواهد ══════════════════════════════════════ #}
+      <section class="asg-card">
+        <h2 class="asg-card__title">الشواهد</h2>
+        <p class="asg-card__hint">
+          {% if is_assignee %}
+            ارفع ما يُثبت التنفيذ. بعد اعتماد تنفيذك لا يمكن حذف شاهد — فحذفه
+            يفرّغ الاعتماد من سنده.
+          {% else %}
+            ما رفعه المكلَّف إثباتاً للتنفيذ.
+          {% endif %}
+        </p>
+
+        {% if evidence %}
+          <div class="dtl-ev">
+            {% for item in evidence %}
+              <div class="dtl-ev__row">
+                <div class="dtl-ev__name">
+                  <a href="{{ item.file.url }}" target="_blank" rel="noopener">
+                    {{ item.note|default:"شاهد" }}
+                  </a>
+                  <div class="dtl-ev__sub">
+                    {{ item.uploaded_by.name|default:"—" }} · {{ item.created_at|date:"Y-m-d H:i" }}
+                  </div>
+                </div>
+                {% if is_assignee and not target.is_final %}
+                  <form method="post" action="{% url 'reports:assignment_target_action' target.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="target_action" value="remove_evidence">
+                    <input type="hidden" name="evidence_id" value="{{ item.pk }}">
+                    <button type="submit" class="asg-btn asg-btn--danger asg-btn--sm">حذف</button>
+                  </form>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="asg-card__hint" style="margin:0">لم تُرفع شواهد بعد.</p>
+        {% endif %}
+
+        {% if is_assignee and not target.is_final %}
+          <form method="post" enctype="multipart/form-data"
+                action="{% url 'reports:assignment_target_action' target.pk %}"
+                style="margin-top:1rem">
+            {% csrf_token %}
+            <input type="hidden" name="target_action" value="add_evidence">
+            <div class="asg-field">
+              <label for="{{ evidence_form.file.id_for_label }}">{{ evidence_form.file.label }}</label>
+              {{ evidence_form.file }}
+            </div>
+            <div class="asg-field">
+              <label for="{{ evidence_form.note.id_for_label }}">{{ evidence_form.note.label }}</label>
+              {{ evidence_form.note }}
+            </div>
+            <button type="submit" class="asg-btn asg-btn--ghost">
+              <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
+              رفع الشاهد
+            </button>
+          </form>
+        {% endif %}
+      </section>
+
+      {# ═══ سجل التنفيذ ══════════════════════════════════ #}
+      <section class="asg-card">
+        <h2 class="asg-card__title">سجل التنفيذ</h2>
+        {% if timeline %}
+          <ul class="dtl-timeline">
+            {% for step in timeline %}
+              <li class="dtl-step" data-action="{{ step.action }}">
+                <span class="dtl-step__dot" aria-hidden="true">
+                  {% if step.action == 'approve' %}<i class="fa-solid fa-check"></i>
+                  {% elif step.action == 'recommend' %}<i class="fa-solid fa-thumbs-up"></i>
+                  {% elif step.action == 'return' %}<i class="fa-solid fa-rotate-left"></i>
+                  {% elif step.action == 'request_info' %}<i class="fa-solid fa-circle-question"></i>
+                  {% elif step.action == 'submit' %}<i class="fa-solid fa-paper-plane"></i>
+                  {% else %}<i class="fa-solid fa-eye"></i>{% endif %}
+                </span>
+                <div class="dtl-step__head">
+                  {{ step.get_action_display }}
+                  {% if step.by_proxy %}
+                    <span class="dtl-proxy">بالنيابة عن {{ step.on_behalf_of.name|default:"المدير" }}</span>
+                  {% endif %}
+                </div>
+                <div class="dtl-step__who">
+                  {{ step.actor_display }}{% if step.actor_role %} · {{ step.actor_role }}{% endif %}
+                  · {{ step.created_at|date:"Y-m-d H:i" }}
+                </div>
+                {% if step.note %}<div class="dtl-step__note">{{ step.note }}</div>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="asg-card__hint" style="margin:0">لم تبدأ دورة المراجعة بعد.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    {# ═══ العمود الثاني ══════════════════════════════════ #}
+    <div>
+      {% if is_assignee and not target.is_final and not assignment.is_cancelled %}
+        <section class="asg-card" style="margin-top:1.2rem">
+          <h2 class="asg-card__title">تقدّمك</h2>
+          <p class="asg-card__hint">
+            النسبة تنزل كما تصعد — عملٌ ظُنّ منجزاً ثم تبيّن نقصه يجب أن يعود
+            رقمه إلى الحقيقة.
+          </p>
+
+          <form method="post" action="{% url 'reports:assignment_target_action' target.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="target_action" value="progress">
+            <div class="asg-field">
+              <label for="{{ progress_form.percent.id_for_label }}">{{ progress_form.percent.label }}</label>
+              {{ progress_form.percent }}
+            </div>
+            <div class="asg-field">
+              <label for="{{ progress_form.note.id_for_label }}">{{ progress_form.note.label }}</label>
+              {{ progress_form.note }}
+            </div>
+            <button type="submit" class="asg-btn asg-btn--primary">
+              <i class="fa-solid fa-arrow-up-right-dots" aria-hidden="true"></i>
+              تحديث الإنجاز
+            </button>
+          </form>
+
+          <div class="dtl-actions">
+            {% if not target.accepted_at %}
+              <form method="post" action="{% url 'reports:assignment_target_action' target.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="target_action" value="accept">
+                <button type="submit" class="asg-btn asg-btn--ghost">
+                  <i class="fa-solid fa-handshake" aria-hidden="true"></i>
+                  قبول التكليف
+                </button>
+              </form>
+            {% endif %}
+          </div>
+
+          <form method="post" action="{% url 'reports:assignment_target_action' target.pk %}" style="margin-top:1rem">
+            {% csrf_token %}
+            <input type="hidden" name="target_action" value="clarify">
+            <div class="asg-field">
+              <label for="clarifyNote">طلب توضيح</label>
+              <textarea id="clarifyNote" name="note" class="dtl-note"
+                        placeholder="ما الذي تحتاج بيانه قبل الشروع؟"></textarea>
+            </div>
+            <button type="submit" class="asg-btn asg-btn--ghost">
+              <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+              إرسال طلب التوضيح
+            </button>
+          </form>
+        </section>
+      {% endif %}
+
+      {# ═══ الاعتماد ═════════════════════════════════════ #}
+      <section class="asg-card" {% if not is_assignee %}style="margin-top:1.2rem"{% endif %}>
+        <h2 class="asg-card__title">
+          {% if is_assignee %}الإرسال للمراجعة{% else %}قرارك{% endif %}
+        </h2>
+
+        {% if actions %}
+          <form method="post" action="{% url 'reports:assignment_approval_action' target.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="approval_action" id="asgApprovalAction" value="">
+
+            {% if not is_assignee %}
+              <div class="asg-field">
+                <textarea name="note" class="dtl-note" placeholder="ملاحظتك على التنفيذ…"></textarea>
+              </div>
+            {% endif %}
+
+            <div class="dtl-actions" style="margin-top:0">
+              {% if 'submit' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-asg="submit">
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                  إرسال للمراجعة
+                </button>
+              {% endif %}
+              {% if 'withdraw' in actions %}
+                <button type="submit" class="asg-btn asg-btn--ghost" data-asg="withdraw">سحب للتعديل</button>
+              {% endif %}
+              {% if 'start_review' in actions %}
+                <button type="submit" class="asg-btn asg-btn--ghost" data-asg="start_review">بدء المراجعة</button>
+              {% endif %}
+              {% if 'recommend' in actions %}
+                <button type="submit" class="asg-btn asg-btn--violet" data-asg="recommend">توصية بالاعتماد</button>
+              {% endif %}
+              {% if 'request_info' in actions %}
+                <button type="submit" class="asg-btn asg-btn--warn" data-asg="request_info">طلب استكمال</button>
+              {% endif %}
+              {% if 'return' in actions %}
+                <button type="submit" class="asg-btn asg-btn--warn" data-asg="return">إعادة للملاحظة</button>
+              {% endif %}
+              {% if 'approve' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-asg="approve">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  اعتماد التنفيذ
+                </button>
+              {% endif %}
+            </div>
+          </form>
+
+          <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+            (function () {
+              var field = document.getElementById('asgApprovalAction');
+              if (!field) return;
+              document.querySelectorAll('[data-asg]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                  field.value = button.getAttribute('data-asg');
+                });
+              });
+            })();
+          </script>
+        {% else %}
+          <p class="asg-card__hint" style="margin:0">
+            {% if target.is_final %}
+              اعتُمد تنفيذ هذا التكليف. لا يُعدَّل بعد اعتماده.
+            {% elif shortfall %}
+              استوفِ شواهد التكليف أولاً ليصبح الإرسال للمراجعة متاحاً.
+            {% else %}
+              لا توجد إجراءات متاحة لك في الحالة الحالية.
+            {% endif %}
+          </p>
+        {% endif %}
+      </section>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

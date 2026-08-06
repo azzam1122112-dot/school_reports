@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}صندوق المراجعة والاعتماد | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_approval_theme.html" %}
+<style>
+  .inb-filters { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: 1.15rem; }
+  .inb-chip {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .8rem; font-weight: 800; text-decoration: none;
+    padding: .42rem .9rem; border-radius: 999px;
+    border: 1px solid var(--apr-line); color: var(--apr-muted);
+    background: var(--apr-surface);
+  }
+  .inb-chip.is-active { background: var(--apr-green); color: #fff; border-color: transparent; }
+  [data-theme="dark"] .inb-chip.is-active { color: #06251a; }
+  .inb-chip__n {
+    font-size: .72rem; font-weight: 900;
+    padding: .05rem .4rem; border-radius: 999px;
+    background: var(--apr-soft); color: var(--apr-green);
+  }
+  .inb-chip.is-active .inb-chip__n { background: rgba(255,255,255,.24); color: inherit; }
+
+  .inb-list { display: grid; gap: .6rem; margin-top: 1.15rem; }
+  .inb-item {
+    display: flex; gap: .85rem; align-items: center; flex-wrap: wrap;
+    padding: .85rem .95rem; border-radius: 14px;
+    border: 1px solid var(--apr-line); background: var(--apr-surface);
+    box-shadow: 0 8px 22px -22px rgba(16,35,26,.7);
+    transition: border-color .18s ease;
+  }
+  .inb-item:hover { border-color: var(--apr-green); }
+  .inb-item[data-tone="recommended"] { border-inline-start: 3px solid var(--apr-violet); }
+  .inb-item[data-tone="pending"] { border-inline-start: 3px solid var(--apr-info); }
+
+  .inb-item__main { flex: 1; min-width: 200px; }
+  .inb-item__title { font-size: .94rem; font-weight: 800; }
+  .inb-item__title a { color: inherit; text-decoration: none; }
+  .inb-item__title a:hover { text-decoration: underline; }
+  .inb-item__sub { font-size: .78rem; color: var(--apr-muted); margin-top: .22rem; line-height: 1.7; }
+  .inb-item__side { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+
+  @media (max-width: 640px) {
+    .apr-page { padding: .85rem; }
+    .apr-hero { padding: 1.35rem 1.15rem; border-radius: 16px; }
+    .apr-hero__title { font-size: 1.26rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="apr-page">
+
+  <header class="apr-hero">
+    <span class="apr-hero__eyebrow">
+      <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>
+      {% if is_manager %}اعتماد{% else %}مراجعة{% endif %}
+    </span>
+    <h1 class="apr-hero__title">صندوق المراجعة والاعتماد</h1>
+    <p class="apr-hero__meta">
+      {% if is_manager %}
+        كل ما ينتظر قرارك في {{ active_school.name }} — والاعتماد النهائي بيدك وحدك.
+      {% else %}
+        ما ينتظر مراجعتك ضمن نطاق إشرافك. توصيتك ترفع العمل للمدير ولا تعتمده.
+      {% endif %}
+    </p>
+    <p class="apr-hero__note">
+      لا يعتمد أحد عمله بنفسه — ولو كان مدير المدرسة. وما اعتُمد لا يُعدَّل ولا
+      يُحذف، فالاعتماد الذي يمكن محوه ليس اعتماداً.
+    </p>
+
+    <div class="inb-filters">
+      <a class="inb-chip {% if not state_filter %}is-active{% endif %}"
+         href="{% url 'reports:approval_inbox' %}">
+        الكل
+        <span class="inb-chip__n">{{ total }}</span>
+      </a>
+      {% for state, count in counts.items %}
+        {% if count %}
+          <a class="inb-chip {% if state_filter == state %}is-active{% endif %}"
+             href="?state={{ state }}">
+            {% if state == 'submitted' %}مُرسل للمراجعة
+            {% elif state == 'under_review' %}قيد المراجعة
+            {% elif state == 'recommended' %}موصى باعتماده
+            {% else %}{{ state }}{% endif %}
+            <span class="inb-chip__n">{{ count }}</span>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </header>
+
+  {% if rows %}
+    <div class="inb-list">
+      {% for row in rows %}
+        <article class="inb-item" data-tone="{{ row.report.approval_tone }}">
+          <div class="inb-item__main">
+            <div class="inb-item__title">
+              <a href="{% url 'reports:approval_detail' row.report.pk %}">{{ row.report.title }}</a>
+            </div>
+            <div class="inb-item__sub">
+              {{ row.report.teacher_display_name }}
+              {% if row.report.category %} · {{ row.report.category.name }}{% endif %}
+              {% if row.report.submitted_at %} · أُرسل {{ row.report.submitted_at|date:"Y-m-d H:i" }}{% endif %}
+              {% if row.report.reviewed_by %} · راجعه {{ row.report.reviewed_by.name }}{% endif %}
+            </div>
+          </div>
+
+          <div class="inb-item__side">
+            <span class="apr-state" data-tone="{{ row.report.approval_tone }}">
+              {{ row.report.get_approval_state_display }}
+            </span>
+
+            {% if 'approve' in row.actions %}
+              <form method="post" action="{% url 'reports:approval_action' row.report.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="approval_action" value="approve">
+                <input type="hidden" name="next" value="inbox">
+                <button type="submit" class="apr-btn apr-btn--primary apr-btn--sm">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  اعتماد
+                </button>
+              </form>
+            {% endif %}
+
+            <a class="apr-btn apr-btn--ghost apr-btn--sm"
+               href="{% url 'reports:approval_detail' row.report.pk %}">
+              فتح
+            </a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="apr-empty" style="margin-top:1.2rem">
+      <div class="apr-empty__icon"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></div>
+      <h2>لا شيء ينتظرك</h2>
+      <p>
+        {% if state_filter %}
+          لا توجد أعمال في هذه الحالة الآن.
+          <a href="{% url 'reports:approval_inbox' %}">اعرض الكل</a>.
+        {% else %}
+          صندوقك فارغ — كل ما أُرسل إليك حُسم. ستظهر هنا الأعمال فور إرسالها للمراجعة.
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

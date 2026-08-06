@@ -1,0 +1,160 @@
+{% comment %}
+نسخة PDF من التقرير المجمَّع.
+
+قالب مستقل عن نسخة الشاشة عمداً: صفحةُ الطباعة تحتاج ترويسة تتكرر وحدوداً
+مطبوعة وألواناً تصمد بالحبر — وحشوُ ذلك في قالب الشاشة بـ @media print يجعل
+تعديل أحدهما يكسر الآخر. والأرقام واحدة لأن مصدرها واحد: build_group_snapshot.
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>التقرير التنفيذي المجمَّع — {{ group.name }}</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 14mm 12mm 16mm;
+      @bottom-center {
+        content: "صفحة " counter(page) " من " counter(pages);
+        font-size: 8pt; color: #6b7d73;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Cairo", "Segoe UI", sans-serif;
+      color: #12251d; font-size: 9.5pt; line-height: 1.6; margin: 0;
+    }
+
+    .hd {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      border-bottom: 3px solid #08643b; padding-bottom: 7pt; margin-bottom: 12pt;
+    }
+    .hd__title { font-size: 17pt; font-weight: 800; color: #08643b; margin: 0; }
+    .hd__sub { font-size: 9pt; color: #5c6c64; margin: 3pt 0 0; }
+    .hd__stamp { font-size: 8.5pt; color: #5c6c64; text-align: left; }
+
+    .kpis { display: flex; flex-wrap: wrap; gap: 6pt; margin-bottom: 12pt; }
+    .kpi {
+      flex: 1 1 118pt; border: 1pt solid #d9e6df; border-radius: 6pt;
+      padding: 6pt 8pt; background: #f6faf8;
+    }
+    .kpi__v { font-size: 15pt; font-weight: 800; color: #08643b; line-height: 1.1; }
+    .kpi__v--danger { color: #b42318; }
+    .kpi__l { font-size: 7.8pt; color: #5c6c64; margin-top: 1pt; }
+
+    h2 {
+      font-size: 11pt; color: #08643b; margin: 0 0 6pt;
+      padding-bottom: 3pt; border-bottom: 1pt solid #d9e6df;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 8.6pt; }
+    thead { display: table-header-group; }
+    th {
+      background: #0f8f6b; color: #fff; font-weight: 700; font-size: 8pt;
+      padding: 4.5pt 4pt; text-align: right; border: 0.5pt solid #0b7a5b;
+    }
+    td {
+      padding: 4pt; border: 0.5pt solid #e0ebe5; text-align: right;
+    }
+    tbody tr:nth-child(even) td { background: #f4faf7; }
+    .name { font-weight: 700; }
+    .late { color: #b42318; font-weight: 700; }
+    .rank {
+      display: inline-block; min-width: 13pt; text-align: center;
+      font-weight: 800; color: #08643b; margin-left: 3pt;
+    }
+    .bar { display: inline-block; width: 42pt; height: 4pt; background: #e6f0ea; border-radius: 2pt; overflow: hidden; vertical-align: middle; }
+    .bar > i { display: block; height: 100%; background: #08643b; }
+
+    .note {
+      margin-top: 10pt; padding: 6pt 8pt; font-size: 8pt; color: #4d5c55;
+      background: #f6faf8; border-right: 2.5pt solid #b68a42; border-radius: 4pt;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hd">
+    <div>
+      <h1 class="hd__title">التقرير التنفيذي المجمَّع</h1>
+      <p class="hd__sub">{{ group.name }}{% if group.education_department %} — {{ group.education_department }}{% endif %}</p>
+    </div>
+    <div class="hd__stamp">
+      منصة توثيق<br>
+      {{ snapshot.generated_at|date:"Y-m-d H:i" }}
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi__v">{{ snapshot.totals.schools }}</div>
+      <div class="kpi__l">مدرسة</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__v">{{ snapshot.totals.seats }}</div>
+      <div class="kpi__l">منسوب</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__v">{{ snapshot.totals.reports_total }}</div>
+      <div class="kpi__l">تقرير</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__v">{{ snapshot.totals.reports_recent }}</div>
+      <div class="kpi__l">خلال {{ snapshot.window_days }} يوماً</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__v">{{ snapshot.totals.completion }}%</div>
+      <div class="kpi__l">إنجاز التكليفات</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__v kpi__v--danger">{{ snapshot.totals.assignments_overdue }}</div>
+      <div class="kpi__l">تكليف متأخر</div>
+    </div>
+  </div>
+
+  <h2>مقارنة المدارس</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>المدرسة</th>
+        <th>المنسوبون</th>
+        <th>التقارير</th>
+        <th>حديثة</th>
+        <th>تنتظر الاعتماد</th>
+        <th>ملفات الإنجاز</th>
+        <th>التكليفات</th>
+        <th>المتأخر</th>
+        <th>نسبة الإنجاز</th>
+        <th>اجتماعات</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in snapshot.ranked %}
+        <tr>
+          <td class="name"><span class="rank">{{ forloop.counter }}</span>{{ row.name }}</td>
+          <td>{{ row.seats }}</td>
+          <td>{{ row.reports_total }}</td>
+          <td>{{ row.reports_recent }}</td>
+          <td>{{ row.reports_pending }}</td>
+          <td>{{ row.achievements }}</td>
+          <td>{{ row.assignments_done }} / {{ row.assignments }}</td>
+          <td>{% if row.assignments_overdue %}<span class="late">{{ row.assignments_overdue }}</span>{% else %}—{% endif %}</td>
+          <td>{{ row.completion }}% <span class="bar"><i style="width:{{ row.completion }}%"></i></span></td>
+          <td>{{ row.meetings }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="10">لا مدارس نشطة في هذه المجموعة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="note">
+    الترتيب بنسبة الإنجاز تنازلياً ثم بالأقل تأخراً.
+    «نسبة الإنجاز» = حصص التكليفات المعتمَد تنفيذها ÷ إجماليها.
+    و«المتأخر» يستثني ما اعتُمد تنفيذه مهما فات موعده — فقد سُلّم فعلاً.
+    على مستوى المجموعة: {{ snapshot.totals.group_assignments }} تكليف مجموعة،
+    و{{ snapshot.totals.group_councils }} جلسة مجلس منعقدة.
+  </div>
+
+</body>
+</html>

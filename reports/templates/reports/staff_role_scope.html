@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}نطاق {{ membership.teacher.name }} | منصة توثيق{% endblock %}
+
+{% block head %}
+<style>
+  .scp-page {
+    --scp-ink: #10231a; --scp-muted: #607067; --scp-line: #dfe8e2;
+    --scp-soft: #f3f8f5; --scp-surface: #ffffff;
+    --scp-green: #08643b; --scp-gold: #b68a42; --scp-danger: #b42318;
+    max-width: 980px; margin-inline: auto; padding: 1.25rem; color: var(--scp-ink);
+  }
+  [data-theme="dark"] .scp-page {
+    --scp-ink: #eff8f2; --scp-muted: #afc1b5; --scp-line: #2d4637;
+    --scp-soft: #13271c; --scp-surface: #102019;
+    --scp-green: #6ed3a0; --scp-gold: #eabf58; --scp-danger: #ff9d96;
+  }
+
+  .scp-hero {
+    position: relative; overflow: hidden; border-radius: 20px; padding: 1.6rem 1.5rem;
+    background: linear-gradient(135deg, #08643b 0%, #0a7a48 55%, #075334 100%);
+    color: #fff; box-shadow: 0 18px 40px -22px rgba(8,100,59,.75);
+  }
+  .scp-hero__back {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .78rem; font-weight: 800; text-decoration: none; color: #fff;
+    padding: .3rem .75rem; border-radius: 999px;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24);
+  }
+  .scp-hero__title { margin: .8rem 0 .25rem; font-size: 1.4rem; font-weight: 900; }
+  .scp-hero__meta { margin: 0; font-size: .88rem; opacity: .92; }
+
+  .scp-card {
+    background: var(--scp-surface); border: 1px solid var(--scp-line);
+    border-radius: 16px; padding: 1.15rem 1.2rem; margin-top: 1.2rem;
+    box-shadow: 0 10px 26px -24px rgba(16,35,26,.75);
+  }
+  .scp-card__title { font-size: 1rem; font-weight: 900; margin: 0 0 .3rem; }
+  .scp-card__hint { font-size: .83rem; color: var(--scp-muted); line-height: 1.8; margin: 0 0 1rem; }
+
+  /* ── القوالب ──────────────────────────────────────────────── */
+  .scp-templates { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .scp-template {
+    border: 1px solid var(--scp-line); border-radius: 13px; padding: .85rem .9rem;
+    background: var(--scp-surface); display: flex; flex-direction: column; gap: .45rem;
+  }
+  .scp-template.is-current { border-color: var(--scp-green); background: var(--scp-soft); }
+  .scp-template__name { font-size: .9rem; font-weight: 800; }
+  .scp-template__desc { font-size: .78rem; color: var(--scp-muted); line-height: 1.75; flex: 1; }
+
+  /* ── الحقول ───────────────────────────────────────────────── */
+  .scp-field { margin-top: 1rem; }
+  .scp-field > label { display: block; font-size: .8rem; font-weight: 800; color: var(--scp-muted); margin-bottom: .4rem; }
+  .scp-field select {
+    width: 100%; max-width: 340px; padding: .55rem .7rem; border-radius: 10px;
+    border: 1px solid var(--scp-line); background: var(--scp-surface);
+    color: var(--scp-ink); font-family: inherit; font-size: .88rem;
+  }
+  .scp-field select:focus { outline: 2px solid var(--scp-green); outline-offset: 1px; }
+
+  .scp-checks { display: grid; gap: .45rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .scp-checks label { display: flex; gap: .5rem; align-items: flex-start; font-size: .85rem; font-weight: 700; }
+  .scp-checks input { margin-top: .2rem; }
+
+  /* ── الصلاحيات ────────────────────────────────────────────── */
+  .scp-group { margin-top: 1.1rem; }
+  .scp-group__name {
+    font-size: .8rem; font-weight: 900; color: var(--scp-green);
+    padding-bottom: .35rem; border-bottom: 1px solid var(--scp-line); margin-bottom: .6rem;
+  }
+  .scp-cap {
+    display: flex; gap: .6rem; align-items: flex-start;
+    padding: .6rem .7rem; border-radius: 11px; border: 1px solid transparent;
+  }
+  .scp-cap:hover { background: var(--scp-soft); }
+  .scp-cap.is-pending { opacity: .72; }
+  .scp-cap input { margin-top: .25rem; flex: none; }
+  .scp-cap__body { flex: 1; }
+  .scp-cap__label { font-size: .87rem; font-weight: 800; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+  .scp-cap__desc { font-size: .77rem; color: var(--scp-muted); line-height: 1.75; margin-top: .2rem; }
+  .scp-soon {
+    font-size: .68rem; font-weight: 800; padding: .1rem .5rem; border-radius: 999px;
+    color: var(--scp-gold); border: 1px solid currentColor;
+  }
+
+  .scp-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .55rem 1.1rem; border-radius: 10px;
+    font-size: .85rem; font-weight: 800; font-family: inherit;
+    text-decoration: none; cursor: pointer; border: 1px solid transparent;
+  }
+  .scp-btn--primary { background: var(--scp-green); color: #fff; }
+  [data-theme="dark"] .scp-btn--primary { color: #06251a; }
+  .scp-btn--ghost { background: transparent; color: var(--scp-muted); border-color: var(--scp-line); }
+  .scp-btn--sm { padding: .38rem .8rem; font-size: .78rem; }
+
+  .scp-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.4rem; }
+  .scp-errors { list-style: none; margin: .4rem 0 0; padding: 0; }
+  .scp-errors li { font-size: .78rem; color: var(--scp-danger); font-weight: 700; }
+
+  @media (max-width: 640px) {
+    .scp-page { padding: .85rem; }
+    .scp-hero { padding: 1.3rem 1.1rem; border-radius: 16px; }
+    .scp-hero__title { font-size: 1.2rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scp-page">
+
+  <header class="scp-hero">
+    <a class="scp-hero__back" href="{% url 'reports:staff_roles' %}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      الأدوار والصلاحيات
+    </a>
+    <h1 class="scp-hero__title">نطاق {{ membership.teacher.name }}</h1>
+    <p class="scp-hero__meta">{{ membership.get_role_type_display }} — {{ active_school.name }}</p>
+  </header>
+
+  {# ═══ القوالب المعتمدة ════════════════════════════════════ #}
+  <section class="scp-card">
+    <h2 class="scp-card__title">القوالب المعتمدة</h2>
+    <p class="scp-card__hint">
+      يملأ القالب الصلاحيات دفعةً واحدة ثم يتركها لمراجعتك — لا يُحفظ شيء حتى
+      تضغط «حفظ النطاق». والقوالب تختصر توليفات لا تُحصى إلى حالات مفهومة
+      وقابلة للشرح.
+    </p>
+
+    <div class="scp-templates">
+      {% for tpl in templates %}
+        <form method="post" class="scp-template {% if scope.template_code == tpl.code %}is-current{% endif %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="apply_template">
+          <input type="hidden" name="template_code" value="{{ tpl.code }}">
+          <div class="scp-template__name">{{ tpl.label }}</div>
+          <div class="scp-template__desc">{{ tpl.description }}</div>
+          <button type="submit" class="scp-btn scp-btn--ghost scp-btn--sm">
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+            تطبيق القالب
+          </button>
+        </form>
+      {% endfor %}
+    </div>
+  </section>
+
+  {# ═══ النطاق ══════════════════════════════════════════════ #}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_scope">
+    {{ form.template_code.as_hidden }}
+
+    {% if form.domain %}
+      <section class="scp-card">
+        <h2 class="scp-card__title">مجال الوكالة</h2>
+        <p class="scp-card__hint">
+          وصف تنظيمي يوضّح مجال إشراف الوكيل — لا يمنح صلاحية بذاته، فالصلاحيات
+          تُحدَّد أدناه صراحةً.
+        </p>
+        <div class="scp-field">
+          <label for="{{ form.domain.id_for_label }}">{{ form.domain.label }}</label>
+          {{ form.domain }}
+          {% if form.domain.errors %}
+            <ul class="scp-errors">{% for e in form.domain.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+          {% endif %}
+        </div>
+      </section>
+    {% endif %}
+
+    <section class="scp-card">
+      <h2 class="scp-card__title">الأقسام المشمولة</h2>
+      <p class="scp-card__hint">
+        من يقعون تحت إشرافه. <strong>تركها فارغة يعني نطاقاً بلا أقسام</strong> —
+        لا إشرافاً على المدرسة كلها.
+      </p>
+      <div class="scp-checks">
+        {% for choice in form.departments %}
+          <label>{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
+        {% empty %}
+          <p class="scp-card__hint" style="margin:0">
+            لا توجد أقسام في هذه المدرسة بعد.
+            <a href="{% url 'reports:departments_list' %}">أنشئ قسماً أولاً</a>.
+          </p>
+        {% endfor %}
+      </div>
+      {% if form.departments.errors %}
+        <ul class="scp-errors">{% for e in form.departments.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+    </section>
+
+    <section class="scp-card">
+      <h2 class="scp-card__title">الصلاحيات</h2>
+      <p class="scp-card__hint">
+        ما يستطيع فعله ضمن نطاقه. الصلاحيات الموسومة «قريباً» تعتمد على ميزات
+        قيد البناء — يمكنك اختيارها الآن وسيسري مفعولها فور توفّرها، ولن تفعل
+        شيئاً قبل ذلك.
+      </p>
+
+      {% for group_name, group_caps in capability_groups %}
+        <div class="scp-group">
+          <div class="scp-group__name">{{ group_name }}</div>
+          {% for cap in group_caps %}
+            <label class="scp-cap {% if not cap.available %}is-pending{% endif %}">
+              <input type="checkbox" name="capabilities" value="{{ cap.code }}"
+                     {% if cap.code in form.initial.capabilities %}checked{% endif %}>
+              <span class="scp-cap__body">
+                <span class="scp-cap__label">
+                  {{ cap.label }}
+                  {% if not cap.available %}<span class="scp-soon">قريباً</span>{% endif %}
+                </span>
+                <span class="scp-cap__desc">{{ cap.description }}</span>
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      {% if form.capabilities.errors %}
+        <ul class="scp-errors">{% for e in form.capabilities.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+    </section>
+
+    {% if form.non_field_errors %}
+      <ul class="scp-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    <div class="scp-actions">
+      <button type="submit" class="scp-btn scp-btn--primary">
+        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+        حفظ النطاق
+      </button>
+      <a class="scp-btn scp-btn--ghost" href="{% url 'reports:staff_roles' %}">إلغاء</a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

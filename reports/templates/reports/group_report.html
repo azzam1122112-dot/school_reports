@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}التقرير التنفيذي المجمَّع | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .rep-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.1rem; }
+  .rep-tabs a {
+    font-size: .82rem; font-weight: 800; text-decoration: none;
+    padding: .38rem .85rem; border-radius: 999px;
+    color: #fff; background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.24);
+  }
+  .rep-tabs a.is-active { background: #fff; color: #08643b; }
+
+  .rep-wrap { overflow-x: auto; margin-top: .8rem; }
+  .rep-table { width: 100%; border-collapse: collapse; min-width: 820px; font-size: .82rem; }
+  .rep-table th {
+    background: var(--asg-soft); color: var(--asg-green);
+    font-weight: 800; font-size: .76rem; text-align: right;
+    padding: .6rem .55rem; border-bottom: 2px solid var(--asg-line); white-space: nowrap;
+  }
+  .rep-table td {
+    padding: .6rem .55rem; border-bottom: 1px solid var(--asg-line);
+    text-align: right; font-variant-numeric: tabular-nums;
+  }
+  .rep-table tbody tr:hover { background: var(--asg-soft); }
+  .rep-table .rep-name { font-weight: 800; white-space: nowrap; }
+  .rep-late { color: var(--asg-danger); font-weight: 800; }
+
+  .rep-meter { display: flex; align-items: center; gap: .5rem; min-width: 120px; }
+  .rep-meter__track { flex: 1; height: 6px; border-radius: 999px; background: var(--asg-soft); overflow: hidden; }
+  .rep-meter__fill { height: 100%; border-radius: 999px; background: var(--asg-green); }
+  .rep-meter__n { font-weight: 800; font-size: .78rem; min-width: 34px; }
+
+  .rep-rank {
+    width: 22px; height: 22px; border-radius: 7px; display: inline-grid; place-items: center;
+    font-size: .7rem; font-weight: 900; background: var(--asg-soft); color: var(--asg-green);
+    margin-inline-end: .4rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <span class="asg-hero__eyebrow">
+      <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+      تقرير تنفيذي
+    </span>
+    <h1 class="asg-hero__title">التقرير المجمَّع</h1>
+    <p class="asg-hero__meta">
+      مؤشرات {{ group.name }} مجتمعةً، ومقارنة مدارسها مرتّبةً بنسبة الإنجاز.
+      استُخرج في {{ snapshot.generated_at|date:"Y-m-d H:i" }}.
+    </p>
+
+    {% if groups|length > 1 %}
+      <div class="rep-tabs">
+        {% for item in groups %}
+          <a href="?group={{ item.pk }}" class="{% if item.pk == group.pk %}is-active{% endif %}">{{ item.name }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div style="margin-top:1.1rem;display:flex;gap:.5rem;flex-wrap:wrap">
+      <a class="asg-btn" href="{% url 'reports:group_report_xlsx' %}?group={{ group.pk }}"
+         style="background:#fff;color:#08643b">
+        <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+        تنزيل Excel
+      </a>
+      <a class="asg-btn" href="{% url 'reports:group_report_pdf' %}?group={{ group.pk }}" target="_blank" rel="noopener"
+         style="background:rgba(255,255,255,.16);color:#fff;border-color:rgba(255,255,255,.3)">
+        <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+        عرض PDF
+      </a>
+    </div>
+  </header>
+
+  <section class="asg-kpis" aria-label="مؤشرات المجموعة">
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ snapshot.totals.schools }}</div>
+      <div class="asg-kpi__l">مدرسة</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ snapshot.totals.seats }}</div>
+      <div class="asg-kpi__l">منسوب</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ snapshot.totals.reports_recent }}</div>
+      <div class="asg-kpi__l">تقرير خلال {{ snapshot.window_days }} يوماً</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ snapshot.totals.completion }}%</div>
+      <div class="asg-kpi__l">إنجاز التكليفات</div>
+    </article>
+    <article class="asg-kpi" data-tone="danger">
+      <div class="asg-kpi__v">{{ snapshot.totals.assignments_overdue }}</div>
+      <div class="asg-kpi__l">تكليف متأخر</div>
+    </article>
+    <article class="asg-kpi" data-tone="warn">
+      <div class="asg-kpi__v">{{ snapshot.totals.reports_pending }}</div>
+      <div class="asg-kpi__l">تقرير ينتظر الاعتماد</div>
+    </article>
+  </section>
+
+  <section class="asg-card">
+    <h2 class="asg-card__title">مقارنة المدارس</h2>
+    <p class="asg-card__hint">
+      مرتّبة بنسبة الإنجاز تنازلياً ثم بالأقل تأخراً — فالمقارنة هي غرض التقرير،
+      وجدولٌ مرتّب أبجدياً يخفيها.
+    </p>
+
+    {% if snapshot.ranked %}
+      <div class="rep-wrap">
+        <table class="rep-table">
+          <thead>
+            <tr>
+              <th>المدرسة</th>
+              <th>المنسوبون</th>
+              <th>التقارير</th>
+              <th>حديثة</th>
+              <th>تنتظر الاعتماد</th>
+              <th>ملفات الإنجاز</th>
+              <th>التكليفات</th>
+              <th>المتأخر</th>
+              <th>نسبة الإنجاز</th>
+              <th>اجتماعات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in snapshot.ranked %}
+              <tr>
+                <td class="rep-name">
+                  <span class="rep-rank">{{ forloop.counter }}</span>{{ row.name }}
+                </td>
+                <td>{{ row.seats }}</td>
+                <td>{{ row.reports_total }}</td>
+                <td>{{ row.reports_recent }}</td>
+                <td>{{ row.reports_pending }}</td>
+                <td>{{ row.achievements }}</td>
+                <td>{{ row.assignments_done }} / {{ row.assignments }}</td>
+                <td>{% if row.assignments_overdue %}<span class="rep-late">{{ row.assignments_overdue }}</span>{% else %}—{% endif %}</td>
+                <td>
+                  <div class="rep-meter">
+                    <span class="rep-meter__n">{{ row.completion }}%</span>
+                    <span class="rep-meter__track">
+                      <span class="rep-meter__fill" style="width:{{ row.completion }}%"></span>
+                    </span>
+                  </div>
+                </td>
+                <td>{{ row.meetings }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="asg-empty">
+        <div class="asg-empty__icon"><i class="fa-solid fa-chart-column" aria-hidden="true"></i></div>
+        <h2>لا مدارس نشطة في هذه المجموعة</h2>
+        <p>أضف مدارس إلى المجموعة لتظهر مؤشراتها هنا وتُستخرج في التقرير.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="asg-card">
+    <h2 class="asg-card__title">على مستوى المجموعة</h2>
+    <div class="asg-kpis" style="margin-top:.6rem">
+      <article class="asg-kpi">
+        <div class="asg-kpi__v">{{ snapshot.totals.group_assignments }}</div>
+        <div class="asg-kpi__l">تكليف مجموعة</div>
+      </article>
+      <article class="asg-kpi">
+        <div class="asg-kpi__v">{{ snapshot.totals.group_councils }}</div>
+        <div class="asg-kpi__l">جلسة مجلس منعقدة</div>
+      </article>
+      <article class="asg-kpi">
+        <div class="asg-kpi__v">{{ snapshot.totals.meetings }}</div>
+        <div class="asg-kpi__l">اجتماع مدرسي منعقد</div>
+      </article>
+    </div>
+  </section>
+
+</div>
+{% endblock %}

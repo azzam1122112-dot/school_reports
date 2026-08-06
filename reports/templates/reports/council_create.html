@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}جلسة مجلس جديدة | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .mnew-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .mnew-people { display: grid; gap: .45rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .mnew-people label { display: flex; gap: .5rem; align-items: flex-start; font-size: .85rem; font-weight: 700; }
+  .mnew-people input { margin-top: .2rem; }
+  .mnew-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.3rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <a class="asg-hero__eyebrow" href="{% url 'reports:council_list' %}?group={{ group.pk }}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      مجلس المجموعة
+    </a>
+    <h1 class="asg-hero__title">جلسة مجلس جديدة</h1>
+    <p class="asg-hero__meta">
+      تصل الدعوة مدير كل مدرسة تختارها. وجدول الأعمال والمحضر والقرارات
+      تُضاف بعد الإنشاء من صفحة الجلسة.
+    </p>
+  </header>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="group" value="{{ group.pk }}">
+
+    <section class="asg-card">
+      <h2 class="asg-card__title">بيانات الجلسة</h2>
+
+      <div class="asg-field">
+        <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+        {{ form.title }}
+        {% if form.title.errors %}<ul class="asg-errors">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="asg-field">
+        <label for="{{ form.purpose.id_for_label }}">{{ form.purpose.label }}</label>
+        {{ form.purpose }}
+      </div>
+
+      <div class="mnew-grid">
+        <div class="asg-field">
+          <label for="{{ form.scheduled_at.id_for_label }}">{{ form.scheduled_at.label }}</label>
+          {{ form.scheduled_at }}
+          {% if form.scheduled_at.errors %}<ul class="asg-errors">{% for e in form.scheduled_at.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="asg-field">
+          <label for="{{ form.location.id_for_label }}">{{ form.location.label }}</label>
+          {{ form.location }}
+        </div>
+      </div>
+    </section>
+
+    <section class="asg-card">
+      <h2 class="asg-card__title">المدارس المدعوّة</h2>
+      <p class="asg-card__hint">
+        تصل الدعوة مديرَ كل مدرسة. ومدرسةٌ بلا مدير نشط لن تُدعى، وسيُنبَّهك
+        باسمها بعد الإنشاء بدل أن تختفي بصمت.
+      </p>
+      <div class="mnew-people">
+        {% for choice in form.schools %}
+          <label>{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
+        {% empty %}
+          <p class="asg-card__hint" style="margin:0">لا مدارس نشطة في هذه المجموعة.</p>
+        {% endfor %}
+      </div>
+      {% if form.schools.errors %}<ul class="asg-errors">{% for e in form.schools.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </section>
+
+    {% if form.non_field_errors %}
+      <ul class="asg-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    <div class="mnew-actions">
+      <button type="submit" class="asg-btn asg-btn--primary">
+        <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i>
+        إنشاء الجلسة
+      </button>
+      <a class="asg-btn asg-btn--ghost" href="{% url 'reports:council_list' %}?group={{ group.pk }}">إلغاء</a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

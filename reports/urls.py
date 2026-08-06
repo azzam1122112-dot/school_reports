@@ -33,9 +33,13 @@ urlpatterns = [
     path("register/success/", views.registration_success, name="registration_success"),
     path("logout/", views.logout_view, name="logout"),
     path("profile/", views.my_profile, name="my_profile"),
+    # سجل الإجراءات كما يراه صاحبه — متاح لكل مستخدم، ومقيّد بنفسه بحكم البناء.
+    path("profile/activity/", views.my_activity_log, name="my_activity_log"),
+    path("profile/work/", views.my_work_archive, name="my_work_archive"),
     path("profile/passkey/register/options/", views.passkey_register_options, name="passkey_register_options"),
     path("profile/passkey/register/verify/", views.passkey_register_verify, name="passkey_register_verify"),
     path("profile/passkey/prompt/dismiss/", views.passkey_enroll_prompt_dismiss, name="passkey_enroll_prompt_dismiss"),
+    path("profile/passkey/<int:pk>/delete/", views.passkey_delete, name="passkey_delete"),
 
     # =========================
     # الصفحة الرئيسية
@@ -112,6 +116,78 @@ urlpatterns = [
     # إدارة الأقسام + التكليف
     # (اعتمدنا slug:code، ووفّرنا aliases للأسماء/المسارات القديمة)
     # =========================
+    # =========================
+    # أرشيف الوثائق
+    # =========================
+    path("circulars/drafts/", views.circular_draft_list, name="circular_draft_list"),
+    path("circulars/drafts/<int:pk>/", views.circular_draft_detail, name="circular_draft_detail"),
+    path(
+        "circulars/drafts/<int:pk>/action/",
+        views.circular_draft_action,
+        name="circular_draft_action",
+    ),
+
+    path("documents/", views.document_archive, name="document_archive"),
+    path("documents/<int:pk>/", views.document_detail, name="document_detail"),
+    path("documents/<int:pk>/action/", views.document_action, name="document_action"),
+
+    # =========================
+    # الخطط والمبادرات
+    # =========================
+    path("plans/", views.plan_list, name="plan_list"),
+    path("plans/new/", views.plan_create, name="plan_create"),
+    path("plans/<int:pk>/", views.plan_detail, name="plan_detail"),
+    path("plans/<int:pk>/action/", views.plan_action, name="plan_action"),
+    path("plans/<int:pk>/approval/", views.plan_approval_action, name="plan_approval_action"),
+    path("initiatives/", views.initiative_list, name="initiative_list"),
+    path("initiatives/<int:pk>/action/", views.initiative_action, name="initiative_action"),
+
+    # =========================
+    # الاجتماعات والقرارات
+    # =========================
+    path("meetings/", views.meeting_list, name="meeting_list"),
+    path("meetings/new/", views.meeting_create, name="meeting_create"),
+    path("meetings/<int:pk>/", views.meeting_detail, name="meeting_detail"),
+    path("meetings/<int:pk>/action/", views.meeting_action, name="meeting_action"),
+    path(
+        "meetings/<int:pk>/minutes/approval/",
+        views.minutes_approval_action,
+        name="minutes_approval_action",
+    ),
+
+    # =========================
+    # التكليفات
+    # =========================
+    path("assignments/mine/", views.my_assignments, name="my_assignments"),
+    path("assignments/board/", views.assignment_board, name="assignment_board"),
+    path("assignments/new/", views.assignment_create, name="assignment_create"),
+    path("assignments/<int:pk>/cancel/", views.assignment_cancel, name="assignment_cancel"),
+    path("assignments/target/<int:pk>/", views.assignment_detail, name="assignment_detail"),
+    path(
+        "assignments/target/<int:pk>/action/",
+        views.assignment_target_action,
+        name="assignment_target_action",
+    ),
+    path(
+        "assignments/target/<int:pk>/approval/",
+        views.assignment_approval_action,
+        name="assignment_approval_action",
+    ),
+
+    # =========================
+    # المراجعة والاعتماد (المدير والوكيل وصاحب العمل)
+    # =========================
+    path("approvals/", views.approval_inbox, name="approval_inbox"),
+    path("approvals/<int:pk>/", views.approval_detail, name="approval_detail"),
+    path("approvals/<int:pk>/action/", views.approval_action, name="approval_action"),
+
+    # =========================
+    # الأدوار والصلاحيات (مدير المدرسة)
+    # =========================
+    path("staff/roles/", views.staff_roles, name="staff_roles"),
+    path("staff/roles/<int:pk>/scope/", views.staff_role_scope, name="staff_role_scope"),
+    path("staff/delegations/<int:pk>/revoke/", views.delegation_revoke, name="delegation_revoke"),
+
     path("staff/departments/", views.departments_list, name="departments_list"),
 
     # إضافة قسم
@@ -131,6 +207,45 @@ urlpatterns = [
     # =========================
     # لوحة المدير التنفيذي: خارج سياق المدرسة الواحدة عمداً.
     path("group/", views.executive_dashboard, name="executive_dashboard"),
+    # تكليفات المجموعة — خارج سياق المدرسة الواحدة عمداً، كلوحة المجموعة.
+    path("group/assignments/", views.group_assignment_board, name="group_assignment_board"),
+    path("group/assignments/new/", views.group_assignment_create, name="group_assignment_create"),
+    path(
+        "group/assignments/<int:pk>/",
+        views.group_assignment_detail,
+        name="group_assignment_detail",
+    ),
+    path(
+        "group/assignments/<int:pk>/action/",
+        views.group_assignment_action,
+        name="group_assignment_action",
+    ),
+    path(
+        "group/assignments/<int:pk>/cancel/",
+        views.group_assignment_cancel,
+        name="group_assignment_cancel",
+    ),
+    # مجلس مجموعة المدارس
+    path("group/council/", views.council_list, name="council_list"),
+    path("group/council/new/", views.council_create, name="council_create"),
+    path("group/council/<int:pk>/", views.council_detail, name="council_detail"),
+    path("group/council/<int:pk>/action/", views.council_action, name="council_action"),
+    path(
+        "group/council/<int:pk>/minutes/",
+        views.council_minutes_action,
+        name="council_minutes_action",
+    ),
+
+    path("group/practices/", views.group_practices, name="group_practices"),
+    path("group/schools/<int:pk>/", views.group_school_detail, name="group_school_detail"),
+    path("group/audit/", views.group_audit_log, name="group_audit_log"),
+    path("group/archive/", views.group_archive, name="group_archive"),
+
+    # التقرير التنفيذي المجمَّع
+    path("group/report/", views.group_report, name="group_report"),
+    path("group/report/xlsx/", views.group_report_xlsx, name="group_report_xlsx"),
+    path("group/report/pdf/", views.group_report_pdf, name="group_report_pdf"),
+
     path("group/notify/", views.group_notification_create, name="group_notification_create"),
     path("group/notify/sent/", views.group_notifications_sent, name="group_notifications_sent"),
     path("group/notify/<int:pk>/", views.group_notification_report, name="group_notification_report"),
@@ -317,6 +432,11 @@ urlpatterns = [
         "payments/moyasar/callback/<str:batch_ref>/",
         views.moyasar_callback,
         name="moyasar_callback",
+    ),
+    path(
+        "subscription/payment/moyasar/<int:payment_id>/cancel/",
+        views.moyasar_checkout_cancel,
+        name="moyasar_checkout_cancel",
     ),
     path("subscription/payment/tamara/", views.tamara_checkout_create, name="tamara_checkout_create"),
     path(

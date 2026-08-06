@@ -246,7 +246,7 @@
           <tbody>
             {% for row in needs_attention %}
               <tr>
-                <td class="exec-table__school">{{ row.school.name }}</td>
+                <td class="exec-table__school"><a href="{% url 'reports:group_school_detail' row.school.pk %}" style="color:inherit">{{ row.school.name }}</a></td>
                 <td><span class="exec-chip exec-chip--{{ row.subscription.tone }}">{{ row.subscription.label }}</span></td>
                 <td>{% include "reports/partials/consumption_rows.html" with row=row.consumption %}</td>
               </tr>
@@ -281,7 +281,7 @@
             {% for row in rows %}
               <tr>
                 <td>
-                  <span class="exec-table__school">{{ row.school.name }}</span>
+                  <a class="exec-table__school" href="{% url 'reports:group_school_detail' row.school.pk %}" style="color:inherit">{{ row.school.name }}</a>
                   <span class="exec-table__sub">
                     {{ row.school.get_stage_display }} · {{ row.school.get_gender_display }}
                     {% if row.school.city %} · {{ row.school.city }}{% endif %}

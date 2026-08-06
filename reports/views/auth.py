@@ -59,7 +59,12 @@ logger = logging.getLogger(__name__)
 WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY = "_webauthn_register_challenge"
 WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY = "_webauthn_auth_challenge"
 WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY = "_webauthn_auth_allowed_credentials"
+WEBAUTHN_AUTH_DISCOVERABLE_SESSION_KEY = "_webauthn_auth_discoverable"
 PASSKEY_ENROLL_PROMPT_SESSION_KEY = "passkey_enroll_prompt"
+# Declining the offer used to last one login only, so the same modal reappeared
+# on every password sign-in. The choice now survives in a cookie.
+PASSKEY_PROMPT_SNOOZE_COOKIE = "pk_offer_snooze"
+PASSKEY_PROMPT_SNOOZE_MAX_AGE = 60 * 60 * 24 * 60
 
 
 def _force_password_change_notice() -> str:
@@ -72,6 +77,68 @@ def _force_password_change_notice() -> str:
 def _passkey_response(ok: bool, *, status: int = 200, **payload: Any) -> JsonResponse:
     payload["ok"] = ok
     return JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
+
+
+def _passkey_rate_limited(request: HttpRequest) -> JsonResponse | None:
+    """Turn a tripped rate limit into JSON.
+
+    These endpoints are called by fetch(), so the default HTML 403 page would
+    surface to the user as an unreadable parse error instead of a message.
+    """
+    if getattr(request, "limited", False):
+        return _passkey_response(
+            False,
+            status=429,
+            error="rate_limited",
+            message="محاولات كثيرة خلال وقت قصير. انتظر دقيقة ثم أعد المحاولة.",
+        )
+    return None
+
+
+_PASSKEY_PLATFORM_LABELS = (
+    ("iphone", "آيفون"),
+    ("ipad", "آيباد"),
+    ("ipod", "آيبود"),
+    ("android", "جهاز أندرويد"),
+    ("cros", "كروم بوك"),
+    ("macintosh", "ماك"),
+    ("mac os", "ماك"),
+    ("windows", "ويندوز"),
+    ("linux", "لينكس"),
+)
+
+_PASSKEY_BROWSER_LABELS = (
+    ("edg", "Edge"),
+    ("samsungbrowser", "Samsung Internet"),
+    ("opr", "Opera"),
+    ("firefox", "Firefox"),
+    ("chrome", "Chrome"),
+    ("safari", "Safari"),
+)
+
+# Older builds sent the same placeholder for every device, which made the list
+# of enabled devices useless for deciding which one to revoke.
+_PASSKEY_GENERIC_NAMES = {"جوال المستخدم", "جهاز المستخدم", "جهاز مفعل", "جهاز"}
+
+
+def _passkey_device_label(request: HttpRequest, provided: str = "") -> str:
+    """Name a credential after the device that created it."""
+    provided = (provided or "").strip()[:120]
+    if provided and provided not in _PASSKEY_GENERIC_NAMES:
+        return provided
+
+    agent = (request.META.get("HTTP_USER_AGENT") or "").lower()
+    platform = next((label for token, label in _PASSKEY_PLATFORM_LABELS if token in agent), "")
+    browser = ""
+    for token, label in _PASSKEY_BROWSER_LABELS:
+        if token in agent:
+            # Every Chromium browser also claims "chrome"/"safari"; first match wins.
+            browser = label
+            break
+
+    if platform and browser:
+        return f"{platform} · {browser}"
+    return platform or browser or "جهاز مفعّل"
 
 
 @method_decorator(
@@ -103,10 +170,14 @@ class AccountPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
 def _offer_passkey_enrollment(request: HttpRequest, user: Teacher) -> None:
     """Show the optional passkey prompt after a successful password login.
 
-    The flag is session-scoped, so choosing "later" suppresses the prompt for
-    the current login only. A future password login may offer it again.
+    Users who declined recently are left alone: the dismiss endpoint drops a
+    snooze cookie, and an offer nobody wants is worse than no offer at all.
     """
     try:
+        if request.COOKIES.get(PASSKEY_PROMPT_SNOOZE_COOKIE):
+            request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
+            return
+
         has_passkey = WebAuthnCredential.objects.filter(
             teacher=user,
             is_active=True,
@@ -603,7 +674,12 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
 
 @login_required(login_url="reports:login")
 @require_http_methods(["POST"])
+@ratelimit(key="user", rate="15/m", method="POST", block=False)
 def passkey_register_options(request: HttpRequest) -> JsonResponse:
+    limited = _passkey_rate_limited(request)
+    if limited is not None:
+        return limited
+
     if is_force_password_change_required(request):
         return _passkey_response(
             False,
@@ -655,7 +731,12 @@ def passkey_register_options(request: HttpRequest) -> JsonResponse:
 
 @login_required(login_url="reports:login")
 @require_http_methods(["POST"])
+@ratelimit(key="user", rate="15/m", method="POST", block=False)
 def passkey_register_verify(request: HttpRequest) -> JsonResponse:
+    limited = _passkey_rate_limited(request)
+    if limited is not None:
+        return limited
+
     challenge = request.session.get(WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY)
     if not challenge:
         return _passkey_response(False, status=400, error="challenge_missing", message="انتهت صلاحية محاولة التفعيل.")
@@ -690,7 +771,7 @@ def passkey_register_verify(request: HttpRequest) -> JsonResponse:
         if not isinstance(transports, list):
             transports = ["internal"]
 
-        device_name = (payload.get("deviceName") or "").strip()[:120]
+        device_name = _passkey_device_label(request, payload.get("deviceName") or "")
         WebAuthnCredential.objects.create(
             teacher=request.user,
             credential_id=credential_id,
@@ -702,7 +783,11 @@ def passkey_register_verify(request: HttpRequest) -> JsonResponse:
         )
         request.session.pop(WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY, None)
         request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
-        return _passkey_response(True, message="تم تفعيل الدخول بالبصمة لهذا الجهاز.")
+        return _passkey_response(
+            True,
+            message=f"تم تفعيل الدخول بالبصمة على «{device_name}».",
+            deviceName=device_name,
+        )
     except IntegrityError:
         return _passkey_response(False, status=409, error="credential_exists", message="هذا الجهاز مفعّل مسبقاً.")
     except Exception:
@@ -714,11 +799,55 @@ def passkey_register_verify(request: HttpRequest) -> JsonResponse:
 @require_http_methods(["POST"])
 def passkey_enroll_prompt_dismiss(request: HttpRequest) -> JsonResponse:
     request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
-    return _passkey_response(True)
+    response = _passkey_response(True)
+    response.set_cookie(
+        PASSKEY_PROMPT_SNOOZE_COOKIE,
+        "1",
+        max_age=PASSKEY_PROMPT_SNOOZE_MAX_AGE,
+        samesite="Lax",
+        secure=request.is_secure(),
+        httponly=True,
+    )
+    return response
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def passkey_delete(request: HttpRequest, pk: int) -> JsonResponse:
+    """Revoke one enabled device.
+
+    The row is removed rather than deactivated: ``credential_id`` is unique, so
+    a lingering inactive row would block the same device from enrolling again.
+    """
+    credential = WebAuthnCredential.objects.filter(pk=pk, teacher=request.user).first()
+    if credential is None:
+        return _passkey_response(False, status=404, error="credential_not_found", message="لم يعد هذا الجهاز موجودًا في قائمتك.")
+
+    device_name = credential.device_name or "هذا الجهاز"
+    credential.delete()
+    remaining = WebAuthnCredential.objects.filter(teacher=request.user, is_active=True).count()
+    return _passkey_response(
+        True,
+        message=f"تم إلغاء الدخول بالبصمة من «{device_name}».",
+        remaining=remaining,
+    )
 
 
 @require_http_methods(["POST"])
+@ratelimit(key="ip", rate="20/m", method="POST", block=False)
 def passkey_login_options(request: HttpRequest) -> JsonResponse:
+    """Start a sign-in ceremony.
+
+    Two shapes are supported. Without an identifier the ceremony is
+    *discoverable*: the authenticator offers whatever passkey it holds for this
+    site and tells us who it belongs to — that is what makes one-tap sign-in and
+    browser autofill possible. With an identifier we narrow the ceremony to that
+    account's credentials, which gives a clearer error when none exist.
+    """
+    limited = _passkey_rate_limited(request)
+    if limited is not None:
+        return limited
+
     allow_credentials = []
     try:
         payload = json_body(request)
@@ -727,13 +856,20 @@ def passkey_login_options(request: HttpRequest) -> JsonResponse:
 
     identifier = (payload.get("identifier") or "").strip()
     if not identifier:
-        request.session.pop(WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY, None)
-        request.session.pop(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY, None)
+        challenge = random_challenge()
+        request.session[WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY] = challenge
+        request.session[WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY] = []
+        request.session[WEBAUTHN_AUTH_DISCOVERABLE_SESSION_KEY] = True
         return _passkey_response(
-            False,
-            status=400,
-            error="identifier_required",
-            message="اكتب رقم الجوال أو الهوية أولاً ثم اضغط الدخول بالبصمة.",
+            True,
+            discoverable=True,
+            publicKey={
+                "challenge": challenge,
+                "rpId": rp_id_from_request(request),
+                "timeout": 120000,
+                "userVerification": "required",
+                "allowCredentials": [],
+            },
         )
 
     attempts = [identifier]
@@ -762,6 +898,7 @@ def passkey_login_options(request: HttpRequest) -> JsonResponse:
     if not allow_credentials:
         request.session.pop(WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY, None)
         request.session.pop(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY, None)
+        request.session.pop(WEBAUTHN_AUTH_DISCOVERABLE_SESSION_KEY, None)
         return _passkey_response(
             False,
             status=404,
@@ -772,6 +909,7 @@ def passkey_login_options(request: HttpRequest) -> JsonResponse:
     challenge = random_challenge()
     request.session[WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY] = challenge
     request.session[WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY] = [item["hash"] for item in allow_credentials]
+    request.session.pop(WEBAUTHN_AUTH_DISCOVERABLE_SESSION_KEY, None)
     for item in allow_credentials:
         item.pop("hash", None)
 
@@ -786,7 +924,12 @@ def passkey_login_options(request: HttpRequest) -> JsonResponse:
 
 
 @require_http_methods(["POST"])
+@ratelimit(key="ip", rate="20/m", method="POST", block=False)
 def passkey_login_verify(request: HttpRequest) -> JsonResponse:
+    limited = _passkey_rate_limited(request)
+    if limited is not None:
+        return limited
+
     challenge = request.session.get(WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY)
     if not challenge:
         return _passkey_response(False, status=400, error="challenge_missing", message="انتهت صلاحية محاولة الدخول.")
@@ -797,7 +940,10 @@ def passkey_login_verify(request: HttpRequest) -> JsonResponse:
         raw_id = b64url_decode(payload.get("rawId") or payload.get("id") or "")
         raw_id_hash = credential_hash(raw_id)
         allowed_hashes = request.session.get(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY) or []
-        if raw_id_hash not in allowed_hashes:
+        discoverable = bool(request.session.get(WEBAUTHN_AUTH_DISCOVERABLE_SESSION_KEY))
+        # A discoverable ceremony never claimed an identity up front, so there is
+        # no allow-list to match against; the signature below is what proves it.
+        if not discoverable and raw_id_hash not in allowed_hashes:
             return _passkey_response(False, status=403, error="credential_not_allowed", message="مفتاح البصمة لا يطابق الرقم أو الهوية المدخلة.")
 
         credential = (
@@ -807,6 +953,20 @@ def passkey_login_verify(request: HttpRequest) -> JsonResponse:
         )
         if credential is None:
             return _passkey_response(False, status=404, error="credential_not_found", message="لم يتم العثور على مفتاح بصمة لهذا الجهاز.")
+
+        user_handle_b64 = response.get("userHandle")
+        if user_handle_b64:
+            try:
+                user_handle = b64url_decode(user_handle_b64).decode("utf-8", "ignore").strip()
+            except Exception:
+                user_handle = ""
+            if user_handle and user_handle != str(credential.teacher_id):
+                return _passkey_response(
+                    False,
+                    status=403,
+                    error="user_handle_mismatch",
+                    message="مفتاح البصمة لا يطابق حساب المستخدم.",
+                )
 
         client_data_hash = parse_client_data(
             client_data_json_b64=response.get("clientDataJSON") or "",
@@ -838,6 +998,7 @@ def passkey_login_verify(request: HttpRequest) -> JsonResponse:
         credential.save(update_fields=["sign_count", "last_used_at"])
         request.session.pop(WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY, None)
         request.session.pop(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY, None)
+        request.session.pop(WEBAUTHN_AUTH_DISCOVERABLE_SESSION_KEY, None)
 
         return _complete_passkey_login(
             request,

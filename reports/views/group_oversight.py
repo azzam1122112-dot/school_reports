@@ -1,0 +1,276 @@
+# -*- coding: utf-8 -*-
+"""إشراف المدير التنفيذي: تفاصيل المدرسة، وسجل المجموعة، وأرشيفها.
+
+ثلاث شاشات تغلق ما تبقّى من بنود هذا الدور، وكلها **قراءة فقط** — على النهج
+الذي أُسّس في ``school_groups.py``: المدير التنفيذي يشرف ويتابع، ولا يتولى
+الإدارة اليومية لأي مدرسة ولا يعدّل بياناتها.
+
+والفرق بين «الاطلاع» و«الإدارة» هنا ليس تفصيلاً لغوياً: شاشةٌ تعرض زر تعديل
+لمن لا يملك التعديل تُغري باستعماله ثم تردّه — وهي أسوأ من ألا تعرضه.
+"""
+from __future__ import annotations
+
+from datetime import timedelta
+
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Count, Q
+from django.http import Http404
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods
+
+from ..audit_labels import attach_views
+from ..model_parts.approvals import ApprovalState, PENDING_REVIEW_STATES
+from ..models import (
+    AssignmentTarget,
+    AuditLog,
+    Document,
+    Initiative,
+    Meeting,
+    Plan,
+    Report,
+    School,
+    SchoolMembership,
+    SchoolYearArchive,
+    TeacherAchievementFile,
+)
+from ..permissions import (
+    executive_director_groups,
+    executive_director_schools_qs,
+    is_executive_director,
+)
+
+__all__ = ["group_school_detail", "group_audit_log", "group_archive"]
+
+
+def _director_groups(request):
+    if not is_executive_director(request.user):
+        raise Http404
+    groups = list(executive_director_groups(request.user))
+    if not groups:
+        raise Http404
+    return groups
+
+
+def _selected_group(request, groups):
+    requested = (request.GET.get("group") or "").strip()
+    if requested:
+        return next((item for item in groups if str(item.pk) == requested), groups[0])
+    return groups[0]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# تفاصيل مدرسة واحدة
+# ─────────────────────────────────────────────────────────────────────────────
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def group_school_detail(request, pk: int):
+    """تفاصيل مدرسة واحدة من مدارس المجموعة — اطّلاعاً لا إدارة.
+
+    **ما يُعرض وما لا يُعرض**: تُعرض المؤشرات المجمَّعة وما رفعته المدرسة إلى
+    المجموعة. ولا يُعرض محتوى تقرير معلّم ولا ملف إنجازه — فالمدير التنفيذي
+    يتابع أداء المدرسة لا يفتّش أعمال منسوبيها، والتوصيف يمنعه صراحةً من
+    تعديل تقارير المنسوبين أو حذف وثائقهم.
+    """
+    groups = _director_groups(request)
+    allowed = executive_director_schools_qs(request.user)
+    school = get_object_or_404(allowed.select_related("subscription"), pk=pk)
+    group = school.group
+
+    now = timezone.now()
+    since = now - timedelta(days=30)
+
+    reports = Report.objects.filter(school=school)
+    targets = AssignmentTarget.objects.filter(
+        Q(school=school) | Q(assignment__school=school)
+    )
+
+    stats = {
+        "seats": SchoolMembership.seats_used(school),
+        "reports_total": reports.count(),
+        "reports_recent": reports.filter(created_at__gte=since).count(),
+        "reports_pending": reports.filter(
+            approval_state__in=PENDING_REVIEW_STATES
+        ).count(),
+        "achievements": TeacherAchievementFile.objects.filter(school=school).count(),
+        "assignments": targets.count(),
+        "assignments_done": targets.filter(
+            approval_state=ApprovalState.APPROVED
+        ).count(),
+        "assignments_overdue": targets.filter(
+            assignment__due_at__lt=now, assignment__cancelled_at__isnull=True
+        ).exclude(approval_state=ApprovalState.APPROVED).count(),
+        "meetings": Meeting.objects.filter(
+            school=school, status=Meeting.Status.HELD
+        ).count(),
+        "plans": Plan.objects.filter(school=school).count(),
+        "documents": Document.objects.filter(
+            school=school, approval_state=ApprovalState.APPROVED
+        ).count(),
+    }
+    stats["completion"] = (
+        round(stats["assignments_done"] * 100 / stats["assignments"])
+        if stats["assignments"]
+        else 0
+    )
+
+    # ما رفعته المدرسة إلى المجموعة — وهو ما يخص المدير التنفيذي فعلاً.
+    group_targets = list(
+        targets.filter(assignment__group__isnull=False)
+        .select_related("assignment", "assignee")
+        .order_by("-assignment__due_at")[:15]
+    )
+    shared_practices = list(
+        Initiative.objects.filter(
+            school=school,
+            approval_state=ApprovalState.APPROVED,
+            shared_at__isnull=False,
+        ).select_related("teacher")[:10]
+    )
+
+    manager = (
+        SchoolMembership.objects.filter(
+            school=school,
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True,
+        )
+        .select_related("teacher")
+        .first()
+    )
+
+    return render(
+        request,
+        "reports/group_school_detail.html",
+        {
+            "active": "executive_dashboard",
+            "groups": groups,
+            "group": group,
+            "school": school,
+            "manager": getattr(manager, "teacher", None),
+            "stats": stats,
+            "group_targets": group_targets,
+            "shared_practices": shared_practices,
+        },
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# سجل إجراءات المجموعة
+# ─────────────────────────────────────────────────────────────────────────────
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def group_audit_log(request):
+    """سجل الإجراءات عبر مدارس المجموعة.
+
+    بند صريح في التوصيف: «الاطلاع على سجل الإجراءات والاعتمادات». وهو **قراءة
+    محضة**: السجل لا يُعدَّل ولا يُحذف — لا منه ولا من مدير المدرسة — وذلك
+    مفروض في النموذج نفسه لا في هذه الشاشة.
+    """
+    groups = _director_groups(request)
+    group = _selected_group(request, groups)
+    school_ids = list(
+        executive_director_schools_qs(request.user)
+        .filter(group=group)
+        .values_list("id", flat=True)
+    )
+
+    logs = AuditLog.objects.filter(school_id__in=school_ids).select_related(
+        "teacher", "school"
+    )
+
+    school_filter = (request.GET.get("school") or "").strip()
+    action_filter = (request.GET.get("action") or "").strip()
+    allowed_actions = {value for value, _label in AuditLog.Action.choices}
+
+    if school_filter.isdigit() and int(school_filter) in school_ids:
+        logs = logs.filter(school_id=int(school_filter))
+    else:
+        school_filter = ""
+    if action_filter in allowed_actions:
+        logs = logs.filter(action=action_filter)
+    else:
+        action_filter = ""
+
+    page = Paginator(logs, 50).get_page(request.GET.get("page"))
+    attach_views(page)
+
+    params = request.GET.copy()
+    params.pop("page", None)
+
+    return render(
+        request,
+        "reports/group_audit_log.html",
+        {
+            "active": "group_audit_log",
+            "groups": groups,
+            "group": group,
+            "page_obj": page,
+            "schools": School.objects.filter(id__in=school_ids).order_by("name"),
+            "actions": AuditLog.Action.choices,
+            "q_school": school_filter,
+            "q_action": action_filter,
+            "qs": params.urlencode(),
+        },
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# أرشيف المجموعة
+# ─────────────────────────────────────────────────────────────────────────────
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def group_archive(request):
+    """نسخ الأرشيف السنوي لمدارس المجموعة، في مكان واحد.
+
+    **اطّلاع لا إنشاء ولا حذف.** إنشاء نسخة الأرشيف وحذفها يبقيان بيد مدير
+    المدرسة: النسخة تُبنى من بيانات مدرسته وتُحسب على سعتها، وتركُ إنشائها
+    لغيره يجعله يفاجأ بامتلاء مساحته.
+
+    وما يخص المدير التنفيذي هنا هو **معرفة أي مدرسة أرشفت سنتها وأيها لم
+    تفعل** — وهي متابعة إشرافية لا إدارة تخزين.
+    """
+    groups = _director_groups(request)
+    group = _selected_group(request, groups)
+    schools = list(
+        executive_director_schools_qs(request.user).filter(group=group).order_by("name")
+    )
+    school_ids = [item.pk for item in schools]
+
+    archives = list(
+        SchoolYearArchive.objects.filter(school_id__in=school_ids)
+        .select_related("school")
+        .order_by("school__name", "-academic_year", "-version")[:200]
+    )
+
+    by_school: dict[int, list] = {}
+    for archive in archives:
+        by_school.setdefault(archive.school_id, []).append(archive)
+
+    rows = [
+        {
+            "school": school,
+            "archives": by_school.get(school.pk, []),
+            "latest": (by_school.get(school.pk) or [None])[0],
+        }
+        for school in schools
+    ]
+    # مدرسة بلا أرشيف هي ما يستحق التنبيه، فتُقدَّم لا تُذيَّل.
+    rows.sort(key=lambda row: (1 if row["archives"] else 0, row["school"].name))
+
+    return render(
+        request,
+        "reports/group_archive.html",
+        {
+            "active": "group_archive",
+            "groups": groups,
+            "group": group,
+            "rows": rows,
+            "totals": {
+                "schools": len(rows),
+                "archived": sum(1 for row in rows if row["archives"]),
+                "missing": sum(1 for row in rows if not row["archives"]),
+                "copies": len(archives),
+            },
+        },
+    )

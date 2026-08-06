@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load hijri_tags %}
+
+{% block title %}أرشيف أعمالي | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .wa-years { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: 1.1rem; }
+  .wa-years a {
+    font-size: .82rem; font-weight: 800; text-decoration: none;
+    padding: .38rem .85rem; border-radius: 999px;
+    color: #fff; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.24);
+  }
+  .wa-years a.is-active { background: #fff; color: #08643b; }
+  .wa-line {
+    display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+    padding: .55rem .75rem; border-radius: 11px; margin-bottom: .4rem;
+    border: 1px solid var(--asg-line); background: var(--asg-surface);
+  }
+  .wa-line__main { flex: 1; min-width: 170px; }
+  .wa-line__title { font-size: .85rem; font-weight: 800; }
+  .wa-line__title a { color: inherit; text-decoration: none; }
+  .wa-line__title a:hover { text-decoration: underline; }
+  .wa-line__sub { font-size: .74rem; color: var(--asg-muted); margin-top: .12rem; }
+  .wa-icon {
+    width: 30px; height: 30px; flex: none; border-radius: 9px;
+    display: grid; place-items: center; font-size: .76rem;
+    background: var(--asg-soft); color: var(--asg-green);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <span class="asg-hero__eyebrow">
+      <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+      أعمالي
+    </span>
+    <h1 class="asg-hero__title">أرشيف أعمالي</h1>
+    <p class="asg-hero__meta">
+      كل ما أنتجتَه في {{ active_school.name }}، مقسّماً بالسنة الدراسية.
+      و<a href="{% url 'reports:my_activity_log' %}" style="color:#fff;text-decoration:underline">سجل أعمالي</a>
+      يعرض ما فعلتَه كأحداث — وهذه الصفحة تعرض ما أنتجتَه كأعمال.
+    </p>
+
+    {% if years %}
+      <div class="wa-years">
+        <a href="{% url 'reports:my_work_archive' %}" class="{% if not q_year %}is-active{% endif %}">كل السنوات</a>
+        {% for year in years %}
+          <a href="?year={{ year }}" class="{% if q_year == year %}is-active{% endif %}">{{ year }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </header>
+
+  <section class="asg-kpis" aria-label="ملخص أعمالي">
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ counts.reports }}</div>
+      <div class="asg-kpi__l">تقرير</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ counts.targets }}</div>
+      <div class="asg-kpi__l">تكليف منجَز</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ counts.documents }}</div>
+      <div class="asg-kpi__l">وثيقة</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ counts.achievements }}</div>
+      <div class="asg-kpi__l">ملف إنجاز</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ counts.initiatives }}</div>
+      <div class="asg-kpi__l">مبادرة</div>
+    </article>
+  </section>
+
+  {% if reports %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">تقاريري</h2>
+      {% for item in reports %}
+        <div class="wa-line">
+          <span class="wa-icon" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span>
+          <div class="wa-line__main">
+            <div class="wa-line__title">
+              <a href="{% url 'reports:report_print' item.pk %}">{{ item.title }}</a>
+            </div>
+            <div class="wa-line__sub">
+              {{ item.report_date|hijri }}
+              {% if item.category %} · {{ item.category.name }}{% endif %}
+              {% if item.academic_year %} · {{ item.academic_year }}{% endif %}
+            </div>
+          </div>
+          <span class="asg-tag {% if item.is_final %}asg-tag--done{% endif %}">
+            {{ item.get_approval_state_display }}
+          </span>
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if targets %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">تكليفاتي المنجَزة</h2>
+      {% for item in targets %}
+        <div class="wa-line">
+          <span class="wa-icon" aria-hidden="true"><i class="fa-solid fa-list-check"></i></span>
+          <div class="wa-line__main">
+            <div class="wa-line__title">
+              <a href="{% url 'reports:assignment_detail' item.pk %}">{{ item.assignment.title }}</a>
+            </div>
+            <div class="wa-line__sub">
+              اعتُمد {{ item.decided_at|date:"Y-m-d" }} · {{ item.evidence_count }} شاهد
+            </div>
+          </div>
+          <span class="asg-tag asg-tag--done">معتمد</span>
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if documents %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">وثائقي</h2>
+      {% for item in documents %}
+        <div class="wa-line">
+          <span class="wa-icon" aria-hidden="true"><i class="fa-solid fa-folder"></i></span>
+          <div class="wa-line__main">
+            <div class="wa-line__title">
+              <a href="{% url 'reports:document_detail' item.pk %}">{{ item.title }}</a>
+            </div>
+            <div class="wa-line__sub">
+              {{ item.get_kind_display }}
+              {% if item.academic_year %} · {{ item.academic_year }}{% endif %}
+              {% if item.department %} · {{ item.department.name }}{% endif %}
+            </div>
+          </div>
+          <span class="asg-tag {% if item.is_archived %}asg-tag--done{% endif %}">
+            {% if item.is_archived %}مؤرشَفة{% else %}{{ item.get_approval_state_display }}{% endif %}
+          </span>
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if achievements %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">ملفات إنجازي</h2>
+      {% for item in achievements %}
+        <div class="wa-line">
+          <span class="wa-icon" aria-hidden="true"><i class="fa-solid fa-folder-open"></i></span>
+          <div class="wa-line__main">
+            <div class="wa-line__title">
+              <a href="{% url 'reports:achievement_file_detail' item.pk %}">ملف إنجاز {{ item.academic_year }}</a>
+            </div>
+            <div class="wa-line__sub">{{ item.get_status_display }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if initiatives %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">مبادراتي</h2>
+      {% for item in initiatives %}
+        <div class="wa-line">
+          <span class="wa-icon" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span>
+          <div class="wa-line__main">
+            <div class="wa-line__title">{{ item.title }}</div>
+            <div class="wa-line__sub">{{ item.created_at|date:"Y-m-d" }}</div>
+          </div>
+          <span class="asg-tag {% if item.is_shared %}asg-tag--done{% endif %}">
+            {% if item.is_shared %}مشاركة مع المجموعة{% else %}{{ item.get_approval_state_display }}{% endif %}
+          </span>
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if not reports and not targets and not documents and not achievements and not initiatives %}
+    <div class="asg-empty" style="margin-top:1.2rem">
+      <div class="asg-empty__icon"><i class="fa-solid fa-box-archive" aria-hidden="true"></i></div>
+      <h2>{% if q_year %}لا أعمال في هذه السنة{% else %}أرشيفك فارغ{% endif %}</h2>
+      <p>
+        {% if q_year %}
+          جرّب سنة أخرى أو اعرض كل السنوات.
+        {% else %}
+          كل تقرير تكتبه ووثيقة ترفعها وتكليف يُعتمد تنفيذك له سيظهر هنا،
+          مرتّباً بسنته.
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

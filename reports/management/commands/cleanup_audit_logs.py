@@ -44,6 +44,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        from reports.model_parts.audit import audit_retention_purge
         from reports.models import AuditLog
 
         days: int = max(int(options["days"]), 0)
@@ -106,6 +107,8 @@ class Command(BaseCommand):
                         "id",
                         "school_id",
                         "teacher_id",
+                        "actor_name",
+                        "actor_role",
                         "action",
                         "model_name",
                         "object_id",
@@ -122,8 +125,11 @@ class Command(BaseCommand):
                         gzip_fp.write(json.dumps(row, ensure_ascii=False) + "\n")
                         archived_total += 1
 
-                # AuditLog has no expected dependent rows; delete() returns (count, details)
-                deleted, _ = batch_qs.delete()
+                # هذا هو المنفذ الوحيد المصرّح له بحذف سجلات الإجراءات، ولا
+                # يُفتح إلا بعد كتابة الأرشيف أعلاه. أي حذف خارجه يرفع
+                # AuditLogImmutableError.
+                with audit_retention_purge():
+                    deleted, _ = batch_qs.delete()
                 deleted_total += int(deleted)
 
         finally:

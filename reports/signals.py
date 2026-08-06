@@ -159,6 +159,20 @@ def _telegram_customer_complaint_created(sender, instance, created, **kwargs):
         )
 
 
+def _audit_role_snapshot(user, school) -> str:
+    """دور المستخدم لحظة الحدث، لقطةً لا اشتقاقاً متأخراً.
+
+    مطابقة لما يفعله ``model_parts.signals._audit_actor_snapshot``: من دخل
+    معلّماً ثم صار مديراً لا يصح أن يظهر دخوله القديم بصفة مدير.
+    """
+    try:
+        from .permissions import effective_user_role_label
+
+        return str(effective_user_role_label(user, school) or "")[:64]
+    except Exception:
+        return ""
+
+
 def _infer_school_for_audit(request, user) -> School | None:
     """Best-effort school inference for audit events.
 
@@ -249,9 +263,11 @@ def _single_session_on_login(sender, request, user, **kwargs):
 
     # Audit: login
     try:
+        _login_school = _infer_school_for_audit(request, user)
         AuditLog.objects.create(
-            school=_infer_school_for_audit(request, user),
+            school=_login_school,
             teacher=user,
+            actor_role=_audit_role_snapshot(user, _login_school),
             action=AuditLog.Action.LOGIN,
             model_name="Auth",
             object_id=getattr(user, "pk", None),
@@ -284,9 +300,11 @@ def _single_session_on_logout(sender, request, user, **kwargs):
 
     # Audit: logout
     try:
+        _logout_school = _infer_school_for_audit(request, user)
         AuditLog.objects.create(
-            school=_infer_school_for_audit(request, user),
+            school=_logout_school,
             teacher=user,
+            actor_role=_audit_role_snapshot(user, _logout_school),
             action=AuditLog.Action.LOGOUT,
             model_name="Auth",
             object_id=getattr(user, "pk", None),

@@ -851,6 +851,12 @@ STORAGE_THRESHOLD_ALERTS_ENABLED = _env_bool("STORAGE_THRESHOLD_ALERTS_ENABLED",
 # to the site. Both can fail, so a sweep re-checks recent pending payments and
 # finishes the ones the gateway actually captured.
 PAYMENT_RECONCILIATION_ENABLED = _env_bool("PAYMENT_RECONCILIATION_ENABLED", True)
+# How long an unpaid electronic order may sit before the reconciliation sweep
+# cancels it. The hosted checkout URL is single-use and is not stored, so a
+# customer who closes that tab can never return to it; the order would other-
+# wise stay pending forever. Only orders the gateway still reports as unpaid
+# are cancelled. Set to 0 to disable and keep the sweep a rescue pass only.
+PAYMENT_ABANDON_AFTER_MINUTES = int(os.getenv("PAYMENT_ABANDON_AFTER_MINUTES", "60"))
 
 
 # ----------------- Unsigned Circular Reminders -----------------

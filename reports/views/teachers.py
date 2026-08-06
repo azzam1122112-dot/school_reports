@@ -69,7 +69,7 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
     if active_school is not None:
         qs = qs.filter(
             school_memberships__school=active_school,
-            school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
+            school_memberships__role_type__in=SchoolMembership.STAFF_ROLES,
         ).distinct()
 
     # ✅ بحث
@@ -86,7 +86,7 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
     if active_school is not None and job_title_filter in SchoolMembership.JobTitle.values:
         qs = qs.filter(
             school_memberships__school=active_school,
-            school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
+            school_memberships__role_type__in=SchoolMembership.STAFF_ROLES,
             school_memberships__job_title=job_title_filter,
         )
     if active_school is not None and department_filter.isdigit():
@@ -102,7 +102,7 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
             teacher_m = SchoolMembership.objects.filter(
                 school=active_school,
                 teacher=OuterRef("pk"),
-                role_type=SchoolMembership.RoleType.TEACHER,
+                role_type__in=SchoolMembership.STAFF_ROLES,
                 is_active=True,
             )
             title_sq = (
@@ -143,14 +143,7 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
         if active_school is not None
         else Department.objects.none()
     )
-    current_count = (
-        SchoolMembership.objects.filter(
-            school=active_school,
-            role_type=SchoolMembership.RoleType.TEACHER,
-        ).count()
-        if active_school is not None
-        else 0
-    )
+    current_count = SchoolMembership.seats_used(active_school)
     active_subscription = getattr(active_school, "subscription", None)
     maximum = int(getattr(active_subscription, "teacher_limit", 0) or 0)
     filters_query = request.GET.copy()
@@ -354,10 +347,7 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
 
             # التحقق من حد الباقة (نحسب فقط العضويات الجديدة الفعلية)
             max_teachers = int(getattr(sub, "teacher_limit", 0) or 0)
-            current_count = SchoolMembership.objects.filter(
-                school=active_school,
-                role_type=SchoolMembership.RoleType.TEACHER,
-            ).count()
+            current_count = SchoolMembership.seats_used(active_school)
 
             phones_unique = {p for p in phones_in_file if p}
             existing_phones_in_school: set[str] = set()
@@ -365,7 +355,7 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                 existing_phones_in_school = set(
                     SchoolMembership.objects.filter(
                         school=active_school,
-                        role_type=SchoolMembership.RoleType.TEACHER,
+                        role_type__in=SchoolMembership.STAFF_ROLES,
                         teacher__phone__in=phones_unique,
                     ).values_list("teacher__phone", flat=True)
                 )

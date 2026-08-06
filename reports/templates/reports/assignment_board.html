@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التكليفات | منصة توثيق{% endblock %}
+
+{% block head %}{% include "reports/_assignment_theme.html" %}{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <span class="asg-hero__eyebrow">
+      <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
+      متابعة التنفيذ
+    </span>
+    <h1 class="asg-hero__title">لوحة التكليفات</h1>
+    <p class="asg-hero__meta">
+      {% if is_manager %}
+        كل ما صدر في {{ active_school.name }} وأين وصل، ومعه ما تأخّر.
+      {% else %}
+        ما أصدرتَه من تكليفات ضمن نطاق إشرافك.
+      {% endif %}
+    </p>
+    <div style="margin-top:1.1rem">
+      <a class="asg-btn asg-btn--primary" href="{% url 'reports:assignment_create' %}"
+         style="background:#fff;color:#08643b">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        تكليف جديد
+      </a>
+    </div>
+  </header>
+
+  <section class="asg-kpis" aria-label="ملخص التكليفات">
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ totals.assignments }}</div>
+      <div class="asg-kpi__l">تكليف</div>
+    </article>
+    <article class="asg-kpi" data-tone="warn">
+      <div class="asg-kpi__v">{{ totals.pending }}</div>
+      <div class="asg-kpi__l">بانتظار قرارك</div>
+    </article>
+    <article class="asg-kpi" data-tone="danger">
+      <div class="asg-kpi__v">{{ totals.overdue }}</div>
+      <div class="asg-kpi__l">تنفيذ متأخر</div>
+    </article>
+  </section>
+
+  {# ═══ المتأخرات ═══════════════════════════════════════════ #}
+  {% if overdue %}
+    <section class="asg-card">
+      <h2 class="asg-card__title" style="color:var(--asg-danger)">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        الأعمال المتأخرة
+      </h2>
+      <p class="asg-card__hint">
+        فات موعدها ولم تُعتمد بعد. المعتمَد لا يظهر هنا مهما فات موعده — فقد
+        سُلّم فعلاً، وإدراجه يجعل القائمة تأنيباً على ما انتهى بدل أن تكون قابلة
+        للتصرف.
+      </p>
+
+      {% for t in overdue %}
+        <article class="asg-item" data-late="1">
+          <div class="asg-item__main">
+            <div class="asg-item__title">
+              <a href="{% url 'reports:assignment_detail' t.pk %}">{{ t.assignment.title }}</a>
+            </div>
+            <div class="asg-item__sub">
+              {{ t.assignee.name }} · كان يستحق {{ t.assignment.due_at|date:"Y-m-d" }}
+              · الإنجاز {{ t.progress_percent }}%
+            </div>
+          </div>
+          <div class="asg-item__side">
+            <span class="asg-tag asg-tag--late">متأخر</span>
+            <span class="asg-tag">{{ t.get_approval_state_display }}</span>
+            <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{% url 'reports:assignment_detail' t.pk %}">فتح</a>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {# ═══ التكليفات ═══════════════════════════════════════════ #}
+  <section class="asg-card">
+    <h2 class="asg-card__title">التكليفات الصادرة</h2>
+    <p class="asg-card__hint">
+      النسبة المعروضة = عدد من اعتُمد تنفيذهم ÷ عدد المكلَّفين. محسوبة لحظياً لا
+      مخزَّنة، فلا تفترق عن الحقيقة.
+    </p>
+
+    {% if rows %}
+      {% for row in rows %}
+        <article class="asg-item" data-late="{% if row.overdue %}1{% endif %}">
+          <div class="asg-item__main">
+            <div class="asg-item__title">
+              {{ row.assignment.title }}
+              {% if row.assignment.is_cancelled %}
+                <span class="asg-tag" style="margin-inline-start:.4rem">ملغى</span>
+              {% endif %}
+            </div>
+            <div class="asg-item__sub">
+              {{ row.total }} مكلَّف · يستحق {{ row.assignment.due_at|date:"Y-m-d" }}
+              {% if row.assignment.department %} · {{ row.assignment.department.name }}{% endif %}
+              {% if row.overdue %} · <strong style="color:var(--asg-danger)">{{ row.overdue }} متأخر</strong>{% endif %}
+            </div>
+          </div>
+
+          <div class="asg-bar">
+            <div class="asg-bar__track">
+              <div class="asg-bar__fill" style="width:{{ row.percent }}%"></div>
+            </div>
+            <div class="asg-bar__label">{{ row.done }} / {{ row.total }}</div>
+          </div>
+
+          <div class="asg-item__side">
+            {% if row.pending %}
+              <span class="asg-tag asg-tag--soon">{{ row.pending }} بانتظار القرار</span>
+            {% endif %}
+            {% if not row.assignment.is_cancelled %}
+              <form method="post" action="{% url 'reports:assignment_cancel' row.assignment.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="asg-btn asg-btn--danger asg-btn--sm">
+                  <i class="fa-solid fa-ban" aria-hidden="true"></i>
+                  إلغاء
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    {% else %}
+      <div class="asg-empty">
+        <div class="asg-empty__icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></div>
+        <h2>لم تصدر تكليفات بعد</h2>
+        <p>
+          التكليف يحمل المطلوب وموعده والشواهد اللازمة، ويتيح متابعة نسبة الإنجاز
+          واعتماد التنفيذ لكل مكلَّف على حدة.
+        </p>
+        <div style="margin-top:1rem">
+          <a class="asg-btn asg-btn--primary" href="{% url 'reports:assignment_create' %}">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            أصدر أول تكليف
+          </a>
+        </div>
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

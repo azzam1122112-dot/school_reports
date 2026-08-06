@@ -256,7 +256,7 @@
 
     <ul class="passkey-prompt__benefits">
       <li><i class="fa-solid fa-check" aria-hidden="true"></i><span>تسجيل دخول أسرع من هذا الجهاز في الزيارات القادمة.</span></li>
-      <li><i class="fa-solid fa-check" aria-hidden="true"></i><span>يمكنك عرض الأجهزة المفعّلة لاحقًا من صفحة حسابي.</span></li>
+      <li><i class="fa-solid fa-check" aria-hidden="true"></i><span>تستطيع مراجعة الأجهزة المفعّلة وإلغاء أيٍّ منها متى شئت من صفحة حسابي.</span></li>
     </ul>
 
     <div class="passkey-prompt__privacy">
@@ -318,12 +318,12 @@
       var transports = credential.response.getTransports
         ? credential.response.getTransports()
         : ['internal'];
-      var isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+      // The server derives a readable device name from the User-Agent; the old
+      // placeholder made every row in "my devices" look identical.
       return {
         id: credential.id,
         rawId: base64FromBuffer(credential.rawId),
         type: credential.type,
-        deviceName: isMobile ? 'جوال المستخدم' : 'جهاز المستخدم',
         response: {
           attestationObject: base64FromBuffer(credential.response.attestationObject),
           clientDataJSON: base64FromBuffer(credential.response.clientDataJSON),
@@ -363,10 +363,10 @@
         return 'هذا الجهاز أو المتصفح لا يدعم إنشاء مفتاح مرور. حدّث Chrome أو Safari واستخدم قفل الشاشة، أو تابع بكلمة المرور.';
       }
       if (error && error.name === 'SecurityError') {
-        return 'تعذر التحقق من نطاق المنصة. افتح https://tawtheeq-ksa.com مباشرة في Chrome أو Safari ثم أعد المحاولة.';
+        return 'تعذر التحقق من نطاق المنصة. افتح ' + window.location.origin + ' مباشرة في Chrome أو Safari ثم أعد المحاولة.';
       }
       if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
-        return 'لم يكتمل التفعيل. افتح tawtheeq-ksa.com مباشرة في Chrome وتأكد من تفعيل قفل الشاشة، ثم أعد المحاولة.';
+        return 'لم يكتمل التفعيل. تأكد من تفعيل قفل الشاشة أو بصمة الجهاز، ثم أعد المحاولة.';
       }
       return error && error.message ? error.message : 'تعذر تفعيل الدخول بالبصمة.';
     }
@@ -444,14 +444,32 @@
       activateButton.focus();
     }
 
+    /* Offering fingerprint sign-in on a device that has no screen lock only
+       produces an error after the user commits, so check first and stay quiet. */
+    async function showPromptIfSupported() {
+      try {
+        if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+          var available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          if (!available) {
+            dismissPrompt();
+            return;
+          }
+        }
+      } catch (error) {
+        // Availability is only a hint; fall through and let the user try.
+      }
+      showPrompt();
+    }
+
     var homeNotification = document.getElementById('homeNotification');
     if (homeNotification && !homeNotification.hidden) {
+      /* Wait for the other dialog to close instead of skipping the offer on
+         phones — that suppression meant the mobile users who benefit most from
+         fingerprint sign-in were never asked. */
       var notificationObserver = new MutationObserver(function () {
         if (homeNotification.hidden) {
           notificationObserver.disconnect();
-          /* Avoid stacking two blocking dialogs back-to-back on phones.
-             The session flag remains, so the prompt can appear on the next page. */
-          if (!window.matchMedia('(max-width: 520px)').matches) showPrompt();
+          setTimeout(showPromptIfSupported, 350);
         }
       });
       notificationObserver.observe(homeNotification, {
@@ -459,7 +477,7 @@
         attributeFilter: ['hidden']
       });
     } else {
-      showPrompt();
+      showPromptIfSupported();
     }
   });
 </script>

@@ -4,7 +4,11 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from reports.models import Teacher, WebAuthnCredential
-from reports.views.auth import PASSKEY_ENROLL_PROMPT_SESSION_KEY
+from reports.views.auth import (
+    PASSKEY_ENROLL_PROMPT_SESSION_KEY,
+    PASSKEY_PROMPT_SNOOZE_COOKIE,
+    _passkey_device_label,
+)
 from reports.webauthn import (
     b64url_encode,
     credential_hash,
@@ -164,19 +168,30 @@ class PasskeyEndpointTests(TestCase):
         self.assertEqual(payload["publicKey"]["allowCredentials"][0]["id"], b64url_encode(self.credential_id))
 
         login_response = self.client.get(reverse("reports:login"))
-        self.assertContains(login_response, "isUserVerifyingPlatformAuthenticatorAvailable")
+        self.assertContains(login_response, "isConditionalMediationAvailable")
+        self.assertContains(login_response, "username webauthn")
         self.assertContains(login_response, "NotSupportedError")
         self.assertContains(login_response, "NotAllowedError")
 
-    def test_login_options_require_identifier(self):
+    def test_login_options_without_identifier_start_discoverable_ceremony(self):
+        """No identifier means one-tap sign-in, not an error.
+
+        The authenticator picks a discoverable passkey and reports which account
+        it belongs to, which is what browser autofill relies on.
+        """
         response = self.client.post(
             reverse("reports:passkey_login_options"),
             data="{}",
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["error"], "identifier_required")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["discoverable"])
+        self.assertEqual(payload["publicKey"]["allowCredentials"], [])
+        self.assertIn("challenge", payload["publicKey"])
+        self.assertEqual(payload["publicKey"]["userVerification"], "required")
 
     def test_login_options_reject_user_without_passkey(self):
         Teacher.objects.create_user(
@@ -232,6 +247,121 @@ class PasskeyEndpointTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error"], "challenge_missing")
+
+    def test_discoverable_login_rejects_user_handle_of_another_account(self):
+        """The handle the authenticator returns must name the credential's owner."""
+        other_user = Teacher.objects.create_user(
+            phone="555000555",
+            name="Handle Mismatch User",
+            password="pass",
+        )
+
+        self.client.post(
+            reverse("reports:passkey_login_options"),
+            data="{}",
+            content_type="application/json",
+        )
+        response = self.client.post(
+            reverse("reports:passkey_login_verify"),
+            data=(
+                '{"rawId":"%s","response":{"userHandle":"%s"}}'
+                % (
+                    b64url_encode(self.credential_id),
+                    b64url_encode(str(other_user.pk).encode("utf-8")),
+                )
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["error"], "user_handle_mismatch")
+
+    def test_user_can_revoke_one_device(self):
+        credential = WebAuthnCredential.objects.get(teacher=self.user)
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse("reports:passkey_delete", args=[credential.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["remaining"], 0)
+        # Hard delete, not deactivation: ``credential_id`` is unique, so a
+        # lingering row would block re-enrolling the same device.
+        self.assertFalse(WebAuthnCredential.objects.filter(pk=credential.pk).exists())
+
+    def test_user_cannot_revoke_a_device_of_another_account(self):
+        intruder = Teacher.objects.create_user(
+            phone="555000666",
+            name="Intruder",
+            password="pass",
+        )
+        credential = WebAuthnCredential.objects.get(teacher=self.user)
+        self.client.force_login(intruder)
+
+        response = self.client.post(reverse("reports:passkey_delete", args=[credential.pk]))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(WebAuthnCredential.objects.filter(pk=credential.pk).exists())
+
+    def test_dismissing_the_offer_stops_it_returning_on_the_next_login(self):
+        user = Teacher.objects.create_user(
+            phone="555000777",
+            name="Declining User",
+            password="safe-pass",
+        )
+        self.client.force_login(user)
+
+        dismiss = self.client.post(reverse("reports:passkey_enroll_prompt_dismiss"))
+        self.assertEqual(dismiss.status_code, 200)
+        self.assertIn(PASSKEY_PROMPT_SNOOZE_COOKIE, dismiss.cookies)
+
+        # The real logout view, not Client.logout(), which wipes every cookie
+        # including the snooze this test is about.
+        self.client.get(reverse("reports:logout"))
+        self.client.post(
+            reverse("reports:login"),
+            data={"phone": "555000777", "password": "safe-pass"},
+        )
+
+        self.assertNotIn(PASSKEY_ENROLL_PROMPT_SESSION_KEY, self.client.session)
+
+
+class PasskeyDeviceLabelTests(TestCase):
+    """Every device used to be stored under the same placeholder name."""
+
+    class _Request:
+        def __init__(self, agent):
+            self.META = {"HTTP_USER_AGENT": agent}
+
+    def test_iphone_safari_is_named_after_the_device(self):
+        label = _passkey_device_label(
+            self._Request(
+                "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 "
+                "(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            )
+        )
+
+        self.assertEqual(label, "آيفون · Safari")
+
+    def test_android_chrome_is_named_after_the_device(self):
+        label = _passkey_device_label(
+            self._Request(
+                "Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            )
+        )
+
+        self.assertEqual(label, "جهاز أندرويد · Chrome")
+
+    def test_legacy_placeholder_is_replaced_by_a_real_name(self):
+        label = _passkey_device_label(
+            self._Request("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"),
+            provided="جهاز المستخدم",
+        )
+
+        self.assertEqual(label, "ويندوز · Chrome")
+
+    def test_unknown_agent_falls_back_to_a_neutral_name(self):
+        self.assertEqual(_passkey_device_label(self._Request("")), "جهاز مفعّل")
 
 
 class PasskeyRpIdTests(TestCase):

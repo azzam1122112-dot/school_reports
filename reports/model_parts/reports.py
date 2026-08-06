@@ -1,9 +1,18 @@
 from __future__ import annotations
 
 from .base import *
+from .approvals import ApprovalMixin
 from .schools import School, Teacher, ReportType
 
-class Report(models.Model):
+
+class Report(ApprovalMixin):
+    """تقرير عمل — ويمر الآن بدورة اعتماد.
+
+    قبل هذه المرحلة كان التقرير سجلاً ساكناً بلا حالة: يُنشأ منشوراً فوراً،
+    فلا مسودة ولا إرسال للاعتماد ولا إعادة بملاحظة. وهي أربعة بنود يطلبها
+    توصيف الأدوار من ثلاثة أدوار مختلفة.
+    """
+
     school = models.ForeignKey(
         School,
         on_delete=models.SET_NULL,

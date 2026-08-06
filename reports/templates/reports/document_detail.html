@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}{{ document.title }} | أرشيف الوثائق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .dc-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+  @media (max-width: 900px) { .dc-grid { grid-template-columns: 1fr; } }
+  .dc-meta { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .dc-meta__l { font-size: .73rem; color: var(--asg-muted); font-weight: 700; }
+  .dc-meta__v { font-size: .86rem; font-weight: 800; margin-top: .12rem; }
+  .dc-body { font-size: .87rem; line-height: 1.95; white-space: pre-wrap; margin-top: 1rem; }
+  .dc-alert {
+    margin-top: 1rem; padding: .75rem .9rem; border-radius: 12px;
+    font-size: .84rem; line-height: 1.85; background: var(--asg-soft);
+    border-inline-start: 3px solid var(--asg-gold); white-space: pre-wrap;
+  }
+  .dc-file {
+    display: flex; align-items: center; gap: .7rem; margin-top: 1.1rem;
+    padding: .8rem .9rem; border-radius: 13px;
+    border: 1px solid var(--asg-line); background: var(--asg-surface);
+  }
+  .dc-file__icon {
+    width: 40px; height: 40px; border-radius: 12px; flex: none;
+    display: grid; place-items: center; font-size: 1.05rem;
+    background: var(--asg-soft); color: var(--asg-green);
+  }
+  .dc-file__name { flex: 1; min-width: 130px; font-size: .86rem; font-weight: 800; }
+  .dc-file__sub { font-size: .74rem; color: var(--asg-muted); margin-top: .1rem; }
+  .dc-actions { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .8rem; }
+  .dc-step { font-size: .79rem; color: var(--asg-muted); padding: .4rem 0; border-bottom: 1px solid var(--asg-line); }
+  .dc-step strong { color: var(--asg-ink); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <a class="asg-hero__eyebrow" href="{% url 'reports:document_archive' %}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      أرشيف الوثائق
+    </a>
+    <h1 class="asg-hero__title">{{ document.title }}</h1>
+    <p class="asg-hero__meta">
+      {{ document.owner_name|default:"—" }} · رُفعت {{ document.created_at|date:"Y-m-d H:i" }}
+    </p>
+  </header>
+
+  <div class="dc-grid">
+    <div>
+      <section class="asg-card" style="margin-top:1.2rem">
+        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
+          <h2 class="asg-card__title" style="margin:0">بيانات الوثيقة</h2>
+          {% if document.is_archived %}
+            <span class="asg-tag asg-tag--done">
+              <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+              مؤرشَفة
+            </span>
+          {% else %}
+            <span class="asg-tag">{{ document.get_approval_state_display }}</span>
+          {% endif %}
+        </div>
+
+        <div class="dc-meta">
+          <div>
+            <div class="dc-meta__l">النوع</div>
+            <div class="dc-meta__v">{{ document.get_kind_display }}</div>
+          </div>
+          <div>
+            <div class="dc-meta__l">السنة الدراسية</div>
+            <div class="dc-meta__v">{{ document.academic_year|default:"—" }}</div>
+          </div>
+          <div>
+            <div class="dc-meta__l">القسم</div>
+            <div class="dc-meta__v">{{ document.department.name|default:"—" }}</div>
+          </div>
+          <div>
+            <div class="dc-meta__l">اعتمد الأرشفة</div>
+            <div class="dc-meta__v">
+              {% if document.decided_by %}{{ document.decided_by.name }}{% else %}—{% endif %}
+            </div>
+          </div>
+        </div>
+
+        {% if document.description %}
+          <div class="dc-body">{{ document.description }}</div>
+        {% endif %}
+
+        {% if document.review_note %}
+          <div class="dc-alert">
+            <strong>آخر ملاحظة:</strong> {{ document.review_note }}
+          </div>
+        {% endif %}
+
+        <div class="dc-file">
+          <span class="dc-file__icon" aria-hidden="true"><i class="fa-solid fa-paperclip"></i></span>
+          <div class="dc-file__name">
+            الملف المرفق
+            <div class="dc-file__sub">
+              {% if document.size_kb %}{{ document.size_kb }} ك.ب{% endif %}
+            </div>
+          </div>
+          <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{{ document.file.url }}" target="_blank" rel="noopener">
+            <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+            فتح
+          </a>
+        </div>
+      </section>
+
+      {% if timeline %}
+        <section class="asg-card">
+          <h2 class="asg-card__title">سجل الأرشفة</h2>
+          {% for step in timeline %}
+            <div class="dc-step">
+              <strong>{{ step.get_action_display }}</strong>
+              · {{ step.actor_display }}{% if step.actor_role %} · {{ step.actor_role }}{% endif %}
+              · {{ step.created_at|date:"Y-m-d H:i" }}
+              {% if step.note %}<div style="margin-top:.2rem">{{ step.note }}</div>{% endif %}
+            </div>
+          {% endfor %}
+        </section>
+      {% endif %}
+    </div>
+
+    <div>
+      <section class="asg-card" style="margin-top:1.2rem">
+        <h2 class="asg-card__title">
+          {% if is_owner %}إجراءاتك{% else %}اعتماد الأرشفة{% endif %}
+        </h2>
+        <p class="asg-card__hint">
+          {% if is_owner %}
+            وثيقتك — ترسلها للأرشفة، ولا تعتمد أرشفتها بنفسك.
+          {% else %}
+            اعتماد النقل يجعل الوثيقة أرشيفاً لا يُعدَّل ولا يُحذف.
+          {% endif %}
+        </p>
+
+        {% if actions %}
+          <form method="post" action="{% url 'reports:document_action' document.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="approval_action" id="docAction" value="">
+            {% if not is_owner %}
+              <div class="asg-field">
+                <textarea name="note" rows="3" placeholder="ملاحظتك على الوثيقة…"></textarea>
+              </div>
+            {% endif %}
+            <div class="dc-actions" style="margin-top:0">
+              {% if 'submit' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-dc="submit">
+                  <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+                  إرسال للأرشفة
+                </button>
+              {% endif %}
+              {% if 'withdraw' in actions %}
+                <button type="submit" class="asg-btn asg-btn--ghost" data-dc="withdraw">سحب للتعديل</button>
+              {% endif %}
+              {% if 'start_review' in actions %}
+                <button type="submit" class="asg-btn asg-btn--ghost" data-dc="start_review">بدء المراجعة</button>
+              {% endif %}
+              {% if 'request_info' in actions %}
+                <button type="submit" class="asg-btn asg-btn--warn" data-dc="request_info">طلب استكمال</button>
+              {% endif %}
+              {% if 'return' in actions %}
+                <button type="submit" class="asg-btn asg-btn--warn" data-dc="return">إعادة للملاحظة</button>
+              {% endif %}
+              {% if 'approve' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-dc="approve">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  اعتماد النقل للأرشيف
+                </button>
+              {% endif %}
+            </div>
+          </form>
+          <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+            (function () {
+              var field = document.getElementById('docAction');
+              if (!field) return;
+              document.querySelectorAll('[data-dc]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                  field.value = button.getAttribute('data-dc');
+                });
+              });
+            })();
+          </script>
+        {% else %}
+          <p class="asg-card__hint" style="margin:0">
+            {% if document.is_archived %}
+              هذه الوثيقة في الأرشيف المعتمَد. لا تُعدَّل ولا تُحذف.
+            {% else %}
+              لا إجراءات متاحة لك في الحالة الحالية.
+            {% endif %}
+          </p>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

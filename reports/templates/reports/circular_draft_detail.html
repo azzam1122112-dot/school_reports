@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}{{ draft.title }} | مسودات التعاميم{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .cdd-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+  @media (max-width: 900px) { .cdd-grid { grid-template-columns: 1fr; } }
+  .cdd-meta { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .cdd-meta__l { font-size: .73rem; color: var(--asg-muted); font-weight: 700; }
+  .cdd-meta__v { font-size: .86rem; font-weight: 800; margin-top: .12rem; }
+  .cdd-body {
+    font-size: .89rem; line-height: 2; white-space: pre-wrap; margin-top: 1.1rem;
+    padding: 1rem 1.1rem; border-radius: 13px; background: var(--asg-soft);
+    border-inline-start: 3px solid var(--asg-green);
+  }
+  .cdd-alert {
+    margin-top: 1rem; padding: .75rem .9rem; border-radius: 12px;
+    font-size: .84rem; line-height: 1.85; background: var(--asg-soft);
+    border-inline-start: 3px solid var(--asg-gold); white-space: pre-wrap;
+  }
+  .cdd-actions { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .8rem; }
+  .cdd-step { font-size: .79rem; color: var(--asg-muted); padding: .4rem 0; border-bottom: 1px solid var(--asg-line); }
+  .cdd-step strong { color: var(--asg-ink); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <a class="asg-hero__eyebrow" href="{% url 'reports:circular_draft_list' %}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      مسودات التعاميم
+    </a>
+    <h1 class="asg-hero__title">{{ draft.title }}</h1>
+    <p class="asg-hero__meta">
+      {{ draft.owner_name|default:"—" }} · {{ draft.created_at|date:"Y-m-d H:i" }}
+    </p>
+  </header>
+
+  <div class="cdd-grid">
+    <div>
+      <section class="asg-card" style="margin-top:1.2rem">
+        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
+          <h2 class="asg-card__title" style="margin:0">نص التعميم</h2>
+          {% if draft.is_published %}
+            <span class="asg-tag asg-tag--done">
+              <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+              نُشر {{ draft.published_at|date:"Y-m-d" }}
+            </span>
+          {% else %}
+            <span class="asg-tag">{{ draft.get_approval_state_display }}</span>
+          {% endif %}
+        </div>
+
+        <div class="cdd-meta">
+          <div>
+            <div class="cdd-meta__l">الفئة المستهدفة</div>
+            <div class="cdd-meta__v">
+              {% if draft.audience == 'department' and draft.department %}
+                {{ draft.department.name }}
+              {% else %}جميع المنسوبين{% endif %}
+            </div>
+          </div>
+          <div>
+            <div class="cdd-meta__l">عدد المستلمين</div>
+            <div class="cdd-meta__v">{{ recipient_count }}</div>
+          </div>
+          <div>
+            <div class="cdd-meta__l">التوقيع</div>
+            <div class="cdd-meta__v">{% if draft.requires_signature %}مطلوب{% else %}غير مطلوب{% endif %}</div>
+          </div>
+          <div>
+            <div class="cdd-meta__l">مهلة التوقيع</div>
+            <div class="cdd-meta__v">
+              {% if draft.signature_deadline_at %}{{ draft.signature_deadline_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="cdd-body">{{ draft.body }}</div>
+
+        {% if draft.review_note %}
+          <div class="cdd-alert"><strong>آخر ملاحظة:</strong> {{ draft.review_note }}</div>
+        {% endif %}
+
+        {% if draft.is_published %}
+          <div class="cdd-alert" style="border-inline-start-color:var(--asg-green)">
+            نُشر هذا التعميم فعلاً على مستلميه، ويُتابَع اطّلاعهم وتواقيعهم من
+            شاشة التعاميم المُرسَلة.
+          </div>
+        {% endif %}
+      </section>
+
+      {% if timeline %}
+        <section class="asg-card">
+          <h2 class="asg-card__title">سجل المسودة</h2>
+          {% for step in timeline %}
+            <div class="cdd-step">
+              <strong>{{ step.get_action_display }}</strong>
+              · {{ step.actor_display }}{% if step.actor_role %} · {{ step.actor_role }}{% endif %}
+              · {{ step.created_at|date:"Y-m-d H:i" }}
+              {% if step.note %}<div style="margin-top:.2rem">{{ step.note }}</div>{% endif %}
+            </div>
+          {% endfor %}
+        </section>
+      {% endif %}
+    </div>
+
+    <div>
+      <section class="asg-card" style="margin-top:1.2rem">
+        <h2 class="asg-card__title">
+          {% if is_owner %}إجراءاتك{% else %}قرارك{% endif %}
+        </h2>
+        <p class="asg-card__hint">
+          {% if is_owner %}
+            مسودتك — ترسلها للاعتماد، ولا تنشرها بنفسك.
+          {% else %}
+            <strong>اعتمادك يَنشُر التعميم فوراً</strong> على {{ recipient_count }} من
+            المنسوبين — فلا تبقى مسودة معتمَدة لم تصل أحداً.
+          {% endif %}
+        </p>
+
+        {% if actions %}
+          <form method="post" action="{% url 'reports:circular_draft_action' draft.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="approval_action" id="cdAction" value="">
+            {% if not is_owner %}
+              <div class="asg-field">
+                <textarea name="note" rows="3" placeholder="ملاحظتك على المسودة…"></textarea>
+              </div>
+            {% endif %}
+            <div class="cdd-actions" style="margin-top:0">
+              {% if 'submit' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-cd="submit">
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                  إرسال للاعتماد
+                </button>
+              {% endif %}
+              {% if 'issue' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-cd="issue">
+                  <i class="fa-solid fa-stamp" aria-hidden="true"></i>
+                  اعتماد ونشر
+                </button>
+              {% endif %}
+              {% if 'withdraw' in actions %}
+                <button type="submit" class="asg-btn asg-btn--ghost" data-cd="withdraw">سحب للتعديل</button>
+              {% endif %}
+              {% if 'request_info' in actions %}
+                <button type="submit" class="asg-btn asg-btn--warn" data-cd="request_info">طلب استكمال</button>
+              {% endif %}
+              {% if 'return' in actions %}
+                <button type="submit" class="asg-btn asg-btn--warn" data-cd="return">إعادة للملاحظة</button>
+              {% endif %}
+              {% if 'approve' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-cd="approve">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  اعتماد ونشر
+                </button>
+              {% endif %}
+            </div>
+          </form>
+          <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+            (function () {
+              var field = document.getElementById('cdAction');
+              if (!field) return;
+              document.querySelectorAll('[data-cd]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                  field.value = button.getAttribute('data-cd');
+                });
+              });
+            })();
+          </script>
+        {% else %}
+          <p class="asg-card__hint" style="margin:0">
+            {% if draft.is_published %}
+              نُشر هذا التعميم. المسودة محفوظة كسجل لما اعتُمد.
+            {% else %}
+              لا إجراءات متاحة لك في الحالة الحالية.
+            {% endif %}
+          </p>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

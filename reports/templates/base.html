@@ -859,6 +859,24 @@
               <a class="tab {% if active == 'manage_teachers' or active == 'bulk_import_teachers' or active == 'bulk_import_teachers_template' or active == 'bulk_import_teachers_issues' or active == 'bulk_import_teachers_result' or active == 'add_teacher' or active == 'edit_teacher' or active == 'departments_list' or active == 'department_create' or active == 'department_edit' or active == 'department_members' %}is-active{% endif %}" href="{% url 'reports:manage_teachers' %}">
                 الفريق
               </a>
+              <a class="tab {% if active == 'assignment_board' %}is-active{% endif %}" href="{% url 'reports:assignment_board' %}">
+                التكليفات
+              </a>
+              <a class="tab {% if active == 'meeting_list' %}is-active{% endif %}" href="{% url 'reports:meeting_list' %}">
+                الاجتماعات
+              </a>
+              <a class="tab {% if active == 'plan_list' %}is-active{% endif %}" href="{% url 'reports:plan_list' %}">
+                الخطط
+              </a>
+              <a class="tab {% if active == 'document_archive' %}is-active{% endif %}" href="{% url 'reports:document_archive' %}">
+                الوثائق
+              </a>
+              <a class="tab {% if active == 'approval_inbox' %}is-active{% endif %}" href="{% url 'reports:approval_inbox' %}">
+                الاعتماد
+              </a>
+              <a class="tab {% if active == 'staff_roles' %}is-active{% endif %}" href="{% url 'reports:staff_roles' %}">
+                الأدوار
+              </a>
               <a class="tab {% if active == 'manager_school_tickets' or active == 'ticket_detail' %}is-active{% endif %}" href="{% url 'reports:manager_school_tickets' %}">
                 طلبات المدرسة
               </a>
@@ -893,6 +911,12 @@
             {% endif %}
             {% if IS_EXECUTIVE_DIRECTOR %}
               <a class="tab {% if active == 'executive_dashboard' %}is-active{% endif %}" href="{% url 'reports:executive_dashboard' %}">لوحة المجموعة</a>
+              <a class="tab {% if active == 'group_assignment_board' %}is-active{% endif %}" href="{% url 'reports:group_assignment_board' %}">تكليفات المجموعة</a>
+              <a class="tab {% if active == 'council_list' %}is-active{% endif %}" href="{% url 'reports:council_list' %}">مجلس المجموعة</a>
+              <a class="tab {% if active == 'group_practices' %}is-active{% endif %}" href="{% url 'reports:group_practices' %}">الممارسات</a>
+              <a class="tab {% if active == 'group_report' %}is-active{% endif %}" href="{% url 'reports:group_report' %}">التقرير المجمَّع</a>
+              <a class="tab {% if active == 'group_audit_log' %}is-active{% endif %}" href="{% url 'reports:group_audit_log' %}">سجل المجموعة</a>
+              <a class="tab {% if active == 'group_archive' %}is-active{% endif %}" href="{% url 'reports:group_archive' %}">أرشيف المجموعة</a>
               <a class="tab {% if active == 'group_notifications' %}is-active{% endif %}" href="{% url 'reports:group_notifications_sent' %}">تعاميم المجموعة</a>
             {% endif %}
             {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
@@ -1013,6 +1037,21 @@
               <a href="{% url 'reports:my_profile' %}" class="mi" role="menuitem">
                 <i class="fa-solid fa-user" aria-hidden="true"></i>
                 حسابي
+              </a>
+
+              <a href="{% url 'reports:my_assignments' %}" class="mi" role="menuitem">
+                <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+                تكليفاتي
+              </a>
+
+              <a href="{% url 'reports:my_work_archive' %}" class="mi" role="menuitem">
+                <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+                أرشيف أعمالي
+              </a>
+
+              <a href="{% url 'reports:my_activity_log' %}" class="mi" role="menuitem">
+                <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+                سجل أعمالي
               </a>
 
               <a href="{% url 'reports:logout' %}" class="mi" role="menuitem">تسجيل الخروج</a>
@@ -1180,6 +1219,10 @@
             <span>حسابي</span>
             <i class="fa-solid fa-user"></i>
           </a>
+          <a class="{% if active == 'my_activity_log' %}is-active{% endif %}" href="{% url 'reports:my_activity_log' %}">
+            <span>سجل أعمالي</span>
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </a>
           <div class="drawer-footer">
             <a class="btn btn-outline btn-block" href="{% url 'reports:logout' %}">تسجيل الخروج</a>
           </div>
@@ -1195,6 +1238,18 @@
           <a class="{% if active == 'manage_teachers' or active == 'bulk_import_teachers' or active == 'bulk_import_teachers_template' or active == 'bulk_import_teachers_issues' or active == 'bulk_import_teachers_result' or active == 'add_teacher' or active == 'edit_teacher' or active == 'departments_list' or active == 'department_create' or active == 'department_edit' or active == 'department_members' %}is-active{% endif %}" href="{% url 'reports:manage_teachers' %}">
             <span>فريق المدرسة</span>
             <i class="fa-solid fa-people-group"></i>
+          </a>
+          <a class="{% if active == 'assignment_board' %}is-active{% endif %}" href="{% url 'reports:assignment_board' %}">
+            <span>لوحة التكليفات</span>
+            <i class="fa-solid fa-diagram-project"></i>
+          </a>
+          <a class="{% if active == 'approval_inbox' %}is-active{% endif %}" href="{% url 'reports:approval_inbox' %}">
+            <span>المراجعة والاعتماد</span>
+            <i class="fa-solid fa-clipboard-check"></i>
+          </a>
+          <a class="{% if active == 'staff_roles' %}is-active{% endif %}" href="{% url 'reports:staff_roles' %}">
+            <span>الأدوار والصلاحيات</span>
+            <i class="fa-solid fa-user-shield"></i>
           </a>
           <a class="{% if active == 'manager_school_tickets' or active == 'ticket_detail' %}is-active{% endif %}" href="{% url 'reports:manager_school_tickets' %}">
             <span>طلبات المدرسة</span>
@@ -1276,6 +1331,53 @@
         <a class="{% if active == 'my_profile' %}is-active{% endif %}" href="{% url 'reports:my_profile' %}">
           <span>حسابي</span>
           <i class="fa-solid fa-user"></i>
+        </a>
+
+        <a class="{% if active == 'my_assignments' %}is-active{% endif %}" href="{% url 'reports:my_assignments' %}">
+          <span>تكليفاتي</span>
+          <i class="fa-solid fa-list-check"></i>
+        </a>
+
+        <a class="{% if active == 'meeting_list' %}is-active{% endif %}" href="{% url 'reports:meeting_list' %}">
+          <span>الاجتماعات</span>
+          <i class="fa-solid fa-users-rectangle"></i>
+        </a>
+
+        <a class="{% if active == 'plan_list' %}is-active{% endif %}" href="{% url 'reports:plan_list' %}">
+          <span>الخطط</span>
+          <i class="fa-solid fa-compass-drafting"></i>
+        </a>
+
+        <a class="{% if active == 'initiative_list' %}is-active{% endif %}" href="{% url 'reports:initiative_list' %}">
+          <span>المبادرات</span>
+          <i class="fa-solid fa-lightbulb"></i>
+        </a>
+
+        <a class="{% if active == 'document_archive' %}is-active{% endif %}" href="{% url 'reports:document_archive' %}">
+          <span>أرشيف الوثائق</span>
+          <i class="fa-solid fa-folder-tree"></i>
+        </a>
+
+        <a class="{% if active == 'circular_draft_list' %}is-active{% endif %}" href="{% url 'reports:circular_draft_list' %}">
+          <span>مسودات التعاميم</span>
+          <i class="fa-solid fa-file-pen"></i>
+        </a>
+
+        {% if CAN_VIEW_SCHOOL_AUDIT and not IS_SCHOOL_MANAGER %}
+          <a class="{% if active == 'school_audit_logs' %}is-active{% endif %}" href="{% url 'reports:school_audit_logs' %}">
+            <span>سجل الإجراءات</span>
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </a>
+        {% endif %}
+
+        <a class="{% if active == 'my_work_archive' %}is-active{% endif %}" href="{% url 'reports:my_work_archive' %}">
+          <span>أرشيف أعمالي</span>
+          <i class="fa-solid fa-box-archive"></i>
+        </a>
+
+        <a class="{% if active == 'my_activity_log' %}is-active{% endif %}" href="{% url 'reports:my_activity_log' %}">
+          <span>سجل أعمالي</span>
+          <i class="fa-solid fa-clock-rotate-left"></i>
         </a>
 
         <div class="drawer-footer">

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}مسودات التعاميم | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .cd-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; }
+  @media (max-width: 900px) { .cd-grid { grid-template-columns: 1fr; } }
+  .cd-check { display: flex; gap: .55rem; align-items: flex-start; font-size: .86rem; font-weight: 700; }
+  .cd-check input { margin-top: .2rem; }
+  .cd-excerpt { font-size: .8rem; color: var(--asg-muted); line-height: 1.85; margin-top: .3rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <span class="asg-hero__eyebrow">
+      <i class="fa-solid fa-file-pen" aria-hidden="true"></i>
+      التعاميم
+    </span>
+    <h1 class="asg-hero__title">مسودات التعاميم</h1>
+    <p class="asg-hero__meta">
+      تُعدّ المسودة وتُرسَل لمدير المدرسة — <strong>واعتمادُه هو نشرُها</strong>.
+      فلا تعميم معتمَد يبقى بلا مستلمين.
+    </p>
+  </header>
+
+  <section class="asg-kpis" aria-label="ملخص المسودات">
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ drafts|length }}</div>
+      <div class="asg-kpi__l">مسودة</div>
+    </article>
+    <article class="asg-kpi" data-tone="warn">
+      <div class="asg-kpi__v">{{ awaiting }}</div>
+      <div class="asg-kpi__l">تنتظر الاعتماد</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ published }}</div>
+      <div class="asg-kpi__l">نُشرت</div>
+    </article>
+  </section>
+
+  <div class="cd-grid">
+    <div>
+      <section class="asg-card">
+        <h2 class="asg-card__title">
+          {% if is_manager %}المسودات ومتابعتها{% else %}مسوداتي{% endif %}
+        </h2>
+        {% if not is_manager %}
+          <p class="asg-card__hint">
+            مسودتك ورقةٌ بينك وبين المدير حتى تُعتمد — لا يراها زملاؤك، ولا
+            تصل أحداً قبل نشرها.
+          </p>
+        {% endif %}
+
+        {% for draft in drafts %}
+          <article class="asg-item" style="align-items:flex-start">
+            <div class="asg-item__main">
+              <div class="asg-item__title">
+                <a href="{% url 'reports:circular_draft_detail' draft.pk %}">{{ draft.title }}</a>
+              </div>
+              <div class="asg-item__sub">
+                {{ draft.owner_name|default:"—" }} · {{ draft.created_at|date:"Y-m-d" }}
+                · {% if draft.audience == 'department' and draft.department %}{{ draft.department.name }}{% else %}جميع المنسوبين{% endif %}
+                {% if draft.requires_signature %} · يتطلب توقيعاً{% endif %}
+              </div>
+              {% if draft.body %}
+                <div class="cd-excerpt">{{ draft.body|truncatechars:180 }}</div>
+              {% endif %}
+            </div>
+            <div class="asg-item__side" style="align-self:flex-start">
+              {% if draft.is_published %}
+                <span class="asg-tag asg-tag--done">
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                  نُشر
+                </span>
+              {% else %}
+                <span class="asg-tag">{{ draft.get_approval_state_display }}</span>
+              {% endif %}
+              <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{% url 'reports:circular_draft_detail' draft.pk %}">فتح</a>
+            </div>
+          </article>
+        {% empty %}
+          <div class="asg-empty">
+            <div class="asg-empty__icon"><i class="fa-solid fa-file-pen" aria-hidden="true"></i></div>
+            <h2>لا مسودات بعد</h2>
+            <p>
+              أعِدّ مسودة تعميم وأرسلها للاعتماد. وعند اعتمادها تُنشر تلقائياً
+              على مستلميها بتوقيعها ومهلتها.
+            </p>
+          </div>
+        {% endfor %}
+      </section>
+    </div>
+
+    <div>
+      <section class="asg-card">
+        <h2 class="asg-card__title">مسودة جديدة</h2>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="asg-field">
+            <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+            {{ form.title }}
+            {% if form.title.errors %}<ul class="asg-errors">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="asg-field">
+            <label for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
+            {{ form.body }}
+            {% if form.body.errors %}<ul class="asg-errors">{% for e in form.body.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="asg-field">
+            <label for="{{ form.audience.id_for_label }}">{{ form.audience.label }}</label>
+            {{ form.audience }}
+          </div>
+          <div class="asg-field">
+            <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+            {{ form.department }}
+            {% if form.department.errors %}<ul class="asg-errors">{% for e in form.department.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="asg-field">
+            <label class="cd-check">
+              {{ form.requires_signature }}
+              <span>{{ form.requires_signature.label }}</span>
+            </label>
+            <div class="asg-field__help">{{ form.requires_signature.help_text }}</div>
+          </div>
+          <div class="asg-field">
+            <label for="{{ form.signature_deadline_at.id_for_label }}">{{ form.signature_deadline_at.label }}</label>
+            {{ form.signature_deadline_at }}
+            <div class="asg-field__help">{{ form.signature_deadline_at.help_text }}</div>
+          </div>
+          <button type="submit" class="asg-btn asg-btn--primary">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            حفظ المسودة
+          </button>
+        </form>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

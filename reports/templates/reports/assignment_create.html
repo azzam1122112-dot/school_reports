@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}تكليف جديد | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .new-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .new-people { display: grid; gap: .4rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .new-people label { display: flex; gap: .5rem; align-items: flex-start; font-size: .85rem; font-weight: 700; }
+  .new-people input { margin-top: .2rem; }
+  .new-check { display: flex; gap: .55rem; align-items: flex-start; font-size: .86rem; font-weight: 700; }
+  .new-check input { margin-top: .2rem; }
+  .new-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.3rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <a class="asg-hero__eyebrow" href="{% url 'reports:assignment_board' %}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      لوحة التكليفات
+    </a>
+    <h1 class="asg-hero__title">تكليف جديد</h1>
+    <p class="asg-hero__meta">حدّد المطلوب والموعد والشواهد اللازمة، ثم اختر المكلَّفين.</p>
+  </header>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {# ═══ المطلوب ══════════════════════════════════════════ #}
+    <section class="asg-card">
+      <h2 class="asg-card__title">المطلوب</h2>
+
+      <div class="asg-field">
+        <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+        {{ form.title }}
+        {% if form.title.errors %}<ul class="asg-errors">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="asg-field">
+        <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+        {{ form.description }}
+        <div class="asg-field__help">
+          كلّما وضح المطلوب قلّت طلبات التوضيح وأُنجز العمل من أول مرة.
+        </div>
+      </div>
+
+      <div class="new-grid">
+        <div class="asg-field">
+          <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+          {{ form.department }}
+          <div class="asg-field__help">{{ form.department.help_text }}</div>
+          {% if form.department.errors %}<ul class="asg-errors">{% for e in form.department.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <div class="asg-field">
+          <label for="{{ form.priority.id_for_label }}">{{ form.priority.label }}</label>
+          {{ form.priority }}
+        </div>
+
+        <div class="asg-field">
+          <label for="{{ form.due_at.id_for_label }}">{{ form.due_at.label }}</label>
+          {{ form.due_at }}
+          <div class="asg-field__help">{{ form.due_at.help_text }}</div>
+          {% if form.due_at.errors %}<ul class="asg-errors">{% for e in form.due_at.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    {# ═══ الشواهد ══════════════════════════════════════════ #}
+    <section class="asg-card">
+      <h2 class="asg-card__title">الشواهد</h2>
+      <p class="asg-card__hint">
+        عند اشتراط الشواهد لن يستطيع المكلَّف إرسال تنفيذه للمراجعة قبل رفع
+        العدد المطلوب — فالشرط يُنفَّذ ولا يبقى توصية.
+      </p>
+
+      <div class="asg-field">
+        <label class="new-check">
+          {{ form.requires_evidence }}
+          <span>{{ form.requires_evidence.label }}</span>
+        </label>
+      </div>
+
+      <div class="asg-field" style="max-width:220px">
+        <label for="{{ form.min_evidence_count.id_for_label }}">{{ form.min_evidence_count.label }}</label>
+        {{ form.min_evidence_count }}
+        {% if form.min_evidence_count.errors %}<ul class="asg-errors">{% for e in form.min_evidence_count.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    </section>
+
+    {# ═══ المكلَّفون ════════════════════════════════════════ #}
+    <section class="asg-card">
+      <h2 class="asg-card__title">المكلَّفون</h2>
+      <p class="asg-card__hint">
+        لكل مكلَّف حالته ونسبته وشواهده على حدة — فتكليفٌ واحد يُنجزه بعضهم
+        ويتأخر بعضهم دون أن تخفي حالةٌ واحدة ذلك.
+      </p>
+
+      <div class="new-people">
+        {% for choice in form.assignees %}
+          <label>{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
+        {% empty %}
+          <p class="asg-card__hint" style="margin:0">
+            لا يوجد من يمكن تكليفهم ضمن نطاقك.
+            {% if not form.department.queryset.exists %}
+              أضف أقساماً وعيّن أعضاءها أولاً.
+            {% endif %}
+          </p>
+        {% endfor %}
+      </div>
+      {% if form.assignees.errors %}<ul class="asg-errors">{% for e in form.assignees.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </section>
+
+    {% if form.non_field_errors %}
+      <ul class="asg-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    <div class="new-actions">
+      <button type="submit" class="asg-btn asg-btn--primary">
+        <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+        إصدار التكليف
+      </button>
+      <a class="asg-btn asg-btn--ghost" href="{% url 'reports:assignment_board' %}">إلغاء</a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

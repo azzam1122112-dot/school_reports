@@ -2239,10 +2239,7 @@ def my_subscription(request):
         if subscription and subscription.plan_id in current_plan_ids
         else (renewal_plans[0].id if renewal_plans else None)
     )
-    current_teacher_count = SchoolMembership.objects.filter(
-        school=membership.school,
-        role_type=SchoolMembership.RoleType.TEACHER,
-    ).count()
+    current_teacher_count = SchoolMembership.seats_used(membership.school)
     current_teacher_limit = int(getattr(subscription, "teacher_limit", 0) or 0)
     recommended_teacher_capacity = normalize_teacher_capacity(
         max(current_teacher_count, current_teacher_limit, 1)
@@ -2349,10 +2346,7 @@ def _subscription_quote_from_request(request, school, requested_plan):
     if capacity is None:
         raise _PaymentSelectionError("السعات المنشورة متاحة حتى 100 معلم. تواصل مع الدعم لسعة أكبر.")
 
-    current_teacher_count = SchoolMembership.objects.filter(
-        school=school,
-        role_type=SchoolMembership.RoleType.TEACHER,
-    ).count()
+    current_teacher_count = SchoolMembership.seats_used(school)
     if capacity < current_teacher_count:
         raise _PaymentSelectionError(
             f"لا يمكن اختيار سعة {capacity} مع وجود {current_teacher_count} معلماً في المدرسة."
@@ -2945,6 +2939,57 @@ def moyasar_return(request, batch_ref: str):
             messages.error(request, "لم تكتمل عملية الدفع الإلكتروني. يمكنك إنشاء طلب جديد.")
         else:
             messages.info(request, "عملية الدفع الإلكتروني ما زالت بانتظار الإكمال.")
+    return redirect("reports:my_subscription")
+
+
+@login_required(login_url="reports:login")
+@ratelimit(key="user", rate="10/m", method="POST", block=True)
+@require_http_methods(["POST"])
+def moyasar_checkout_cancel(request, payment_id: int):
+    """Let a manager drop an electronic order they never paid.
+
+    A customer who closes the Moyasar tab cannot get back to it — the checkout
+    URL is single-use and is not kept — so without this the order sits pending
+    forever and the school is stuck looking at a payment it cannot finish.
+
+    Cancelling only touches our own records. If the customer somehow does pay
+    the old link afterwards, the invoice becomes paid at Moyasar and the
+    webhook activates the services anyway: _complete_moyasar_invoice keys off
+    the invoice status, not off the local row being pending.
+    """
+    membership = _manager_payment_membership(request)
+    payment = Payment.objects.filter(
+        pk=payment_id,
+        school=getattr(membership, "school", None),
+        payment_method=Payment.Method.MOYASAR,
+        status=Payment.Status.PENDING,
+    ).first()
+    if not membership or not payment or not payment.batch_ref:
+        messages.error(request, "طلب الدفع الإلكتروني غير متاح للإلغاء.")
+        return redirect("reports:my_subscription")
+
+    # Never cancel on our word alone — ask Moyasar first. A paid invoice whose
+    # callback has not landed yet must be completed, not thrown away.
+    try:
+        invoice_status = _sync_moyasar_batch(payment.batch_ref)
+    except (MoyasarGatewayError, ImproperlyConfigured, _ApprovalError):
+        logger.exception("Moyasar cancel verification failed for batch %s", payment.batch_ref)
+        messages.error(request, "تعذّر التحقق من حالة الطلب لدى مزود الدفع. حاول مجددًا.")
+        return redirect("reports:my_subscription")
+
+    if invoice_status == "paid":
+        messages.success(request, "الدفع مكتمل بالفعل، وتم تفعيل الخدمات المختارة.")
+        return redirect("reports:my_subscription")
+
+    cancelled = Payment.objects.filter(
+        payment_method=Payment.Method.MOYASAR,
+        batch_ref=payment.batch_ref,
+        status=Payment.Status.PENDING,
+    ).update(status=Payment.Status.CANCELLED, gateway_status="customer_cancelled")
+    if cancelled:
+        messages.success(request, "أُلغي الطلب غير المدفوع. يمكنك إنشاء طلب جديد متى شئت.")
+    else:
+        messages.info(request, "لم يعد الطلب معلّقًا.")
     return redirect("reports:my_subscription")
 
 
@@ -3813,7 +3858,43 @@ def platform_pricing_matrix(request: HttpRequest) -> HttpResponse:
 # Reconciliation — a paid school must activate even if we never hear back
 # =========================================================================
 
-def reconcile_pending_gateway_payments(*, max_age_days: int = 7, limit: int = 200) -> dict:
+def _abandon_stale_gateway_batch(payment, *, cutoff) -> bool:
+    """Cancel an electronic order the customer walked away from.
+
+    The gateway has just told us the invoice is still unpaid. A hosted checkout
+    URL is single-use and is not stored, so once the customer closes that tab
+    there is no way back to it — the order can never be completed and leaving it
+    pending only shows the school a payment it cannot finish, while blocking the
+    add-on purchases that refuse to queue behind a pending request.
+
+    Only the local rows are touched. Should the customer somehow still pay,
+    the invoice turns paid at the gateway and the webhook activates the
+    services regardless of what the local row says.
+    """
+    if payment.created_at > cutoff:
+        return False
+
+    updated = Payment.objects.filter(
+        payment_method=payment.payment_method,
+        batch_ref=payment.batch_ref,
+        status=Payment.Status.PENDING,
+    ).update(status=Payment.Status.CANCELLED, gateway_status="abandoned")
+    if updated:
+        logger.info(
+            "Cancelled abandoned %s order batch=%s rows=%s",
+            payment.payment_method,
+            payment.batch_ref,
+            updated,
+        )
+    return bool(updated)
+
+
+def reconcile_pending_gateway_payments(
+    *,
+    max_age_days: int = 7,
+    limit: int = 200,
+    abandon_after_minutes: int | None = None,
+) -> dict:
     """Re-check gateway payments still sitting as PENDING and finish them.
 
     Activation depended entirely on the customer's browser returning to
@@ -3834,12 +3915,24 @@ def reconcile_pending_gateway_payments(*, max_age_days: int = 7, limit: int = 20
         "checked": 0,
         "activated": 0,
         "still_pending": 0,
+        "abandoned": 0,
         "failed": 0,
         # Payment rows that had to be rescued, so the caller can raise an alert
         # per rescue rather than per sweep.
         "recovered_payment_ids": [],
     }
     cutoff = timezone.now() - timedelta(days=max(1, int(max_age_days)))
+
+    if abandon_after_minutes is None:
+        abandon_after_minutes = int(
+            getattr(settings, "PAYMENT_ABANDON_AFTER_MINUTES", 60) or 0
+        )
+    # Zero disables abandonment, leaving the sweep purely a rescue pass.
+    abandon_cutoff = (
+        timezone.now() - timedelta(minutes=abandon_after_minutes)
+        if abandon_after_minutes > 0
+        else None
+    )
 
     pending = (
         Payment.objects.filter(
@@ -3868,6 +3961,10 @@ def reconcile_pending_gateway_payments(*, max_age_days: int = 7, limit: int = 20
                 if status == "paid":
                     summary["activated"] += 1
                     summary["recovered_payment_ids"].append(payment.pk)
+                elif abandon_cutoff is not None and _abandon_stale_gateway_batch(
+                    payment, cutoff=abandon_cutoff
+                ):
+                    summary["abandoned"] += 1
                 else:
                     summary["still_pending"] += 1
             else:
@@ -3877,7 +3974,18 @@ def reconcile_pending_gateway_payments(*, max_age_days: int = 7, limit: int = 20
                     # Only a completed capture is reconciled here. Authorising or
                     # capturing money without the customer present belongs in the
                     # webhook, not in a background sweep.
-                    summary["still_pending"] += 1
+                    #
+                    # "new" means the customer never started paying, so the order
+                    # can be dropped once it is old enough. Anything further along
+                    # is money in motion and is left for the webhook.
+                    if (
+                        gateway_status == "new"
+                        and abandon_cutoff is not None
+                        and _abandon_stale_gateway_batch(payment, cutoff=abandon_cutoff)
+                    ):
+                        summary["abandoned"] += 1
+                    else:
+                        summary["still_pending"] += 1
                     continue
                 captured = (order.get("captured_amount") or {}).get("amount")
                 if captured is None:

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}الممارسات الناجحة | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .prc-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.1rem; }
+  .prc-tabs a {
+    font-size: .82rem; font-weight: 800; text-decoration: none;
+    padding: .38rem .85rem; border-radius: 999px;
+    color: #fff; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.24);
+  }
+  .prc-tabs a.is-active { background: #fff; color: #08643b; }
+  .prc-body { font-size: .85rem; line-height: 1.95; margin-top: .5rem; white-space: pre-wrap; }
+  .prc-school {
+    font-size: .74rem; font-weight: 800; padding: .18rem .6rem; border-radius: 999px;
+    background: var(--asg-soft); color: var(--asg-green); border: 1px solid var(--asg-line);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <span class="asg-hero__eyebrow">
+      <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+      تبادل الخبرات
+    </span>
+    <h1 class="asg-hero__title">الممارسات الناجحة</h1>
+    <p class="asg-hero__meta">
+      ما شاركته مدارس {{ group.name }} من ممارسات اعتمدتها. للاطلاع والإحالة —
+      واعتمادُ المبادرة ونشرُها قرارُ مدرستها.
+    </p>
+
+    {% if groups|length > 1 %}
+      <div class="prc-tabs">
+        {% for item in groups %}
+          <a href="?group={{ item.pk }}" class="{% if item.pk == group.pk %}is-active{% endif %}">{{ item.name }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </header>
+
+  <section class="asg-kpis" aria-label="ملخص الممارسات">
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ practices|length }}</div>
+      <div class="asg-kpi__l">ممارسة مشاركة</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ school_count }}</div>
+      <div class="asg-kpi__l">مدرسة شاركت</div>
+    </article>
+  </section>
+
+  <section class="asg-card">
+    <h2 class="asg-card__title">المعروض على المجموعة</h2>
+    {% if practices %}
+      {% for item in practices %}
+        <article class="asg-item" style="align-items:flex-start">
+          <div class="asg-item__main">
+            <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+              <span class="prc-school">{{ item.school.name }}</span>
+              <span class="asg-item__title">{{ item.title }}</span>
+            </div>
+            <div class="asg-item__sub">
+              {{ item.teacher_name|default:"—" }} · شُوركت {{ item.shared_at|date:"Y-m-d" }}
+              {% if item.shared_by %} · بواسطة {{ item.shared_by.name }}{% endif %}
+            </div>
+            {% if item.summary %}<div class="prc-body">{{ item.summary }}</div>{% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    {% else %}
+      <div class="asg-empty">
+        <div class="asg-empty__icon"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i></div>
+        <h2>لا ممارسات مشاركة بعد</h2>
+        <p>
+          حين تعتمد إحدى مدارسك مبادرةً وتشاركها، ستظهر هنا لبقية المدارس —
+          فما نجح في مدرسة قد يوفّر على أخرى تجربةً كاملة.
+        </p>
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

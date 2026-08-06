@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+
+{% block title %}الأدوار والصلاحيات | منصة توثيق{% endblock %}
+
+{% block head %}
+<style>
+  /* ═══════════════════════════════════════════════════════════════════
+     الأدوار والصلاحيات — كشف المنسوبين + الإسناد + التفويض.
+     الرموز مُنطَقة تحت .rol-page كي لا تتسرب، على نهج لوحة المجموعة.
+     ═══════════════════════════════════════════════════════════════════ */
+  .rol-page {
+    --rol-ink: #10231a;
+    --rol-muted: #607067;
+    --rol-line: #dfe8e2;
+    --rol-soft: #f3f8f5;
+    --rol-surface: #ffffff;
+    --rol-green: #08643b;
+    --rol-gold: #b68a42;
+    --rol-danger: #b42318;
+    --rol-info: #1f6feb;
+    max-width: 1240px;
+    margin-inline: auto;
+    padding: 1.25rem;
+    color: var(--rol-ink);
+  }
+  [data-theme="dark"] .rol-page {
+    --rol-ink: #eff8f2;
+    --rol-muted: #afc1b5;
+    --rol-line: #2d4637;
+    --rol-soft: #13271c;
+    --rol-surface: #102019;
+    --rol-green: #6ed3a0;
+    --rol-gold: #eabf58;
+    --rol-danger: #ff9d96;
+    --rol-info: #7cb2ff;
+  }
+
+  /* ── الترويسة ─────────────────────────────────────────────── */
+  .rol-hero {
+    position: relative; overflow: hidden;
+    border-radius: 20px; padding: 1.75rem 1.6rem;
+    background: linear-gradient(135deg, #08643b 0%, #0a7a48 55%, #075334 100%);
+    color: #fff; box-shadow: 0 18px 40px -22px rgba(8,100,59,.75);
+  }
+  .rol-hero::after {
+    content: ""; position: absolute;
+    inset-inline-start: -70px; inset-block-start: -90px;
+    width: 240px; height: 240px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(182,138,66,.32), transparent 68%);
+    pointer-events: none;
+  }
+  .rol-hero__eyebrow {
+    display: inline-flex; align-items: center; gap: .45rem;
+    font-size: .78rem; font-weight: 800;
+    padding: .32rem .8rem; border-radius: 999px;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24);
+  }
+  .rol-hero__title { margin: .75rem 0 .3rem; font-size: 1.55rem; font-weight: 900; }
+  .rol-hero__meta { margin: 0; font-size: .9rem; opacity: .9; line-height: 1.8; }
+  .rol-hero__note {
+    position: relative; margin: 1.05rem 0 0; padding: .6rem .85rem;
+    border-radius: 12px; font-size: .82rem; line-height: 1.75;
+    background: rgba(0,0,0,.16); border-inline-start: 3px solid var(--rol-gold);
+  }
+
+  /* ── البطاقات العامة ──────────────────────────────────────── */
+  .rol-card {
+    background: var(--rol-surface); border: 1px solid var(--rol-line);
+    border-radius: 16px; padding: 1.15rem 1.2rem; margin-top: 1.25rem;
+    box-shadow: 0 10px 26px -24px rgba(16,35,26,.75);
+  }
+  .rol-card__head { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .3rem; }
+  .rol-card__title { font-size: 1.02rem; font-weight: 900; margin: 0; }
+  .rol-card__hint { font-size: .83rem; color: var(--rol-muted); line-height: 1.8; margin: 0 0 1rem; }
+  .rol-count {
+    font-size: .74rem; font-weight: 800; padding: .18rem .6rem; border-radius: 999px;
+    background: var(--rol-soft); color: var(--rol-green); border: 1px solid var(--rol-line);
+  }
+
+  /* ── كشف المنسوبين ────────────────────────────────────────── */
+  .rol-people { display: grid; gap: .65rem; }
+  .rol-person {
+    display: flex; align-items: center; gap: .85rem; flex-wrap: wrap;
+    padding: .8rem .9rem; border-radius: 13px;
+    border: 1px solid var(--rol-line); background: var(--rol-surface);
+    transition: border-color .18s ease;
+  }
+  .rol-person:hover { border-color: var(--rol-green); }
+  .rol-person__avatar {
+    width: 40px; height: 40px; border-radius: 12px; flex: none;
+    display: grid; place-items: center; font-weight: 900; font-size: .95rem;
+    background: var(--rol-soft); color: var(--rol-green);
+  }
+  .rol-person__main { min-width: 170px; flex: 1; }
+  .rol-person__name { font-size: .95rem; font-weight: 800; }
+  .rol-person__sub { font-size: .78rem; color: var(--rol-muted); margin-top: .15rem; }
+  .rol-person__tags { display: flex; gap: .35rem; flex-wrap: wrap; }
+
+  .rol-tag {
+    font-size: .73rem; font-weight: 800; padding: .22rem .65rem; border-radius: 999px;
+    background: var(--rol-soft); color: var(--rol-muted); border: 1px solid var(--rol-line);
+    white-space: nowrap;
+  }
+  .rol-tag--deputy { color: #fff; background: var(--rol-green); border-color: transparent; }
+  [data-theme="dark"] .rol-tag--deputy { color: #06251a; }
+  .rol-tag--clerk { color: var(--rol-info); border-color: currentColor; background: transparent; }
+  .rol-tag--muted { opacity: .85; }
+  .rol-tag--warn { color: var(--rol-gold); border-color: currentColor; background: transparent; }
+
+  /* ── الأزرار ──────────────────────────────────────────────── */
+  .rol-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .5rem 1rem; border-radius: 10px;
+    font-size: .83rem; font-weight: 800; font-family: inherit;
+    text-decoration: none; cursor: pointer; border: 1px solid transparent;
+  }
+  .rol-btn--primary { background: var(--rol-green); color: #fff; }
+  [data-theme="dark"] .rol-btn--primary { color: #06251a; }
+  .rol-btn--ghost { background: transparent; color: var(--rol-muted); border-color: var(--rol-line); }
+  .rol-btn--ghost:hover { color: var(--rol-green); border-color: var(--rol-green); }
+  .rol-btn--danger { background: transparent; color: var(--rol-danger); border-color: currentColor; }
+
+  /* ── النماذج ──────────────────────────────────────────────── */
+  .rol-grid { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); align-items: start; }
+  .rol-field label { display: block; font-size: .78rem; font-weight: 800; color: var(--rol-muted); margin-bottom: .35rem; }
+  .rol-field select,
+  .rol-field input[type="text"],
+  .rol-field input[type="datetime-local"] {
+    width: 100%; padding: .55rem .7rem; border-radius: 10px;
+    border: 1px solid var(--rol-line); background: var(--rol-surface);
+    color: var(--rol-ink); font-family: inherit; font-size: .88rem;
+  }
+  .rol-field select:focus, .rol-field input:focus { outline: 2px solid var(--rol-green); outline-offset: 1px; }
+  .rol-field__help { font-size: .75rem; color: var(--rol-muted); margin-top: .3rem; line-height: 1.7; }
+  .rol-check { display: flex; align-items: flex-start; gap: .5rem; font-size: .84rem; font-weight: 700; }
+  .rol-check input { margin-top: .2rem; }
+
+  .rol-caps { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .rol-caps label { display: flex; gap: .5rem; align-items: flex-start; font-size: .84rem; font-weight: 700; }
+  .rol-errors { list-style: none; margin: .4rem 0 0; padding: 0; }
+  .rol-errors li { font-size: .78rem; color: var(--rol-danger); font-weight: 700; }
+
+  /* ── التفويضات ────────────────────────────────────────────── */
+  .rol-deleg { display: grid; gap: .55rem; }
+  .rol-deleg__row {
+    display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+    padding: .7rem .85rem; border-radius: 12px;
+    border: 1px solid var(--rol-line); background: var(--rol-surface);
+  }
+  .rol-deleg__row[data-state="active"] { border-inline-start: 3px solid var(--rol-green); }
+  .rol-deleg__row[data-state="scheduled"] { border-inline-start: 3px solid var(--rol-gold); }
+  .rol-deleg__row[data-state="expired"],
+  .rol-deleg__row[data-state="revoked"] { opacity: .68; }
+  .rol-deleg__who { font-size: .9rem; font-weight: 800; min-width: 140px; flex: 1; }
+  .rol-deleg__meta { font-size: .78rem; color: var(--rol-muted); line-height: 1.7; }
+  .rol-deleg__actions { margin-inline-start: auto; }
+
+  .rol-empty {
+    padding: 2rem 1rem; text-align: center;
+    border: 1px dashed var(--rol-line); border-radius: 14px;
+  }
+  .rol-empty__icon {
+    width: 54px; height: 54px; border-radius: 16px; margin: 0 auto .7rem;
+    display: grid; place-items: center; font-size: 1.25rem;
+    background: var(--rol-soft); color: var(--rol-green);
+  }
+  .rol-empty p { font-size: .86rem; color: var(--rol-muted); margin: 0 auto; max-width: 46ch; line-height: 1.85; }
+
+  @media (max-width: 640px) {
+    .rol-page { padding: .85rem; }
+    .rol-hero { padding: 1.35rem 1.15rem; border-radius: 16px; }
+    .rol-hero__title { font-size: 1.28rem; }
+    .rol-person { align-items: flex-start; }
+    .rol-deleg__actions { margin-inline-start: 0; width: 100%; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rol-page">
+
+  <header class="rol-hero">
+    <span class="rol-hero__eyebrow">
+      <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+      إدارة المدرسة
+    </span>
+    <h1 class="rol-hero__title">الأدوار والصلاحيات</h1>
+    <p class="rol-hero__meta">
+      وزّع الأدوار على منسوبي {{ active_school.name }}، وحدّد نطاق كل وكيل، وفوّض مؤقتاً عند الحاجة.
+    </p>
+    <p class="rol-hero__note">
+      الاعتماد النهائي داخل المدرسة يبقى لك وحدك. الوكيل يراجع ويوصي، والموظف
+      الإداري يُعدّ ويرفع — ولا يعتمد أحدهما عملاً نيابةً عنك إلا بتفويض صريح
+      له مدة تنتهي بنفسها.
+    </p>
+  </header>
+
+  {# ═══ كشف المنسوبين ═══════════════════════════════════════ #}
+  <section class="rol-card">
+    <div class="rol-card__head">
+      <h2 class="rol-card__title">منسوبو المدرسة</h2>
+      <span class="rol-count">{{ rows|length }}</span>
+    </div>
+    <p class="rol-card__hint">
+      صفٌّ لكل شخص لا لكل دور — فمن يجمع بين الوكالة والنصاب التدريسي يظهر مرة
+      واحدة بوسمَين، ويشغل مقعداً واحداً من باقتك.
+    </p>
+
+    {% if rows %}
+      <div class="rol-people">
+        {% for row in rows %}
+          <article class="rol-person">
+            <div class="rol-person__avatar" aria-hidden="true">{{ row.person.name|slice:":1"|default:"؟" }}</div>
+
+            <div class="rol-person__main">
+              <div class="rol-person__name">{{ row.person.name|default:"—" }}</div>
+              <div class="rol-person__sub">
+                {{ row.person.phone|default:"" }}
+                {% if row.scope and row.scope.departments.exists %}
+                  · يشرف على
+                  {% for dept in row.scope.departments.all %}{{ dept.name }}{% if not forloop.last %}، {% endif %}{% endfor %}
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="rol-person__tags">
+              {% if row.primary.role_type == 'deputy' %}
+                <span class="rol-tag rol-tag--deputy">{{ row.primary.get_role_type_display }}</span>
+                {% if row.scope and row.scope.domain %}
+                  <span class="rol-tag">{{ row.scope.get_domain_display }}</span>
+                {% endif %}
+              {% elif row.primary.role_type == 'admin_staff' %}
+                <span class="rol-tag rol-tag--clerk">{{ row.primary.get_role_type_display }}</span>
+              {% else %}
+                <span class="rol-tag rol-tag--muted">{{ row.primary.get_role_type_display }}</span>
+              {% endif %}
+
+              {% if row.also_teaches %}
+                <span class="rol-tag rol-tag--muted">+ نصاب تدريسي</span>
+              {% endif %}
+
+              {% if row.can_have_scope and not row.scope %}
+                <span class="rol-tag rol-tag--warn">
+                  <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                  بلا نطاق
+                </span>
+              {% endif %}
+            </div>
+
+            {% if row.can_have_scope %}
+              <a class="rol-btn rol-btn--ghost" href="{% url 'reports:staff_role_scope' row.primary.pk %}">
+                <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                {% if row.scope %}تعديل النطاق{% else %}ضبط النطاق{% endif %}
+              </a>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="rol-empty">
+        <div class="rol-empty__icon"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
+        <p>لا يوجد منسوبون بعد. أضف حسابات منسوبيك أولاً من صفحة إدارة المستخدمين، ثم عُد لتوزيع الأدوار.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  {# ═══ إسناد دور ═══════════════════════════════════════════ #}
+  <section class="rol-card">
+    <div class="rol-card__head">
+      <h2 class="rol-card__title">إسناد دور</h2>
+    </div>
+    <p class="rol-card__hint">
+      إسناد الدور <strong>استبدال لا إضافة</strong>: يحلّ الدور الجديد محل
+      السابق. فإن كان صاحبه يدرّس أيضاً، فعّل خيار النصاب التدريسي ليحتفظ
+      بدور المعلّم بجانبه.
+    </p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="assign_role">
+
+      <div class="rol-grid">
+        <div class="rol-field">
+          <label for="{{ assign_form.member.id_for_label }}">{{ assign_form.member.label }}</label>
+          {{ assign_form.member }}
+          {% if assign_form.member.errors %}
+            <ul class="rol-errors">{% for e in assign_form.member.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+          {% endif %}
+        </div>
+
+        <div class="rol-field">
+          <label for="{{ assign_form.role_type.id_for_label }}">{{ assign_form.role_type.label }}</label>
+          {{ assign_form.role_type }}
+          {% if assign_form.role_type.errors %}
+            <ul class="rol-errors">{% for e in assign_form.role_type.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+          {% endif %}
+        </div>
+
+        <div class="rol-field">
+          <label>&nbsp;</label>
+          <label class="rol-check">
+            {{ assign_form.keep_teaching_role }}
+            <span>{{ assign_form.keep_teaching_role.label }}</span>
+          </label>
+          <div class="rol-field__help">{{ assign_form.keep_teaching_role.help_text }}</div>
+        </div>
+
+        <div class="rol-field">
+          <label>&nbsp;</label>
+          <button type="submit" class="rol-btn rol-btn--primary">
+            <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+            إسناد الدور
+          </button>
+        </div>
+      </div>
+
+      {% if assign_form.non_field_errors %}
+        <ul class="rol-errors">{% for e in assign_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+    </form>
+
+    <div class="rol-card__hint" style="margin-top:1rem">
+      {% for value, text in role_help.items %}
+        <div style="margin-top:.35rem">
+          <span class="rol-tag">{{ value }}</span> {{ text }}
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {# ═══ التفويض المؤقت ══════════════════════════════════════ #}
+  <section class="rol-card">
+    <div class="rol-card__head">
+      <h2 class="rol-card__title">التفويض المؤقت</h2>
+      {% if active_delegation_count %}
+        <span class="rol-count">{{ active_delegation_count }} سارٍ</span>
+      {% endif %}
+    </div>
+    <p class="rol-card__hint">
+      يُمارَس بالنيابة عنك ضمن مدة تنتهي بنفسها — لا تحتاج إلى تذكّر سحبه.
+      وكل إجراء يُنفَّذ به يُسجَّل في سجل الإجراءات منسوباً إليك وإليه معاً.
+    </p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="grant_delegation">
+
+      <div class="rol-grid">
+        <div class="rol-field">
+          <label for="{{ delegation_form.delegate.id_for_label }}">{{ delegation_form.delegate.label }}</label>
+          {{ delegation_form.delegate }}
+          {% if delegation_form.delegate.errors %}
+            <ul class="rol-errors">{% for e in delegation_form.delegate.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+          {% endif %}
+        </div>
+        <div class="rol-field">
+          <label for="{{ delegation_form.starts_at.id_for_label }}">{{ delegation_form.starts_at.label }}</label>
+          {{ delegation_form.starts_at }}
+        </div>
+        <div class="rol-field">
+          <label for="{{ delegation_form.ends_at.id_for_label }}">{{ delegation_form.ends_at.label }}</label>
+          {{ delegation_form.ends_at }}
+          <div class="rol-field__help">{{ delegation_form.ends_at.help_text }}</div>
+          {% if delegation_form.ends_at.errors %}
+            <ul class="rol-errors">{% for e in delegation_form.ends_at.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+          {% endif %}
+        </div>
+        <div class="rol-field">
+          <label for="{{ delegation_form.reason.id_for_label }}">{{ delegation_form.reason.label }}</label>
+          {{ delegation_form.reason }}
+        </div>
+      </div>
+
+      <div class="rol-field" style="margin-top:.9rem">
+        <label>{{ delegation_form.capabilities.label }}</label>
+        <div class="rol-caps">
+          {% for choice in delegation_form.capabilities %}
+            <label>{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
+          {% endfor %}
+        </div>
+        {% if delegation_form.capabilities.errors %}
+          <ul class="rol-errors">{% for e in delegation_form.capabilities.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+        <div class="rol-field__help">
+          تُعرض هنا الصلاحيات النافذة فعلاً فقط. تفويض صلاحية غير مفعّلة يمنحك
+          طمأنينة كاذبة وقت غيابك.
+        </div>
+      </div>
+
+      <div style="margin-top:1rem">
+        <button type="submit" class="rol-btn rol-btn--primary">
+          <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i>
+          منح التفويض
+        </button>
+      </div>
+
+      {% if delegation_form.non_field_errors %}
+        <ul class="rol-errors">{% for e in delegation_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+    </form>
+
+    {% if delegations %}
+      <div class="rol-deleg" style="margin-top:1.3rem">
+        {% for d in delegations %}
+          <div class="rol-deleg__row" data-state="{{ d.state }}">
+            <div class="rol-deleg__who">{{ d.delegate.name }}</div>
+            <div class="rol-deleg__meta">
+              {% if d.state == 'active' %}
+                <span class="rol-tag rol-tag--deputy">سارٍ</span>
+              {% elif d.state == 'scheduled' %}
+                <span class="rol-tag rol-tag--warn">لم يبدأ بعد</span>
+              {% elif d.state == 'revoked' %}
+                <span class="rol-tag">مسحوب</span>
+              {% else %}
+                <span class="rol-tag">منتهٍ</span>
+              {% endif %}
+              · من {{ d.starts_at|date:"Y-m-d H:i" }} إلى {{ d.ends_at|date:"Y-m-d H:i" }}
+              {% if d.reason %} · {{ d.reason }}{% endif %}
+            </div>
+            {% if d.state == 'active' or d.state == 'scheduled' %}
+              <div class="rol-deleg__actions">
+                <form method="post" action="{% url 'reports:delegation_revoke' d.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="rol-btn rol-btn--danger">
+                    <i class="fa-solid fa-ban" aria-hidden="true"></i>
+                    سحب
+                  </button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="rol-empty" style="margin-top:1.2rem">
+        <div class="rol-empty__icon"><i class="fa-solid fa-handshake-angle" aria-hidden="true"></i></div>
+        <p>لا توجد تفويضات. امنح تفويضاً عند سفرك أو إجازتك ليستمر عمل المدرسة دون أن تنتقل صلاحياتك بشكل دائم.</p>
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

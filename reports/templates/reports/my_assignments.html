@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}تكليفاتي | منصة توثيق{% endblock %}
+
+{% block head %}{% include "reports/_assignment_theme.html" %}{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <span class="asg-hero__eyebrow">
+      <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+      ما المطلوب مني
+    </span>
+    <h1 class="asg-hero__title">تكليفاتي</h1>
+    <p class="asg-hero__meta">
+      كل ما أُسند إليك في {{ active_school.name }} — مرتّباً بالأقرب موعداً.
+    </p>
+  </header>
+
+  <section class="asg-kpis" aria-label="ملخص تكليفاتي">
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ open_targets|length }}</div>
+      <div class="asg-kpi__l">قيد العمل</div>
+    </article>
+    <article class="asg-kpi" data-tone="danger">
+      <div class="asg-kpi__v">{{ overdue_count }}</div>
+      <div class="asg-kpi__l">متأخر</div>
+    </article>
+    <article class="asg-kpi" data-tone="warn">
+      <div class="asg-kpi__v">{{ due_soon_count }}</div>
+      <div class="asg-kpi__l">يستحق خلال 3 أيام</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ done_targets|length }}</div>
+      <div class="asg-kpi__l">معتمد</div>
+    </article>
+  </section>
+
+  {% if open_targets %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">قيد العمل</h2>
+      <p class="asg-card__hint">
+        حدِّث نسبتك وارفع شواهدك من صفحة التكليف، ثم أرسله للمراجعة. الاعتماد
+        بيد من كلّفك.
+      </p>
+
+      {% for t in open_targets %}
+        <article class="asg-item"
+                 data-late="{% if t.is_overdue %}1{% endif %}"
+                 data-soon="{% if not t.is_overdue and t.days_remaining <= 3 %}1{% endif %}">
+          <div class="asg-item__main">
+            <div class="asg-item__title">
+              <a href="{% url 'reports:assignment_detail' t.pk %}">{{ t.assignment.title }}</a>
+            </div>
+            <div class="asg-item__sub">
+              من {{ t.assignment.issuer_name|default:"—" }}
+              · يستحق {{ t.assignment.due_at|date:"Y-m-d H:i" }}
+              {% if t.assignment.department %} · {{ t.assignment.department.name }}{% endif %}
+            </div>
+          </div>
+
+          <div class="asg-bar">
+            <div class="asg-bar__track">
+              <div class="asg-bar__fill" style="width:{{ t.progress_percent }}%"></div>
+            </div>
+            <div class="asg-bar__label">{{ t.progress_percent }}%</div>
+          </div>
+
+          <div class="asg-item__side">
+            {% if t.assignment.priority == 'high' %}
+              <span class="asg-tag asg-tag--urgent">
+                <i class="fa-solid fa-bolt" aria-hidden="true"></i> عاجل
+              </span>
+            {% endif %}
+            {% if t.is_overdue %}
+              <span class="asg-tag asg-tag--late">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> متأخر
+              </span>
+            {% elif t.days_remaining <= 3 %}
+              <span class="asg-tag asg-tag--soon">
+                <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>
+                {{ t.days_remaining }} يوم
+              </span>
+            {% endif %}
+            <span class="asg-tag">{{ t.get_approval_state_display }}</span>
+            <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{% url 'reports:assignment_detail' t.pk %}">فتح</a>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% else %}
+    <div class="asg-empty" style="margin-top:1.2rem">
+      <div class="asg-empty__icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+      <h2>لا تكليفات مفتوحة</h2>
+      <p>ليس عليك شيء الآن. ستظهر هنا التكليفات فور إسنادها إليك، ومعها موعد كل واحد.</p>
+    </div>
+  {% endif %}
+
+  {% if done_targets %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">المعتمَد</h2>
+      <p class="asg-card__hint">ما اعتُمد تنفيذه. يبقى في سجلّك ولا يُعدَّل.</p>
+      {% for t in done_targets %}
+        <article class="asg-item">
+          <div class="asg-item__main">
+            <div class="asg-item__title">
+              <a href="{% url 'reports:assignment_detail' t.pk %}">{{ t.assignment.title }}</a>
+            </div>
+            <div class="asg-item__sub">
+              اعتُمد {{ t.decided_at|date:"Y-m-d" }}
+              {% if t.decided_by %} · بواسطة {{ t.decided_by.name }}{% endif %}
+            </div>
+          </div>
+          <div class="asg-item__side">
+            <span class="asg-tag asg-tag--done">
+              <i class="fa-solid fa-check" aria-hidden="true"></i> معتمد
+            </span>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+</div>
+{% endblock %}

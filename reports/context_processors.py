@@ -972,6 +972,23 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         is_executive_director_user = False
 
+    # سجل إجراءات المدرسة: للمدير على مدرسته، وللوكيل الذي مُنح الصلاحية في
+    # نطاق إشرافه. الرابط لا يُعرض لغيرهما — فزرٌّ مرئي ممنوع أسوأ من غيابه.
+    try:
+        from .capabilities import VIEW_AUDIT_LOG as _VIEW_AUDIT_LOG
+        from .permissions import capability_source as _capability_source
+
+        can_view_school_audit = bool(
+            is_school_manager
+            or getattr(u, "is_superuser", False)
+            or (
+                active_school is not None
+                and _capability_source(u, _VIEW_AUDIT_LOG, active_school) is not None
+            )
+        )
+    except Exception:
+        can_view_school_audit = bool(is_school_manager)
+
     # تسمية دور المستخدم الحالي (لعرضها في الواجهة)
     user_role_label: Optional[str] = effective_user_role_label(u, active_school=active_school)
 
@@ -1063,6 +1080,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "SHOW_ADMIN_DASHBOARD_LINK": show_admin_link,
         "IS_SCHOOL_MANAGER": is_school_manager,
         "IS_EXECUTIVE_DIRECTOR": is_executive_director_user,
+        "CAN_VIEW_SCHOOL_AUDIT": can_view_school_audit,
         "NAV_NOTIFICATIONS_UNREAD": unread_count,
         "NAV_SIGNATURES_PENDING": signatures_pending,
         "NAV_NOTIFICATION_HERO": hero,

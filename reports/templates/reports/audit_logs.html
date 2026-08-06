@@ -415,28 +415,17 @@
 
               <td>
                 <div class="teacher">
-                  <div class="avatar" aria-hidden="true">
-                    {% if log.teacher and log.teacher.name %}
-                      {{ log.teacher.name|slice:":1" }}
-                    {% elif log.teacher and log.teacher.username %}
-                      {{ log.teacher.username|slice:":1" }}
-                    {% else %}
-                      ؟
-                    {% endif %}
-                  </div>
+                  {# ``actor_display`` يقرأ اللقطة أولاً، فيبقى الاسم ظاهراً
+                     بعد حذف الحساب بدل أن يتحول الصف إلى «مستخدم غير معروف». #}
+                  <div class="avatar" aria-hidden="true">{{ log.actor_display|slice:":1"|default:"؟" }}</div>
                   <div>
-                    <div class="name">
-                      {% if log.teacher %}
-                        {% firstof log.teacher.name log.teacher.username "—" %}
-                      {% else %}
-                        —
-                      {% endif %}
-                    </div>
+                    <div class="name">{{ log.actor_display }}</div>
                     <div class="sub">
-                      {% if log.teacher %}
-                        {% firstof log.teacher.phone log.teacher.username "" %}
-                      {% else %}
-                        مستخدم غير معروف
+                      {% if log.actor_role %}{{ log.actor_role }}{% endif %}
+                      {% if log.teacher and log.teacher.phone %}
+                        {% if log.actor_role %} · {% endif %}{{ log.teacher.phone }}
+                      {% elif not log.teacher %}
+                        {% if log.actor_role %} · {% endif %}حساب محذوف
                       {% endif %}
                     </div>
                   </div>
@@ -456,7 +445,8 @@
               </td>
 
               <td>
-                <span class="model-pill">{{ log.model_name }}</span>
+                {# الاسم العربي أولاً؛ ``model_name`` الخام يبقى كتحوّط لموديل لم يُترجم بعد. #}
+                <span class="model-pill">{{ log.ui.model_label|default:log.model_name }}</span>
               </td>
 
               <td class="obj">

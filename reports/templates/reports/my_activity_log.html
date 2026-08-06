@@ -1,0 +1,459 @@
+{% extends "base.html" %}
+{% load hijri_tags %}
+
+{% block title %}سجل أعمالي | منصة توثيق{% endblock %}
+
+{% block head %}
+<style>
+  /* ═══════════════════════════════════════════════════════════════════
+     سجل أعمالي — خط زمني يومي.
+     الرموز مُنطَقة تحت .act-page حتى لا تتسرب إلى بقية الصفحات، على نهج
+     لوحة المدير التنفيذي.
+     ═══════════════════════════════════════════════════════════════════ */
+  .act-page {
+    --act-ink: #10231a;
+    --act-muted: #607067;
+    --act-line: #dfe8e2;
+    --act-soft: #f3f8f5;
+    --act-surface: #ffffff;
+    --act-green: #08643b;
+    --act-gold: #b68a42;
+    --act-danger: #b42318;
+    --act-info: #1f6feb;
+    max-width: 1100px;
+    margin-inline: auto;
+    padding: 1.25rem;
+    color: var(--act-ink);
+  }
+
+  [data-theme="dark"] .act-page {
+    /* النص يفتح والتعبئة تبقى داكنة، ليحتفظ الأبيض فوقها بتباينه. */
+    --act-ink: #eff8f2;
+    --act-muted: #afc1b5;
+    --act-line: #2d4637;
+    --act-soft: #13271c;
+    --act-surface: #102019;
+    --act-green: #6ed3a0;
+    --act-gold: #eabf58;
+    --act-danger: #ff9d96;
+    --act-info: #7cb2ff;
+  }
+
+  /* ── الترويسة ────────────────────────────────────────────────── */
+  .act-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    padding: 1.75rem 1.6rem;
+    background: linear-gradient(135deg, #08643b 0%, #0a7a48 55%, #075334 100%);
+    color: #fff;
+    box-shadow: 0 18px 40px -22px rgba(8, 100, 59, .75);
+  }
+  .act-hero::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: -70px;
+    inset-block-start: -90px;
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(182,138,66,.32), transparent 68%);
+    pointer-events: none;
+  }
+  .act-hero__eyebrow {
+    display: inline-flex; align-items: center; gap: .45rem;
+    font-size: .78rem; font-weight: 800;
+    padding: .32rem .8rem; border-radius: 999px;
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.24);
+  }
+  .act-hero__title { margin: .75rem 0 .3rem; font-size: 1.55rem; font-weight: 900; }
+  .act-hero__meta { margin: 0; font-size: .9rem; opacity: .9; line-height: 1.8; }
+  .act-hero__note {
+    position: relative;
+    margin: 1.05rem 0 0;
+    padding: .6rem .85rem;
+    border-radius: 12px;
+    font-size: .82rem; line-height: 1.75;
+    background: rgba(0,0,0,.16);
+    border-inline-start: 3px solid var(--act-gold);
+  }
+
+  /* ── بطاقات الملخص ──────────────────────────────────────────── */
+  .act-kpis {
+    display: grid; gap: .9rem; margin-top: 1.15rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  .act-kpi {
+    background: var(--act-surface);
+    border: 1px solid var(--act-line);
+    border-radius: 16px;
+    padding: 1rem 1.05rem;
+    box-shadow: 0 10px 26px -24px rgba(16,35,26,.75);
+  }
+  .act-kpi__icon {
+    width: 36px; height: 36px; border-radius: 11px;
+    display: grid; place-items: center;
+    background: var(--act-soft); color: var(--act-green);
+    font-size: .9rem; margin-bottom: .6rem;
+  }
+  .act-kpi__value { font-size: 1.7rem; font-weight: 900; line-height: 1.1; }
+  .act-kpi__label { font-size: .8rem; font-weight: 700; color: var(--act-muted); margin-top: .2rem; }
+
+  /* ── التصفية ────────────────────────────────────────────────── */
+  .act-filters {
+    margin-top: 1.3rem;
+    background: var(--act-surface);
+    border: 1px solid var(--act-line);
+    border-radius: 16px;
+    padding: 1rem 1.05rem;
+  }
+  .act-filters__row {
+    display: grid; gap: .75rem;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    align-items: end;
+  }
+  .act-field label {
+    display: block; font-size: .78rem; font-weight: 800;
+    color: var(--act-muted); margin-bottom: .35rem;
+  }
+  .act-field select,
+  .act-field input[type="date"] {
+    width: 100%;
+    padding: .55rem .7rem;
+    border-radius: 10px;
+    border: 1px solid var(--act-line);
+    background: var(--act-surface);
+    color: var(--act-ink);
+    font-family: inherit; font-size: .88rem;
+  }
+  .act-field select:focus,
+  .act-field input[type="date"]:focus {
+    outline: 2px solid var(--act-green);
+    outline-offset: 1px;
+  }
+  .act-filters__actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .act-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .55rem 1.1rem; border-radius: 10px;
+    font-size: .85rem; font-weight: 800;
+    text-decoration: none; cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .act-btn--primary { background: var(--act-green); color: #fff; }
+  [data-theme="dark"] .act-btn--primary { color: #06251a; }
+  .act-btn--ghost {
+    background: transparent; color: var(--act-muted);
+    border-color: var(--act-line);
+  }
+
+  /* ── الخط الزمني ────────────────────────────────────────────── */
+  .act-timeline { margin-top: 1.3rem; }
+
+  .act-day { margin-bottom: 1.6rem; }
+  .act-day__head {
+    display: flex; align-items: center; gap: .65rem;
+    margin-bottom: .8rem;
+  }
+  .act-day__date {
+    font-size: .92rem; font-weight: 900;
+    padding: .35rem .85rem; border-radius: 999px;
+    background: var(--act-soft); color: var(--act-green);
+    border: 1px solid var(--act-line);
+    white-space: nowrap;
+  }
+  .act-day__weekday { font-size: .8rem; font-weight: 700; color: var(--act-muted); }
+  .act-day__rule { flex: 1; height: 1px; background: var(--act-line); }
+  .act-day__count { font-size: .76rem; font-weight: 700; color: var(--act-muted); white-space: nowrap; }
+
+  .act-items {
+    list-style: none; margin: 0; padding: 0;
+    position: relative;
+    /* الخيط الرأسي للخط الزمني — منطقي في RTL عبر inset-inline. */
+    padding-inline-start: 2.1rem;
+  }
+  .act-items::before {
+    content: "";
+    position: absolute;
+    inset-block: .9rem;
+    inset-inline-start: .95rem;
+    width: 2px;
+    background: var(--act-line);
+    border-radius: 2px;
+  }
+
+  .act-item {
+    position: relative;
+    background: var(--act-surface);
+    border: 1px solid var(--act-line);
+    border-radius: 14px;
+    padding: .8rem .95rem;
+    margin-bottom: .6rem;
+    box-shadow: 0 8px 22px -22px rgba(16,35,26,.7);
+    transition: border-color .18s ease, transform .18s ease;
+  }
+  .act-item:hover { border-color: var(--act-green); transform: translateX(-2px); }
+  [dir="rtl"] .act-item:hover { transform: translateX(2px); }
+
+  .act-item__dot {
+    position: absolute;
+    inset-inline-start: -2.1rem;
+    inset-block-start: .95rem;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: .72rem;
+    background: var(--act-soft);
+    color: var(--act-green);
+    border: 2px solid var(--act-surface);
+    box-shadow: 0 0 0 1px var(--act-line);
+  }
+  .act-item[data-tone="delete"] .act-item__dot { color: var(--act-danger); }
+  .act-item[data-tone="create"] .act-item__dot { color: var(--act-green); }
+  .act-item[data-tone="update"] .act-item__dot { color: var(--act-info); }
+  .act-item[data-tone="session"] .act-item__dot { color: var(--act-muted); }
+
+  .act-item__top {
+    display: flex; align-items: baseline; gap: .5rem;
+    flex-wrap: wrap;
+  }
+  .act-item__headline { font-size: .93rem; font-weight: 800; }
+  .act-item__time {
+    margin-inline-start: auto;
+    font-size: .76rem; font-weight: 700;
+    color: var(--act-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .act-item__subject {
+    margin: .3rem 0 0;
+    font-size: .85rem; line-height: 1.75;
+    color: var(--act-muted);
+    overflow-wrap: anywhere;
+  }
+  .act-item__tags { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .5rem; }
+  .act-tag {
+    font-size: .72rem; font-weight: 700;
+    padding: .2rem .6rem; border-radius: 999px;
+    background: var(--act-soft); color: var(--act-muted);
+    border: 1px solid var(--act-line);
+  }
+
+  /* ── الحالة الفارغة ─────────────────────────────────────────── */
+  .act-empty {
+    margin-top: 1.3rem;
+    background: var(--act-surface);
+    border: 1px dashed var(--act-line);
+    border-radius: 18px;
+    padding: 2.75rem 1.5rem;
+    text-align: center;
+  }
+  .act-empty__icon {
+    width: 62px; height: 62px; border-radius: 18px;
+    display: grid; place-items: center; margin: 0 auto .9rem;
+    background: var(--act-soft); color: var(--act-green);
+    font-size: 1.45rem;
+  }
+  .act-empty__title { font-size: 1.05rem; font-weight: 900; margin: 0 0 .4rem; }
+  .act-empty__text { font-size: .88rem; color: var(--act-muted); margin: 0 auto; max-width: 46ch; line-height: 1.85; }
+  .act-empty__actions { margin-top: 1.1rem; }
+
+  /* ── الترقيم ────────────────────────────────────────────────── */
+  .act-pager {
+    display: flex; align-items: center; justify-content: center;
+    gap: .6rem; margin-top: 1.4rem; flex-wrap: wrap;
+  }
+  .act-pager__status { font-size: .82rem; font-weight: 700; color: var(--act-muted); }
+
+  .act-alert {
+    margin-top: 1.2rem;
+    padding: .85rem 1rem;
+    border-radius: 12px;
+    font-size: .86rem; line-height: 1.8;
+    background: var(--act-soft);
+    border-inline-start: 3px solid var(--act-gold);
+    color: var(--act-ink);
+  }
+
+  @media (max-width: 640px) {
+    .act-page { padding: .85rem; }
+    .act-hero { padding: 1.35rem 1.15rem; border-radius: 16px; }
+    .act-hero__title { font-size: 1.3rem; }
+    .act-items { padding-inline-start: 1.75rem; }
+    .act-item__dot { inset-inline-start: -1.75rem; width: 24px; height: 24px; }
+    .act-item__time { margin-inline-start: 0; width: 100%; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="act-page">
+
+  {# ── الترويسة ─────────────────────────────────────────────── #}
+  <header class="act-hero">
+    <span class="act-hero__eyebrow">
+      <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+      سجل موثّق
+    </span>
+    <h1 class="act-hero__title">سجل أعمالي</h1>
+    <p class="act-hero__meta">
+      كل إجراء نفّذته داخل المنصة، مرتّباً من الأحدث إلى الأقدم.
+    </p>
+    <p class="act-hero__note">
+      هذا السجل يخصّك وحدك — لا يظهر فيه نشاط غيرك، ولا يظهر نشاطك هنا لأحد
+      سوى من يملك صلاحية سجل المدرسة. ولا يمكن تعديل أي سطر فيه بعد كتابته،
+      لا منك ولا من غيرك.
+    </p>
+  </header>
+
+  {% if unavailable %}
+    <div class="act-alert">
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+      ميزة سجل الإجراءات غير مفعّلة حالياً في هذه البيئة. تواصل مع الدعم الفني.
+    </div>
+  {% endif %}
+
+  {# ── الملخص ───────────────────────────────────────────────── #}
+  <section class="act-kpis" aria-label="ملخص النشاط">
+    <article class="act-kpi">
+      <div class="act-kpi__icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>
+      <div class="act-kpi__value">{{ total_count }}</div>
+      <div class="act-kpi__label">إجمالي إجراءاتك</div>
+    </article>
+    <article class="act-kpi">
+      <div class="act-kpi__icon"><i class="fa-solid fa-bolt" aria-hidden="true"></i></div>
+      <div class="act-kpi__value">{{ recent_count }}</div>
+      <div class="act-kpi__label">خلال آخر {{ summary_window_days }} يوماً</div>
+    </article>
+    <article class="act-kpi">
+      <div class="act-kpi__icon"><i class="fa-solid fa-filter" aria-hidden="true"></i></div>
+      <div class="act-kpi__value">{{ page_obj.paginator.count }}</div>
+      <div class="act-kpi__label">
+        {% if has_filters %}نتائج التصفية الحالية{% else %}المعروض في السجل{% endif %}
+      </div>
+    </article>
+  </section>
+
+  {# ── التصفية ──────────────────────────────────────────────── #}
+  <form class="act-filters" method="get" role="search" aria-label="تصفية السجل">
+    <div class="act-filters__row">
+      <div class="act-field">
+        <label for="f-action">نوع الإجراء</label>
+        <select id="f-action" name="action">
+          <option value="">كل الإجراءات</option>
+          {% for value, label in actions %}
+            <option value="{{ value }}" {% if q_action == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="act-field">
+        <label for="f-start">من تاريخ</label>
+        <input type="date" id="f-start" name="start_date" value="{{ q_start }}">
+      </div>
+      <div class="act-field">
+        <label for="f-end">إلى تاريخ</label>
+        <input type="date" id="f-end" name="end_date" value="{{ q_end }}">
+      </div>
+      <div class="act-filters__actions">
+        <button type="submit" class="act-btn act-btn--primary">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          تطبيق
+        </button>
+        {% if has_filters %}
+          <a href="{% url 'reports:my_activity_log' %}" class="act-btn act-btn--ghost">
+            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+            إلغاء التصفية
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+
+  {# ── الخط الزمني ──────────────────────────────────────────── #}
+  {% if day_groups %}
+    <div class="act-timeline">
+      {% for group in day_groups %}
+        <section class="act-day">
+          <div class="act-day__head">
+            <span class="act-day__date">{{ group.day|hijri_long }}</span>
+            <span class="act-day__weekday">{{ group.day|hijri_day }}</span>
+            <span class="act-day__rule" aria-hidden="true"></span>
+            <span class="act-day__count">{{ group.entries|length }} إجراء</span>
+          </div>
+
+          <ul class="act-items">
+            {% for log in group.entries %}
+              <li class="act-item" data-tone="{{ log.ui.tone }}">
+                <span class="act-item__dot" aria-hidden="true">
+                  <i class="fa-solid {{ log.ui.icon }}"></i>
+                </span>
+                <div class="act-item__top">
+                  <span class="act-item__headline">{{ log.ui.headline }}</span>
+                  <time class="act-item__time" datetime="{{ log.timestamp|date:'c' }}">
+                    {{ log.timestamp|time:"H:i" }}
+                  </time>
+                </div>
+                {% if log.ui.subject %}
+                  <p class="act-item__subject">{{ log.ui.subject }}</p>
+                {% endif %}
+                <div class="act-item__tags">
+                  <span class="act-tag">{{ log.ui.model_label }}</span>
+                  {% if log.school %}
+                    <span class="act-tag">{{ log.school.name }}</span>
+                  {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+      <nav class="act-pager" aria-label="تنقّل بين صفحات السجل">
+        {% if page_obj.has_previous %}
+          <a class="act-btn act-btn--ghost" href="?page={{ page_obj.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">
+            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            الأحدث
+          </a>
+        {% endif %}
+        <span class="act-pager__status">
+          صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+          <a class="act-btn act-btn--ghost" href="?page={{ page_obj.next_page_number }}{% if qs %}&{{ qs }}{% endif %}">
+            الأقدم
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+          </a>
+        {% endif %}
+      </nav>
+    {% endif %}
+
+  {% else %}
+    <div class="act-empty">
+      <div class="act-empty__icon">
+        <i class="fa-solid {% if has_filters %}fa-filter-circle-xmark{% else %}fa-feather-pointed{% endif %}" aria-hidden="true"></i>
+      </div>
+      {% if has_filters %}
+        <h2 class="act-empty__title">لا توجد إجراءات مطابقة</h2>
+        <p class="act-empty__text">
+          لم يُسجَّل أي إجراء ضمن النطاق الذي اخترته. جرّب توسيع المدة الزمنية
+          أو اختيار «كل الإجراءات».
+        </p>
+        <div class="act-empty__actions">
+          <a href="{% url 'reports:my_activity_log' %}" class="act-btn act-btn--primary">
+            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+            عرض السجل كاملاً
+          </a>
+        </div>
+      {% else %}
+        <h2 class="act-empty__title">سجلّك ما زال فارغاً</h2>
+        <p class="act-empty__text">
+          بمجرد أن تنشئ تقريراً أو ترفع شاهداً أو تُرسل طلباً، سيظهر هنا بتاريخه
+          ووقته — ويبقى محفوظاً لا يُعدَّل.
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

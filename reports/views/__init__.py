@@ -27,3 +27,14 @@ from .onboarding import *       # noqa: F401,F403
 from .school_additions import * # noqa: F401,F403
 from .legal import *            # noqa: F401,F403
 from .customer_care import *    # noqa: F401,F403
+from .activity import *        # noqa: F401,F403
+from .staff_roles import *     # noqa: F401,F403
+from .approvals import *       # noqa: F401,F403
+from .assignments import *     # noqa: F401,F403
+from .group_assignments import *  # noqa: F401,F403
+from .meetings import *        # noqa: F401,F403
+from .group_meetings import *  # noqa: F401,F403
+from .plans import *           # noqa: F401,F403
+from .documents import *       # noqa: F401,F403
+from .circular_drafts import * # noqa: F401,F403
+from .group_oversight import * # noqa: F401,F403

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}خطة جديدة | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .pnew-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .pnew-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.3rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <a class="asg-hero__eyebrow" href="{% url 'reports:plan_list' %}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      الخطط
+    </a>
+    <h1 class="asg-hero__title">خطة جديدة</h1>
+    <p class="asg-hero__meta">الأهداف والمهام تُضاف بعد الإنشاء من صفحة الخطة.</p>
+  </header>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <section class="asg-card">
+      <h2 class="asg-card__title">بيانات الخطة</h2>
+
+      <div class="asg-field">
+        <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+        {{ form.title }}
+        {% if form.title.errors %}<ul class="asg-errors">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="asg-field">
+        <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+        {{ form.description }}
+      </div>
+
+      <div class="pnew-grid">
+        <div class="asg-field">
+          <label for="{{ form.academic_year.id_for_label }}">{{ form.academic_year.label }}</label>
+          {{ form.academic_year }}
+          <div class="asg-field__help">{{ form.academic_year.help_text }}</div>
+        </div>
+        <div class="asg-field">
+          <label for="{{ form.starts_on.id_for_label }}">{{ form.starts_on.label }}</label>
+          {{ form.starts_on }}
+        </div>
+        <div class="asg-field">
+          <label for="{{ form.ends_on.id_for_label }}">{{ form.ends_on.label }}</label>
+          {{ form.ends_on }}
+          {% if form.ends_on.errors %}<ul class="asg-errors">{% for e in form.ends_on.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      </div>
+
+      {% if form.non_field_errors %}
+        <ul class="asg-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+    </section>
+
+    <div class="pnew-actions">
+      <button type="submit" class="asg-btn asg-btn--primary">
+        <i class="fa-solid fa-compass-drafting" aria-hidden="true"></i>
+        إنشاء الخطة
+      </button>
+      <a class="asg-btn asg-btn--ghost" href="{% url 'reports:plan_list' %}">إلغاء</a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

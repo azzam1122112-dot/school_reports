@@ -26,6 +26,17 @@ __all__ = [
     "is_department_member",
     "get_school_manager_school_ids",
     "is_school_manager",
+    "is_school_deputy",
+    "is_admin_staff",
+    "is_school_staff",
+    "school_roles_for",
+    "scope_capabilities",
+    "active_delegations",
+    "delegated_capabilities",
+    "capability_source",
+    "has_capability",
+    "supervised_department_ids",
+    "capability_required",
     "get_executive_director_group_ids",
     "is_executive_director",
     "executive_director_schools_qs",
@@ -67,6 +78,7 @@ def _school_role_labels(active_school: Optional[School]) -> dict[str, str]:
     labels = school_gender_labels(active_school)
     return {
         "manager": str(labels["manager"]),
+        "deputy": str(labels["deputy"]),
         "teacher": str(labels["teacher"]),
         "admin_staff": str(labels["admin_staff"]),
         "lab_tech": str(labels["lab_tech"]),
@@ -91,11 +103,26 @@ def _school_membership_cache(user) -> dict:
     return cache
 
 
+def _membership_cache_key(school_id: int, role_types: Iterable[str] = ()) -> tuple:
+    """مفتاح ذاكرة العضوية — بالصيغة نفسها التي يبنيها ``_get_school_membership``.
+
+    وجودها في دالة واحدة مقصود: المفتاح المبني هنا يجب أن يطابق المبني هناك
+    حرفاً بحرف، وإلا فشلت التهيئة المسبقة **بصمت** — لا خطأ ولا نتيجة خاطئة،
+    فقط استعلام لكل صف يعود من حيث لا يُحتسب.
+    """
+    normalized = tuple(sorted({str(v).strip().lower() for v in (role_types or []) if str(v).strip()}))
+    return (int(school_id), normalized)
+
+
 def prefetch_memberships_for_school(teachers, school) -> None:
     """Batch-load SchoolMembership for *teachers* in one query and pre-populate
     each teacher's ``_school_membership_cache`` so that subsequent calls to
     ``effective_user_role_label`` / ``_get_school_membership`` hit the cache
     instead of issuing N individual queries.
+
+    تُهيَّأ **كل** المفاتيح التي تسألها ``effective_user_role_label``: الفارغ،
+    وكل دور منفرداً، ومجموعة المنسوبين. النسخة السابقة كانت تهيّئ مفتاحين
+    فقط (الفارغ و``teacher``)، فكان فحص المدير يستعلم لكل صف في الكشف.
     """
     if not teachers or not school:
         return
@@ -111,13 +138,24 @@ def prefetch_memberships_for_school(teachers, school) -> None:
     for m in all_mems:
         by_teacher.setdefault(m.teacher_id, []).append(m)
 
+    role_values = [str(value).strip().lower() for value in SchoolMembership.RoleType.values]
+
     for teacher in teachers:
         cache = _school_membership_cache(teacher)
         mems = by_teacher.get(teacher.id, [])
-        cache.setdefault((school_id, ()), mems[0] if mems else None)
-        teacher_role_val = str(SchoolMembership.RoleType.TEACHER).strip().lower()
-        teacher_mem = next((m for m in mems if str(m.role_type).strip().lower() == teacher_role_val), None)
-        cache.setdefault((school_id, (teacher_role_val,)), teacher_mem)
+        cache.setdefault(_membership_cache_key(school_id), mems[0] if mems else None)
+
+        for role in role_values:
+            match = next((m for m in mems if str(m.role_type).strip().lower() == role), None)
+            cache.setdefault(_membership_cache_key(school_id, [role]), match)
+
+        staff_match = next(
+            (m for m in mems if str(m.role_type).strip().lower() in set(SchoolMembership.STAFF_ROLES)),
+            None,
+        )
+        cache.setdefault(
+            _membership_cache_key(school_id, SchoolMembership.STAFF_ROLES), staff_match
+        )
 
 
 def _get_school_membership(
@@ -135,8 +173,10 @@ def _get_school_membership(
     if not school_id:
         return None
 
-    normalized_role_types = tuple(sorted({str(v).strip().lower() for v in (role_types or []) if str(v).strip()}))
-    cache_key = (int(school_id), normalized_role_types)
+    # المفتاح يُبنى من الدالة المشتركة نفسها التي تستعملها التهيئة المسبقة،
+    # فلا يمكن أن ينحرف أحدهما عن الآخر.
+    cache_key = _membership_cache_key(school_id, role_types or [])
+    normalized_role_types = cache_key[1]
     cache = _school_membership_cache(user)
     if cache_key in cache:
         return cache[cache_key]
@@ -206,6 +246,335 @@ def is_school_manager(
         ) is not None
 
     return bool(get_school_manager_school_ids(user))
+
+
+# =========================
+# الأدوار المدرسية الجديدة: الوكيل والموظف الإداري
+# =========================
+# كلاهما **عضوية مُنطَقة** لا عَلَم على الحساب. الفرق حاسم: المشروع سبق أن حمل
+# دورين وسيطين على شكل أعلام عامة فتعذّر تقييد نطاقهما وانتهيا بالحذف عبر 180
+# موضعاً (راجع docs/REMOVE_SUPERVISOR_ROLES.md). فالدرس مطبَّق هنا حرفياً:
+# الدور يُسأل عنه دائماً *داخل مدرسة بعينها*.
+
+
+def _has_school_role(
+    user,
+    role_type: str,
+    *,
+    active_school: Optional[School] = None,
+    active_school_id: Optional[int] = None,
+) -> bool:
+    """هل يحمل المستخدم هذا الدور داخل المدرسة المقصودة؟"""
+    if not getattr(user, "is_authenticated", False):
+        return False
+
+    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
+    if not school_id:
+        # بلا مدرسة لا معنى للسؤال. لا نتوسّع إلى «أي مدرسة» لأن ذلك يحوّل
+        # الدور المُنطَق إلى عَلَم عام — وهو الخطأ الذي كلّف المشروع مرة.
+        return False
+
+    return _get_school_membership(
+        user,
+        active_school=active_school,
+        active_school_id=school_id,
+        role_types=[role_type],
+    ) is not None
+
+
+def is_school_deputy(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> bool:
+    """وكيل المدرسة داخل المدرسة النشطة.
+
+    الوكيل ليس مديراً مصغَّراً: هذه الدالة **لا تُستدعى من**
+    ``is_school_manager``، ولا تمنح بذاتها أي صلاحية اعتماد نهائي. ما تمنحه
+    نطاقُه يأتي لاحقاً من ``DeputyScope`` والتفويض، لا من مجرد حمل الدور.
+    """
+    return _has_school_role(
+        user,
+        SchoolMembership.RoleType.DEPUTY,
+        active_school=active_school,
+        active_school_id=active_school_id,
+    )
+
+
+def is_admin_staff(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> bool:
+    """موظف إداري داخل المدرسة النشطة."""
+    return _has_school_role(
+        user,
+        SchoolMembership.RoleType.ADMIN_STAFF,
+        active_school=active_school,
+        active_school_id=active_school_id,
+    )
+
+
+def is_school_staff(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> bool:
+    """منسوب في المدرسة النشطة — أي عضو فيها من غير مديرها."""
+    if not getattr(user, "is_authenticated", False):
+        return False
+
+    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
+    if not school_id:
+        return False
+
+    return _get_school_membership(
+        user,
+        active_school=active_school,
+        active_school_id=school_id,
+        role_types=list(SchoolMembership.STAFF_ROLES),
+    ) is not None
+
+
+def school_roles_for(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> Set[str]:
+    """كل الأدوار التي يحملها المستخدم في المدرسة المقصودة.
+
+    مجموعة لا قيمة واحدة، لأن الدور الواحد ليس القاعدة: الوكيل ذو النصاب
+    التدريسي يحمل ``deputy`` و``teacher`` معاً، وأي دالة تفترض دوراً واحداً
+    ستخفي أحدهما.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return set()
+
+    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
+    if not school_id:
+        return set()
+
+    return set(
+        SchoolMembership.objects.filter(
+            teacher=user,
+            school_id=school_id,
+            is_active=True,
+        ).values_list("role_type", flat=True)
+    )
+
+
+# =========================
+# الصلاحيات المُنطَقة والتفويض المؤقت
+# =========================
+# مصدران اثنان للصلاحية داخل المدرسة، ولا ثالث لهما:
+#
+#   1. **النطاق** (``StaffScope``) — صلاحية دائمة يمنحها المدير مع الدور.
+#   2. **التفويض** (``Delegation``) — صلاحية مؤقتة تنتهي بذاتها زمنياً.
+#
+# والفرق بينهما ليس في القوة بل في **المسؤولية**: ما يُمارَس بالتفويض يُنسب
+# للمفوِّض في سجل الإجراءات، وما يُمارَس بالنطاق يُنسب لصاحبه. ولذلك تُميّز
+# ``capability_source`` بينهما بدل أن تُرجع نعم/لا مسطّحة.
+
+
+def _staff_scope_for(user, school_id: int):
+    """نطاق المستخدم في مدرسة، مخزَّن على الكائن لطلب واحد."""
+    cache = getattr(user, "_staff_scope_cache", None)
+    if not isinstance(cache, dict):
+        cache = {}
+        setattr(user, "_staff_scope_cache", cache)
+    if school_id in cache:
+        return cache[school_id]
+
+    from .models import StaffScope
+
+    try:
+        scope = (
+            StaffScope.objects.filter(
+                membership__teacher=user,
+                membership__school_id=school_id,
+                membership__is_active=True,
+            )
+            .select_related("membership")
+            .first()
+        )
+    except Exception:
+        scope = None
+
+    cache[school_id] = scope
+    return scope
+
+
+def scope_capabilities(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> Set[str]:
+    """الصلاحيات الدائمة الممنوحة بالنطاق."""
+    if not getattr(user, "is_authenticated", False):
+        return set()
+    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
+    if not school_id:
+        return set()
+
+    scope = _staff_scope_for(user, int(school_id))
+    return set(scope.capability_codes()) if scope is not None else set()
+
+
+def active_delegations(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> list:
+    """التفويضات السارية الآن — محسوبة زمنياً لا مقروءة من عَلَم مخزَّن."""
+    if not getattr(user, "is_authenticated", False):
+        return []
+    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
+    if not school_id:
+        return []
+
+    from django.utils import timezone
+
+    from .models import Delegation
+
+    now = timezone.now()
+    try:
+        rows = list(
+            Delegation.objects.filter(
+                school_id=school_id,
+                delegate=user,
+                revoked_at__isnull=True,
+                starts_at__lte=now,
+                ends_at__gte=now,
+            ).select_related("delegator")
+        )
+    except Exception:
+        rows = []
+    return rows
+
+
+def delegated_capabilities(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> Set[str]:
+    """الصلاحيات المؤقتة السارية الآن بالتفويض."""
+    codes: Set[str] = set()
+    for delegation in active_delegations(
+        user, active_school, active_school_id=active_school_id
+    ):
+        codes |= delegation.capability_codes()
+    return codes
+
+
+def capability_source(
+    user,
+    capability: str,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> Optional[str]:
+    """مصدر الصلاحية: ``"scope"`` أو ``"delegation"`` أو ``None``.
+
+    النطاق يسبق التفويض في الفحص لأن الأصالة تسبق النيابة: من يملك الصلاحية
+    أصلاً لا يُسجَّل عمله كأنه نيابة عن غيره.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return None
+    code = str(capability or "").strip()
+    if not code:
+        return None
+
+    if code in scope_capabilities(user, active_school, active_school_id=active_school_id):
+        return "scope"
+    if code in delegated_capabilities(user, active_school, active_school_id=active_school_id):
+        return "delegation"
+    return None
+
+
+def has_capability(
+    user,
+    capability: str,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> bool:
+    """هل يملك المستخدم هذه الصلاحية في المدرسة المقصودة؟
+
+    مدير المدرسة يملك كل شيء داخل مدرسته بحكم دوره، فلا يُسأل عن نطاق.
+    ومالك النظام يمر دائماً.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False):
+        return True
+    if is_school_manager(user, active_school=active_school, active_school_id=active_school_id):
+        return True
+    return capability_source(
+        user, capability, active_school, active_school_id=active_school_id
+    ) is not None
+
+
+def supervised_department_ids(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> Set[int]:
+    """الأقسام التي يشرف عليها المستخدم ضمن نطاقه.
+
+    مجموعة فارغة تعني «لا أقسام مُسندة» لا «كل الأقسام». التأويل المعاكس يحوّل
+    نطاقاً لم يُضبط بعد إلى صلاحية على المدرسة كلها.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return set()
+    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
+    if not school_id:
+        return set()
+
+    scope = _staff_scope_for(user, int(school_id))
+    if scope is None:
+        return set()
+    try:
+        return {int(pk) for pk in scope.departments.values_list("id", flat=True)}
+    except Exception:
+        return set()
+
+
+def capability_required(capability: str):
+    """حصر الوصول على من يملك صلاحية بعينها في المدرسة النشطة."""
+
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped(request: HttpRequest, *args, **kwargs) -> HttpResponse:
+            user = request.user
+            if not getattr(user, "is_authenticated", False):
+                return redirect("reports:login")
+
+            try:
+                school_id = int(request.session.get("active_school_id") or 0) or None
+            except Exception:
+                school_id = None
+
+            if not school_id and not getattr(user, "is_superuser", False):
+                messages.error(request, "فضلاً اختر مدرسة أولاً.")
+                return redirect("reports:select_school")
+
+            if has_capability(user, capability, active_school_id=school_id):
+                return view_func(request, *args, **kwargs)
+
+            messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
+            return redirect("reports:home")
+
+        return _wrapped
+
+    return decorator
 
 
 # =========================
@@ -354,16 +723,23 @@ def effective_user_role_label(
             label = labels["manager"]
         elif getattr(user, "is_staff", False):
             label = "مدير النظام"
+        elif is_school_deputy(user, active_school=school, active_school_id=school_id):
+            # الوكيل أعلى من المنسوب وأدنى من المدير، فتسبق تسميتُه أي مسمّى
+            # وظيفي آخر يحمله — ووكيلٌ له نصاب تدريسي يظل وكيلاً في الترويسة.
+            label = labels["deputy"]
         else:
-            teacher_membership = _get_school_membership(
+            staff_membership = _get_school_membership(
                 user,
                 active_school=school,
                 active_school_id=school_id,
-                role_types=[SchoolMembership.RoleType.TEACHER],
+                role_types=list(SchoolMembership.STAFF_ROLES),
             )
-            if teacher_membership is not None:
-                job_title = (getattr(teacher_membership, "job_title", "") or "").strip()
-                if job_title == SchoolMembership.JobTitle.ADMIN_STAFF:
+            if staff_membership is not None:
+                job_title = (getattr(staff_membership, "job_title", "") or "").strip()
+                role_type = (getattr(staff_membership, "role_type", "") or "").strip()
+                if role_type == SchoolMembership.RoleType.ADMIN_STAFF:
+                    label = labels["admin_staff"]
+                elif job_title == SchoolMembership.JobTitle.ADMIN_STAFF:
                     label = labels["admin_staff"]
                 elif job_title == SchoolMembership.JobTitle.LAB_TECH:
                     label = labels["lab_tech"]
@@ -601,15 +977,38 @@ def can_edit_report(user, report, *, active_school: Optional[School] = None) -> 
 # ديكوريتر حصر الوصول حسب الدور (بالـ slug)
 # ==============================
 def role_required(allowed_roles: Iterable[str]):
-    """
+    """حصر الوصول على أدوار مدرسية محددة.
+
     مثال:
         @login_required(login_url="reports:login")
-        @role_required({"manager"})
+        @role_required({"manager", "deputy"})
         def some_view(...): ...
-    - السوبر يمر دائمًا.
-    - المقارنة تتم بالـ slug للدور.
+
+    قواعد ثابتة:
+    - مالك النظام يمر دائماً.
+    - كل دور يُحسم عبر ``SchoolMembership`` **داخل المدرسة النشطة** — لا عبر
+      عَلَم على الحساب. فمن كان وكيلاً في مدرسة لا يصير وكيلاً في أخرى بتبديل
+      المدرسة النشطة.
+    - أي اسم دور غير معروف يُرفَض. النسخة السابقة كانت تعرف ``manager`` وحده
+      وتتجاهل ما عداه **بصمت**: ``@role_required({"deputy"})`` كان يمنع الجميع
+      بلا سبب ظاهر، وهو أسوأ من الخطأ الصريح لأنه يبدو كأنه يعمل.
     """
-    allowed = set(allowed_roles or [])
+    allowed = {str(role).strip().lower() for role in (allowed_roles or []) if str(role).strip()}
+
+    # خريطة الأدوار المدعومة → الدالة التي تحسمها.
+    _CHECKS = {
+        "manager": is_school_manager,
+        "deputy": is_school_deputy,
+        "admin_staff": is_admin_staff,
+        "staff": is_school_staff,
+    }
+
+    unknown = allowed - set(_CHECKS)
+    if unknown:
+        raise ValueError(
+            f"role_required: أدوار غير معروفة {sorted(unknown)}. "
+            f"المدعوم: {sorted(_CHECKS)}."
+        )
 
     def _has_active_schools() -> bool:
         try:
@@ -624,6 +1023,22 @@ def role_required(allowed_roles: Iterable[str]):
         except Exception:
             return None
 
+    def _holds_any_role_somewhere(user) -> bool:
+        """هل يحمل المستخدم أحد الأدوار المطلوبة في أي مدرسة؟
+
+        يُستعمل وحده لتقرير **وجهة إعادة التوجيه** حين لا توجد مدرسة نشطة:
+        من يحمل الدور يُرسَل لاختيار مدرسة، ومن لا يحمله يُرسَل للرئيسية بدل
+        أن يدور في صفحة اختيار لا تنفعه. وهو لا يمنح وصولاً بذاته.
+        """
+        if "manager" in allowed and is_school_manager(user):
+            return True
+        return SchoolMembership.objects.filter(
+            teacher=user,
+            is_active=True,
+            role_type__in=[role for role in allowed if role != "staff"]
+            or list(SchoolMembership.STAFF_ROLES),
+        ).exists()
+
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped(request: HttpRequest, *args, **kwargs) -> HttpResponse:
@@ -637,21 +1052,17 @@ def role_required(allowed_roles: Iterable[str]):
 
             active_school_id = _get_active_school_id(request)
 
-            # إذا كان النظام متعدد المدارس ونتعامل مع صلاحيات مدرسية، نجبر اختيار مدرسة نشطة.
+            # النظام متعدد المدارس: الصلاحية المدرسية بلا مدرسة نشطة لا تُحسم.
             if _has_active_schools() and not active_school_id:
-                # نُجبر ذلك خصوصًا للصفحات المدرسية (manager)
-                if "manager" in allowed:
-                    # إن لم يكن المستخدم مدير مدرسة فعلي (عضوية)، لا نرسله لاختيار مدرسة.
-                    # هذا يمنع تسريب صلاحية عبر Role.slug='manager' فقط.
-                    if is_school_manager(user):
-                        messages.error(request, "فضلاً اختر مدرسة أولاً.")
-                        return redirect("reports:select_school")
-                    messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
-                    return redirect("reports:home")
+                if _holds_any_role_somewhere(user):
+                    messages.error(request, "فضلاً اختر مدرسة أولاً.")
+                    return redirect("reports:select_school")
+                messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
+                return redirect("reports:home")
 
-            # المدير (manager) صلاحية مدرسية تُحسم عبر SchoolMembership.
-            if "manager" in allowed and is_school_manager(user, active_school_id=active_school_id):
-                return view_func(request, *args, **kwargs)
+            for role in allowed:
+                if _CHECKS[role](user, active_school_id=active_school_id):
+                    return view_func(request, *args, **kwargs)
 
             messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
             return redirect("reports:home")

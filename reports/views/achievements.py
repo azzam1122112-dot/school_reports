@@ -285,7 +285,7 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
             is_active=True,
             school_memberships__school=active_school,
             school_memberships__is_active=True,
-            school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
+            school_memberships__role_type__in=SchoolMembership.STAFF_ROLES,
         )
         .distinct()
         .only("id", "name", "phone", "national_id")

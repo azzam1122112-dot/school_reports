@@ -7,7 +7,13 @@ from .billing import SchoolSubscription, SubscriptionPlan
 from .reports import Report
 from .schools import Department, DepartmentMembership, School, SchoolMembership, Teacher
 from .tickets import Ticket
-from .notifications import TicketImage
+from .notifications import Notification, TicketImage
+from .assignments import Assignment, AssignmentEvidence
+from .circular_drafts import CircularDraft
+from .documents import Document
+from .meetings import Decision, Meeting, MeetingMinutes
+from .plans import Initiative, Plan
+from .scopes import Delegation, StaffScope
 
 
 def _bump_nav_context_role_version(user_id):
@@ -249,73 +255,167 @@ receiver(models.signals.post_delete, sender=SubscriptionPlan)(_clear_landing_pri
 # مسجّلة لكل موديل على حدة عمدًا. الاشتراك العام في ``post_save`` بلا ``sender``
 # كان يُستدعى عند كل عملية حفظ في المشروع كله — بما فيها صفوف الجلسات وسجل
 # التدقيق نفسه — ليخرج فورًا بعد مقارنة اسم الصنف.
-AUDITED_SAVE_MODELS = (Report, Teacher, School, Department, Ticket, SchoolSubscription)
-AUDITED_DELETE_MODELS = (Report, Teacher, School, Department, Ticket)
+AUDITED_SAVE_MODELS = (
+    Report,
+    Teacher,
+    School,
+    Department,
+    Ticket,
+    SchoolSubscription,
+    # ما يمسّ الصلاحيات أولى بالتسجيل من غيره: تغيير عضوية أو دور هو أخطر
+    # إجراء إداري في المنصة، وكان يمر بلا أثر.
+    SchoolMembership,
+    DepartmentMembership,
+    # التعميم وثيقة رسمية تُلزم مستلميها، فإنشاؤه وتعديله واقعة تُسجَّل.
+    Notification,
+    # منح النطاق والتفويض هو منح الصلاحية نفسها. تسجيلهما ليس تفصيلاً: سؤال
+    # «مَن منح فلاناً هذه الصلاحية ومتى؟» هو أول ما يُسأل بعد أي خلل.
+    StaffScope,
+    Delegation,
+    # الكيانات التي بُنيت لاحقاً. خطوات اعتمادها مسجَّلة في
+    # ``ApprovalTransition``، لكن **إنشاءها وتعديلها وحذفها** كان يمر بلا أثر:
+    # مديرٌ يعدّل موعد تكليف أو نصّ محضر لا يترك سطراً في السجل. والانتقال
+    # يحكي «كيف تدرّج القرار»، والسجل يحكي «مَن مسّ الشيء ومتى» — وكلاهما
+    # مطلوب.
+    Assignment,
+    AssignmentEvidence,
+    Meeting,
+    MeetingMinutes,
+    Decision,
+    Plan,
+    Initiative,
+    Document,
+    CircularDraft,
+)
+
+# ما لا يُسجَّل عمداً: صفوف الأبناء التي تتغيّر كثيراً ولا تحمل قراراً —
+# ``AssignmentTarget`` (نسبة الإنجاز تُحدَّث عشرات المرات)، وبنود جدول الأعمال،
+# وأهداف الخطط ومهامها. تسجيلها يغرق السجل بضجيج يُخفي ما يهم فيه، وحالاتها
+# المهمة محفوظة في ``ApprovalTransition`` أو في الكيان الأب المسجَّل.
+
+AUDITED_DELETE_MODELS = (
+    Report,
+    Teacher,
+    School,
+    Department,
+    Ticket,
+    SchoolMembership,
+    DepartmentMembership,
+    Notification,
+    StaffScope,
+    Delegation,
+    Assignment,
+    AssignmentEvidence,
+    Meeting,
+    MeetingMinutes,
+    Decision,
+    Plan,
+    Initiative,
+    Document,
+    CircularDraft,
+)
+
+
+def _audit_actor_snapshot(user, school) -> tuple[str, str]:
+    """اسم الفاعل ودوره **لحظة الحدث**.
+
+    الدور يُلتقط لقطةً لا يُشتق عند العرض: من كان معلماً حين حذف تقريراً ثم صار
+    مديراً لا يصح أن يظهر السجل وكأن مديراً حذفه. والاشتقاق المتأخر يفعل ذلك
+    بالضبط.
+
+    التكلفة مقبولة لأن ``effective_user_role_label`` يخزّن نتيجته على كائن
+    المستخدم، فأول كتابة في الطلب تدفع الثمن وما بعدها مجاني.
+    """
+    name = ""
+    role = ""
+    try:
+        name = (getattr(user, "name", "") or "")[:150]
+    except Exception:
+        pass
+    try:
+        from ..permissions import effective_user_role_label
+
+        role = str(effective_user_role_label(user, school) or "")[:64]
+    except Exception:
+        role = ""
+    return name, role
+
+
+def _audit_school_for(sender, instance):
+    """المدرسة التي يُنسب إليها الحدث.
+
+    سجل بلا مدرسة لا يظهر في صفحة أي مدرسة، فهو عملياً سجل ضائع. لذلك نشتق
+    المدرسة صراحةً لكل شكل من أشكال الارتباط بدل الاكتفاء بـ ``instance.school``.
+    """
+    if sender.__name__ == "School":
+        return instance
+
+    school = getattr(instance, "school", None)
+    if school is not None:
+        return school
+
+    # عضوية القسم ترتبط بالمدرسة عبر قسمها.
+    department = getattr(instance, "department", None)
+    if department is not None:
+        resolved = getattr(department, "school", None)
+        if resolved is not None:
+            return resolved
+
+    # القرار ومحضر الاجتماع يرتبطان بالمدرسة عبر اجتماعهما.
+    meeting = getattr(instance, "meeting", None)
+    if meeting is not None:
+        return getattr(meeting, "school", None)
+
+    # شاهد التكليف يرتبط بها عبر حصة مكلَّفه.
+    target = getattr(instance, "target", None)
+    if target is not None:
+        return getattr(target, "school", None)
+
+    return None
+
+
+def _audit_write(sender, instance, action, *, school_override=None) -> None:
+    """كتابة صف سجل واحد — نقطة واحدة تمر بها كل الإشارات."""
+    from ..middleware import get_current_request, is_audit_logging_suppressed
+
+    if is_audit_logging_suppressed():
+        return
+
+    request = get_current_request()
+    if not request or not request.user.is_authenticated:
+        return
+
+    school = school_override if school_override is not None else _audit_school_for(sender, instance)
+
+    actor_name, actor_role = _audit_actor_snapshot(request.user, school)
+
+    AuditLog.objects.create(
+        school=school,
+        teacher=request.user,
+        actor_name=actor_name,
+        actor_role=actor_role,
+        action=action,
+        model_name=sender.__name__,
+        object_id=getattr(instance, "pk", None),
+        object_repr=str(instance)[:255],
+        changes={},
+        ip_address=request.META.get("REMOTE_ADDR"),
+        user_agent=request.META.get("HTTP_USER_AGENT", "")[:500],
+    )
 
 
 def audit_log_save(sender, instance, created, **kwargs):
     if kwargs.get("raw"):
         return
-
-    from ..middleware import is_audit_logging_suppressed
-
-    if is_audit_logging_suppressed():
-        return
-
-    from ..middleware import get_current_request
-    request = get_current_request()
-    if not request or not request.user.is_authenticated:
-        return
-
-    action = AuditLog.Action.CREATE if created else AuditLog.Action.UPDATE
-    
-    # محاولة تحديد المدرسة
-    school = getattr(instance, "school", None)
-    if not school and sender.__name__ == "School":
-        school = instance
-
-    # تسجيل التغييرات (بشكل مبسط)
-    changes = {}
-    if not created:
-        # في حالة التعديل، يمكننا لاحقاً إضافة منطق لمقارنة القيم القديمة والجديدة
-        pass
-
-    AuditLog.objects.create(
-        school=school,
-        teacher=request.user,
-        action=action,
-        model_name=sender.__name__,
-        object_id=instance.pk if hasattr(instance, "pk") else None,
-        object_repr=str(instance)[:255],
-        changes=changes,
-        ip_address=request.META.get("REMOTE_ADDR"),
-        user_agent=request.META.get("HTTP_USER_AGENT", "")[:500]
+    _audit_write(
+        sender,
+        instance,
+        AuditLog.Action.CREATE if created else AuditLog.Action.UPDATE,
     )
 
 
 def audit_log_delete(sender, instance, **kwargs):
-    from ..middleware import is_audit_logging_suppressed
-
-    if is_audit_logging_suppressed():
-        return
-
-    from ..middleware import get_current_request
-    request = get_current_request()
-    if not request or not request.user.is_authenticated:
-        return
-
-    school = getattr(instance, "school", None)
-    
-    AuditLog.objects.create(
-        school=school,
-        teacher=request.user,
-        action=AuditLog.Action.DELETE,
-        model_name=sender.__name__,
-        object_id=instance.pk if hasattr(instance, "pk") else None,
-        object_repr=str(instance)[:255],
-        ip_address=request.META.get("REMOTE_ADDR"),
-        user_agent=request.META.get("HTTP_USER_AGENT", "")[:500]
-    )
+    _audit_write(sender, instance, AuditLog.Action.DELETE)
 
 
 

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}اجتماع جديد | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .mnew-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .mnew-people { display: grid; gap: .45rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .mnew-people label { display: flex; gap: .5rem; align-items: flex-start; font-size: .85rem; font-weight: 700; }
+  .mnew-people input { margin-top: .2rem; }
+  .mnew-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.3rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <a class="asg-hero__eyebrow" href="{% url 'reports:meeting_list' %}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      الاجتماعات
+    </a>
+    <h1 class="asg-hero__title">اجتماع جديد</h1>
+    <p class="asg-hero__meta">
+      جدول الأعمال والمحضر والقرارات تُضاف بعد الإنشاء من صفحة الاجتماع.
+    </p>
+  </header>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <section class="asg-card">
+      <h2 class="asg-card__title">بيانات الاجتماع</h2>
+
+      <div class="asg-field">
+        <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+        {{ form.title }}
+        {% if form.title.errors %}<ul class="asg-errors">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="asg-field">
+        <label for="{{ form.purpose.id_for_label }}">{{ form.purpose.label }}</label>
+        {{ form.purpose }}
+      </div>
+
+      <div class="mnew-grid">
+        <div class="asg-field">
+          <label for="{{ form.scheduled_at.id_for_label }}">{{ form.scheduled_at.label }}</label>
+          {{ form.scheduled_at }}
+          {% if form.scheduled_at.errors %}<ul class="asg-errors">{% for e in form.scheduled_at.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="asg-field">
+          <label for="{{ form.location.id_for_label }}">{{ form.location.label }}</label>
+          {{ form.location }}
+        </div>
+        <div class="asg-field">
+          <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+          {{ form.department }}
+          <div class="asg-field__help">{{ form.department.help_text }}</div>
+          {% if form.department.errors %}<ul class="asg-errors">{% for e in form.department.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="asg-card">
+      <h2 class="asg-card__title">المدعوون</h2>
+      <p class="asg-card__hint">
+        من دُعي ولم يحضر يُسجَّل غيابه — الدعوة والحضور صفٌّ واحد، فلا تُمحى
+        الواقعة بحذف اسم.
+      </p>
+      <div class="mnew-people">
+        {% for choice in form.attendees %}
+          <label>{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
+        {% empty %}
+          <p class="asg-card__hint" style="margin:0">لا يوجد من يمكن دعوتهم ضمن نطاقك.</p>
+        {% endfor %}
+      </div>
+      {% if form.attendees.errors %}<ul class="asg-errors">{% for e in form.attendees.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </section>
+
+    {% if form.non_field_errors %}
+      <ul class="asg-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    <div class="mnew-actions">
+      <button type="submit" class="asg-btn asg-btn--primary">
+        <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i>
+        إنشاء الاجتماع
+      </button>
+      <a class="asg-btn asg-btn--ghost" href="{% url 'reports:meeting_list' %}">إلغاء</a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

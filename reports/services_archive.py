@@ -989,10 +989,7 @@ def school_consumption_summary(school: School | None) -> dict:
     if school is not None:
         from .models import SchoolMembership
 
-        seats_used = SchoolMembership.objects.filter(
-            school=school,
-            role_type=SchoolMembership.RoleType.TEACHER,
-        ).count()
+        seats_used = SchoolMembership.seats_used(school)
 
     # سعة 0 تعني بلا حدّ في هذا المشروع، فلا تُقسم ولا تُعرض نسبة.
     seat_unlimited = seat_limit <= 0
@@ -1044,15 +1041,7 @@ def attach_school_consumption_rows(schools) -> None:
 
     school_ids = [school.pk for school in schools]
 
-    seat_counts = {
-        row["school"]: int(row["total"] or 0)
-        for row in SchoolMembership.objects.filter(
-            school_id__in=school_ids,
-            role_type=SchoolMembership.RoleType.TEACHER,
-        )
-        .values("school")
-        .annotate(total=Count("id"))
-    }
+    seat_counts = SchoolMembership.seats_used_by_school(school_ids)
     snapshot_bytes = {
         row["school"]: int(row["total"] or 0)
         for row in SchoolYearArchive.objects.filter(school_id__in=school_ids)

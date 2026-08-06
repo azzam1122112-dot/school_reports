@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}مجلس المجموعة | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .mtg-item__when { font-size: .77rem; color: var(--asg-muted); }
+  .mtg-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--asg-green); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <span class="asg-hero__eyebrow">
+      <i class="fa-solid fa-users-rectangle" aria-hidden="true"></i>
+      التوثيق المؤسسي
+    </span>
+    <h1 class="asg-hero__title">مجلس مجموعة المدارس</h1>
+    <p class="asg-hero__meta">
+      جلسات مجلس {{ group.name }} — بجداول أعمالها ومحاضرها وقراراتها،
+      وقراراتُها تتحوّل إلى تكليفات تُتابَع على مدارسها.
+    </p>
+    {% if True %}
+      <div style="margin-top:1.1rem">
+        <a class="asg-btn" href="{% url 'reports:council_create' %}?group={{ group.pk }}" style="background:#fff;color:#08643b">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          جلسة جديدة
+        </a>
+      </div>
+    {% endif %}
+  </header>
+
+  <section class="asg-kpis" aria-label="ملخص الاجتماعات">
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ upcoming|length }}</div>
+      <div class="asg-kpi__l">قادمة</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ held|length }}</div>
+      <div class="asg-kpi__l">منعقدة</div>
+    </article>
+    <article class="asg-kpi" data-tone="warn">
+      <div class="asg-kpi__v">{{ pending_minutes_count }}</div>
+      <div class="asg-kpi__l">محضر لم يُعتمد</div>
+    </article>
+  </section>
+
+  {% if upcoming %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">جلسات قادمة</h2>
+      {% for m in upcoming %}
+        <article class="asg-item">
+          <div class="asg-item__main">
+            <div class="asg-item__title">
+              <a href="{% url 'reports:council_detail' m.pk %}">{{ m.title }}</a>
+            </div>
+            <div class="asg-item__sub mtg-item__when">
+              {{ m.scheduled_at|date:"Y-m-d H:i" }}
+              {% if m.location %} · {{ m.location }}{% endif %}
+              {% if m.department %} · {{ m.department.name }}{% endif %}
+              · {{ m.attendees.count }} مدير مدعو
+            </div>
+          </div>
+          <div class="asg-item__side">
+            <span class="asg-tag">{{ m.get_status_display }}</span>
+            <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{% url 'reports:council_detail' m.pk %}">فتح</a>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if held %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">جلسات منعقدة</h2>
+      <p class="asg-card__hint">
+        المحضر يُكتب ثم يُرسل للاعتماد. واجتماعٌ بلا محضر معتمد يبقى واقعةً بلا
+        سند يُحتجّ به.
+      </p>
+      {% for m in held %}
+        <article class="asg-item">
+          <div class="asg-item__main">
+            <div class="asg-item__title">
+              <a href="{% url 'reports:council_detail' m.pk %}">{{ m.title }}</a>
+            </div>
+            <div class="asg-item__sub mtg-item__when">
+              انعقد {{ m.held_at|date:"Y-m-d" }}
+              · {{ m.decisions.count }} قرار
+            </div>
+          </div>
+          <div class="asg-item__side">
+            {% if m.minutes %}
+              <span class="asg-tag {% if m.minutes.is_final %}asg-tag--done{% endif %}">
+                {{ m.minutes.get_approval_state_display }}
+              </span>
+            {% else %}
+              <span class="asg-tag asg-tag--soon">بلا محضر</span>
+            {% endif %}
+            <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{% url 'reports:council_detail' m.pk %}">فتح</a>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if not upcoming and not held %}
+    <div class="asg-empty" style="margin-top:1.2rem">
+      <div class="asg-empty__icon"><i class="fa-solid fa-users-rectangle" aria-hidden="true"></i></div>
+      <h2>لا جلسات بعد</h2>
+      <p>
+        اعقد جلسة لتوثيق جدول أعمالها وحضور مديري مدارسك ومحضرها، ولتحويل
+        قراراتها إلى تكليفات تُتابَع بمواعيدها.
+      </p>
+      {% if True %}
+        <div style="margin-top:1rem">
+          <a class="asg-btn asg-btn--primary" href="{% url 'reports:council_create' %}?group={{ group.pk }}">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            اعقد أول جلسة
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

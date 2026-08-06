@@ -133,6 +133,14 @@ class School(models.Model):
         help_text="مثال: 1447-1448. تُستخدم لتصنيف التقارير الجديدة وأرشفة السنوات.",
         db_index=True,
     )
+    report_approval_enabled = models.BooleanField(
+        "تفعيل دورة اعتماد التقارير",
+        default=False,
+        help_text=(
+            "عند تفعيلها يُنشأ التقرير مسودةً ويمر بالمراجعة والاعتماد قبل أن "
+            "يصير نهائياً. وعند إيقافها يبقى التقرير نهائياً بمجرد حفظه."
+        ),
+    )
     storage_used_bytes = models.PositiveBigIntegerField(
         "إجمالي التخزين المستخدم (بايت)",
         default=0,
@@ -571,14 +579,59 @@ class DepartmentMembership(models.Model):
 # عضوية المدرسة (Teacher ↔ School)
 # =========================
 class SchoolMembership(models.Model):
+    """عضوية مستخدم في مدرسة، وهي مصدر صلاحياته داخلها.
+
+    **العضوية لا العَلَم.** الصلاحية هنا مربوطة بمدرسة بعينها لا بحقل منطقي على
+    الحساب. هذا الفرق ليس شكلياً: المشروع سبق أن حمل دورين وسيطين على شكل عَلَم
+    عام على الحساب، فتعذّر تقييد نطاقهما وانتهيا بالحذف عبر نحو 180 موضعاً
+    (راجع خطة الحذف في مجلد التوثيق). فأي دور جديد يدخل من هنا، بنطاقه
+    ومدرسته، أو لا يدخل.
+
+    **المستخدم قد يحمل دورين في المدرسة نفسها** — الوكيل الذي له نصاب تدريسي
+    يحمل ``deputy`` و``teacher`` معاً، وهو ما يسمح به ``unique_together``
+    عمداً. ولذلك يُعدّ استهلاك المقاعد بعدد **المنسوبين** لا بعدد العضويات،
+    وإلا احتُسب الرجل الواحد مقعدين.
+    """
+
     class RoleType(models.TextChoices):
+        """الدور الذي تُشتق منه الصلاحية داخل المدرسة."""
+
         TEACHER = "teacher", "معلم"
         MANAGER = "manager", "مدير مدرسة"
+        # وكيل المدرسة: دور إشرافي نيابي في نطاق يحدده المدير — لا هو مدير
+        # مصغَّر ولا معلّم بصلاحيات إضافية.
+        DEPUTY = "deputy", "وكيل مدرسة"
+        # الموظف الإداري: كان مسمّى عرضياً في ``job_title`` بلا أي أثر على
+        # الصلاحية، فصار دوراً قائماً بذاته يُسند إليه ويُراجَع عمله.
+        ADMIN_STAFF = "admin_staff", "موظف إداري"
 
     class JobTitle(models.TextChoices):
+        """المسمّى الوظيفي — وصف تنظيمي للعرض، لا مصدر صلاحية.
+
+        يبقى مستقلاً عن ``role_type`` لأن التوصيف التنظيمي أدقّ من الصلاحية:
+        محضّر المختبر وموظف شؤون الطلاب كلاهما ``ADMIN_STAFF`` صلاحيةً، ويظلّان
+        مختلفين في المسمّى وفي كشوف المدرسة.
+        """
+
         TEACHER = "teacher", "معلم"
         ADMIN_STAFF = "admin_staff", "موظف إداري"
         LAB_TECH = "lab_tech", "محضر مختبر"
+
+    # ── مجموعات الأدوار ──────────────────────────────────────────────────
+    # «منسوبو المدرسة» = كل من ليس مديرها. كان هذا المعنى مبثوثاً في عشرات
+    # المواضع بصيغة ``role_type=TEACHER``، فكان كل دور جديد يكسرها بصمت: يختفي
+    # الوكيل من كشف المنسوبين ومن التصدير ومن مستقبلي التعاميم دون أن يفشل شيء.
+    # تسميته هنا تجعل إضافة دور رابع تعديلاً في سطر واحد.
+    STAFF_ROLES: tuple[str, ...] = (
+        RoleType.DEPUTY,
+        RoleType.ADMIN_STAFF,
+        RoleType.TEACHER,
+    )
+
+    # ما يستهلك مقعداً من حد الباقة. قرار تجاري مُعلَن لا مشتق من مصادفة:
+    # المدير وحده خارج العدّ، وكل منسوب سواه يستهلك مقعداً واحداً مهما تعددت
+    # أدواره.
+    SEAT_CONSUMING_ROLES: tuple[str, ...] = STAFF_ROLES
 
     school = models.ForeignKey(
         School,
@@ -635,18 +688,61 @@ class SchoolMembership(models.Model):
     def __str__(self) -> str:
         return f"{self.teacher} @ {self.school} ({self.role_type})"
 
+    # ------------------------------------------------------------------
+    # المقاعد
+    # ------------------------------------------------------------------
+    @classmethod
+    def seats_used(cls, school) -> int:
+        """المقاعد المشغولة في مدرسة واحدة.
+
+        مصدر الحقيقة الوحيد لهذا الرقم. كان محسوباً في ستة مواضع بصيغة
+        ``.count()`` على الصفوف، وهي صيغة صحيحة ما دام لكل منسوب دور واحد —
+        وتنكسر بصمت أول ما يحمل وكيلٌ نصاباً تدريسياً فيُحتسب مقعدين. وتفرّق
+        الأرقام بين شاشة الفوترة وشاشة المنسوبين أسوأ من خطئها في كلتيهما.
+        """
+        if school is None:
+            return 0
+        return (
+            cls.objects.filter(school=school, role_type__in=cls.SEAT_CONSUMING_ROLES)
+            .values("teacher_id")
+            .distinct()
+            .count()
+        )
+
+    @classmethod
+    def seats_used_by_school(cls, school_ids) -> dict[int, int]:
+        """المقاعد المشغولة لعدة مدارس في استعلام واحد.
+
+        نسخة الجملة الواحدة من :meth:`seats_used`، للوحات التي تعرض عشرات
+        المدارس ولا تحتمل استعلاماً لكل صف.
+        """
+        ids = list(school_ids or [])
+        if not ids:
+            return {}
+        rows = (
+            cls.objects.filter(school_id__in=ids, role_type__in=cls.SEAT_CONSUMING_ROLES)
+            .values("school_id")
+            .annotate(total=models.Count("teacher_id", distinct=True))
+        )
+        return {int(row["school_id"]): int(row["total"] or 0) for row in rows}
+
     def save(self, *args, **kwargs):
-        """فرض حد المعلمين حسب باقة المدرسة.
+        """فرض حد المقاعد حسب باقة المدرسة.
 
         المتطلبات:
         - لا يُحسب مدير المدرسة ضمن الحد (role_type=MANAGER).
-        - الحد يُحسب على عدد حسابات المعلمين المرتبطين بالمدرسة (عضويات SchoolMembership بدور TEACHER)
-          بغض النظر عن is_active.
+        - الحد يُحسب على عدد **المنسوبين** المرتبطين بالمدرسة بأي دور من
+          ``SEAT_CONSUMING_ROLES``، بغض النظر عن is_active.
         - الحذف يفتح مقعدًا (بما أنه يزيل العضوية).
 
+        العدّ بالمنسوبين لا بالعضويات: المستخدم الواحد قد يحمل دورين في المدرسة
+        نفسها (وكيل له نصاب تدريسي)، وعدّ الصفوف كان يحتسبه مقعدين ويحرم
+        المدرسة مقعداً دفعت ثمنه.
+
         ملاحظة مهمة:
-        - نطبق المنع فقط عند إنشاء عضوية TEACHER جديدة، أو عند تحويل/نقل عضوية إلى TEACHER/مدرسة أخرى.
-          لا نمنع تحديثات بسيطة لعضوية موجودة (مثل تغيير is_active) حتى لو كانت المدرسة متجاوزة للحد تاريخيًا.
+        - نطبق المنع فقط عند إنشاء عضوية تستهلك مقعداً، أو عند تحويل/نقل عضوية
+          إلى دور يستهلك مقعداً أو إلى مدرسة أخرى. لا نمنع تحديثات بسيطة لعضوية
+          موجودة (مثل تغيير is_active) حتى لو كانت المدرسة متجاوزة للحد تاريخيًا.
         """
         from django.core.exceptions import ValidationError
 
@@ -668,23 +764,29 @@ class SchoolMembership(models.Model):
                 # إن تعذرت المقارنة، لا نطبق المنع على تحديث عضوية موجودة
                 should_enforce = False
 
-        if should_enforce and self.role_type == self.RoleType.TEACHER:
+        if should_enforce and self.role_type in self.SEAT_CONSUMING_ROLES:
             subscription = getattr(self.school, "subscription", None)
             if subscription is None or bool(getattr(subscription, "is_expired", True)):
                 raise ValidationError("لا يوجد اشتراك فعّال لهذه المدرسة.")
 
             max_teachers = int(getattr(subscription, "teacher_limit", 0) or 0)
             if max_teachers > 0:
-                current_count = (
+                # منسوب يشغل مقعداً واحداً مهما تعددت أدواره، فنعدّ الأشخاص
+                # المتميّزين لا صفوف العضوية.
+                occupied = set(
                     SchoolMembership.objects.filter(
                         school=self.school,
-                        role_type=self.RoleType.TEACHER,
+                        role_type__in=self.SEAT_CONSUMING_ROLES,
                     )
                     .exclude(pk=self.pk)
-                    .count()
+                    .values_list("teacher_id", flat=True)
                 )
-                if current_count >= max_teachers:
-                    raise ValidationError(f"لا يمكن إضافة أكثر من {max_teachers} معلّم لهذه المدرسة حسب الباقة.")
+                # دور ثانٍ لمنسوب قائم لا يستهلك مقعداً جديداً، فلا يصح منعه
+                # حتى عند اكتمال العدد.
+                if self.teacher_id not in occupied and len(occupied) >= max_teachers:
+                    raise ValidationError(
+                        f"لا يمكن إضافة أكثر من {max_teachers} منسوب لهذه المدرسة حسب الباقة."
+                    )
 
         return super().save(*args, **kwargs)
 
@@ -834,6 +936,15 @@ class ReportType(models.Model):
     description = models.TextField("الوصف", blank=True)
     order = models.PositiveIntegerField("الترتيب", default=0)
     is_active = models.BooleanField("نشط", default=True)
+    # مسار الاعتماد يُخزَّن على النوع لا على التقرير: توصيف الأدوار ينصّ على أن
+    # «لا يلزم مرور كل تقرير بالوكيل» وأن المدير يحدّد المسار بحسب نوع العمل.
+    # فتخزينه هنا يجعل تغيير السياسة تعديلَ حقل لا نشرَ إصدار.
+    approval_route = models.CharField(
+        "مسار الاعتماد",
+        max_length=16,
+        default="direct",
+        help_text="من يراجع هذا النوع ومن يعتمده. الافتراضي: مباشرةً إلى مدير المدرسة.",
+    )
     created_at = models.DateTimeField("أُنشئ", auto_now_add=True)
     updated_at = models.DateTimeField("تحديث", auto_now=True)
 

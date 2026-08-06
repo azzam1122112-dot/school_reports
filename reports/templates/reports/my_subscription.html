@@ -3437,6 +3437,10 @@
                     {% endif %}
                   {% elif payment.payment_method == 'moyasar' %}
                     <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-wallet"></i> بانتظار إكمال الدفع الإلكتروني</span>
+                    <form method="post" action="{% url 'reports:moyasar_checkout_cancel' payment.id %}" class="tamara-cancel-form">
+                      {% csrf_token %}
+                      <button type="submit" class="tamara-cancel-button">إلغاء الطلب غير المدفوع</button>
+                    </form>
                   {% else %}
                     <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-clock"></i> قيد المراجعة</span>
                   {% endif %}

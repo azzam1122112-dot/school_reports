@@ -258,6 +258,37 @@
       border-color: rgba(0,108,53,.36);
       transform: translateY(-1px);
     }
+    .btn-passkey:disabled {
+      opacity: .65;
+      cursor: progress;
+      transform: none;
+    }
+    /* Separates the two sign-in methods so the passkey button does not read as
+       a second submit button for the password form. */
+    .passkey-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+      color: #8a9791;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+    .passkey-divider::before,
+    .passkey-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(0,108,53,.14);
+    }
+    .passkey-hint {
+      margin: 8px 0 0;
+      color: #77857e;
+      font-size: .76rem;
+      font-weight: 600;
+      line-height: 1.7;
+      text-align: center;
+    }
     .passkey-status {
       display: none;
       margin-top: 12px;
@@ -411,8 +442,10 @@
           <div class="form-group">
             <label for="identifier" class="form-label">رقم الجوال </label>
             <div class="input-wrapper">
-              <input type="text" name="phone" id="identifier" class="form-input" 
-                     placeholder="05XXXXXXXX " required autofocus autocomplete="username">
+              {# "webauthn" lets the browser surface a saved passkey inside the
+                 field's own autofill list — the one-tap path. #}
+              <input type="text" name="phone" id="identifier" class="form-input"
+                     placeholder="05XXXXXXXX " required autofocus autocomplete="username webauthn">
               <i class="fa-regular fa-user input-icon"></i>
             </div>
           </div>
@@ -433,15 +466,19 @@
             {% if admin_login %}دخول لوحة الإدارة{% else %}تسجيل الدخول{% endif %} <i class="fa-solid fa-arrow-left"></i>
           </button>
 
+          <div class="passkey-divider" id="passkeyDivider" hidden>أو</div>
           <button
             type="button"
             class="btn-passkey"
             id="passkeyLoginBtn"
             data-options-url="{% url 'reports:passkey_login_options' %}"
             data-verify-url="{% url 'reports:passkey_login_verify' %}"
+            data-label="{% if admin_login %}دخول الإدارة بالبصمة{% else %}الدخول بالبصمة{% endif %}"
           >
-            {% if admin_login %}دخول الإدارة بالبصمة{% else %}الدخول بالبصمة{% endif %} <i class="fa-solid fa-fingerprint"></i>
+            <i class="fa-solid fa-fingerprint"></i>
+            <span data-passkey-label>{% if admin_login %}دخول الإدارة بالبصمة{% else %}الدخول بالبصمة{% endif %}</span>
           </button>
+          <p class="passkey-hint" id="passkeyHint" hidden>دون كلمة مرور — تأكيد ببصمتك أو Face ID أو قفل الشاشة.</p>
           <div class="passkey-status" id="passkeyStatus" role="status" aria-live="polite"></div>
 
           <div class="form-footer">
@@ -500,12 +537,24 @@
     (function(){
       const passkeyBtn = document.getElementById('passkeyLoginBtn');
       const statusBox = document.getElementById('passkeyStatus');
+      const divider = document.getElementById('passkeyDivider');
+      const hint = document.getElementById('passkeyHint');
+      const labelSpan = passkeyBtn ? passkeyBtn.querySelector('[data-passkey-label]') : null;
       const identifier = document.getElementById('identifier');
       const nextInput = document.querySelector('input[name="next"]');
       const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
       if (!passkeyBtn || !statusBox || !window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) return;
 
       passkeyBtn.style.display = 'flex';
+      if (divider) divider.hidden = false;
+      if (hint) hint.hidden = false;
+
+      const defaultLabel = passkeyBtn.dataset.label || 'الدخول بالبصمة';
+      /* Chrome refuses a second ceremony while one is pending, and the silent
+         autofill request stays pending for the whole page life — so the button
+         must cancel it before opening its own dialog. */
+      let autofillController = null;
+      let busy = false;
 
       function showStatus(text, isError) {
         statusBox.textContent = text;
@@ -513,15 +562,25 @@
         statusBox.style.display = text ? 'block' : 'none';
       }
 
-      function passkeyErrorMessage(error) {
+      function setBusy(isBusy, label) {
+        busy = isBusy;
+        passkeyBtn.disabled = isBusy;
+        passkeyBtn.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+        if (labelSpan) labelSpan.textContent = isBusy ? (label || 'جارٍ التحقق...') : defaultLabel;
+      }
+
+      function passkeyErrorMessage(error, scoped) {
+        const site = window.location.origin;
         if (error && (error.name === 'NotSupportedError' || error.name === 'ConstraintError')) {
-          return 'هذا الجهاز أو المتصفح لا يدعم الدخول بمفتاح المرور. حدّث Chrome أو Safari واستخدم قفل الشاشة.';
+          return 'هذا الجهاز أو المتصفح لا يدعم الدخول بمفتاح المرور. سجّل الدخول بكلمة المرور، أو حدّث Chrome أو Safari وفعّل قفل الشاشة.';
         }
         if (error && error.name === 'SecurityError') {
-          return 'افتح https://tawtheeq-ksa.com مباشرة في Chrome أو Safari ثم أعد المحاولة.';
+          return 'تعذر التحقق من نطاق المنصة. افتح ' + site + ' مباشرة في Chrome أو Safari ثم أعد المحاولة.';
         }
         if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
-          return 'لم يكتمل الدخول. تأكد من قفل الشاشة وافتح المنصة مباشرة في Chrome أو Safari ثم أعد المحاولة.';
+          return scoped
+            ? 'لم يكتمل الدخول. تأكد من أن هذا الجهاز هو الذي فعّلت عليه البصمة، ثم أعد المحاولة.'
+            : 'لم نجد مفتاح مرور محفوظًا على هذا الجهاز. اكتب رقم الجوال ثم أعد المحاولة، أو استخدم كلمة المرور.';
         }
         return error && error.message ? error.message : 'تعذر تسجيل الدخول بالبصمة.';
       }
@@ -585,22 +644,28 @@
         return data;
       }
 
+      async function completeLogin(credential) {
+        const verified = await postJSON(passkeyBtn.dataset.verifyUrl, credentialToJSON(credential));
+        showStatus('تم التحقق، جارٍ فتح حسابك...', false);
+        window.location.href = verified.redirect || '/';
+      }
+
       passkeyBtn.addEventListener('click', async function(){
+        if (busy) return;
+        /* An identifier narrows the ceremony to that account's keys, which lets
+           the server say "no passkey for this number" instead of leaving the
+           browser to fail silently. Empty means: offer whatever this device has. */
         const identifierValue = identifier ? identifier.value.trim() : '';
-        if (!identifierValue) {
-          showStatus('اكتب رقم الجوال أو الهوية أولاً ثم اضغط الدخول بالبصمة.', true);
-          if (identifier) identifier.focus();
-          return;
+        const scoped = !!identifierValue;
+
+        if (autofillController) {
+          autofillController.abort();
+          autofillController = null;
         }
+
         try {
-          passkeyBtn.disabled = true;
-          showStatus('افتح نافذة البصمة أو قفل الجهاز لإكمال الدخول...', false);
-          if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
-            const authenticatorAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-            if (!authenticatorAvailable) {
-              throw new DOMException('User verification unavailable', 'NotSupportedError');
-            }
-          }
+          setBusy(true, 'في انتظار تأكيد الجهاز...');
+          showStatus('أكمل التحقق ببصمتك أو Face ID أو قفل الشاشة...', false);
           const options = await postJSON(passkeyBtn.dataset.optionsUrl, {
             identifier: identifierValue,
           });
@@ -608,14 +673,47 @@
             publicKey: prepareRequestOptions(options.publicKey),
           });
           if (!credential) throw new DOMException('Credential request returned no result', 'NotAllowedError');
-          const verified = await postJSON(passkeyBtn.dataset.verifyUrl, credentialToJSON(credential));
-          window.location.href = verified.redirect || '/';
+          await completeLogin(credential);
         } catch (error) {
-          showStatus(passkeyErrorMessage(error), true);
-        } finally {
-          passkeyBtn.disabled = false;
+          showStatus(passkeyErrorMessage(error, scoped), true);
+          setBusy(false);
+          startAutofill();
         }
       });
+
+      /* Conditional mediation: ask the browser to offer a saved passkey from
+         inside the identifier field. It resolves only if the user picks one, so
+         it costs nothing when they type a password instead. */
+      async function startAutofill() {
+        if (typeof PublicKeyCredential.isConditionalMediationAvailable !== 'function') return;
+        try {
+          if (!(await PublicKeyCredential.isConditionalMediationAvailable())) return;
+        } catch (error) {
+          return;
+        }
+
+        const controller = new AbortController();
+        autofillController = controller;
+        try {
+          const options = await postJSON(passkeyBtn.dataset.optionsUrl, {});
+          const credential = await navigator.credentials.get({
+            publicKey: prepareRequestOptions(options.publicKey),
+            mediation: 'conditional',
+            signal: controller.signal,
+          });
+          if (!credential) return;
+          setBusy(true, 'جارٍ التحقق...');
+          await completeLogin(credential);
+        } catch (error) {
+          // Aborting is the normal exit when the user chooses another method.
+          if (controller.signal.aborted) return;
+          if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) return;
+        } finally {
+          if (autofillController === controller) autofillController = null;
+        }
+      }
+
+      startAutofill();
     })();
   </script>
 

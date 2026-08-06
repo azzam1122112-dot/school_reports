@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .approvals import ApprovalMixin
 from .base import *
 from .schools import School, Teacher
 from .reports import Report
@@ -291,7 +292,19 @@ class AchievementEvidenceReport(models.Model):
         return bool(self.frozen_at)
 
 
-class SchoolLeadershipPortfolio(models.Model):
+class SchoolLeadershipPortfolio(ApprovalMixin):
+    """ملف الأداء القيادي لمدير المدرسة.
+
+    **كان يعتمده صاحبه بنفسه.** قبل هذا التعديل كانت حالته ``DRAFT``/``COMPLETED``
+    يضبطها المدير على ملفه — وهو خرقٌ صريح لقاعدة يكرّرها توصيف الأدوار في
+    موضعين: «لا يعتمد ملف أدائه الشخصي بنفسه».
+
+    والإصلاح يستعمل التمييز الذي بُني للمحاضر: مدرسةٌ داخل مجموعة لها مدير
+    تنفيذي يُرسَل ملفُها إليه فيراجعه ويعتمده. ومدرسةٌ مستقلة لا سلطة فوق
+    مديرها فيها، فيُصدر ملفه إصداراً — وهو ما تفعله ``allows_issuance``.
+    فالقاعدة تُطبَّق حيث لها معنى، ولا تُعطِّل ملفاً لا مراجع له.
+    """
+
     class Status(models.TextChoices):
         DRAFT = "draft", "قيد الإعداد"
         COMPLETED = "completed", "مكتمل"
@@ -351,6 +364,66 @@ class SchoolLeadershipPortfolio(models.Model):
 
     def __str__(self) -> str:
         return f"{self.school_name or self.school_id} - {self.academic_year}"
+
+    # ------------------------------------------------------------------
+    # الاعتماد: من فوق مدير المدرسة في هذا الملف؟
+    # ------------------------------------------------------------------
+    def _executive_director(self):
+        """المدير التنفيذي لمجموعة هذه المدرسة، إن وُجد."""
+        group_id = getattr(self.school, "group_id", None)
+        if not group_id:
+            return None
+        from .schools import SchoolGroupMembership
+
+        membership = (
+            SchoolGroupMembership.objects.filter(
+                group_id=group_id,
+                role_type=SchoolGroupMembership.RoleType.EXECUTIVE_DIRECTOR,
+                is_active=True,
+            )
+            .select_related("user")
+            .first()
+        )
+        return getattr(membership, "user", None)
+
+    def _is_owner(self, user) -> bool:
+        return user is not None and self.manager_id == getattr(user, "pk", None)
+
+    def can_review_approval(self, user, school):
+        """المدير التنفيذي يراجع ملفات مديري مدارسه — بند صريح في توصيفه.
+
+        ولا يستمد ذلك من عضوية مدرسية؛ فهو لا يملكها. ومن سواه لا يراجع هذا
+        الملف: ليس عملاً إدارياً يقع في نطاق وكيل، بل تقويمٌ لقيادة المدرسة.
+        """
+        director = self._executive_director()
+        if director is not None and getattr(user, "pk", None) == director.pk:
+            return True
+        return False
+
+    def can_finalize_approval(self, user, school):
+        director = self._executive_director()
+        if director is not None and getattr(user, "pk", None) == director.pk:
+            return True
+        # مدير المدرسة ليس معتمِداً لملفه — والقاعدة العامة كانت ستمنحه ذلك
+        # لأنه مدير المدرسة. فنقطعها هنا صراحةً.
+        if self._is_owner(user):
+            return False
+        return None
+
+    def allows_issuance(self, user, school) -> bool:
+        """مدرسةٌ مستقلة: لا سلطة فوق مديرها في ملفه، فيُصدره إصداراً.
+
+        وما دامت المدرسة في مجموعة لها مدير تنفيذي، فالإصدار مغلق والمسار
+        الطبيعي هو الإرسال إليه — وذلك ما يجعل القاعدة تُطبَّق حيث لها معنى
+        دون أن تُعطِّل ملفاً لا مراجع له.
+        """
+        if not self._is_owner(user):
+            return False
+        return self._executive_director() is None
+
+    def assert_ready_for_submission(self) -> None:
+        if not self.sections.filter(is_completed=True).exists():
+            raise ValidationError("أكمل محوراً واحداً على الأقل قبل إرسال الملف.")
 
 
 class LeadershipPortfolioSection(models.Model):

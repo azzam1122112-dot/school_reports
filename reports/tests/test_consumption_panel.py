@@ -249,12 +249,27 @@ class ConsumptionPanelSurfaceTests(TestCase):
         with CaptureQueriesContext(connection) as many:
             self.client.get(reverse("reports:platform_schools_directory"))
 
-        self.assertEqual(
-            len(many.captured_queries),
-            len(few.captured_queries),
-            f"عدد الاستعلامات نما من {len(few.captured_queries)} إلى "
-            f"{len(many.captured_queries)} بزيادة المدارس",
-        )
+        if len(many.captured_queries) != len(few.captured_queries):
+            # الرقم وحده لا يُشخِّص. عرض الاستعلام الذي ظهر يحوّل «10 != 11»
+            # إلى سطر SQL يُقرأ ويُصلَح — وهذا الاختبار سقط مرة في تشغيل كامل
+            # ولم يُعَد إنتاجه منفرداً، فبقاؤه بلا تشخيص يعني تكرار البحث
+            # من الصفر عند كل عودة.
+            def _shapes(captured):
+                import re
+
+                return [
+                    re.sub(r"\d+", "?", entry["sql"])[:180] for entry in captured
+                ]
+
+            before, after = _shapes(few.captured_queries), _shapes(many.captured_queries)
+            extra = [item for item in after if item not in before] or [
+                "(لا فرق في شكل الاستعلامات — تكرارٌ لاستعلام قائم)"
+            ]
+            details = "\n".join(extra)
+            self.fail(
+                f"عدد الاستعلامات نما من {len(before)} إلى {len(after)} بزيادة المدارس.\n"
+                f"الاستعلامات التي ظهرت:\n{details}"
+            )
 
     def test_both_surfaces_read_the_same_numbers(self):
         """رقمان مختلفان لنفس المدرسة يصنعان تذكرة دعم."""

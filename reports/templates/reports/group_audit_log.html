@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}سجل إجراءات المجموعة | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .gal-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.1rem; }
+  .gal-tabs a {
+    font-size: .82rem; font-weight: 800; text-decoration: none;
+    padding: .38rem .85rem; border-radius: 999px;
+    color: #fff; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.24);
+  }
+  .gal-tabs a.is-active { background: #fff; color: #08643b; }
+
+  .gal-filters { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); align-items: end; }
+  .gal-row {
+    display: flex; gap: .7rem; align-items: center; flex-wrap: wrap;
+    padding: .6rem .8rem; border-radius: 12px; margin-bottom: .45rem;
+    border: 1px solid var(--asg-line); background: var(--asg-surface);
+  }
+  .gal-dot {
+    width: 28px; height: 28px; flex: none; border-radius: 9px;
+    display: grid; place-items: center; font-size: .72rem;
+    background: var(--asg-soft); color: var(--asg-green);
+  }
+  .gal-row[data-tone="delete"] .gal-dot { color: var(--asg-danger); }
+  .gal-row[data-tone="update"] .gal-dot { color: var(--asg-info); }
+  .gal-row[data-tone="session"] .gal-dot { color: var(--asg-muted); }
+  .gal-main { flex: 1; min-width: 190px; }
+  .gal-head { font-size: .86rem; font-weight: 800; }
+  .gal-sub { font-size: .75rem; color: var(--asg-muted); margin-top: .12rem; line-height: 1.7; }
+  .gal-time { font-size: .75rem; font-weight: 700; color: var(--asg-muted); font-variant-numeric: tabular-nums; }
+  .gal-pager { display: flex; gap: .6rem; align-items: center; justify-content: center; margin-top: 1.2rem; flex-wrap: wrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <span class="asg-hero__eyebrow">
+      <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+      سجل موثّق
+    </span>
+    <h1 class="asg-hero__title">سجل إجراءات المجموعة</h1>
+    <p class="asg-hero__meta">
+      كل ما جرى في مدارس {{ group.name }} — قراءةً محضة. لا يُعدَّل سطر منه ولا
+      يُحذف، لا منك ولا من مدير المدرسة.
+    </p>
+
+    {% if groups|length > 1 %}
+      <div class="gal-tabs">
+        {% for item in groups %}
+          <a href="?group={{ item.pk }}" class="{% if item.pk == group.pk %}is-active{% endif %}">{{ item.name }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </header>
+
+  <section class="asg-card">
+    <form method="get" class="gal-filters">
+      <input type="hidden" name="group" value="{{ group.pk }}">
+      <div class="asg-field" style="margin:0">
+        <label for="f-school">المدرسة</label>
+        <select id="f-school" name="school">
+          <option value="">كل المدارس</option>
+          {% for item in schools %}
+            <option value="{{ item.pk }}" {% if q_school == item.pk|stringformat:"s" %}selected{% endif %}>{{ item.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="asg-field" style="margin:0">
+        <label for="f-action">نوع الإجراء</label>
+        <select id="f-action" name="action">
+          <option value="">كل الإجراءات</option>
+          {% for value, label in actions %}
+            <option value="{{ value }}" {% if q_action == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+        <button type="submit" class="asg-btn asg-btn--primary">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          تطبيق
+        </button>
+        {% if q_school or q_action %}
+          <a class="asg-btn asg-btn--ghost" href="{% url 'reports:group_audit_log' %}?group={{ group.pk }}">إلغاء</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <div style="margin-top:1.1rem">
+      {% for log in page_obj %}
+        <div class="gal-row" data-tone="{{ log.ui.tone }}">
+          <span class="gal-dot" aria-hidden="true"><i class="fa-solid {{ log.ui.icon }}"></i></span>
+          <div class="gal-main">
+            <div class="gal-head">{{ log.ui.headline }}</div>
+            <div class="gal-sub">
+              {{ log.actor_display }}{% if log.actor_role %} · {{ log.actor_role }}{% endif %}
+              {% if log.school %} · {{ log.school.name }}{% endif %}
+              {% if log.ui.subject %} · {{ log.ui.subject|truncatechars:70 }}{% endif %}
+            </div>
+          </div>
+          <span class="gal-time">{{ log.timestamp|date:"Y-m-d H:i" }}</span>
+        </div>
+      {% empty %}
+        <div class="asg-empty">
+          <div class="asg-empty__icon"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></div>
+          <h2>لا إجراءات مسجّلة</h2>
+          <p>ستظهر هنا إجراءات مدارس مجموعتك فور وقوعها، بمن نفّذها ووقتها.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+      <nav class="gal-pager">
+        {% if page_obj.has_previous %}
+          <a class="asg-btn asg-btn--ghost asg-btn--sm" href="?page={{ page_obj.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">الأحدث</a>
+        {% endif %}
+        <span style="font-size:.8rem;font-weight:700;color:var(--asg-muted)">
+          صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+          <a class="asg-btn asg-btn--ghost asg-btn--sm" href="?page={{ page_obj.next_page_number }}{% if qs %}&{{ qs }}{% endif %}">الأقدم</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

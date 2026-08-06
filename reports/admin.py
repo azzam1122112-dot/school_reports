@@ -136,13 +136,9 @@ class TeacherAdmin(UserAdmin):
         ),
     )
 
-    def delete_queryset(self, request, queryset):
-        AuditLog.objects.filter(teacher__in=queryset).delete()
-        return super().delete_queryset(request, queryset)
-
-    def delete_model(self, request, obj):
-        AuditLog.objects.filter(teacher=obj).delete()
-        return super().delete_model(request, obj)
+    # ملاحظة مقصودة: حذف الحساب لم يعد يمحو سجل إجراءاته.
+    # ``AuditLog.teacher`` صار SET_NULL مع لقطة اسم الفاعل، فيبقى الأثر منسوباً
+    # لصاحبه بعد رحيل الحساب. محوُه كان يجعل حذف الحساب أداةً لطمس ما فعله.
 
 
 @admin.register(WebAuthnCredential)
@@ -771,11 +767,29 @@ class CustomerComplaintAdmin(admin.ModelAdmin):
 
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):
-    list_display = ("timestamp", "teacher", "action", "model_name", "object_repr", "school", "ip_address")
+    list_display = ("timestamp", "actor_display", "actor_role", "action", "model_name", "object_repr", "school", "ip_address")
     list_filter = ("action", "model_name", "timestamp", "school")
-    search_fields = ("teacher__name", "object_repr", "ip_address", "changes")
-    readonly_fields = ("timestamp", "teacher", "action", "model_name", "object_id", "object_repr", "changes", "ip_address", "user_agent", "school")
+    search_fields = ("teacher__name", "actor_name", "object_repr", "ip_address", "changes")
+    readonly_fields = (
+        "timestamp", "teacher", "actor_name", "actor_role", "action", "model_name",
+        "object_id", "object_repr", "changes", "ip_address", "user_agent", "school",
+    )
     date_hierarchy = "timestamp"
+
+    @admin.display(description="الفاعل")
+    def actor_display(self, obj):
+        return obj.actor_display
+
+    # السجل غير قابل للتعديل ولا للحذف — حتى من لوحة Django. الحذف الوحيد
+    # المشروع يمر عبر أمر الاحتفاظ cleanup_audit_logs الذي يؤرشف قبل أن يحذف.
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def get_model_perms(self, request):
         """إظهار الموديل في قائمة Django Admin حتى لو لم تُمنح صلاحية view صراحةً للموظف.

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}المبادرات | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .ini-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; }
+  @media (max-width: 900px) { .ini-grid { grid-template-columns: 1fr; } }
+  .ini-body { font-size: .84rem; line-height: 1.9; color: var(--asg-muted); margin-top: .35rem; white-space: pre-wrap; }
+  .ini-actions { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .6rem; }
+  .ini-check { display: flex; gap: .55rem; align-items: flex-start; font-size: .86rem; font-weight: 700; }
+  .ini-check input { margin-top: .2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <span class="asg-hero__eyebrow">
+      <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+      المبادرات والممارسات
+    </span>
+    <h1 class="asg-hero__title">المبادرات</h1>
+    <p class="asg-hero__meta">
+      اقترحها أيٌّ كان، ويعتمدها مدير المدرسة. والممارسة الناجحة تُشارَك مع
+      مدارس المجموعة بعد اعتمادها — لا قبله.
+    </p>
+  </header>
+
+  <div class="ini-grid">
+    <div>
+      <section class="asg-card" style="margin-top:1.2rem">
+        <h2 class="asg-card__title">
+          {% if is_manager %}المبادرات ومتابعتها{% else %}مبادراتي{% endif %}
+        </h2>
+
+        {% for row in rows %}
+          <article class="asg-item" style="align-items:flex-start">
+            <div class="asg-item__main">
+              <div class="asg-item__title">{{ row.initiative.title }}</div>
+              <div class="asg-item__sub">
+                {{ row.initiative.teacher_name|default:"—" }}
+                · {{ row.initiative.created_at|date:"Y-m-d" }}
+                {% if row.initiative.plan %} · خطة: {{ row.initiative.plan.title }}{% endif %}
+              </div>
+              {% if row.initiative.summary %}
+                <div class="ini-body">{{ row.initiative.summary|truncatechars:260 }}</div>
+              {% endif %}
+              {% if row.initiative.review_note %}
+                <div class="ini-body" style="color:var(--asg-gold)">
+                  <strong>ملاحظة:</strong> {{ row.initiative.review_note }}
+                </div>
+              {% endif %}
+
+              {% if row.actions or row.can_share %}
+                <form method="post" action="{% url 'reports:initiative_action' row.initiative.pk %}" class="ini-actions">
+                  {% csrf_token %}
+                  <input type="hidden" name="initiative_action" class="ini-field" value="">
+                  {% if not row.mine %}
+                    <input type="text" name="note" placeholder="ملاحظتك…"
+                           style="flex:1;min-width:150px;padding:.4rem .6rem;border-radius:9px;border:1px solid var(--asg-line);background:var(--asg-surface);color:var(--asg-ink);font-family:inherit;font-size:.8rem">
+                  {% endif %}
+                  {% if 'submit' in row.actions %}
+                    <button type="submit" class="asg-btn asg-btn--primary asg-btn--sm" data-ini="submit">إرسال للاعتماد</button>
+                  {% endif %}
+                  {% if 'withdraw' in row.actions %}
+                    <button type="submit" class="asg-btn asg-btn--ghost asg-btn--sm" data-ini="withdraw">سحب</button>
+                  {% endif %}
+                  {% if 'return' in row.actions %}
+                    <button type="submit" class="asg-btn asg-btn--warn asg-btn--sm" data-ini="return">إعادة</button>
+                  {% endif %}
+                  {% if 'approve' in row.actions %}
+                    <button type="submit" class="asg-btn asg-btn--primary asg-btn--sm" data-ini="approve">اعتماد</button>
+                  {% endif %}
+                  {% if row.can_share %}
+                    <button type="submit" class="asg-btn asg-btn--violet asg-btn--sm" data-ini="share">
+                      <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+                      مشاركة مع المجموعة
+                    </button>
+                  {% endif %}
+                </form>
+              {% endif %}
+            </div>
+
+            <div class="asg-item__side" style="align-self:flex-start">
+              <span class="asg-tag {% if row.initiative.is_final %}asg-tag--done{% endif %}">
+                {{ row.initiative.get_approval_state_display }}
+              </span>
+              {% if row.initiative.is_shared %}
+                <span class="asg-tag asg-tag--done">مشاركة</span>
+              {% elif row.initiative.is_best_practice %}
+                <span class="asg-tag">ممارسة ناجحة</span>
+              {% endif %}
+            </div>
+          </article>
+        {% empty %}
+          <div class="asg-empty">
+            <div class="asg-empty__icon"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></div>
+            <h2>لا مبادرات بعد</h2>
+            <p>اقترح مبادرة أو ممارسة نجحت معك — وبعد اعتمادها قد تُشارَك مع بقية مدارس المجموعة.</p>
+          </div>
+        {% endfor %}
+      </section>
+
+      {% if shared %}
+        <section class="asg-card">
+          <h2 class="asg-card__title">ممارسات مدرستك المشاركة</h2>
+          <p class="asg-card__hint">معروضة على مدارس المجموعة.</p>
+          {% for item in shared %}
+            <article class="asg-item">
+              <div class="asg-item__main">
+                <div class="asg-item__title">{{ item.title }}</div>
+                <div class="asg-item__sub">
+                  {{ item.teacher_name|default:"—" }} · شُوركت {{ item.shared_at|date:"Y-m-d" }}
+                </div>
+              </div>
+              <div class="asg-item__side"><span class="asg-tag asg-tag--done">مشاركة</span></div>
+            </article>
+          {% endfor %}
+        </section>
+      {% endif %}
+    </div>
+
+    <div>
+      <section class="asg-card" style="margin-top:1.2rem">
+        <h2 class="asg-card__title">اقتراح مبادرة</h2>
+        <p class="asg-card__hint">تُحفظ مسودةً، وترسلها للاعتماد حين تكتمل.</p>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="asg-field">
+            <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+            {{ form.title }}
+            {% if form.title.errors %}<ul class="asg-errors">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="asg-field">
+            <label for="{{ form.summary.id_for_label }}">{{ form.summary.label }}</label>
+            {{ form.summary }}
+          </div>
+          <div class="asg-field">
+            <label for="{{ form.plan.id_for_label }}">{{ form.plan.label }}</label>
+            {{ form.plan }}
+          </div>
+          <div class="asg-field">
+            <label class="ini-check">
+              {{ form.is_best_practice }}
+              <span>{{ form.is_best_practice.label }}</span>
+            </label>
+            <div class="asg-field__help">{{ form.is_best_practice.help_text }}</div>
+          </div>
+          <button type="submit" class="asg-btn asg-btn--primary">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            تسجيل المبادرة
+          </button>
+        </form>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+  /* كل نموذج مبادرة يحمل حقلاً مخفياً واحداً، ويملؤه الزر المضغوط —
+     فلا يتكرر حقل الملاحظة لكل إجراء ولا يضيع ما كُتب فيه. */
+  (function () {
+    document.querySelectorAll('[data-ini]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var form = button.closest('form');
+        if (!form) return;
+        var field = form.querySelector('.ini-field');
+        if (field) field.value = button.getAttribute('data-ini');
+      });
+    });
+  })();
+</script>
+{% endblock %}

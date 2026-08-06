@@ -994,7 +994,7 @@ class TeacherEditForm(forms.ModelForm):
                 m = SchoolMembership.objects.filter(
                     school=self._active_school,
                     teacher=self.instance,
-                    role_type=SchoolMembership.RoleType.TEACHER,
+                    role_type__in=SchoolMembership.STAFF_ROLES,
                 ).only("job_title").first()
                 if m is not None and getattr(m, "job_title", None):
                     self.fields["job_title"].initial = m.job_title
@@ -1027,7 +1027,7 @@ class TeacherEditForm(forms.ModelForm):
                         SchoolMembership.objects.filter(
                             school=self._active_school,
                             teacher=instance,
-                            role_type=SchoolMembership.RoleType.TEACHER,
+                            role_type__in=SchoolMembership.STAFF_ROLES,
                         ).update(job_title=jt)
             except Exception:
                 pass
@@ -1913,7 +1913,7 @@ class NotificationCreateForm(forms.Form):
                     qs = qs.filter(
                         school_memberships__school=active_school,
                         school_memberships__is_active=True,
-                        school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
+                        school_memberships__role_type__in=SchoolMembership.STAFF_ROLES,
                     ).distinct()
                 else:
                     qs = qs.none()
@@ -1954,7 +1954,7 @@ class NotificationCreateForm(forms.Form):
                 # واجهة مدير المدرسة موجهة لمنسوبي المدرسة من المعلمين، فلا
                 # نعرض حساب المدير نفسه كأنه معلم.
                 qs = qs.filter(
-                    school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
+                    school_memberships__role_type__in=SchoolMembership.STAFF_ROLES,
                 ).exclude(
                     pk=getattr(user, "pk", None),
                 )
@@ -2243,7 +2243,7 @@ class NotificationCreateForm(forms.Form):
                                 SchoolMembership.objects.filter(
                                     school=_school,
                                     is_active=True,
-                                    role_type=SchoolMembership.RoleType.TEACHER,
+                                    role_type__in=SchoolMembership.STAFF_ROLES,
                                 )
                                 .values("teacher_id")
                                 .distinct()
@@ -2350,7 +2350,7 @@ class NotificationCreateForm(forms.Form):
                             SchoolMembership.objects.filter(
                                 school=_school,
                                 is_active=True,
-                                role_type=SchoolMembership.RoleType.TEACHER,
+                                role_type__in=SchoolMembership.STAFF_ROLES,
                             )
                             .values("teacher_id")
                             .distinct()

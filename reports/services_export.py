@@ -36,6 +36,25 @@ _HEADER_FILL = "0F8F6B"
 _ZEBRA = "F1F8F4"
 
 
+def _membership_role_label(role_type: str, labels: dict) -> str:
+    """اسم الدور بصيغته المؤنثة/المذكرة حسب نوع المدرسة.
+
+    نقطة واحدة تخدم ورقة المنسوبين في التصدير وفي أرشيف السنة معاً، فلا يظهر
+    الدور الواحد باسمين في ملفين يصدران من المدرسة نفسها. والقيمة غير المعروفة
+    تعود إلى تسمية Django بدل أن تظهر فارغة.
+    """
+    mapping = {
+        SchoolMembership.RoleType.MANAGER: labels.get("manager"),
+        SchoolMembership.RoleType.DEPUTY: labels.get("deputy"),
+        SchoolMembership.RoleType.ADMIN_STAFF: labels.get("admin_staff"),
+        SchoolMembership.RoleType.TEACHER: labels.get("teacher_indefinite"),
+    }
+    resolved = mapping.get(role_type)
+    if resolved:
+        return str(resolved)
+    return dict(SchoolMembership.RoleType.choices).get(role_type, role_type or "—")
+
+
 def _counts(school) -> dict:
     return {
         "reports": Report.objects.filter(school=school).count(),
@@ -48,9 +67,7 @@ def _counts(school) -> dict:
         "notifications": Notification.objects.filter(
             school=school, requires_signature=False
         ).count(),
-        "teachers": SchoolMembership.objects.filter(
-            school=school, role_type=SchoolMembership.RoleType.TEACHER
-        ).count(),
+        "teachers": SchoolMembership.seats_used(school),
         "departments": Department.objects.filter(school=school).count(),
     }
 
@@ -318,11 +335,7 @@ def build_school_export_workbook(school):
         .order_by("role_type", "teacher__name")
     )
     for m in memberships.iterator():
-        role_label = m.get_role_type_display()
-        if m.role_type == SchoolMembership.RoleType.MANAGER:
-            role_label = labels["manager"]
-        elif m.role_type == SchoolMembership.RoleType.TEACHER:
-            role_label = labels["teacher_indefinite"]
+        role_label = _membership_role_label(m.role_type, labels)
         job_label = m.get_job_title_display()
         if m.job_title == SchoolMembership.JobTitle.TEACHER:
             job_label = labels["teacher_indefinite"]
@@ -728,11 +741,7 @@ def build_year_archive_index_bytes(
             .order_by("role_type", "teacher__name", "id")
         )
         for membership in memberships.iterator():
-            role_label = membership.get_role_type_display()
-            if membership.role_type == SchoolMembership.RoleType.MANAGER:
-                role_label = labels["manager"]
-            elif membership.role_type == SchoolMembership.RoleType.TEACHER:
-                role_label = labels["teacher_indefinite"]
+            role_label = _membership_role_label(membership.role_type, labels)
             job_label = membership.get_job_title_display()
             if membership.job_title == SchoolMembership.JobTitle.TEACHER:
                 job_label = labels["teacher_indefinite"]

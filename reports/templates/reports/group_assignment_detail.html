@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}ردّ {{ target.school.name }} | تكليفات المجموعة{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .gd-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+  @media (max-width: 900px) { .gd-grid { grid-template-columns: 1fr; } }
+
+  .gd-meta { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .gd-meta__l { font-size: .73rem; color: var(--asg-muted); font-weight: 700; }
+  .gd-meta__v { font-size: .86rem; font-weight: 800; margin-top: .12rem; }
+  .gd-body { font-size: .88rem; line-height: 1.95; white-space: pre-wrap; margin-top: 1rem; }
+
+  .gd-alert {
+    margin-top: 1rem; padding: .75rem .9rem; border-radius: 12px;
+    font-size: .84rem; line-height: 1.85; background: var(--asg-soft);
+    border-inline-start: 3px solid var(--asg-gold); white-space: pre-wrap;
+  }
+  .gd-alert__l { font-size: .73rem; font-weight: 900; display: block; margin-bottom: .2rem; color: var(--asg-gold); }
+
+  .gd-ev__row {
+    display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+    padding: .55rem .75rem; border-radius: 11px; margin-bottom: .4rem;
+    border: 1px solid var(--asg-line); background: var(--asg-surface);
+  }
+  .gd-ev__name { flex: 1; min-width: 140px; font-size: .84rem; font-weight: 700; }
+  .gd-ev__sub { font-size: .74rem; color: var(--asg-muted); }
+
+  .gd-timeline { list-style: none; margin: .6rem 0 0; padding: 0; padding-inline-start: 1.85rem; position: relative; }
+  .gd-timeline::before {
+    content: ""; position: absolute; inset-block: .7rem; inset-inline-start: .8rem;
+    width: 2px; background: var(--asg-line); border-radius: 2px;
+  }
+  .gd-step { position: relative; padding-bottom: .9rem; }
+  .gd-step__dot {
+    position: absolute; inset-inline-start: -1.85rem; inset-block-start: .1rem;
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; font-size: .65rem;
+    background: var(--asg-soft); color: var(--asg-green);
+    border: 2px solid var(--asg-surface); box-shadow: 0 0 0 1px var(--asg-line);
+  }
+  .gd-step[data-action="return"] .gd-step__dot,
+  .gd-step[data-action="request_info"] .gd-step__dot { color: var(--asg-gold); }
+  .gd-step__head { font-size: .84rem; font-weight: 800; }
+  .gd-step__who { font-size: .75rem; color: var(--asg-muted); margin-top: .12rem; }
+  .gd-step__note { font-size: .81rem; line-height: 1.8; margin-top: .3rem; white-space: pre-wrap; }
+
+  .gd-actions { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .8rem; }
+  .gd-note { width: 100%; min-height: 92px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <a class="asg-hero__eyebrow" href="{% url 'reports:group_assignment_board' %}?group={{ group.pk }}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      تكليفات المجموعة
+    </a>
+    <h1 class="asg-hero__title">{{ assignment.title }}</h1>
+    <p class="asg-hero__meta">
+      {{ target.school.name|default:"—" }} · المسؤول: {{ target.assignee.name }}
+    </p>
+  </header>
+
+  <div class="gd-grid">
+    <div>
+      <section class="asg-card" style="margin-top:1.2rem">
+        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
+          <h2 class="asg-card__title" style="margin:0">ردّ المدرسة</h2>
+          <span class="asg-tag">{{ target.get_approval_state_display }}</span>
+          {% if target.is_overdue %}<span class="asg-tag asg-tag--late">متأخر</span>{% endif %}
+          {% if assignment.is_cancelled %}<span class="asg-tag asg-tag--late">ملغى</span>{% endif %}
+        </div>
+
+        <div class="gd-meta">
+          <div>
+            <div class="gd-meta__l">موعد التسليم</div>
+            <div class="gd-meta__v">{{ assignment.due_at|date:"Y-m-d H:i" }}</div>
+          </div>
+          <div>
+            <div class="gd-meta__l">نسبة الإنجاز</div>
+            <div class="gd-meta__v">{{ target.progress_percent }}%</div>
+          </div>
+          <div>
+            <div class="gd-meta__l">أُرسل للمراجعة</div>
+            <div class="gd-meta__v">
+              {% if target.submitted_at %}{{ target.submitted_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}
+            </div>
+          </div>
+          <div>
+            <div class="gd-meta__l">القبول</div>
+            <div class="gd-meta__v">
+              {% if target.accepted_at %}{{ target.accepted_at|date:"Y-m-d" }}{% else %}لم يُقبل بعد{% endif %}
+            </div>
+          </div>
+        </div>
+
+        {% if assignment.description %}
+          <div class="gd-body">{{ assignment.description }}</div>
+        {% endif %}
+
+        {% if target.clarification_note %}
+          <div class="gd-alert">
+            <span class="gd-alert__l">طلب توضيح من المدرسة</span>
+            {{ target.clarification_note }}
+          </div>
+        {% endif %}
+
+        {% if target.progress_note %}
+          <div class="gd-alert">
+            <span class="gd-alert__l">ملاحظات التنفيذ</span>
+            {{ target.progress_note }}
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="asg-card">
+        <h2 class="asg-card__title">الشواهد المرفوعة</h2>
+        {% if evidence %}
+          {% for item in evidence %}
+            <div class="gd-ev__row">
+              <div class="gd-ev__name">
+                <a href="{{ item.file.url }}" target="_blank" rel="noopener">{{ item.note|default:"شاهد" }}</a>
+                <div class="gd-ev__sub">
+                  {{ item.uploaded_by.name|default:"—" }} · {{ item.created_at|date:"Y-m-d H:i" }}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="asg-card__hint" style="margin:0">لم ترفع المدرسة شواهد بعد.</p>
+        {% endif %}
+      </section>
+
+      <section class="asg-card">
+        <h2 class="asg-card__title">سجل التنفيذ</h2>
+        {% if timeline %}
+          <ul class="gd-timeline">
+            {% for step in timeline %}
+              <li class="gd-step" data-action="{{ step.action }}">
+                <span class="gd-step__dot" aria-hidden="true">
+                  {% if step.action == 'approve' %}<i class="fa-solid fa-check"></i>
+                  {% elif step.action == 'return' %}<i class="fa-solid fa-rotate-left"></i>
+                  {% elif step.action == 'request_info' %}<i class="fa-solid fa-circle-question"></i>
+                  {% elif step.action == 'submit' %}<i class="fa-solid fa-paper-plane"></i>
+                  {% else %}<i class="fa-solid fa-eye"></i>{% endif %}
+                </span>
+                <div class="gd-step__head">{{ step.get_action_display }}</div>
+                <div class="gd-step__who">
+                  {{ step.actor_display }}{% if step.actor_role %} · {{ step.actor_role }}{% endif %}
+                  · {{ step.created_at|date:"Y-m-d H:i" }}
+                </div>
+                {% if step.note %}<div class="gd-step__note">{{ step.note }}</div>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="asg-card__hint" style="margin:0">لم ترفع المدرسة ردّها بعد.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    <div>
+      <section class="asg-card" style="margin-top:1.2rem">
+        <h2 class="asg-card__title">قرارك</h2>
+        <p class="asg-card__hint">
+          تعتمد هذا الردّ بصفتك مَن أصدر التكليف — لا بصلاحية داخل المدرسة.
+          وإدارتها اليومية تبقى لمديرها كاملةً.
+        </p>
+
+        {% if actions %}
+          <form method="post" action="{% url 'reports:group_assignment_action' target.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="approval_action" id="grpAction" value="">
+
+            <div class="asg-field">
+              <textarea name="note" class="gd-note" placeholder="ملاحظتك على ردّ المدرسة…"></textarea>
+            </div>
+
+            <div class="gd-actions" style="margin-top:0">
+              {% if 'start_review' in actions %}
+                <button type="submit" class="asg-btn asg-btn--ghost" data-grp="start_review">بدء المراجعة</button>
+              {% endif %}
+              {% if 'request_info' in actions %}
+                <button type="submit" class="asg-btn asg-btn--warn" data-grp="request_info">طلب استكمال</button>
+              {% endif %}
+              {% if 'return' in actions %}
+                <button type="submit" class="asg-btn asg-btn--warn" data-grp="return">إعادة للملاحظة</button>
+              {% endif %}
+              {% if 'approve' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-grp="approve">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  اعتماد الردّ
+                </button>
+              {% endif %}
+            </div>
+          </form>
+
+          <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+            (function () {
+              var field = document.getElementById('grpAction');
+              if (!field) return;
+              document.querySelectorAll('[data-grp]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                  field.value = button.getAttribute('data-grp');
+                });
+              });
+            })();
+          </script>
+        {% else %}
+          <p class="asg-card__hint" style="margin:0">
+            {% if target.is_final %}
+              اعتُمد ردّ هذه المدرسة. لا يُعدَّل بعد اعتماده.
+            {% else %}
+              لم ترفع المدرسة ردّها بعد — لا يوجد ما تقرّره الآن.
+            {% endif %}
+          </p>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

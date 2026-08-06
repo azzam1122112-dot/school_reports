@@ -75,15 +75,16 @@ def _school_rows(schools, since) -> list[dict]:
         .values("school_id")
         .annotate(total=Count("id"))
     }
+    # منسوبو كل مدرسة — أشخاصاً لا عضويات، فحاملُ دورين ليس شخصين.
     teachers = {
         row["school_id"]: row["total"]
         for row in SchoolMembership.objects.filter(
             school_id__in=school_ids,
             is_active=True,
-            role_type=SchoolMembership.RoleType.TEACHER,
+            role_type__in=SchoolMembership.STAFF_ROLES,
         )
         .values("school_id")
-        .annotate(total=Count("id"))
+        .annotate(total=Count("teacher_id", distinct=True))
     }
 
     rows = []

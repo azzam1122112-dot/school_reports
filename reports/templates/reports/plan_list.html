@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}الخطط | منصة توثيق{% endblock %}
+
+{% block head %}{% include "reports/_assignment_theme.html" %}{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <span class="asg-hero__eyebrow">
+      <i class="fa-solid fa-compass-drafting" aria-hidden="true"></i>
+      التخطيط
+    </span>
+    <h1 class="asg-hero__title">خطط المدرسة</h1>
+    <p class="asg-hero__meta">
+      خطط {{ active_school.name }} بأهدافها ومهامها — ونسبة الإنجاز محسوبة من
+      تنفيذ المهام لا من تقدير يُدخَل يدوياً.
+    </p>
+    {% if can_plan %}
+      <div style="margin-top:1.1rem">
+        <a class="asg-btn" href="{% url 'reports:plan_create' %}" style="background:#fff;color:#08643b">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          خطة جديدة
+        </a>
+      </div>
+    {% endif %}
+  </header>
+
+  <section class="asg-kpis" aria-label="ملخص الخطط">
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ totals.plans }}</div>
+      <div class="asg-kpi__l">خطة</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ totals.tasks }}</div>
+      <div class="asg-kpi__l">مهمة</div>
+    </article>
+    <article class="asg-kpi" data-tone="danger">
+      <div class="asg-kpi__v">{{ totals.late }}</div>
+      <div class="asg-kpi__l">مهمة متأخرة</div>
+    </article>
+  </section>
+
+  {% if my_tasks %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">مهامي في الخطط</h2>
+      <p class="asg-card__hint">ما أُسند إليك ضمن خطط المدرسة.</p>
+      {% for task in my_tasks %}
+        <article class="asg-item" data-late="{% if task.is_late %}1{% endif %}">
+          <div class="asg-item__main">
+            <div class="asg-item__title">
+              <a href="{% url 'reports:plan_detail' task.plan.pk %}">{{ task.title }}</a>
+            </div>
+            <div class="asg-item__sub">
+              خطة: {{ task.plan.title }}
+              {% if task.due_at %} · يستحق {{ task.due_at|date:"Y-m-d" }}{% endif %}
+            </div>
+          </div>
+          <div class="asg-item__side">
+            {% if task.state == 'done' %}<span class="asg-tag asg-tag--done">منجَز</span>
+            {% elif task.state == 'late' %}<span class="asg-tag asg-tag--late">متأخر</span>
+            {% elif task.state == 'running' %}<span class="asg-tag asg-tag--soon">قيد التنفيذ</span>
+            {% else %}<span class="asg-tag">لم يُكلَّف بعد</span>{% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  <section class="asg-card">
+    <h2 class="asg-card__title">الخطط</h2>
+    {% if rows %}
+      {% for row in rows %}
+        <article class="asg-item" data-late="{% if row.late %}1{% endif %}">
+          <div class="asg-item__main">
+            <div class="asg-item__title">
+              <a href="{% url 'reports:plan_detail' row.plan.pk %}">{{ row.plan.title }}</a>
+            </div>
+            <div class="asg-item__sub">
+              {{ row.plan.owner_name|default:"—" }}
+              {% if row.plan.academic_year %} · {{ row.plan.academic_year }}{% endif %}
+              · {{ row.total }} مهمة
+              {% if row.late %} · <strong style="color:var(--asg-danger)">{{ row.late }} متأخرة</strong>{% endif %}
+            </div>
+          </div>
+          <div class="asg-bar">
+            <div class="asg-bar__track">
+              <div class="asg-bar__fill" style="width:{{ row.percent }}%"></div>
+            </div>
+            <div class="asg-bar__label">{{ row.done }} / {{ row.total }}</div>
+          </div>
+          <div class="asg-item__side">
+            <span class="asg-tag {% if row.plan.is_final %}asg-tag--done{% endif %}">
+              {{ row.plan.get_approval_state_display }}
+            </span>
+            <span class="asg-tag">{{ row.plan.get_stage_display }}</span>
+            <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{% url 'reports:plan_detail' row.plan.pk %}">فتح</a>
+          </div>
+        </article>
+      {% endfor %}
+    {% else %}
+      <div class="asg-empty">
+        <div class="asg-empty__icon"><i class="fa-solid fa-compass-drafting" aria-hidden="true"></i></div>
+        <h2>لا خطط بعد</h2>
+        <p>
+          الخطة تجمع أهدافك ومؤشراتها ومهامها. وكل مهمة تتحوّل إلى تكليف
+          بموعده وشواهده، فتُقاس نسبة الإنجاز من التنفيذ الفعلي.
+        </p>
+        {% if can_plan %}
+          <div style="margin-top:1rem">
+            <a class="asg-btn asg-btn--primary" href="{% url 'reports:plan_create' %}">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+              أنشئ أول خطة
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

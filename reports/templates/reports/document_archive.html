@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}أرشيف الوثائق | منصة توثيق{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .doc-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); align-items: start; }
+  @media (max-width: 900px) { .doc-grid { grid-template-columns: 1fr; } }
+
+  .doc-filters { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end; }
+  .doc-cards { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); margin-top: 1rem; }
+  .doc-card {
+    border: 1px solid var(--asg-line); border-radius: 14px; padding: .85rem .9rem;
+    background: var(--asg-surface); display: flex; flex-direction: column; gap: .4rem;
+    transition: border-color .18s ease;
+  }
+  .doc-card:hover { border-color: var(--asg-green); }
+  .doc-card[data-archived="1"] { border-inline-start: 3px solid var(--asg-green); }
+  .doc-card__top { display: flex; gap: .55rem; align-items: flex-start; }
+  .doc-icon {
+    width: 34px; height: 34px; flex: none; border-radius: 10px;
+    display: grid; place-items: center; font-size: .9rem;
+    background: var(--asg-soft); color: var(--asg-green);
+  }
+  .doc-card__title { font-size: .88rem; font-weight: 800; line-height: 1.5; }
+  .doc-card__title a { color: inherit; text-decoration: none; }
+  .doc-card__title a:hover { text-decoration: underline; }
+  .doc-card__meta { font-size: .74rem; color: var(--asg-muted); line-height: 1.7; }
+  .doc-card__tags { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: auto; padding-top: .35rem; }
+
+  .doc-pager { display: flex; gap: .6rem; align-items: center; justify-content: center; margin-top: 1.2rem; flex-wrap: wrap; }
+  .doc-pager__n { font-size: .8rem; font-weight: 700; color: var(--asg-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <span class="asg-hero__eyebrow">
+      <i class="fa-solid fa-folder-tree" aria-hidden="true"></i>
+      التوثيق والأرشفة
+    </span>
+    <h1 class="asg-hero__title">أرشيف الوثائق</h1>
+    <p class="asg-hero__meta">
+      ترفع الوثيقة وتصنّفها بالسنة والقسم والنوع، ثم يُعتمد نقلها إلى الأرشيف —
+      فالأرشفة قرار لا مجرّد رفع.
+    </p>
+  </header>
+
+  <section class="asg-kpis" aria-label="ملخص الأرشيف">
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ page_obj.paginator.count }}</div>
+      <div class="asg-kpi__l">{% if has_filters %}نتيجة مطابقة{% else %}وثيقة{% endif %}</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ archived_count }}</div>
+      <div class="asg-kpi__l">مؤرشَفة معتمَدة</div>
+    </article>
+    {% if may_review %}
+      <article class="asg-kpi" data-tone="warn">
+        <div class="asg-kpi__v">{{ pending|length }}</div>
+        <div class="asg-kpi__l">تنتظر اعتماد الأرشفة</div>
+      </article>
+    {% endif %}
+  </section>
+
+  <div class="doc-grid">
+    <div>
+      {% if pending %}
+        <section class="asg-card">
+          <h2 class="asg-card__title">تنتظر اعتماد الأرشفة</h2>
+          <p class="asg-card__hint">راجع بياناتها وتصنيفها ثم اعتمد نقلها أو أعِدها بملاحظة.</p>
+          {% for item in pending %}
+            <article class="asg-item">
+              <div class="asg-item__main">
+                <div class="asg-item__title">
+                  <a href="{% url 'reports:document_detail' item.pk %}">{{ item.title }}</a>
+                </div>
+                <div class="asg-item__sub">
+                  {{ item.owner_name|default:"—" }} · {{ item.get_kind_display }}
+                  {% if item.academic_year %} · {{ item.academic_year }}{% endif %}
+                  {% if item.department %} · {{ item.department.name }}{% endif %}
+                </div>
+              </div>
+              <div class="asg-item__side">
+                <span class="asg-tag">{{ item.get_approval_state_display }}</span>
+                <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{% url 'reports:document_detail' item.pk %}">فتح</a>
+              </div>
+            </article>
+          {% endfor %}
+        </section>
+      {% endif %}
+
+      <section class="asg-card">
+        <h2 class="asg-card__title">البحث في الوثائق</h2>
+        <p class="asg-card__hint">
+          ثلاثة محاور مجتمعة — السنة والقسم والنوع. ومحورٌ واحد يترك الباحث
+          يقلّب مئات النتائج.
+        </p>
+
+        <form method="get" class="doc-filters">
+          <div class="asg-field" style="margin:0">
+            <label for="f-q">بحث بالعنوان</label>
+            <input type="text" id="f-q" name="q" value="{{ q_term }}" placeholder="كلمة من العنوان…">
+          </div>
+          <div class="asg-field" style="margin:0">
+            <label for="f-year">السنة</label>
+            <select id="f-year" name="year">
+              <option value="">كل السنوات</option>
+              {% for year in years %}
+                <option value="{{ year }}" {% if q_year == year %}selected{% endif %}>{{ year }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="asg-field" style="margin:0">
+            <label for="f-dept">القسم</label>
+            <select id="f-dept" name="department">
+              <option value="">كل الأقسام</option>
+              {% for dept in departments %}
+                <option value="{{ dept.pk }}" {% if q_department == dept.pk|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="asg-field" style="margin:0">
+            <label for="f-kind">النوع</label>
+            <select id="f-kind" name="kind">
+              <option value="">كل الأنواع</option>
+              {% for value, label in kinds %}
+                <option value="{{ value }}" {% if q_kind == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+            <button type="submit" class="asg-btn asg-btn--primary">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              بحث
+            </button>
+            {% if has_filters %}
+              <a class="asg-btn asg-btn--ghost" href="{% url 'reports:document_archive' %}">إلغاء</a>
+            {% endif %}
+          </div>
+        </form>
+
+        {% if page_obj.object_list %}
+          <div class="doc-cards">
+            {% for doc in page_obj %}
+              <article class="doc-card" data-archived="{% if doc.is_archived %}1{% endif %}">
+                <div class="doc-card__top">
+                  <span class="doc-icon" aria-hidden="true">
+                    {% if doc.kind == 'minutes' %}<i class="fa-solid fa-file-signature"></i>
+                    {% elif doc.kind == 'financial' %}<i class="fa-solid fa-file-invoice-dollar"></i>
+                    {% elif doc.kind == 'contract' %}<i class="fa-solid fa-file-contract"></i>
+                    {% elif doc.kind == 'certificate' %}<i class="fa-solid fa-award"></i>
+                    {% elif doc.kind == 'circular' %}<i class="fa-solid fa-bullhorn"></i>
+                    {% else %}<i class="fa-solid fa-file-lines"></i>{% endif %}
+                  </span>
+                  <div class="doc-card__title">
+                    <a href="{% url 'reports:document_detail' doc.pk %}">{{ doc.title }}</a>
+                  </div>
+                </div>
+                <div class="doc-card__meta">
+                  {{ doc.owner_name|default:"—" }} · {{ doc.created_at|date:"Y-m-d" }}
+                  {% if doc.size_kb %} · {{ doc.size_kb }} ك.ب{% endif %}
+                </div>
+                <div class="doc-card__tags">
+                  <span class="asg-tag">{{ doc.get_kind_display }}</span>
+                  {% if doc.academic_year %}<span class="asg-tag">{{ doc.academic_year }}</span>{% endif %}
+                  {% if doc.department %}<span class="asg-tag">{{ doc.department.name }}</span>{% endif %}
+                  {% if doc.is_archived %}
+                    <span class="asg-tag asg-tag--done">مؤرشَفة</span>
+                  {% else %}
+                    <span class="asg-tag asg-tag--soon">{{ doc.get_approval_state_display }}</span>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+
+          {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="doc-pager">
+              {% if page_obj.has_previous %}
+                <a class="asg-btn asg-btn--ghost asg-btn--sm" href="?page={{ page_obj.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">الأحدث</a>
+              {% endif %}
+              <span class="doc-pager__n">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+              {% if page_obj.has_next %}
+                <a class="asg-btn asg-btn--ghost asg-btn--sm" href="?page={{ page_obj.next_page_number }}{% if qs %}&{{ qs }}{% endif %}">الأقدم</a>
+              {% endif %}
+            </nav>
+          {% endif %}
+        {% else %}
+          <div class="asg-empty" style="margin-top:1rem">
+            <div class="asg-empty__icon"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></div>
+            <h2>{% if has_filters %}لا نتائج مطابقة{% else %}لا وثائق بعد{% endif %}</h2>
+            <p>
+              {% if has_filters %}
+                جرّب توسيع البحث أو إلغاء أحد المرشّحات.
+              {% else %}
+                ارفع أول وثيقة وصنّفها بالسنة والقسم والنوع، لتصير قابلة للبحث
+                بعد سنوات.
+              {% endif %}
+            </p>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+
+    {# ═══ الرفع ═══════════════════════════════════════ #}
+    <div>
+      <section class="asg-card">
+        <h2 class="asg-card__title">رفع وثيقة</h2>
+        <p class="asg-card__hint">تُحفظ مسودةً، وترسلها لاعتماد الأرشفة حين تكتمل.</p>
+
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          <div class="asg-field">
+            <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+            {{ form.title }}
+            {% if form.title.errors %}<ul class="asg-errors">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="asg-field">
+            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            {{ form.description }}
+          </div>
+          <div class="asg-field">
+            <label for="{{ form.academic_year.id_for_label }}">{{ form.academic_year.label }}</label>
+            {{ form.academic_year }}
+            {% if form.academic_year.errors %}<ul class="asg-errors">{% for e in form.academic_year.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="asg-field">
+            <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+            {{ form.department }}
+            <div class="asg-field__help">{{ form.department.help_text }}</div>
+          </div>
+          <div class="asg-field">
+            <label for="{{ form.kind.id_for_label }}">{{ form.kind.label }}</label>
+            {{ form.kind }}
+          </div>
+          <div class="asg-field">
+            <label for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>
+            {{ form.file }}
+            <div class="asg-field__help">{{ form.file.help_text }}</div>
+            {% if form.file.errors %}<ul class="asg-errors">{% for e in form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <button type="submit" class="asg-btn asg-btn--primary">
+            <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+            رفع الوثيقة
+          </button>
+        </form>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}
