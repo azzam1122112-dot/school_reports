@@ -20,7 +20,10 @@ Thumbs.db
 # Logs
 *.log
 logs/
+*.sqlite3
 *.sqlite3-journal
+# نسخ قاعدة البيانات الاحتياطية قبل الترحيلات — محلية لا تُرفع.
+*.sqlite3.backup*
 
 # Test / Coverage / Type-check
 .pytest_cache/
@@ -93,3 +96,17 @@ tmp/
 
 # Local scratch scripts
 *.tmp.py
+
+# ---------------------------
+# ملفات بيانات الدخول المحلية
+# ---------------------------
+# ملفات يكتب فيها المطوّر كلمات مرور الخوادم مؤقتاً. مكانها مدير كلمات مرور
+# لا مجلد المشروع — لكن ما دامت هنا فلا يجوز أن يبتلعها `git add .`.
+rot.md
+credentials.md
+creds.md
+*credentials*.txt
+*.pem
+*.key
+id_rsa*
+id_ed25519*

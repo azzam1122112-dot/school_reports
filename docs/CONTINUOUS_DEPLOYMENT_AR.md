@@ -31,7 +31,12 @@ ssh-keyscan -H <SERVER_IP>            # المخرجات تذهب إلى DEPLOY_
 
 ### 2. أسرار GitHub
 
-`Settings → Secrets and variables → Actions → New repository secret`
+وظيفة النشر تعمل داخل بيئة `production`، فموضع الأسرار الصحيح هو:
+
+`Settings → Environments → production → Environment secrets`
+
+وليس أسرار المستودع العامة. الفرق ليس شكلياً: أسرار البيئة تخضع لقواعد الحماية
+(المراجعون، الفروع المسموحة)، وأسرار المستودع مكشوفة لأي وظيفة في أي فرع.
 
 | الاسم | القيمة |
 | --- | --- |
@@ -43,6 +48,35 @@ ssh-keyscan -H <SERVER_IP>            # المخرجات تذهب إلى DEPLOY_
 | `DEPLOY_SSH_PORT` | اختياري — الافتراضي `22` |
 
 `GITHUB_TOKEN` يُوفَّر تلقائياً ولا يحتاج إعداداً.
+
+أو من سطر الأوامر:
+
+```bash
+gh secret set DEPLOY_SSH_KEY --env production < ~/.ssh/school_reports_deploy
+ssh-keyscan -H <SERVER_IP> | gh secret set DEPLOY_KNOWN_HOSTS --env production
+gh secret set DEPLOY_SSH_HOST --env production --body '<SERVER_IP>'
+gh secret set DEPLOY_SSH_USER --env production --body 'deploy'
+```
+
+للتأكد أن الأسماء وصلت (القيم لا تُقرأ أبداً، الأسماء فقط):
+
+```bash
+gh secret list --env production
+```
+
+#### لماذا يفشل النشر مبكراً
+
+أول ثلاث خطوات في وظيفة النشر — التحقق من الأسرار، تهيئة SSH، اختبار الوصول —
+تسبق بناء الصورة ودفعها عمداً. لو تأخّرت لما بعد الدفع، لكان سرٌّ ناقص يعني أن
+وسم `latest` انتقل إلى صورة لم تصل الخادم قط، فيصير الوسم يشير إلى ما لا يعمل.
+الفشل قبل الدفع يترك الإنتاج والسجلّ على حالهما تماماً.
+
+#### تحذيرات المحرر
+
+إضافة GitHub Actions في VSCode تُظهر `Context access might be invalid` لكل
+`secrets.*`، و`Value 'production' is not valid` لاسم البيئة. كلاهما ناتج عن أن
+الإضافة غير مسجّلة الدخول فلا تستطيع قراءة إعدادات المستودع. الحل:
+`GitHub Actions: Sign in` من لوحة الأوامر. لا علاقة لهما بصحة الملف.
 
 ### 3. متطلبات الخادم
 

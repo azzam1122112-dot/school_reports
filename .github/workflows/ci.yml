@@ -117,6 +117,52 @@ jobs:
       cancel-in-progress: false
 
     steps:
+      # الفحوص الثلاثة الأولى تسبق البناء والدفع عمداً. سرٌّ ناقص أو خادم لا
+      # يُوصَل إليه كان يُكتشف بعد خمس دقائق بناء وبعد أن يكون وسم latest قد
+      # انتقل إلى صورة لم تصل الخادم قط — فيصير الوسم يشير إلى ما لا يعمل.
+      - name: Verify deploy credentials
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+        run: |
+          missing=""
+          for name in DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS DEPLOY_SSH_USER DEPLOY_SSH_HOST; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=Missing deploy secrets::Not set:$missing — add them under Settings > Environments > production. See docs/CONTINUOUS_DEPLOYMENT_AR.md"
+            exit 1
+          fi
+          echo "All required deploy secrets are present."
+
+      - name: Configure SSH
+        env:
+          # السرّ يمرّ عبر البيئة لا داخل نصّ الأمر: الاستبدال النصّي يكتب
+          # المفتاح داخل ملف السكربت على الرانر، ومفتاحٌ يحوي محرف اقتباس
+          # يكسر الأمر بدل أن يُكتب كما هو.
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          # umask قبل الكتابة لا chmod بعدها: التوجيه ينشئ الملف بصلاحيات 644،
+          # فيبقى المفتاح الخاص مقروءاً حتى يصححه chmod.
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Verify the server is reachable
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+        run: |
+          # BatchMode يمنع انتظار كلمة مرور حتى تنتهي مهلة الوظيفة كلها،
+          # وConnectTimeout يحوّل خادماً صامتاً إلى فشل سريع.
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" \
+              -o BatchMode=yes -o ConnectTimeout=15 \
+              "$SSH_TARGET" 'echo "SSH reachable: $(hostname)"'
+
       - name: Check out source
         uses: actions/checkout@v4
 
@@ -148,13 +194,6 @@ jobs:
             ${{ steps.image.outputs.name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Configure SSH
-        run: |
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
 
       - name: Sync compose and deploy files to the server
         env:
