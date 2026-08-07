@@ -198,8 +198,8 @@
             </div>
 
             <div class="inb-item__side">
-              {# الحارس على ``submitted_at`` لا على ``waiting_days``: صفرُ أيام
-                 قيمةٌ صحيحة تعني «اليوم»، و``{% if 0 %}`` يُخفيها. #}
+              {# الحارس على ``submitted_at`` لا على ``waiting_days``: صفرُ أيام #}
+              {# قيمةٌ صحيحة تعني «اليوم»، وفحصُ العدد وحده يُخفيها. #}
               {% if row.report.submitted_at %}
                 <span class="inb-age"
                       data-w="{% if row.waiting_days >= 7 %}late{% elif row.waiting_days >= 3 %}warn{% endif %}"

@@ -104,6 +104,24 @@ DAILY_MANAGER_REPORT_WHATSAPP_ENABLED=False
 DAILY_MANAGER_REPORT_HOUR=14
 DAILY_MANAGER_REPORT_MINUTE=0
 
+# Written out even though both gateways start off. Omitting them let the
+# settings default decide in silence, and a server whose env never mentioned
+# MOYASAR_ENABLED served a checkout page with no electronic payment on it and
+# nothing anywhere saying why. Present-and-False is a setting; absent is a
+# question nobody knows to ask. Enabling Moyasar needs the matching key —
+# MOYASAR_ENVIRONMENT=live wants an sk_live_ key, and the app refuses to boot
+# on a mismatch rather than take money against test credentials.
+MOYASAR_ENABLED=False
+MOYASAR_ENVIRONMENT=live
+MOYASAR_SECRET_KEY=
+MOYASAR_REQUEST_TIMEOUT=15
+TAMARA_ENABLED=False
+TAMARA_ENVIRONMENT=production
+TAMARA_API_TOKEN=
+TAMARA_NOTIFICATION_TOKEN=
+TAMARA_INSTALMENTS=4
+TAMARA_REQUEST_TIMEOUT=15
+
 HEALTHZ_CHECK_CHANNELS=False
 LOG_LEVEL=INFO
 SENTRY_DSN=

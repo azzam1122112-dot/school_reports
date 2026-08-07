@@ -58,7 +58,14 @@ class LandingPageTests(TestCase):
         response = self.client.get(reverse("reports:landing"))
         html = response.content.decode("utf-8")
 
-        self.assertEqual(html.count('class="feature-proof"'), 6)
+        # Tied to the card count rather than a number: a headline added without
+        # its proof list is exactly the regression this guards against, and a
+        # literal count only catches it until someone bumps the literal.
+        self.assertEqual(
+            html.count('class="feature-proof"'),
+            html.count('class="feature-card'),
+        )
+        self.assertGreaterEqual(html.count('class="feature-proof"'), 6)
         self.assertContains(response, "PDF بهوية المدرسة")
         self.assertContains(response, "بصمة تحقق SHA-256")
         self.assertContains(response, "سجل اطلاع وتوقيع")
@@ -322,9 +329,12 @@ class LandingPageTests(TestCase):
         # The free trial stays: it is the entry point, not a package.
         self.assertContains(response, "التجربة المجانية")
         self.assertContains(response, "تشغيل كامل للتجربة")
-        self.assertNotContains(response, "مجموعة مدارس")
+        # Managing a group of schools is a feature; a group *subscription* is
+        # not. The page may name «مجموعة مدارس» as an admin capability, so what
+        # is guarded here is the billing promise and the bundle wording below.
         self.assertContains(response, "توسعة سعة المعلمين")
         self.assertContains(response, "كل اشتراك ودفع يخص مدرسة واحدة")
+        self.assertContains(response, "حتى عند إدارة عدة مدارس من الحساب نفسه")
         self.assertNotContains(response, "اشتراك مجمع")
         self.assertNotContains(response, "اشتراك موحد")
         self.assertNotContains(response, "باقة المجموعة")
