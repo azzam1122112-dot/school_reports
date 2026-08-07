@@ -1,10 +1,21 @@
 {% extends "base.html" %}
+{% load hijri_tags %}
 
 {% block title %}صندوق المراجعة والاعتماد | منصة توثيق{% endblock %}
 
 {% block head %}
 {% include "reports/_approval_theme.html" %}
 <style>
+  .inb-kpis { display: grid; gap: .8rem; margin-top: 1.15rem; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); }
+  .inb-kpi {
+    background: var(--apr-surface); border: 1px solid var(--apr-line);
+    border-radius: 15px; padding: .85rem 1rem;
+  }
+  .inb-kpi__v { font-size: 1.55rem; font-weight: 900; line-height: 1.1; }
+  .inb-kpi__l { font-size: .77rem; font-weight: 700; color: var(--apr-muted); margin-top: .18rem; }
+  .inb-kpi[data-tone="mine"] .inb-kpi__v { color: var(--apr-green); }
+  .inb-kpi[data-tone="old"] .inb-kpi__v { color: var(--apr-gold); }
+
   .inb-filters { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: 1.15rem; }
   .inb-chip {
     display: inline-flex; align-items: center; gap: .4rem;
@@ -13,6 +24,7 @@
     border: 1px solid var(--apr-line); color: var(--apr-muted);
     background: var(--apr-surface);
   }
+  .inb-chip:hover { border-color: var(--apr-green); color: var(--apr-green); }
   .inb-chip.is-active { background: var(--apr-green); color: #fff; border-color: transparent; }
   [data-theme="dark"] .inb-chip.is-active { color: #06251a; }
   .inb-chip__n {
@@ -22,29 +34,59 @@
   }
   .inb-chip.is-active .inb-chip__n { background: rgba(255,255,255,.24); color: inherit; }
 
-  .inb-list { display: grid; gap: .6rem; margin-top: 1.15rem; }
+  .inb-head { display: flex; align-items: center; gap: .55rem; margin: 1.3rem 0 .1rem; }
+  .inb-head__t { font-size: .84rem; font-weight: 900; }
+  .inb-head__n { font-size: .73rem; font-weight: 800; color: var(--apr-muted); }
+  .inb-head__line { flex: 1; height: 1px; background: var(--apr-line); }
+
+  .inb-list { display: grid; gap: .6rem; margin-top: .75rem; }
   .inb-item {
-    display: flex; gap: .85rem; align-items: center; flex-wrap: wrap;
-    padding: .85rem .95rem; border-radius: 14px;
+    position: relative; display: flex; gap: .85rem; align-items: center; flex-wrap: wrap;
+    padding: .9rem 1rem; border-radius: 15px;
     border: 1px solid var(--apr-line); background: var(--apr-surface);
     box-shadow: 0 8px 22px -22px rgba(16,35,26,.7);
-    transition: border-color .18s ease;
   }
-  .inb-item:hover { border-color: var(--apr-green); }
+  .inb-item:hover { border-color: var(--apr-green); box-shadow: 0 16px 32px -24px rgba(8,100,59,.5); transform: translateY(-1px); }
   .inb-item[data-tone="recommended"] { border-inline-start: 3px solid var(--apr-violet); }
   .inb-item[data-tone="pending"] { border-inline-start: 3px solid var(--apr-info); }
+  .inb-item[data-mine="1"] { background: linear-gradient(180deg, color-mix(in srgb, var(--apr-green) 5%, transparent), transparent 60%); }
+  @media (prefers-reduced-motion: no-preference) {
+    .inb-item, .inb-chip { transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+  }
 
+  .inb-item__ico {
+    width: 38px; height: 38px; flex: none; border-radius: 12px;
+    display: grid; place-items: center; font-size: .92rem;
+    background: var(--apr-soft); color: var(--apr-info);
+  }
+  .inb-item[data-tone="recommended"] .inb-item__ico { color: var(--apr-violet); }
   .inb-item__main { flex: 1; min-width: 200px; }
-  .inb-item__title { font-size: .94rem; font-weight: 800; }
+  .inb-item__title { font-size: .94rem; font-weight: 800; overflow-wrap: anywhere; }
   .inb-item__title a { color: inherit; text-decoration: none; }
-  .inb-item__title a:hover { text-decoration: underline; }
-  .inb-item__sub { font-size: .78rem; color: var(--apr-muted); margin-top: .22rem; line-height: 1.7; }
-  .inb-item__side { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+  .inb-item__title a::after { content: ""; position: absolute; inset: 0; }
+  .inb-item:hover .inb-item__title a { color: var(--apr-green); }
+  .inb-item__sub { font-size: .78rem; color: var(--apr-muted); margin-top: .24rem; line-height: 1.7; }
+  .inb-item__side { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; position: relative; z-index: 1; }
+
+  /* عمر الانتظار: ما ينتظر أسبوعين يجب أن يُرى قبل أن يُقرأ. */
+  .inb-age {
+    display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap;
+    font-size: .72rem; font-weight: 800; padding: .2rem .55rem; border-radius: 999px;
+    color: var(--apr-muted); border: 1px solid currentColor;
+  }
+  .inb-age[data-w="warn"] { color: var(--apr-gold); }
+  .inb-age[data-w="late"] { color: var(--apr-danger); }
+  .inb-mine {
+    font-size: .68rem; font-weight: 900; padding: .12rem .5rem; border-radius: 999px;
+    background: var(--apr-green); color: #fff; white-space: nowrap;
+  }
+  [data-theme="dark"] .inb-mine { color: #06251a; }
 
   @media (max-width: 640px) {
     .apr-page { padding: .85rem; }
     .apr-hero { padding: 1.35rem 1.15rem; border-radius: 16px; }
     .apr-hero__title { font-size: 1.26rem; }
+    .inb-item__side { width: 100%; }
   }
 </style>
 {% endblock %}
@@ -69,69 +111,129 @@
       لا يعتمد أحد عمله بنفسه — ولو كان مدير المدرسة. وما اعتُمد لا يُعدَّل ولا
       يُحذف، فالاعتماد الذي يمكن محوه ليس اعتماداً.
     </p>
-
-    <div class="inb-filters">
-      <a class="inb-chip {% if not state_filter %}is-active{% endif %}"
-         href="{% url 'reports:approval_inbox' %}">
-        الكل
-        <span class="inb-chip__n">{{ total }}</span>
-      </a>
-      {% for state, count in counts.items %}
-        {% if count %}
-          <a class="inb-chip {% if state_filter == state %}is-active{% endif %}"
-             href="?state={{ state }}">
-            {% if state == 'submitted' %}مُرسل للمراجعة
-            {% elif state == 'under_review' %}قيد المراجعة
-            {% elif state == 'recommended' %}موصى باعتماده
-            {% else %}{{ state }}{% endif %}
-            <span class="inb-chip__n">{{ count }}</span>
-          </a>
-        {% endif %}
-      {% endfor %}
-    </div>
   </header>
 
   {% if rows %}
-    <div class="inb-list">
-      {% for row in rows %}
-        <article class="inb-item" data-tone="{{ row.report.approval_tone }}">
-          <div class="inb-item__main">
-            <div class="inb-item__title">
-              <a href="{% url 'reports:approval_detail' row.report.pk %}">{{ row.report.title }}</a>
-            </div>
-            <div class="inb-item__sub">
-              {{ row.report.teacher_display_name }}
-              {% if row.report.category %} · {{ row.report.category.name }}{% endif %}
-              {% if row.report.submitted_at %} · أُرسل {{ row.report.submitted_at|date:"Y-m-d H:i" }}{% endif %}
-              {% if row.report.reviewed_by %} · راجعه {{ row.report.reviewed_by.name }}{% endif %}
-            </div>
-          </div>
+    <section class="inb-kpis" aria-label="ملخص الصندوق">
+      <article class="inb-kpi">
+        <div class="inb-kpi__v">{{ total }}</div>
+        <div class="inb-kpi__l">في صندوقك</div>
+      </article>
+      <article class="inb-kpi" data-tone="mine">
+        <div class="inb-kpi__v">{{ mine_count }}</div>
+        <div class="inb-kpi__l">ينتهي عندك</div>
+      </article>
+      {% if oldest_days %}
+        <article class="inb-kpi" data-tone="old">
+          <div class="inb-kpi__v">{{ oldest_days }}</div>
+          <div class="inb-kpi__l">يوماً — أقدم انتظار</div>
+        </article>
+      {% endif %}
+    </section>
+  {% endif %}
 
-          <div class="inb-item__side">
-            <span class="apr-state" data-tone="{{ row.report.approval_tone }}">
-              {{ row.report.get_approval_state_display }}
+  <div class="inb-filters">
+    <a class="inb-chip {% if not state_filter %}is-active{% endif %}"
+       href="{% url 'reports:approval_inbox' %}">
+      الكل
+      <span class="inb-chip__n">{{ total }}</span>
+    </a>
+    {% for state, count in counts.items %}
+      {% if count %}
+        <a class="inb-chip {% if state_filter == state %}is-active{% endif %}"
+           href="?state={{ state }}">
+          {% if state == 'submitted' %}مُرسل للمراجعة
+          {% elif state == 'under_review' %}قيد المراجعة
+          {% elif state == 'recommended' %}موصى باعتماده
+          {% else %}{{ state }}{% endif %}
+          <span class="inb-chip__n">{{ count }}</span>
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {% if rows %}
+    {% comment %}
+    الصندوق مقسوم قسمين: ما ينتهي القرار فيه عندك، وما تراه وتنتظر فيه غيرك.
+    خلطُهما يجعل المدير يقلّب عشرين سطراً ليجد الثلاثة التي تخصّه.
+    {% endcomment %}
+    {% regroup rows by is_mine as groups %}
+    {% for group in groups %}
+      <div class="inb-head">
+        <span class="inb-head__t">
+          {% if group.grouper %}
+            <i class="fa-solid fa-gavel" aria-hidden="true" style="color:var(--apr-green)"></i>
+            ينتهي القرار عندك
+          {% else %}
+            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+            تتابعه وينتظر غيرك
+          {% endif %}
+        </span>
+        <span class="inb-head__n">{{ group.list|length }}</span>
+        <span class="inb-head__line"></span>
+      </div>
+
+      <div class="inb-list">
+        {% for row in group.list %}
+          <article class="inb-item" data-tone="{{ row.report.approval_tone }}"
+                   {% if row.is_mine %}data-mine="1"{% endif %}>
+            <span class="inb-item__ico" aria-hidden="true">
+              {% if row.report.approval_state == 'recommended' %}<i class="fa-solid fa-thumbs-up"></i>
+              {% elif row.report.approval_state == 'under_review' %}<i class="fa-solid fa-eye"></i>
+              {% elif row.report.approval_state == 'needs_info' %}<i class="fa-solid fa-circle-question"></i>
+              {% elif row.report.approval_state == 'returned' %}<i class="fa-solid fa-rotate-left"></i>
+              {% else %}<i class="fa-solid fa-paper-plane"></i>{% endif %}
             </span>
 
-            {% if 'approve' in row.actions %}
-              <form method="post" action="{% url 'reports:approval_action' row.report.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="approval_action" value="approve">
-                <input type="hidden" name="next" value="inbox">
-                <button type="submit" class="apr-btn apr-btn--primary apr-btn--sm">
-                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-                  اعتماد
-                </button>
-              </form>
-            {% endif %}
+            <div class="inb-item__main">
+              <div class="inb-item__title">
+                <a href="{% url 'reports:approval_detail' row.report.pk %}">{{ row.report.title }}</a>
+              </div>
+              <div class="inb-item__sub">
+                {{ row.report.teacher_display_name }}
+                {% if row.report.category %} · {{ row.report.category.name }}{% endif %}
+                {% if row.report.submitted_at %} · أُرسل {{ row.report.submitted_at|hijri }} هـ{% endif %}
+                {% if row.report.reviewed_by %} · راجعه {{ row.report.reviewed_by.name }}{% endif %}
+              </div>
+            </div>
 
-            <a class="apr-btn apr-btn--ghost apr-btn--sm"
-               href="{% url 'reports:approval_detail' row.report.pk %}">
-              فتح
-            </a>
-          </div>
-        </article>
-      {% endfor %}
-    </div>
+            <div class="inb-item__side">
+              {# الحارس على ``submitted_at`` لا على ``waiting_days``: صفرُ أيام
+                 قيمةٌ صحيحة تعني «اليوم»، و``{% if 0 %}`` يُخفيها. #}
+              {% if row.report.submitted_at %}
+                <span class="inb-age"
+                      data-w="{% if row.waiting_days >= 7 %}late{% elif row.waiting_days >= 3 %}warn{% endif %}"
+                      title="مضى على إرساله {{ row.waiting_days }} يوماً">
+                  <i class="fa-solid fa-clock" aria-hidden="true"></i>
+                  {% if row.waiting_days == 0 %}اليوم{% else %}{{ row.waiting_days }} يوماً{% endif %}
+                </span>
+              {% endif %}
+
+              <span class="apr-state" data-tone="{{ row.report.approval_tone }}">
+                {{ row.report.get_approval_state_display }}
+              </span>
+
+              {% if 'approve' in row.actions %}
+                <form method="post" action="{% url 'reports:approval_action' row.report.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="approval_action" value="approve">
+                  <input type="hidden" name="next" value="inbox">
+                  <button type="submit" class="apr-btn apr-btn--primary apr-btn--sm">
+                    <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                    اعتماد
+                  </button>
+                </form>
+              {% endif %}
+
+              <a class="apr-btn apr-btn--ghost apr-btn--sm"
+                 href="{% url 'reports:approval_detail' row.report.pk %}">
+                فتح
+              </a>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endfor %}
   {% else %}
     <div class="apr-empty" style="margin-top:1.2rem">
       <div class="apr-empty__icon"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></div>

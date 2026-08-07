@@ -1,41 +1,73 @@
 {% extends "base.html" %}
+{% load hijri_tags %}
 
 {% block title %}{{ document.title }} | أرشيف الوثائق{% endblock %}
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
+{% include "reports/_document_theme.html" %}
 <style>
-  .dc-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
-  @media (max-width: 900px) { .dc-grid { grid-template-columns: 1fr; } }
-  .dc-meta { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
-  .dc-meta__l { font-size: .73rem; color: var(--asg-muted); font-weight: 700; }
-  .dc-meta__v { font-size: .86rem; font-weight: 800; margin-top: .12rem; }
-  .dc-body { font-size: .87rem; line-height: 1.95; white-space: pre-wrap; margin-top: 1rem; }
-  .dc-alert {
-    margin-top: 1rem; padding: .75rem .9rem; border-radius: 12px;
+  .dc-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); align-items: start; }
+  @media (max-width: 980px) { .dc-grid { grid-template-columns: 1fr; } }
+  .dc-side { position: sticky; top: 1rem; }
+  @media (max-width: 980px) { .dc-side { position: static; } }
+
+  /* ── معاينة الملف ─────────────────────────────────────────── */
+  .dc-preview {
+    border: 1px solid var(--asg-line); border-radius: 16px; overflow: hidden;
+    background: var(--asg-soft); box-shadow: var(--doc-shadow);
+  }
+  .dc-preview__img { display: block; width: 100%; max-height: 420px; object-fit: contain; background: var(--asg-soft); }
+  .dc-file {
+    display: flex; align-items: center; gap: .85rem; padding: 1.1rem;
+    background: var(--asg-surface);
+  }
+  .dc-file__name { flex: 1; min-width: 120px; font-size: .89rem; font-weight: 800; overflow-wrap: anywhere; }
+  .dc-file__sub { font-size: .75rem; color: var(--asg-muted); margin-top: .18rem; font-weight: 700; }
+  .dc-file__acts { display: flex; gap: .4rem; flex-wrap: wrap; }
+
+  /* ── شبكة البيانات ────────────────────────────────────────── */
+  .dc-meta { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(136px, 1fr)); margin-top: 1.1rem; }
+  .dc-meta__c { padding: .7rem .8rem; border-radius: 12px; background: var(--asg-soft); border: 1px solid var(--asg-line); }
+  .dc-meta__l { font-size: .72rem; color: var(--asg-muted); font-weight: 800; }
+  .dc-meta__v { font-size: .86rem; font-weight: 800; margin-top: .2rem; overflow-wrap: anywhere; }
+
+  .dc-body { font-size: .87rem; line-height: 1.95; white-space: pre-wrap; margin-top: 1.1rem; }
+  .dc-note {
+    margin-top: 1.1rem; padding: .8rem .95rem; border-radius: 13px;
     font-size: .84rem; line-height: 1.85; background: var(--asg-soft);
     border-inline-start: 3px solid var(--asg-gold); white-space: pre-wrap;
   }
-  .dc-file {
-    display: flex; align-items: center; gap: .7rem; margin-top: 1.1rem;
-    padding: .8rem .9rem; border-radius: 13px;
-    border: 1px solid var(--asg-line); background: var(--asg-surface);
+
+  /* ── الخط الزمني ──────────────────────────────────────────── */
+  .dc-tl { list-style: none; margin: .25rem 0 0; padding: 0; position: relative; }
+  .dc-tl::before {
+    content: ""; position: absolute; inset-inline-start: 7px; inset-block: .5rem;
+    width: 2px; background: var(--asg-line);
   }
-  .dc-file__icon {
-    width: 40px; height: 40px; border-radius: 12px; flex: none;
-    display: grid; place-items: center; font-size: 1.05rem;
-    background: var(--asg-soft); color: var(--asg-green);
+  .dc-tl__i { position: relative; padding-inline-start: 1.6rem; padding-block: .55rem; }
+  .dc-tl__i::before {
+    content: ""; position: absolute; inset-inline-start: 2px; inset-block-start: .82rem;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--asg-surface); border: 2px solid var(--asg-line);
   }
-  .dc-file__name { flex: 1; min-width: 130px; font-size: .86rem; font-weight: 800; }
-  .dc-file__sub { font-size: .74rem; color: var(--asg-muted); margin-top: .1rem; }
-  .dc-actions { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .8rem; }
-  .dc-step { font-size: .79rem; color: var(--asg-muted); padding: .4rem 0; border-bottom: 1px solid var(--asg-line); }
-  .dc-step strong { color: var(--asg-ink); }
+  .dc-tl__i[data-last="1"]::before { border-color: var(--asg-green); background: var(--asg-green); }
+  .dc-tl__t { font-size: .83rem; font-weight: 800; }
+  .dc-tl__m { font-size: .74rem; color: var(--asg-muted); margin-top: .15rem; line-height: 1.7; }
+  .dc-tl__n { font-size: .79rem; margin-top: .3rem; line-height: 1.8; padding: .4rem .6rem; border-radius: 9px; background: var(--asg-soft); }
+
+  .dc-actions { display: grid; gap: .45rem; margin-top: .2rem; }
+  .dc-actions .asg-btn { width: 100%; justify-content: center; }
+  .dc-locked {
+    display: flex; gap: .6rem; align-items: flex-start; padding: .8rem .9rem;
+    border-radius: 13px; background: var(--asg-soft); border: 1px solid var(--asg-line);
+    font-size: .82rem; line-height: 1.8; color: var(--asg-muted);
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="asg-page">
+<div class="asg-page doc-kind" data-kind="{{ document.kind }}">
 
   <header class="asg-hero">
     <a class="asg-hero__eyebrow" href="{% url 'reports:document_archive' %}">
@@ -44,39 +76,80 @@
     </a>
     <h1 class="asg-hero__title">{{ document.title }}</h1>
     <p class="asg-hero__meta">
-      {{ document.owner_name|default:"—" }} · رُفعت {{ document.created_at|date:"Y-m-d H:i" }}
+      {{ document.owner_name|default:"—" }}
+      · رُفعت {{ document.created_at|hijri }} هـ
+      · {{ document.get_kind_display }}
     </p>
   </header>
 
   <div class="dc-grid">
     <div>
-      <section class="asg-card" style="margin-top:1.2rem">
+      <section class="asg-card">
         <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
-          <h2 class="asg-card__title" style="margin:0">بيانات الوثيقة</h2>
+          <h2 class="asg-card__title" style="margin:0">الملف والبيانات</h2>
           {% if document.is_archived %}
-            <span class="asg-tag asg-tag--done">
+            <span class="doc-state" data-s="approved">
               <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
-              مؤرشَفة
+              مؤرشَفة معتمَدة
             </span>
+          {% elif document.approval_state == 'draft' %}
+            <span class="doc-state" data-s="draft">مسودة</span>
+          {% elif document.approval_state == 'returned' or document.approval_state == 'needs_info' %}
+            <span class="doc-state" data-s="returned">{{ document.get_approval_state_display }}</span>
           {% else %}
-            <span class="asg-tag">{{ document.get_approval_state_display }}</span>
+            <span class="doc-state" data-s="pending">{{ document.get_approval_state_display }}</span>
           {% endif %}
         </div>
 
+        {% comment %}
+        الصور تُعرض، والمستندات تُفتح. معاينةُ صورةٍ داخل الصفحة توفّر على
+        المراجع فتحَ تبويب لكل وثيقة يعتمدها — وهو عملُه المتكرر.
+        {% endcomment %}
+        <div class="dc-preview">
+          {% if '.png' in document.file.name|lower or '.jpg' in document.file.name|lower or '.jpeg' in document.file.name|lower %}
+            <img class="dc-preview__img" src="{{ document.file.url }}" alt="معاينة {{ document.title }}" loading="lazy">
+          {% endif %}
+          <div class="dc-file">
+            <span class="doc-ico doc-ico--lg" aria-hidden="true">
+              {% if '.pdf' in document.file.name|lower %}<i class="fa-solid fa-file-pdf"></i>
+              {% elif '.doc' in document.file.name|lower %}<i class="fa-solid fa-file-word"></i>
+              {% elif '.xls' in document.file.name|lower %}<i class="fa-solid fa-file-excel"></i>
+              {% elif '.png' in document.file.name|lower or '.jpg' in document.file.name|lower or '.jpeg' in document.file.name|lower %}<i class="fa-solid fa-file-image"></i>
+              {% else %}<i class="fa-solid fa-file-lines"></i>{% endif %}
+            </span>
+            <div class="dc-file__name">
+              {{ document.title }}
+              <div class="dc-file__sub">
+                {% if document.storage_bytes %}{{ document.storage_bytes|filesizeformat }}{% else %}الملف المرفق{% endif %}
+              </div>
+            </div>
+            <div class="dc-file__acts">
+              <a class="asg-btn asg-btn--primary asg-btn--sm" href="{{ document.file.url }}" target="_blank" rel="noopener">
+                <i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i>
+                فتح
+              </a>
+              <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{{ document.file.url }}" download>
+                <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                تنزيل
+              </a>
+            </div>
+          </div>
+        </div>
+
         <div class="dc-meta">
-          <div>
+          <div class="dc-meta__c">
             <div class="dc-meta__l">النوع</div>
-            <div class="dc-meta__v">{{ document.get_kind_display }}</div>
+            <div class="dc-meta__v" style="color:var(--k)">{{ document.get_kind_display }}</div>
           </div>
-          <div>
+          <div class="dc-meta__c">
             <div class="dc-meta__l">السنة الدراسية</div>
-            <div class="dc-meta__v">{{ document.academic_year|default:"—" }}</div>
+            <div class="dc-meta__v">{% if document.academic_year %}{{ document.academic_year }} هـ{% else %}—{% endif %}</div>
           </div>
-          <div>
+          <div class="dc-meta__c">
             <div class="dc-meta__l">القسم</div>
             <div class="dc-meta__v">{{ document.department.name|default:"—" }}</div>
           </div>
-          <div>
+          <div class="dc-meta__c">
             <div class="dc-meta__l">اعتمد الأرشفة</div>
             <div class="dc-meta__v">
               {% if document.decided_by %}{{ document.decided_by.name }}{% else %}—{% endif %}
@@ -89,43 +162,15 @@
         {% endif %}
 
         {% if document.review_note %}
-          <div class="dc-alert">
+          <div class="dc-note">
             <strong>آخر ملاحظة:</strong> {{ document.review_note }}
           </div>
         {% endif %}
-
-        <div class="dc-file">
-          <span class="dc-file__icon" aria-hidden="true"><i class="fa-solid fa-paperclip"></i></span>
-          <div class="dc-file__name">
-            الملف المرفق
-            <div class="dc-file__sub">
-              {% if document.size_kb %}{{ document.size_kb }} ك.ب{% endif %}
-            </div>
-          </div>
-          <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{{ document.file.url }}" target="_blank" rel="noopener">
-            <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
-            فتح
-          </a>
-        </div>
       </section>
-
-      {% if timeline %}
-        <section class="asg-card">
-          <h2 class="asg-card__title">سجل الأرشفة</h2>
-          {% for step in timeline %}
-            <div class="dc-step">
-              <strong>{{ step.get_action_display }}</strong>
-              · {{ step.actor_display }}{% if step.actor_role %} · {{ step.actor_role }}{% endif %}
-              · {{ step.created_at|date:"Y-m-d H:i" }}
-              {% if step.note %}<div style="margin-top:.2rem">{{ step.note }}</div>{% endif %}
-            </div>
-          {% endfor %}
-        </section>
-      {% endif %}
     </div>
 
     <div>
-      <section class="asg-card" style="margin-top:1.2rem">
+      <section class="asg-card dc-side">
         <h2 class="asg-card__title">
           {% if is_owner %}إجراءاتك{% else %}اعتماد الأرشفة{% endif %}
         </h2>
@@ -143,33 +188,43 @@
             <input type="hidden" name="approval_action" id="docAction" value="">
             {% if not is_owner %}
               <div class="asg-field">
-                <textarea name="note" rows="3" placeholder="ملاحظتك على الوثيقة…"></textarea>
+                <label for="docNote">ملاحظتك</label>
+                <textarea name="note" id="docNote" rows="3" placeholder="تُرفَق بالقرار وتظهر في السجل…"></textarea>
               </div>
             {% endif %}
-            <div class="dc-actions" style="margin-top:0">
+            <div class="dc-actions">
               {% if 'submit' in actions %}
                 <button type="submit" class="asg-btn asg-btn--primary" data-dc="submit">
-                  <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
                   إرسال للأرشفة
                 </button>
-              {% endif %}
-              {% if 'withdraw' in actions %}
-                <button type="submit" class="asg-btn asg-btn--ghost" data-dc="withdraw">سحب للتعديل</button>
-              {% endif %}
-              {% if 'start_review' in actions %}
-                <button type="submit" class="asg-btn asg-btn--ghost" data-dc="start_review">بدء المراجعة</button>
-              {% endif %}
-              {% if 'request_info' in actions %}
-                <button type="submit" class="asg-btn asg-btn--warn" data-dc="request_info">طلب استكمال</button>
-              {% endif %}
-              {% if 'return' in actions %}
-                <button type="submit" class="asg-btn asg-btn--warn" data-dc="return">إعادة للملاحظة</button>
               {% endif %}
               {% if 'approve' in actions %}
                 <button type="submit" class="asg-btn asg-btn--primary" data-dc="approve">
                   <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
                   اعتماد النقل للأرشيف
                 </button>
+              {% endif %}
+              {% if 'start_review' in actions %}
+                <button type="submit" class="asg-btn asg-btn--ghost" data-dc="start_review">
+                  <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                  بدء المراجعة
+                </button>
+              {% endif %}
+              {% if 'request_info' in actions %}
+                <button type="submit" class="asg-btn asg-btn--warn" data-dc="request_info">
+                  <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+                  طلب استكمال
+                </button>
+              {% endif %}
+              {% if 'return' in actions %}
+                <button type="submit" class="asg-btn asg-btn--warn" data-dc="return">
+                  <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                  إعادة بملاحظة
+                </button>
+              {% endif %}
+              {% if 'withdraw' in actions %}
+                <button type="submit" class="asg-btn asg-btn--ghost" data-dc="withdraw">سحب للتعديل</button>
               {% endif %}
             </div>
           </form>
@@ -185,15 +240,37 @@
             })();
           </script>
         {% else %}
-          <p class="asg-card__hint" style="margin:0">
-            {% if document.is_archived %}
-              هذه الوثيقة في الأرشيف المعتمَد. لا تُعدَّل ولا تُحذف.
-            {% else %}
-              لا إجراءات متاحة لك في الحالة الحالية.
-            {% endif %}
-          </p>
+          <div class="dc-locked">
+            <i class="fa-solid {% if document.is_archived %}fa-lock{% else %}fa-hourglass-half{% endif %}" aria-hidden="true" style="margin-top:.15rem"></i>
+            <span>
+              {% if document.is_archived %}
+                هذه الوثيقة في الأرشيف المعتمَد. لا تُعدَّل ولا تُحذف.
+              {% else %}
+                لا إجراءات متاحة لك في الحالة الحالية.
+              {% endif %}
+            </span>
+          </div>
         {% endif %}
       </section>
+
+      {% if timeline %}
+        <section class="asg-card">
+          <h2 class="asg-card__title">سجل الأرشفة</h2>
+          <p class="asg-card__hint">كل خطوة ومَن اتّخذها ومتى — لا تُعدَّل ولا تُحذف.</p>
+          <ol class="dc-tl">
+            {% for step in timeline %}
+              <li class="dc-tl__i" {% if forloop.last %}data-last="1"{% endif %}>
+                <div class="dc-tl__t">{{ step.get_action_display }}</div>
+                <div class="dc-tl__m">
+                  {{ step.actor_display }}{% if step.actor_role %} · {{ step.actor_role }}{% endif %}
+                  <br>{{ step.created_at|hijri }} هـ — {{ step.created_at|time:"H:i" }}
+                </div>
+                {% if step.note %}<div class="dc-tl__n">{{ step.note }}</div>{% endif %}
+              </li>
+            {% endfor %}
+          </ol>
+        </section>
+      {% endif %}
     </div>
   </div>
 </div>

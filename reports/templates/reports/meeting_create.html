@@ -3,13 +3,38 @@
 {% block title %}اجتماع جديد | منصة توثيق{% endblock %}
 
 {% block head %}
-{% include "reports/_assignment_theme.html" %}
+{% include "reports/_meeting_theme.html" %}
 <style>
   .mnew-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
-  .mnew-people { display: grid; gap: .45rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
-  .mnew-people label { display: flex; gap: .5rem; align-items: flex-start; font-size: .85rem; font-weight: 700; }
-  .mnew-people input { margin-top: .2rem; }
-  .mnew-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.3rem; }
+
+  /* الترقيم يجعل الصفحة رحلة من ثلاث محطات لا استمارةً طويلة. */
+  .mnew-step { display: flex; align-items: center; gap: .6rem; margin-bottom: .25rem; }
+  .mnew-step__num {
+    width: 28px; height: 28px; flex: none; border-radius: 9px;
+    display: grid; place-items: center; font-size: .8rem; font-weight: 900;
+    background: var(--asg-green); color: #fff;
+  }
+  [data-theme="dark"] .mnew-step__num { color: #06251a; }
+  .mnew-step h2 { margin: 0; font-size: 1rem; font-weight: 900; }
+
+  .mnew-empty {
+    padding: 1.4rem 1rem; text-align: center; border: 1px dashed var(--asg-line);
+    border-radius: 13px; color: var(--asg-muted); font-size: .84rem; line-height: 1.9;
+  }
+  .mnew-noresult { display: none; padding: 1rem; text-align: center; color: var(--asg-muted); font-size: .82rem; }
+  .mnew-noresult.is-shown { display: block; }
+
+  /* شريط الإرسال يبقى في الأسفل: قائمة مدعوين طويلة تدفع الزر خارج الشاشة. */
+  .mnew-actions {
+    position: sticky; bottom: 0; z-index: 15;
+    display: flex; gap: .6rem; flex-wrap: wrap; align-items: center;
+    margin-top: 1.2rem; padding: .75rem .8rem;
+    border: 1px solid var(--asg-line); border-radius: 14px;
+    background: color-mix(in srgb, var(--asg-surface) 94%, transparent);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 -8px 26px -22px rgba(16,35,26,.9);
+  }
+  .mnew-actions__note { flex: 1; min-width: 160px; font-size: .78rem; color: var(--asg-muted); line-height: 1.7; }
 </style>
 {% endblock %}
 
@@ -23,15 +48,20 @@
     </a>
     <h1 class="asg-hero__title">اجتماع جديد</h1>
     <p class="asg-hero__meta">
-      جدول الأعمال والمحضر والقرارات تُضاف بعد الإنشاء من صفحة الاجتماع.
+      حدّد الموضوع والموعد، ثم اختر المدعوين. جدول الأعمال والمحضر والقرارات
+      تُضاف بعد الإنشاء من صفحة الاجتماع.
     </p>
   </header>
 
-  <form method="post" novalidate>
+  <form method="post" novalidate id="meetingCreateForm">
     {% csrf_token %}
 
     <section class="asg-card">
-      <h2 class="asg-card__title">بيانات الاجتماع</h2>
+      <div class="mnew-step">
+        <span class="mnew-step__num" aria-hidden="true">1</span>
+        <h2>موضوع الاجتماع</h2>
+      </div>
+      <p class="asg-card__hint">عنوانٌ يُعرف به الاجتماع لاحقاً في المحضر المطبوع.</p>
 
       <div class="asg-field">
         <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
@@ -42,7 +72,16 @@
       <div class="asg-field">
         <label for="{{ form.purpose.id_for_label }}">{{ form.purpose.label }}</label>
         {{ form.purpose }}
+        <div class="asg-field__help">يظهر في ترويسة المحضر الرسمي.</div>
       </div>
+    </section>
+
+    <section class="asg-card">
+      <div class="mnew-step">
+        <span class="mnew-step__num" aria-hidden="true">2</span>
+        <h2>الموعد والمكان</h2>
+      </div>
+      <p class="asg-card__hint">يمكن تعديل الموعد ما دام الاجتماع لم يُسجَّل انعقاده.</p>
 
       <div class="mnew-grid">
         <div class="asg-field">
@@ -64,18 +103,55 @@
     </section>
 
     <section class="asg-card">
-      <h2 class="asg-card__title">المدعوون</h2>
+      <div class="mnew-step">
+        <span class="mnew-step__num" aria-hidden="true">3</span>
+        <h2>المدعوون</h2>
+      </div>
       <p class="asg-card__hint">
         من دُعي ولم يحضر يُسجَّل غيابه — الدعوة والحضور صفٌّ واحد، فلا تُمحى
         الواقعة بحذف اسم.
       </p>
-      <div class="mnew-people">
-        {% for choice in form.attendees %}
-          <label>{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
-        {% empty %}
-          <p class="asg-card__hint" style="margin:0">لا يوجد من يمكن دعوتهم ضمن نطاقك.</p>
-        {% endfor %}
-      </div>
+
+      {% if form.attendees.field.queryset.exists %}
+        <div class="mtg-picker__bar">
+          <div class="mtg-picker__search">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="attendeeSearch" placeholder="ابحث باسم المدعو…"
+                   autocomplete="off" aria-label="ابحث في قائمة المدعوين">
+          </div>
+          <span class="mtg-picker__count" id="attendeeCount" aria-live="polite">
+            <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+            <span data-count>0</span> مدعو
+          </span>
+          <button type="button" class="mtg-iconbtn mtg-iconbtn--sm" id="attendeeSelectAll">
+            <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+            <span class="mtg-iconbtn__text">تحديد الظاهر</span>
+          </button>
+          <button type="button" class="mtg-iconbtn mtg-iconbtn--sm" id="attendeeClear">
+            <i class="fa-solid fa-eraser" aria-hidden="true"></i>
+            <span class="mtg-iconbtn__text">مسح التحديد</span>
+          </button>
+        </div>
+
+        <div class="mtg-picker__list" id="attendeeList">
+          {% for choice in form.attendees %}
+            <label class="mtg-person" data-name="{{ choice.choice_label }}">
+              {{ choice.tag }}
+              <span class="mtg-person__avatar" aria-hidden="true">{{ choice.choice_label|slice:":1" }}</span>
+              <span class="mtg-person__name">{{ choice.choice_label }}</span>
+              <span class="mtg-person__check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+            </label>
+          {% endfor %}
+        </div>
+        <p class="mnew-noresult" id="attendeeNoResult">لا اسم يطابق بحثك.</p>
+      {% else %}
+        <div class="mnew-empty">
+          لا يوجد من يمكن دعوتهم ضمن نطاقك.
+          <br>
+          أضف منسوبين للمدرسة أو اطلب توسيع نطاق إشرافك، ثم أعد المحاولة.
+        </div>
+      {% endif %}
+
       {% if form.attendees.errors %}<ul class="asg-errors">{% for e in form.attendees.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
     </section>
 
@@ -84,13 +160,78 @@
     {% endif %}
 
     <div class="mnew-actions">
-      <button type="submit" class="asg-btn asg-btn--primary">
+      <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid">
         <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i>
-        إنشاء الاجتماع
+        إنشاء الاجتماع وتوجيه الدعوات
       </button>
-      <a class="asg-btn asg-btn--ghost" href="{% url 'reports:meeting_list' %}">إلغاء</a>
+      <a class="mtg-iconbtn" href="{% url 'reports:meeting_list' %}">إلغاء</a>
+      <span class="mnew-actions__note" id="attendeeHint">اختر مدعوّاً واحداً على الأقل.</span>
     </div>
   </form>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    (function () {
+      var list = document.getElementById('attendeeList');
+      if (!list) return;
+
+      var search = document.getElementById('attendeeSearch');
+      var noResult = document.getElementById('attendeeNoResult');
+      var counter = document.querySelector('#attendeeCount [data-count]');
+      var hint = document.getElementById('attendeeHint');
+      var selectAll = document.getElementById('attendeeSelectAll');
+      var clear = document.getElementById('attendeeClear');
+      var tiles = Array.prototype.slice.call(list.querySelectorAll('.mtg-person'));
+
+      function boxOf(tile) { return tile.querySelector('input[type="checkbox"]'); }
+      function visible(tile) { return !tile.hidden; }
+
+      function refresh() {
+        var chosen = tiles.filter(function (tile) { return boxOf(tile).checked; }).length;
+        if (counter) counter.textContent = chosen;
+        if (hint) {
+          hint.textContent = chosen
+            ? 'ستصل الدعوة إلى ' + chosen + ' من منسوبي مدرستك.'
+            : 'اختر مدعوّاً واحداً على الأقل.';
+        }
+      }
+
+      if (search) {
+        search.addEventListener('input', function () {
+          var term = search.value.trim();
+          var shown = 0;
+          tiles.forEach(function (tile) {
+            var match = !term || (tile.dataset.name || '').indexOf(term) !== -1;
+            tile.hidden = !match;
+            if (match) shown += 1;
+          });
+          if (noResult) noResult.classList.toggle('is-shown', shown === 0);
+        });
+      }
+
+      list.addEventListener('change', refresh);
+
+      if (selectAll) {
+        // Only what the current search shows — "select all" on a filtered list
+        // that quietly ticked hidden names would be a trap.
+        selectAll.addEventListener('click', function () {
+          tiles.filter(visible).forEach(function (tile) { boxOf(tile).checked = true; });
+          refresh();
+        });
+      }
+
+      if (clear) {
+        clear.addEventListener('click', function () {
+          tiles.forEach(function (tile) { boxOf(tile).checked = false; });
+          refresh();
+        });
+      }
+
+      refresh();
+    })();
+  </script>
 {% endblock %}

@@ -1,33 +1,34 @@
 {% extends "base.html" %}
+{% load hijri_tags %}
 
 {% block title %}{{ meeting.title }} | الاجتماعات{% endblock %}
 
 {% block head %}
-{% include "reports/_assignment_theme.html" %}
+{% include "reports/_meeting_theme.html" %}
 <style>
   .mt-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; }
   @media (max-width: 900px) { .mt-grid { grid-template-columns: 1fr; } }
 
-  .mt-meta { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
-  .mt-meta__l { font-size: .73rem; color: var(--asg-muted); font-weight: 700; }
-  .mt-meta__v { font-size: .86rem; font-weight: 800; margin-top: .12rem; }
+  .mt-meta { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+  .mt-meta > div { padding: .6rem .7rem; border-radius: 12px; background: var(--asg-soft); }
+  .mt-meta__l { font-size: .72rem; color: var(--asg-muted); font-weight: 700; }
+  .mt-meta__v { font-size: 1.15rem; font-weight: 900; margin-top: .1rem; line-height: 1.2; }
+  .mt-meta__v[data-tone="ok"] { color: var(--asg-green); }
+  .mt-meta__v[data-tone="bad"] { color: var(--asg-danger); }
+  .mt-meta__v[data-tone="warn"] { color: var(--asg-gold); }
 
   .mt-row {
     display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
-    padding: .6rem .75rem; border-radius: 11px; margin-bottom: .45rem;
+    padding: .65rem .75rem; border-radius: 12px; margin-bottom: .45rem;
     border: 1px solid var(--asg-line); background: var(--asg-surface);
   }
   .mt-row__main { flex: 1; min-width: 150px; }
-  .mt-row__title { font-size: .86rem; font-weight: 800; }
-  .mt-row__sub { font-size: .75rem; color: var(--asg-muted); margin-top: .15rem; line-height: 1.7; }
+  .mt-row__title { font-size: .87rem; font-weight: 800; }
+  .mt-row__sub { font-size: .76rem; color: var(--asg-muted); margin-top: .18rem; line-height: 1.75; }
   .mt-num {
-    width: 24px; height: 24px; flex: none; border-radius: 8px;
+    width: 26px; height: 26px; flex: none; border-radius: 9px;
     display: grid; place-items: center; font-size: .74rem; font-weight: 900;
     background: var(--asg-soft); color: var(--asg-green);
-  }
-  .mt-att select {
-    padding: .3rem .55rem; border-radius: 8px; font-size: .78rem; font-family: inherit;
-    border: 1px solid var(--asg-line); background: var(--asg-surface); color: var(--asg-ink);
   }
 
   .mt-dec[data-state="late"] { border-inline-start: 3px solid var(--asg-danger); }
@@ -35,18 +36,25 @@
   .mt-dec[data-state="running"] { border-inline-start: 3px solid var(--asg-info); }
 
   .mt-minutes textarea {
-    width: 100%; padding: .7rem .8rem; border-radius: 12px;
+    width: 100%; padding: .8rem .9rem; border-radius: 13px;
     border: 1px solid var(--asg-line); background: var(--asg-surface);
-    color: var(--asg-ink); font-family: inherit; font-size: .88rem; line-height: 1.95;
+    color: var(--asg-ink); font-family: inherit; font-size: .89rem; line-height: 2;
     resize: vertical;
   }
   .mt-minutes textarea:focus { outline: 2px solid var(--asg-green); outline-offset: 1px; }
   .mt-readonly {
     font-size: .88rem; line-height: 1.95; white-space: pre-wrap;
-    padding: .8rem .9rem; border-radius: 12px; background: var(--asg-soft);
+    padding: .85rem .95rem; border-radius: 13px; background: var(--asg-soft);
   }
+  .mt-note {
+    display: flex; gap: .6rem; align-items: flex-start;
+    padding: .75rem .85rem; border-radius: 13px; margin-bottom: 1rem;
+    border: 1px solid var(--asg-gold); background: var(--asg-soft);
+    font-size: .83rem; line-height: 1.85;
+  }
+  .mt-note i { color: var(--asg-gold); margin-top: .22rem; }
 
-  .mt-timeline { list-style: none; margin: .6rem 0 0; padding: 0; padding-inline-start: 1.8rem; position: relative; }
+  .mt-timeline { list-style: none; margin: 1rem 0 0; padding: 0; padding-inline-start: 1.8rem; position: relative; }
   .mt-timeline::before {
     content: ""; position: absolute; inset-block: .7rem; inset-inline-start: .78rem;
     width: 2px; background: var(--asg-line); border-radius: 2px;
@@ -65,6 +73,24 @@
 
   .mt-actions { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .8rem; }
   .mt-inline { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+
+  .mt-att-row {
+    display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+    padding: .55rem .65rem; border-radius: 12px; margin-bottom: .4rem;
+    border: 1px solid var(--asg-line);
+  }
+  .mt-att-row__name { flex: 1; min-width: 120px; font-size: .84rem; font-weight: 800; }
+
+  /* نموذج مطويّ: بند جديد وقرار جديد لا يجب أن يزاحما ما هو مسجَّل. */
+  .mt-fold { margin-top: .9rem; border: 1px dashed var(--asg-line); border-radius: 13px; }
+  .mt-fold > summary {
+    display: flex; align-items: center; gap: .5rem; cursor: pointer; list-style: none;
+    padding: .65rem .8rem; font-size: .84rem; font-weight: 800; color: var(--asg-green);
+  }
+  .mt-fold > summary::-webkit-details-marker { display: none; }
+  .mt-fold > summary i { transition: transform .18s ease; }
+  .mt-fold[open] > summary i.mt-fold__chevron { transform: rotate(90deg); }
+  .mt-fold__body { padding: 0 .8rem .8rem; }
 </style>
 {% endblock %}
 
@@ -78,19 +104,59 @@
     </a>
     <h1 class="asg-hero__title">{{ meeting.title }}</h1>
     <p class="asg-hero__meta">
-      {{ meeting.scheduled_at|date:"Y-m-d H:i" }}
+      {{ meeting.scheduled_at|hijri }} هـ — {{ meeting.scheduled_at|time:"H:i" }}
       {% if meeting.location %} · {{ meeting.location }}{% endif %}
-      · نظّمه {{ meeting.organizer_name|default:"—" }}
+      · نظّمه {% firstof meeting.organizer_name meeting.organizer.name "—" %}
     </p>
   </header>
+
+  <div class="mtg-toolbar" role="group" aria-label="أدوات الاجتماع">
+    <a class="mtg-toolbar__back" href="{% url 'reports:meeting_list' %}">
+      <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+      كل الاجتماعات
+    </a>
+    <span class="mtg-toolbar__spacer"></span>
+
+    <button type="button" class="mtg-iconbtn"
+            data-copy-link="{{ request.scheme }}://{{ request.get_host }}{% url 'reports:meeting_detail' meeting.pk %}"
+            data-share-native data-share-title="{{ meeting.title }}">
+      <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+      <span class="mtg-iconbtn__text">مشاركة</span>
+    </button>
+
+    <a class="mtg-iconbtn mtg-iconbtn--solid" href="{% url 'reports:meeting_print' meeting.pk %}"
+       target="_blank" rel="noopener">
+      <i class="fa-solid fa-print" aria-hidden="true"></i>
+      <span class="mtg-iconbtn__text">طباعة المحضر</span>
+    </a>
+  </div>
+
+  {# مسار الاجتماع: أين هو الآن وما الخطوة التالية #}
+  <ol class="mtg-steps" aria-label="مسار الاجتماع">
+    {% if meeting.is_cancelled %}
+      <li class="mtg-step" data-state="done"><i class="fa-solid fa-check" aria-hidden="true"></i> جُدول</li>
+      <li class="mtg-step" data-state="cancelled"><i class="fa-solid fa-ban" aria-hidden="true"></i> ألغي</li>
+    {% else %}
+      <li class="mtg-step" data-state="done"><i class="fa-solid fa-check" aria-hidden="true"></i> جُدول</li>
+      <li class="mtg-step" data-state="{% if meeting.is_held %}done{% else %}current{% endif %}">
+        <i class="fa-solid fa-gavel" aria-hidden="true"></i> انعقد
+      </li>
+      <li class="mtg-step" data-state="{% if minutes.body %}done{% elif meeting.is_held %}current{% endif %}">
+        <i class="fa-solid fa-pen-nib" aria-hidden="true"></i> كُتب المحضر
+      </li>
+      <li class="mtg-step" data-state="{% if minutes.is_final %}done{% elif minutes.body %}current{% endif %}">
+        <i class="fa-solid fa-stamp" aria-hidden="true"></i> اعتُمد
+      </li>
+    {% endif %}
+  </ol>
 
   <div class="mt-grid">
     <div>
       {# ═══ الحالة والغرض ═══════════════════════════════ #}
-      <section class="asg-card" style="margin-top:1.2rem">
+      <section class="asg-card" style="margin-top:0">
         <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
           <h2 class="asg-card__title" style="margin:0">الاجتماع</h2>
-          <span class="asg-tag {% if meeting.is_held %}asg-tag--done{% endif %}">
+          <span class="asg-tag {% if meeting.is_held %}asg-tag--done{% elif meeting.is_cancelled %}asg-tag--late{% endif %}">
             {{ meeting.get_status_display }}
           </span>
           {% if meeting.department %}<span class="asg-tag">{{ meeting.department.name }}</span>{% endif %}
@@ -103,15 +169,15 @@
           </div>
           <div>
             <div class="mt-meta__l">الحضور</div>
-            <div class="mt-meta__v">{{ attendance.present }}</div>
+            <div class="mt-meta__v" data-tone="ok">{{ attendance.present }}</div>
           </div>
           <div>
             <div class="mt-meta__l">الغياب</div>
-            <div class="mt-meta__v">{{ attendance.absent }}</div>
+            <div class="mt-meta__v" data-tone="bad">{{ attendance.absent }}</div>
           </div>
           <div>
             <div class="mt-meta__l">الاعتذار</div>
-            <div class="mt-meta__v">{{ attendance.excused }}</div>
+            <div class="mt-meta__v" data-tone="warn">{{ attendance.excused }}</div>
           </div>
         </div>
 
@@ -120,8 +186,9 @@
         {% endif %}
 
         {% if meeting.is_cancelled and meeting.cancel_reason %}
-          <div class="mt-readonly" style="margin-top:1rem">
-            <strong>سبب الإلغاء:</strong> {{ meeting.cancel_reason }}
+          <div class="mt-note" style="margin-top:1rem;margin-bottom:0;border-color:var(--asg-danger)">
+            <i class="fa-solid fa-ban" aria-hidden="true" style="color:var(--asg-danger)"></i>
+            <span><strong>سبب الإلغاء:</strong> {{ meeting.cancel_reason }}</span>
           </div>
         {% endif %}
       </section>
@@ -141,11 +208,15 @@
               {% if item.note %}<div class="mt-row__sub">{{ item.note }}</div>{% endif %}
             </div>
             {% if is_organizer and not meeting.is_held %}
-              <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}">
+              <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}"
+                    data-confirm="حذف البند «{{ item.title }}» من جدول الأعمال؟">
                 {% csrf_token %}
                 <input type="hidden" name="meeting_action" value="remove_agenda">
                 <input type="hidden" name="item_id" value="{{ item.pk }}">
-                <button type="submit" class="asg-btn asg-btn--danger asg-btn--sm">حذف</button>
+                <button type="submit" class="mtg-iconbtn mtg-iconbtn--sm mtg-iconbtn--square mtg-iconbtn--danger"
+                        title="حذف البند" aria-label="حذف البند {{ item.title }}">
+                  <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+                </button>
               </form>
             {% endif %}
           </div>
@@ -154,19 +225,31 @@
         {% endfor %}
 
         {% if is_organizer and not meeting.is_cancelled %}
-          <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}" style="margin-top:1rem">
-            {% csrf_token %}
-            <input type="hidden" name="meeting_action" value="add_agenda">
-            <div class="asg-field">
-              <label for="{{ agenda_form.title.id_for_label }}">بند جديد</label>
-              {{ agenda_form.title }}
-            </div>
-            <div class="asg-field">{{ agenda_form.note }}</div>
-            <button type="submit" class="asg-btn asg-btn--ghost">
+          <details class="mt-fold">
+            <summary>
+              <i class="fa-solid fa-chevron-left mt-fold__chevron" aria-hidden="true"></i>
               <i class="fa-solid fa-plus" aria-hidden="true"></i>
-              إضافة بند
-            </button>
-          </form>
+              إضافة بند جديد
+            </summary>
+            <div class="mt-fold__body">
+              <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="meeting_action" value="add_agenda">
+                <div class="asg-field">
+                  <label for="{{ agenda_form.title.id_for_label }}">عنوان البند</label>
+                  {{ agenda_form.title }}
+                </div>
+                <div class="asg-field">
+                  <label for="{{ agenda_form.note.id_for_label }}">تمهيد أو مرفق (اختياري)</label>
+                  {{ agenda_form.note }}
+                </div>
+                <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid">
+                  <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                  إضافة البند
+                </button>
+              </form>
+            </div>
+          </details>
         {% endif %}
       </section>
 
@@ -186,8 +269,9 @@
           </p>
 
           {% if minutes.review_note %}
-            <div class="mt-readonly" style="border-inline-start:3px solid var(--asg-gold);margin-bottom:1rem">
-              <strong>آخر ملاحظة:</strong> {{ minutes.review_note }}
+            <div class="mt-note">
+              <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
+              <span><strong>آخر ملاحظة:</strong> {{ minutes.review_note }}</span>
             </div>
           {% endif %}
 
@@ -196,7 +280,7 @@
               {% csrf_token %}
               <input type="hidden" name="meeting_action" value="save_minutes">
               {{ minutes_form.body }}
-              <button type="submit" class="asg-btn asg-btn--ghost" style="margin-top:.8rem">
+              <button type="submit" class="mtg-iconbtn" style="margin-top:.8rem">
                 <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
                 حفظ المحضر
               </button>
@@ -219,7 +303,7 @@
                   </span>
                   <div class="mt-step__head">{{ step.get_action_display }}</div>
                   <div class="mt-step__who">
-                    {{ step.actor_display }} · {{ step.created_at|date:"Y-m-d H:i" }}
+                    {{ step.actor_display }} · {{ step.created_at|hijri }} هـ — {{ step.created_at|time:"H:i" }}
                   </div>
                   {% if step.note %}<div class="mt-step__note">{{ step.note }}</div>{% endif %}
                 </li>
@@ -233,37 +317,50 @@
               {% csrf_token %}
               <input type="hidden" name="approval_action" id="mtAction" value="">
               <div class="asg-field">
-                <textarea name="note" rows="3" placeholder="ملاحظتك على المحضر (اختياري)…"></textarea>
+                <label for="mtApprovalNote">ملاحظتك على المحضر (اختياري)</label>
+                <textarea id="mtApprovalNote" name="note" rows="3" placeholder="تُحفظ في مسار الاعتماد أعلاه…"></textarea>
               </div>
               <div class="mt-actions" style="margin-top:0">
                 {% if 'issue' in minutes_actions %}
-                  <button type="submit" class="asg-btn asg-btn--primary" data-mt="issue">
+                  <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid" data-mt="issue">
                     <i class="fa-solid fa-stamp" aria-hidden="true"></i>
                     إصدار المحضر
                   </button>
                 {% endif %}
                 {% if 'submit' in minutes_actions %}
-                  <button type="submit" class="asg-btn asg-btn--primary" data-mt="submit">
+                  <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid" data-mt="submit">
                     <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-                    إرسال المحضر للاعتماد
+                    إرسال للاعتماد
+                  </button>
+                {% endif %}
+                {% if 'approve' in minutes_actions %}
+                  <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid" data-mt="approve">
+                    <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                    اعتماد المحضر
+                  </button>
+                {% endif %}
+                {% if 'start_review' in minutes_actions %}
+                  <button type="submit" class="mtg-iconbtn" data-mt="start_review">
+                    <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    بدء المراجعة
+                  </button>
+                {% endif %}
+                {% if 'request_info' in minutes_actions %}
+                  <button type="submit" class="mtg-iconbtn" data-mt="request_info">
+                    <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+                    طلب استكمال
+                  </button>
+                {% endif %}
+                {% if 'return' in minutes_actions %}
+                  <button type="submit" class="mtg-iconbtn" data-mt="return">
+                    <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                    إعادة بملاحظة
                   </button>
                 {% endif %}
                 {% if 'withdraw' in minutes_actions %}
-                  <button type="submit" class="asg-btn asg-btn--ghost" data-mt="withdraw">سحب للتعديل</button>
-                {% endif %}
-                {% if 'start_review' in minutes_actions %}
-                  <button type="submit" class="asg-btn asg-btn--ghost" data-mt="start_review">بدء المراجعة</button>
-                {% endif %}
-                {% if 'request_info' in minutes_actions %}
-                  <button type="submit" class="asg-btn asg-btn--warn" data-mt="request_info">طلب استكمال</button>
-                {% endif %}
-                {% if 'return' in minutes_actions %}
-                  <button type="submit" class="asg-btn asg-btn--warn" data-mt="return">إعادة للملاحظة</button>
-                {% endif %}
-                {% if 'approve' in minutes_actions %}
-                  <button type="submit" class="asg-btn asg-btn--primary" data-mt="approve">
-                    <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-                    اعتماد المحضر
+                  <button type="submit" class="mtg-iconbtn" data-mt="withdraw">
+                    <i class="fa-solid fa-arrow-turn-down" aria-hidden="true"></i>
+                    سحب للتعديل
                   </button>
                 {% endif %}
               </div>
@@ -300,7 +397,7 @@
                 {{ row.decision.get_kind_display }}
                 {% if row.decision.agenda_item %} · بند: {{ row.decision.agenda_item.title }}{% endif %}
                 {% if row.decision.responsible %} · المسؤول: {{ row.decision.responsible.name }}{% endif %}
-                {% if row.decision.due_at %} · يستحق {{ row.decision.due_at|date:"Y-m-d" }}{% endif %}
+                {% if row.decision.due_at %} · يستحق {{ row.decision.due_at|hijri }} هـ{% endif %}
               </div>
               {% if row.decision.body %}<div class="mt-row__sub">{{ row.decision.body }}</div>{% endif %}
             </div>
@@ -321,14 +418,16 @@
                   {% csrf_token %}
                   <input type="hidden" name="meeting_action" value="track_decision">
                   <input type="hidden" name="decision_id" value="{{ row.decision.pk }}">
-                  <button type="submit" class="asg-btn asg-btn--primary asg-btn--sm">
+                  <button type="submit" class="mtg-iconbtn mtg-iconbtn--sm">
                     <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i>
                     حوّله إلى تكليف
                   </button>
                 </form>
               {% elif row.decision.is_tracked %}
-                <a class="asg-btn asg-btn--ghost asg-btn--sm"
-                   href="{% url 'reports:assignment_board' %}">التكليف</a>
+                <a class="mtg-iconbtn mtg-iconbtn--sm" href="{% url 'reports:assignment_board' %}">
+                  <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+                  التكليف
+                </a>
               {% endif %}
             </div>
           </div>
@@ -337,75 +436,131 @@
         {% endfor %}
 
         {% if is_organizer and meeting.is_held %}
-          <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}" style="margin-top:1.1rem">
-            {% csrf_token %}
-            <input type="hidden" name="meeting_action" value="add_decision">
-            <div class="asg-field">
-              <label for="{{ decision_form.title.id_for_label }}">قرار جديد</label>
-              {{ decision_form.title }}
-              {% if decision_form.title.errors %}<ul class="asg-errors">{% for e in decision_form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-            </div>
-            <div class="asg-field">{{ decision_form.body }}</div>
-            <div class="mt-inline">
-              <div class="asg-field">
-                <label for="{{ decision_form.kind.id_for_label }}">{{ decision_form.kind.label }}</label>
-                {{ decision_form.kind }}
-              </div>
-              <div class="asg-field">
-                <label for="{{ decision_form.agenda_item.id_for_label }}">{{ decision_form.agenda_item.label }}</label>
-                {{ decision_form.agenda_item }}
-              </div>
-              <div class="asg-field">
-                <label for="{{ decision_form.responsible.id_for_label }}">{{ decision_form.responsible.label }}</label>
-                {{ decision_form.responsible }}
-              </div>
-              <div class="asg-field">
-                <label for="{{ decision_form.due_at.id_for_label }}">{{ decision_form.due_at.label }}</label>
-                {{ decision_form.due_at }}
-                <div class="asg-field__help">{{ decision_form.due_at.help_text }}</div>
-              </div>
-            </div>
-            <button type="submit" class="asg-btn asg-btn--ghost">
+          <details class="mt-fold">
+            <summary>
+              <i class="fa-solid fa-chevron-left mt-fold__chevron" aria-hidden="true"></i>
               <i class="fa-solid fa-gavel" aria-hidden="true"></i>
-              تسجيل القرار
-            </button>
-          </form>
+              تسجيل قرار أو توصية
+            </summary>
+            <div class="mt-fold__body">
+              <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="meeting_action" value="add_decision">
+                <div class="asg-field">
+                  <label for="{{ decision_form.title.id_for_label }}">نص القرار</label>
+                  {{ decision_form.title }}
+                  {% if decision_form.title.errors %}<ul class="asg-errors">{% for e in decision_form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                </div>
+                <div class="asg-field">
+                  <label for="{{ decision_form.body.id_for_label }}">تفصيل (اختياري)</label>
+                  {{ decision_form.body }}
+                </div>
+                <div class="mt-inline">
+                  <div class="asg-field">
+                    <label for="{{ decision_form.kind.id_for_label }}">{{ decision_form.kind.label }}</label>
+                    {{ decision_form.kind }}
+                  </div>
+                  <div class="asg-field">
+                    <label for="{{ decision_form.agenda_item.id_for_label }}">{{ decision_form.agenda_item.label }}</label>
+                    {{ decision_form.agenda_item }}
+                  </div>
+                  <div class="asg-field">
+                    <label for="{{ decision_form.responsible.id_for_label }}">{{ decision_form.responsible.label }}</label>
+                    {{ decision_form.responsible }}
+                  </div>
+                  <div class="asg-field">
+                    <label for="{{ decision_form.due_at.id_for_label }}">{{ decision_form.due_at.label }}</label>
+                    {{ decision_form.due_at }}
+                    <div class="asg-field__help">{{ decision_form.due_at.help_text }}</div>
+                  </div>
+                </div>
+                <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid">
+                  <i class="fa-solid fa-gavel" aria-hidden="true"></i>
+                  تسجيل القرار
+                </button>
+              </form>
+            </div>
+          </details>
         {% endif %}
       </section>
     </div>
 
     {# ═══ العمود الثاني ══════════════════════════════ #}
     <div>
-      <section class="asg-card" style="margin-top:1.2rem">
-        <h2 class="asg-card__title">الحضور</h2>
+      {% if is_organizer and not meeting.is_cancelled %}
+        <section class="asg-card" style="margin-top:0">
+          <h2 class="asg-card__title">إدارة الاجتماع</h2>
+          {% if not meeting.is_held %}
+            <p class="asg-card__hint">
+              سجّل الانعقاد بعد انتهاء الجلسة ليُفتح المحضر للكتابة.
+            </p>
+            <div class="mt-actions" style="margin-top:0">
+              <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}"
+                    data-confirm="تسجيل انعقاد الاجتماع؟ سيُفتح المحضر للكتابة، ولن يمكن حذف بنود جدول الأعمال بعدها.">
+                {% csrf_token %}
+                <input type="hidden" name="meeting_action" value="mark_held">
+                <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  تسجيل الانعقاد
+                </button>
+              </form>
+              <button type="button" class="mtg-iconbtn mtg-iconbtn--danger" id="mtCancelOpen">
+                <i class="fa-solid fa-ban" aria-hidden="true"></i>
+                إلغاء الاجتماع
+              </button>
+            </div>
+          {% else %}
+            <div class="mtg-side-fact">
+              <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+              انعقد في {{ meeting.held_at|hijri }} هـ — {{ meeting.held_at|time:"H:i" }}
+            </div>
+            <p class="asg-card__hint" style="margin:.7rem 0 0">
+              اكتب المحضر وسجّل القرارات، ثم أرسل المحضر للاعتماد.
+            </p>
+          {% endif %}
+        </section>
+      {% endif %}
+
+      <section class="asg-card" {% if not is_organizer or meeting.is_cancelled %}style="margin-top:0"{% endif %}>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.3rem">
+          <h2 class="asg-card__title" style="margin:0">الحضور</h2>
+          <span class="asg-tag">{{ attendance.present }} / {{ attendance.total }}</span>
+        </div>
+
         {% if is_organizer and meeting.is_held %}
+          <p class="asg-card__hint">اضغط الحالة أمام كل اسم، ثم احفظ.</p>
           <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}">
             {% csrf_token %}
             <input type="hidden" name="meeting_action" value="attendance">
             {% for att in attendees %}
-              <div class="mt-row mt-att">
-                <div class="mt-row__main">
-                  <div class="mt-row__title">{{ att.person_name|default:att.person.name }}</div>
-                </div>
-                <select name="attendance_{{ att.pk }}">
+              <div class="mt-att-row">
+                <span class="mt-att-row__name">{% firstof att.person_name att.person.name "—" %}</span>
+                <div class="mtg-seg" role="radiogroup"
+                     aria-label="حضور {% firstof att.person_name att.person.name %}">
                   {% for value, label in attendance_choices %}
-                    <option value="{{ value }}" {% if att.status == value %}selected{% endif %}>{{ label }}</option>
+                    <label>
+                      <input type="radio" name="attendance_{{ att.pk }}" value="{{ value }}"
+                             {% if att.status == value %}checked{% endif %}>
+                      <span>{{ label }}</span>
+                    </label>
                   {% endfor %}
-                </select>
+                </div>
               </div>
+            {% empty %}
+              <p class="asg-card__hint" style="margin:0">لا مدعوين.</p>
             {% endfor %}
-            <button type="submit" class="asg-btn asg-btn--ghost" style="margin-top:.6rem">
-              <i class="fa-solid fa-user-check" aria-hidden="true"></i>
-              حفظ الحضور
-            </button>
+            {% if attendees %}
+              <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid" style="margin-top:.6rem">
+                <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+                حفظ الحضور
+              </button>
+            {% endif %}
           </form>
         {% else %}
           {% for att in attendees %}
-            <div class="mt-row">
-              <div class="mt-row__main">
-                <div class="mt-row__title">{{ att.person_name|default:att.person.name }}</div>
-              </div>
-              <span class="asg-tag {% if att.status == 'present' %}asg-tag--done{% elif att.status == 'absent' %}asg-tag--late{% endif %}">
+            <div class="mt-att-row">
+              <span class="mt-att-row__name">{% firstof att.person_name att.person.name "—" %}</span>
+              <span class="asg-tag {% if att.status == 'present' %}asg-tag--done{% elif att.status == 'absent' %}asg-tag--late{% elif att.status == 'excused' %}asg-tag--soon{% endif %}">
                 {{ att.get_status_display }}
               </span>
             </div>
@@ -414,38 +569,66 @@
           {% endfor %}
         {% endif %}
       </section>
-
-      {% if is_organizer and not meeting.is_cancelled %}
-        <section class="asg-card">
-          <h2 class="asg-card__title">إدارة الاجتماع</h2>
-          <div class="mt-actions" style="margin-top:0">
-            {% if not meeting.is_held %}
-              <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="meeting_action" value="mark_held">
-                <button type="submit" class="asg-btn asg-btn--primary">
-                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-                  تسجيل الانعقاد
-                </button>
-              </form>
-              <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="meeting_action" value="cancel">
-                <button type="submit" class="asg-btn asg-btn--danger">
-                  <i class="fa-solid fa-ban" aria-hidden="true"></i>
-                  إلغاء الاجتماع
-                </button>
-              </form>
-            {% else %}
-              <p class="asg-card__hint" style="margin:0">
-                انعقد في {{ meeting.held_at|date:"Y-m-d H:i" }}. اكتب المحضر
-                وسجّل القرارات، ثم أرسل المحضر للاعتماد.
-              </p>
-            {% endif %}
-          </div>
-        </section>
-      {% endif %}
     </div>
   </div>
 </div>
+
+{% if is_organizer and not meeting.is_cancelled and not meeting.is_held %}
+  <dialog class="mtg-dialog" id="mtCancelDialog" aria-labelledby="mtCancelTitle">
+    <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}" class="mtg-dialog__body">
+      {% csrf_token %}
+      <input type="hidden" name="meeting_action" value="cancel">
+      <h2 class="mtg-dialog__title" id="mtCancelTitle">إلغاء الاجتماع</h2>
+      <p class="mtg-dialog__hint">
+        لا يُحذف الاجتماع — تبقى دعوته ومدعووه في السجل، ويُسجَّل سبب الإلغاء
+        معها ليُقرأ لاحقاً.
+      </p>
+      <div class="asg-field" style="margin-bottom:0">
+        <label for="mtCancelReason">سبب الإلغاء</label>
+        <input type="text" id="mtCancelReason" name="reason" maxlength="255"
+               placeholder="مثال: تعارض مع زيارة إشرافية">
+      </div>
+      <div class="mtg-dialog__actions">
+        <button type="submit" class="mtg-iconbtn mtg-iconbtn--danger">
+          <i class="fa-solid fa-ban" aria-hidden="true"></i>
+          تأكيد الإلغاء
+        </button>
+        <button type="button" class="mtg-iconbtn" id="mtCancelClose">تراجع</button>
+      </div>
+    </form>
+  </dialog>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  {% include "reports/partials/_meeting_copy_link.html" %}
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    (function () {
+      // Destructive posts ask first — every one of them is irreversible.
+      document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+          if (!window.confirm(form.getAttribute('data-confirm'))) event.preventDefault();
+        });
+      });
+
+      var dialog = document.getElementById('mtCancelDialog');
+      var open = document.getElementById('mtCancelOpen');
+      var close = document.getElementById('mtCancelClose');
+      if (!dialog || !open) return;
+
+      open.addEventListener('click', function () {
+        if (dialog.showModal) dialog.showModal();
+        else dialog.setAttribute('open', '');
+        var reason = document.getElementById('mtCancelReason');
+        if (reason) reason.focus();
+      });
+      if (close) {
+        close.addEventListener('click', function () {
+          if (dialog.close) dialog.close();
+          else dialog.removeAttribute('open');
+        });
+      }
+    })();
+  </script>
 {% endblock %}

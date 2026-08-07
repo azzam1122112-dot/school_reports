@@ -1,103 +1,174 @@
 {% extends "base.html" %}
+{% load hijri_tags %}
 
 {% block title %}الأدوار والصلاحيات | منصة توثيق{% endblock %}
 
 {% block head %}
 <style>
   /* ═══════════════════════════════════════════════════════════════════
-     الأدوار والصلاحيات — كشف المنسوبين + الإسناد + التفويض.
-     الرموز مُنطَقة تحت .rol-page كي لا تتسرب، على نهج لوحة المجموعة.
+     الأدوار والصلاحيات — كشفٌ يُبحث فيه، وإسنادٌ بنقرة، وتفويضٌ بمدة جاهزة.
+     الرموز مُنطَقة تحت .rol-page كي لا تتسرب.
      ═══════════════════════════════════════════════════════════════════ */
   .rol-page {
-    --rol-ink: #10231a;
-    --rol-muted: #607067;
-    --rol-line: #dfe8e2;
-    --rol-soft: #f3f8f5;
-    --rol-surface: #ffffff;
-    --rol-green: #08643b;
-    --rol-gold: #b68a42;
-    --rol-danger: #b42318;
-    --rol-info: #1f6feb;
-    max-width: 1240px;
-    margin-inline: auto;
-    padding: 1.25rem;
-    color: var(--rol-ink);
+    --rol-ink: #10231a; --rol-muted: #607067; --rol-line: #dfe8e2;
+    --rol-soft: #f3f8f5; --rol-surface: #ffffff;
+    --rol-green: #08643b; --rol-gold: #b68a42; --rol-danger: #b42318;
+    --rol-info: #1f6feb; --rol-violet: #6d4aff;
+    max-width: 1240px; margin-inline: auto; padding: 1.25rem; color: var(--rol-ink);
   }
   [data-theme="dark"] .rol-page {
-    --rol-ink: #eff8f2;
-    --rol-muted: #afc1b5;
-    --rol-line: #2d4637;
-    --rol-soft: #13271c;
-    --rol-surface: #102019;
-    --rol-green: #6ed3a0;
-    --rol-gold: #eabf58;
-    --rol-danger: #ff9d96;
-    --rol-info: #7cb2ff;
+    --rol-ink: #eff8f2; --rol-muted: #afc1b5; --rol-line: #2d4637;
+    --rol-soft: #13271c; --rol-surface: #102019;
+    --rol-green: #6ed3a0; --rol-gold: #eabf58; --rol-danger: #ff9d96;
+    --rol-info: #7cb2ff; --rol-violet: #b5a0ff;
   }
 
   /* ── الترويسة ─────────────────────────────────────────────── */
   .rol-hero {
-    position: relative; overflow: hidden;
-    border-radius: 20px; padding: 1.75rem 1.6rem;
-    background: linear-gradient(135deg, #08643b 0%, #0a7a48 55%, #075334 100%);
-    color: #fff; box-shadow: 0 18px 40px -22px rgba(8,100,59,.75);
+    position: relative; overflow: hidden; border-radius: 22px; padding: 1.8rem 1.7rem;
+    color: #fff;
+    background:
+      radial-gradient(120% 140% at 92% -10%, rgba(182,138,66,.42) 0%, transparent 58%),
+      linear-gradient(135deg, #064b2d 0%, #0a7a48 52%, #05412a 100%);
+    box-shadow: 0 26px 54px -30px rgba(6,60,35,.92);
+  }
+  .rol-hero::before {
+    content: ""; position: absolute; inset-inline-end: -90px; inset-block-start: -110px;
+    width: 300px; height: 300px; border-radius: 50%;
+    border: 44px solid rgba(255,255,255,.05); pointer-events: none;
   }
   .rol-hero::after {
-    content: ""; position: absolute;
-    inset-inline-start: -70px; inset-block-start: -90px;
-    width: 240px; height: 240px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(182,138,66,.32), transparent 68%);
-    pointer-events: none;
+    content: ""; position: absolute; inset-block-end: 0; inset-inline: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, #e3c07a, #b68a42, transparent);
   }
-  .rol-hero__eyebrow {
+  .rol-hero__in { position: relative; z-index: 1; }
+  .rol-eyebrow {
     display: inline-flex; align-items: center; gap: .45rem;
-    font-size: .78rem; font-weight: 800;
-    padding: .32rem .8rem; border-radius: 999px;
-    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24);
+    font-size: .77rem; font-weight: 800; padding: .3rem .85rem; border-radius: 999px;
+    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
   }
-  .rol-hero__title { margin: .75rem 0 .3rem; font-size: 1.55rem; font-weight: 900; }
-  .rol-hero__meta { margin: 0; font-size: .9rem; opacity: .9; line-height: 1.8; }
+  .rol-hero__title { margin: .8rem 0 .25rem; font-size: 1.6rem; font-weight: 900; letter-spacing: -.01em; }
+  .rol-hero__meta { margin: 0; font-size: .89rem; opacity: .93; line-height: 1.85; max-width: 66ch; }
   .rol-hero__note {
-    position: relative; margin: 1.05rem 0 0; padding: .6rem .85rem;
-    border-radius: 12px; font-size: .82rem; line-height: 1.75;
-    background: rgba(0,0,0,.16); border-inline-start: 3px solid var(--rol-gold);
+    margin: 1.05rem 0 0; padding: .65rem .9rem; border-radius: 12px;
+    font-size: .82rem; line-height: 1.8;
+    background: rgba(0,0,0,.18); border-inline-start: 3px solid #e3c07a;
   }
 
-  /* ── البطاقات العامة ──────────────────────────────────────── */
+  /* ── مؤشرات ───────────────────────────────────────────────── */
+  .rol-stats { display: grid; gap: .8rem; margin-top: 1.15rem; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); }
+  .rol-stat {
+    display: flex; align-items: center; gap: .75rem; padding: .9rem 1rem;
+    border-radius: 16px; background: var(--rol-surface); border: 1px solid var(--rol-line);
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .rol-stat:hover { transform: translateY(-2px); border-color: var(--rol-green); box-shadow: 0 16px 30px -26px rgba(16,35,26,.95); }
+  .rol-stat__i {
+    flex: none; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center;
+    font-size: 1rem; background: var(--rol-soft); color: var(--rol-green);
+  }
+  .rol-stat__v { font-size: 1.4rem; font-weight: 900; line-height: 1.05; }
+  .rol-stat__l { font-size: .76rem; font-weight: 700; color: var(--rol-muted); margin-top: .1rem; }
+  .rol-stat[data-tone="gold"] .rol-stat__i, .rol-stat[data-tone="gold"] .rol-stat__v { color: var(--rol-gold); }
+  .rol-stat[data-tone="danger"] .rol-stat__i, .rol-stat[data-tone="danger"] .rol-stat__v { color: var(--rol-danger); }
+
+  /* ── الألسنة ──────────────────────────────────────────────── */
+  .rol-tabs {
+    display: flex; gap: .35rem; flex-wrap: wrap; margin-top: 1.15rem;
+    padding: .35rem; border-radius: 14px; background: var(--rol-soft); border: 1px solid var(--rol-line);
+  }
+  .rol-tab {
+    display: inline-flex; align-items: center; gap: .45rem; flex: 1; justify-content: center;
+    padding: .6rem .9rem; border-radius: 11px; cursor: pointer; border: 1px solid transparent;
+    background: transparent; color: var(--rol-muted);
+    font-family: inherit; font-size: .85rem; font-weight: 800; white-space: nowrap;
+    transition: background .18s ease, color .18s ease;
+  }
+  .rol-tab[aria-selected="true"] {
+    background: var(--rol-surface); color: var(--rol-green);
+    border-color: var(--rol-line); box-shadow: 0 8px 18px -16px rgba(16,35,26,.9);
+  }
+  .rol-tab__n {
+    font-size: .7rem; font-weight: 900; padding: .1rem .45rem; border-radius: 999px;
+    background: var(--rol-line); color: var(--rol-ink);
+  }
+  .rol-panel[hidden] { display: none; }
+
+  /* ── البطاقات ─────────────────────────────────────────────── */
   .rol-card {
     background: var(--rol-surface); border: 1px solid var(--rol-line);
-    border-radius: 16px; padding: 1.15rem 1.2rem; margin-top: 1.25rem;
-    box-shadow: 0 10px 26px -24px rgba(16,35,26,.75);
+    border-radius: 18px; padding: 1.15rem 1.2rem; margin-top: 1.15rem;
+    box-shadow: 0 14px 34px -30px rgba(16,35,26,.9);
   }
-  .rol-card__head { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .3rem; }
-  .rol-card__title { font-size: 1.02rem; font-weight: 900; margin: 0; }
-  .rol-card__hint { font-size: .83rem; color: var(--rol-muted); line-height: 1.8; margin: 0 0 1rem; }
+  .rol-card__head {
+    display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+    padding-bottom: .7rem; margin-bottom: .9rem; border-bottom: 1px solid var(--rol-line);
+  }
+  .rol-card__title { font-size: 1rem; font-weight: 900; margin: 0; display: flex; align-items: center; gap: .5rem; }
+  .rol-card__title::before {
+    content: ""; width: 4px; height: 17px; border-radius: 3px; flex: none;
+    background: linear-gradient(180deg, var(--rol-gold), var(--rol-green));
+  }
+  .rol-card__grow { flex: 1; }
+  .rol-card__hint { font-size: .82rem; color: var(--rol-muted); line-height: 1.85; margin: 0 0 1rem; }
   .rol-count {
-    font-size: .74rem; font-weight: 800; padding: .18rem .6rem; border-radius: 999px;
+    font-size: .73rem; font-weight: 800; padding: .16rem .6rem; border-radius: 999px;
     background: var(--rol-soft); color: var(--rol-green); border: 1px solid var(--rol-line);
   }
 
-  /* ── كشف المنسوبين ────────────────────────────────────────── */
-  .rol-people { display: grid; gap: .65rem; }
-  .rol-person {
-    display: flex; align-items: center; gap: .85rem; flex-wrap: wrap;
-    padding: .8rem .9rem; border-radius: 13px;
+  /* ── شريط البحث والتصفية ──────────────────────────────────── */
+  .rol-search { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin-bottom: .8rem; }
+  .rol-search__box { position: relative; flex: 1; min-width: 220px; }
+  .rol-search__box i {
+    position: absolute; inset-inline-start: .75rem; inset-block-start: 50%;
+    transform: translateY(-50%); color: var(--rol-muted); font-size: .82rem; pointer-events: none;
+  }
+  .rol-search input[type="search"] {
+    width: 100%; padding: .62rem .8rem .62rem 2.2rem; border-radius: 12px;
+    border: 1px solid var(--rol-line); background: var(--rol-soft); color: var(--rol-ink);
+    font-family: inherit; font-size: .87rem;
+  }
+  .rol-search input[type="search"]:focus { outline: 2px solid var(--rol-green); outline-offset: 1px; background: var(--rol-surface); }
+
+  .rol-filters { display: flex; gap: .35rem; flex-wrap: wrap; }
+  .rol-filter {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-size: .78rem; font-weight: 800; padding: .38rem .8rem; border-radius: 999px;
     border: 1px solid var(--rol-line); background: var(--rol-surface);
-    transition: border-color .18s ease;
+    color: var(--rol-muted); text-decoration: none; white-space: nowrap;
   }
-  .rol-person:hover { border-color: var(--rol-green); }
+  .rol-filter:hover { color: var(--rol-green); border-color: var(--rol-green); }
+  .rol-filter[aria-current="true"] { background: var(--rol-green); color: #fff; border-color: transparent; }
+  [data-theme="dark"] .rol-filter[aria-current="true"] { color: #06251a; }
+  .rol-filter b { font-weight: 900; opacity: .85; }
+
+  /* ── كشف المنسوبين ────────────────────────────────────────── */
+  .rol-people { display: grid; gap: .55rem; }
+  .rol-person {
+    display: flex; align-items: center; gap: .8rem; flex-wrap: wrap;
+    padding: .72rem .85rem; border-radius: 14px;
+    border: 1px solid var(--rol-line); background: var(--rol-surface);
+    border-inline-start: 3px solid var(--rol-line);
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+  .rol-person:hover { box-shadow: 0 12px 26px -24px rgba(16,35,26,.9); }
+  .rol-person[data-kind="deputy"] { border-inline-start-color: var(--rol-green); }
+  .rol-person[data-kind="admin_staff"], .rol-person[data-kind="lab_tech"] { border-inline-start-color: var(--rol-info); }
+  .rol-person[data-needs-scope="1"] { border-inline-start-color: var(--rol-gold); }
   .rol-person__avatar {
-    width: 40px; height: 40px; border-radius: 12px; flex: none;
+    width: 40px; height: 40px; border-radius: 13px; flex: none;
     display: grid; place-items: center; font-weight: 900; font-size: .95rem;
-    background: var(--rol-soft); color: var(--rol-green);
+    background: var(--rol-soft); color: var(--rol-green); border: 1px solid var(--rol-line);
   }
-  .rol-person__main { min-width: 170px; flex: 1; }
-  .rol-person__name { font-size: .95rem; font-weight: 800; }
-  .rol-person__sub { font-size: .78rem; color: var(--rol-muted); margin-top: .15rem; }
-  .rol-person__tags { display: flex; gap: .35rem; flex-wrap: wrap; }
+  .rol-person__main { min-width: 180px; flex: 1; }
+  .rol-person__name { font-size: .93rem; font-weight: 800; }
+  .rol-person__sub { font-size: .76rem; color: var(--rol-muted); margin-top: .18rem; line-height: 1.7; }
+  .rol-person__tags { display: flex; gap: .3rem; flex-wrap: wrap; }
+  .rol-person__acts { display: flex; gap: .35rem; flex-wrap: wrap; margin-inline-start: auto; }
 
   .rol-tag {
-    font-size: .73rem; font-weight: 800; padding: .22rem .65rem; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: .28rem;
+    font-size: .72rem; font-weight: 800; padding: .2rem .62rem; border-radius: 999px;
     background: var(--rol-soft); color: var(--rol-muted); border: 1px solid var(--rol-line);
     white-space: nowrap;
   }
@@ -110,68 +181,145 @@
   /* ── الأزرار ──────────────────────────────────────────────── */
   .rol-btn {
     display: inline-flex; align-items: center; gap: .4rem;
-    padding: .5rem 1rem; border-radius: 10px;
-    font-size: .83rem; font-weight: 800; font-family: inherit;
+    padding: .48rem .95rem; border-radius: 11px;
+    font-size: .81rem; font-weight: 800; font-family: inherit;
     text-decoration: none; cursor: pointer; border: 1px solid transparent;
+    transition: transform .16s ease, background .16s ease, color .16s ease;
   }
+  .rol-btn:hover { transform: translateY(-1px); }
   .rol-btn--primary { background: var(--rol-green); color: #fff; }
   [data-theme="dark"] .rol-btn--primary { color: #06251a; }
   .rol-btn--ghost { background: transparent; color: var(--rol-muted); border-color: var(--rol-line); }
   .rol-btn--ghost:hover { color: var(--rol-green); border-color: var(--rol-green); }
+  .rol-btn--gold { background: linear-gradient(135deg, #e3c07a, #b68a42); color: #24170a; }
   .rol-btn--danger { background: transparent; color: var(--rol-danger); border-color: currentColor; }
+  .rol-btn--sm { padding: .34rem .72rem; font-size: .76rem; border-radius: 9px; }
+
+  /* ── الترقيم ──────────────────────────────────────────────── */
+  .rol-pager { display: flex; gap: .4rem; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
+  .rol-pager__n { font-size: .78rem; font-weight: 800; color: var(--rol-muted); }
 
   /* ── النماذج ──────────────────────────────────────────────── */
-  .rol-grid { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); align-items: start; }
+  .rol-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: start; }
   .rol-field label { display: block; font-size: .78rem; font-weight: 800; color: var(--rol-muted); margin-bottom: .35rem; }
   .rol-field select,
   .rol-field input[type="text"],
+  .rol-field input[type="search"],
   .rol-field input[type="datetime-local"] {
-    width: 100%; padding: .55rem .7rem; border-radius: 10px;
+    width: 100%; padding: .58rem .7rem; border-radius: 11px;
     border: 1px solid var(--rol-line); background: var(--rol-surface);
-    color: var(--rol-ink); font-family: inherit; font-size: .88rem;
+    color: var(--rol-ink); font-family: inherit; font-size: .87rem;
   }
   .rol-field select:focus, .rol-field input:focus { outline: 2px solid var(--rol-green); outline-offset: 1px; }
-  .rol-field__help { font-size: .75rem; color: var(--rol-muted); margin-top: .3rem; line-height: 1.7; }
-  .rol-check { display: flex; align-items: flex-start; gap: .5rem; font-size: .84rem; font-weight: 700; }
-  .rol-check input { margin-top: .2rem; }
-
-  .rol-caps { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-  .rol-caps label { display: flex; gap: .5rem; align-items: flex-start; font-size: .84rem; font-weight: 700; }
+  .rol-field__help { font-size: .74rem; color: var(--rol-muted); margin-top: .3rem; line-height: 1.7; }
   .rol-errors { list-style: none; margin: .4rem 0 0; padding: 0; }
-  .rol-errors li { font-size: .78rem; color: var(--rol-danger); font-weight: 700; }
+  .rol-errors li { font-size: .77rem; color: var(--rol-danger); font-weight: 700; }
 
-  /* ── التفويضات ────────────────────────────────────────────── */
+  /* اختيار الدور: بطاقات لا قائمة منسدلة — الفرق بين الوكيل والموظف قرارٌ
+     يحتاج شرحاً بجانبه لا سطراً في قائمة. */
+  .rol-roles { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); }
+  .rol-role { position: relative; }
+  .rol-role input { position: absolute; opacity: 0; pointer-events: none; }
+  .rol-role__box {
+    display: block; padding: .85rem .9rem; border-radius: 14px; cursor: pointer; height: 100%;
+    border: 1px solid var(--rol-line); background: var(--rol-surface); transition: all .16s ease;
+  }
+  .rol-role__box:hover { border-color: var(--rol-green); }
+  .rol-role input:checked + .rol-role__box {
+    border-color: var(--rol-green); background: var(--rol-soft);
+    box-shadow: 0 0 0 1px var(--rol-green) inset;
+  }
+  .rol-role input:focus-visible + .rol-role__box { outline: 2px solid var(--rol-green); outline-offset: 2px; }
+  .rol-role__t { font-size: .89rem; font-weight: 900; display: flex; align-items: center; gap: .4rem; }
+  .rol-role__x { font-size: .76rem; color: var(--rol-muted); line-height: 1.75; margin-top: .3rem; }
+
+  .rol-switch { display: flex; align-items: flex-start; gap: .55rem; font-size: .84rem; font-weight: 700; }
+  .rol-switch input { margin-top: .25rem; }
+
+  /* ── التفويض ──────────────────────────────────────────────── */
+  .rol-chips { display: flex; gap: .4rem; flex-wrap: wrap; }
+  .rol-chip {
+    display: inline-flex; align-items: center; gap: .35rem; cursor: pointer;
+    font-family: inherit; font-size: .79rem; font-weight: 800;
+    padding: .42rem .85rem; border-radius: 999px;
+    border: 1px solid var(--rol-line); background: var(--rol-surface); color: var(--rol-muted);
+    transition: all .16s ease;
+  }
+  .rol-chip:hover { color: var(--rol-green); border-color: var(--rol-green); }
+  .rol-chip[aria-pressed="true"] { background: var(--rol-green); color: #fff; border-color: transparent; }
+  [data-theme="dark"] .rol-chip[aria-pressed="true"] { color: #06251a; }
+  .rol-chip--gold[aria-pressed="true"] { background: linear-gradient(135deg, #e3c07a, #b68a42); color: #24170a; }
+
+  .rol-preset { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .rol-preset__b {
+    text-align: start; cursor: pointer; font-family: inherit;
+    padding: .8rem .9rem; border-radius: 14px;
+    border: 1px solid var(--rol-line); background: var(--rol-surface); color: inherit;
+    transition: all .16s ease;
+  }
+  .rol-preset__b:hover { border-color: var(--rol-gold); transform: translateY(-2px); }
+  .rol-preset__t { font-size: .86rem; font-weight: 900; }
+  .rol-preset__x { font-size: .75rem; color: var(--rol-muted); margin-top: .25rem; line-height: 1.7; }
+
+  .rol-capgroup { border: 1px solid var(--rol-line); border-radius: 14px; padding: .8rem .9rem; margin-bottom: .6rem; background: var(--rol-soft); }
+  .rol-capgroup__h { font-size: .8rem; font-weight: 900; color: var(--rol-green); margin-bottom: .55rem; }
+  .rol-caps { display: grid; gap: .45rem; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); }
+  .rol-cap { position: relative; }
+  .rol-cap input { position: absolute; opacity: 0; pointer-events: none; }
+  .rol-cap__box {
+    display: flex; gap: .55rem; align-items: flex-start; cursor: pointer; height: 100%;
+    padding: .6rem .7rem; border-radius: 11px;
+    border: 1px solid var(--rol-line); background: var(--rol-surface); transition: all .16s ease;
+  }
+  .rol-cap input:checked + .rol-cap__box { border-color: var(--rol-green); box-shadow: 0 0 0 1px var(--rol-green) inset; }
+  .rol-cap input:focus-visible + .rol-cap__box { outline: 2px solid var(--rol-green); outline-offset: 2px; }
+  .rol-cap__mark {
+    flex: none; width: 18px; height: 18px; border-radius: 6px; margin-top: .12rem;
+    display: grid; place-items: center; font-size: .6rem; color: transparent;
+    border: 1px solid var(--rol-line); background: var(--rol-soft);
+  }
+  .rol-cap input:checked + .rol-cap__box .rol-cap__mark { background: var(--rol-green); border-color: transparent; color: #fff; }
+  [data-theme="dark"] .rol-cap input:checked + .rol-cap__box .rol-cap__mark { color: #06251a; }
+  .rol-cap__t { font-size: .82rem; font-weight: 800; }
+  .rol-cap__x { font-size: .73rem; color: var(--rol-muted); line-height: 1.65; margin-top: .15rem; }
+
+  .rol-summary {
+    margin-top: 1rem; padding: .8rem .95rem; border-radius: 14px;
+    background: var(--rol-soft); border: 1px dashed var(--rol-green);
+    font-size: .84rem; line-height: 1.9; font-weight: 700;
+  }
+  .rol-summary b { font-weight: 900; }
+
+  /* ── التفويضات القائمة ────────────────────────────────────── */
   .rol-deleg { display: grid; gap: .55rem; }
   .rol-deleg__row {
-    display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
-    padding: .7rem .85rem; border-radius: 12px;
+    display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+    padding: .72rem .85rem; border-radius: 13px;
     border: 1px solid var(--rol-line); background: var(--rol-surface);
+    border-inline-start: 3px solid var(--rol-line);
   }
-  .rol-deleg__row[data-state="active"] { border-inline-start: 3px solid var(--rol-green); }
-  .rol-deleg__row[data-state="scheduled"] { border-inline-start: 3px solid var(--rol-gold); }
-  .rol-deleg__row[data-state="expired"],
-  .rol-deleg__row[data-state="revoked"] { opacity: .68; }
-  .rol-deleg__who { font-size: .9rem; font-weight: 800; min-width: 140px; flex: 1; }
-  .rol-deleg__meta { font-size: .78rem; color: var(--rol-muted); line-height: 1.7; }
-  .rol-deleg__actions { margin-inline-start: auto; }
+  .rol-deleg__row[data-state="active"] { border-inline-start-color: var(--rol-green); }
+  .rol-deleg__row[data-state="scheduled"] { border-inline-start-color: var(--rol-gold); }
+  .rol-deleg__row[data-state="expired"], .rol-deleg__row[data-state="revoked"] { opacity: .66; }
+  .rol-deleg__who { font-size: .89rem; font-weight: 800; min-width: 130px; }
+  .rol-deleg__meta { font-size: .76rem; color: var(--rol-muted); line-height: 1.7; flex: 1; min-width: 190px; }
+  .rol-deleg__acts { margin-inline-start: auto; }
 
-  .rol-empty {
-    padding: 2rem 1rem; text-align: center;
-    border: 1px dashed var(--rol-line); border-radius: 14px;
-  }
+  .rol-empty { padding: 2.2rem 1rem; text-align: center; border: 1px dashed var(--rol-line); border-radius: 16px; }
   .rol-empty__icon {
-    width: 54px; height: 54px; border-radius: 16px; margin: 0 auto .7rem;
-    display: grid; place-items: center; font-size: 1.25rem;
-    background: var(--rol-soft); color: var(--rol-green);
+    width: 56px; height: 56px; border-radius: 17px; margin: 0 auto .8rem;
+    display: grid; place-items: center; font-size: 1.3rem;
+    background: linear-gradient(135deg, var(--rol-soft), var(--rol-line)); color: var(--rol-green);
   }
-  .rol-empty p { font-size: .86rem; color: var(--rol-muted); margin: 0 auto; max-width: 46ch; line-height: 1.85; }
+  .rol-empty p { font-size: .85rem; color: var(--rol-muted); margin: 0 auto; max-width: 48ch; line-height: 1.9; }
 
-  @media (max-width: 640px) {
+  @media (max-width: 720px) {
     .rol-page { padding: .85rem; }
-    .rol-hero { padding: 1.35rem 1.15rem; border-radius: 16px; }
-    .rol-hero__title { font-size: 1.28rem; }
-    .rol-person { align-items: flex-start; }
-    .rol-deleg__actions { margin-inline-start: 0; width: 100%; }
+    .rol-hero { padding: 1.4rem 1.15rem; border-radius: 18px; }
+    .rol-hero__title { font-size: 1.3rem; }
+    .rol-tab { flex: 1 1 100%; justify-content: flex-start; }
+    .rol-person__acts { margin-inline-start: 0; width: 100%; }
+    .rol-deleg__acts { margin-inline-start: 0; }
   }
 </style>
 {% endblock %}
@@ -179,265 +327,697 @@
 {% block content %}
 <div class="rol-page">
 
+  {# ═══ الترويسة ════════════════════════════════════════════ #}
   <header class="rol-hero">
-    <span class="rol-hero__eyebrow">
-      <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
-      إدارة المدرسة
-    </span>
-    <h1 class="rol-hero__title">الأدوار والصلاحيات</h1>
-    <p class="rol-hero__meta">
-      وزّع الأدوار على منسوبي {{ active_school.name }}، وحدّد نطاق كل وكيل، وفوّض مؤقتاً عند الحاجة.
-    </p>
-    <p class="rol-hero__note">
-      الاعتماد النهائي داخل المدرسة يبقى لك وحدك. الوكيل يراجع ويوصي، والموظف
-      الإداري يُعدّ ويرفع — ولا يعتمد أحدهما عملاً نيابةً عنك إلا بتفويض صريح
-      له مدة تنتهي بنفسها.
-    </p>
+    <div class="rol-hero__in">
+      <span class="rol-eyebrow">
+        <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+        إدارة المدرسة
+      </span>
+      <h1 class="rol-hero__title">الأدوار والصلاحيات</h1>
+      <p class="rol-hero__meta">
+        وزّع الأدوار على منسوبي {{ active_school.name }}، وحدّد نطاق كل وكيل،
+        وفوّض مؤقتاً عند غيابك بمدة تنتهي بنفسها.
+      </p>
+      <p class="rol-hero__note">
+        الاعتماد النهائي داخل المدرسة يبقى لك وحدك. الوكيل يراجع ويوصي، والموظف
+        الإداري يُعدّ ويرفع — ولا يعتمد أحدهما عملاً نيابةً عنك إلا بتفويض صريح
+        له مدة تنتهي بنفسها.
+      </p>
+    </div>
   </header>
 
-  {# ═══ كشف المنسوبين ═══════════════════════════════════════ #}
-  <section class="rol-card">
-    <div class="rol-card__head">
-      <h2 class="rol-card__title">منسوبو المدرسة</h2>
-      <span class="rol-count">{{ rows|length }}</span>
-    </div>
-    <p class="rol-card__hint">
-      صفٌّ لكل شخص لا لكل دور — فمن يجمع بين الوكالة والنصاب التدريسي يظهر مرة
-      واحدة بوسمَين، ويشغل مقعداً واحداً من باقتك.
-    </p>
-
-    {% if rows %}
-      <div class="rol-people">
-        {% for row in rows %}
-          <article class="rol-person">
-            <div class="rol-person__avatar" aria-hidden="true">{{ row.person.name|slice:":1"|default:"؟" }}</div>
-
-            <div class="rol-person__main">
-              <div class="rol-person__name">{{ row.person.name|default:"—" }}</div>
-              <div class="rol-person__sub">
-                {{ row.person.phone|default:"" }}
-                {% if row.scope and row.scope.departments.exists %}
-                  · يشرف على
-                  {% for dept in row.scope.departments.all %}{{ dept.name }}{% if not forloop.last %}، {% endif %}{% endfor %}
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="rol-person__tags">
-              {% if row.primary.role_type == 'deputy' %}
-                <span class="rol-tag rol-tag--deputy">{{ row.primary.get_role_type_display }}</span>
-                {% if row.scope and row.scope.domain %}
-                  <span class="rol-tag">{{ row.scope.get_domain_display }}</span>
-                {% endif %}
-              {% elif row.primary.role_type == 'admin_staff' %}
-                <span class="rol-tag rol-tag--clerk">{{ row.primary.get_role_type_display }}</span>
-              {% else %}
-                <span class="rol-tag rol-tag--muted">{{ row.primary.get_role_type_display }}</span>
-              {% endif %}
-
-              {% if row.also_teaches %}
-                <span class="rol-tag rol-tag--muted">+ نصاب تدريسي</span>
-              {% endif %}
-
-              {% if row.can_have_scope and not row.scope %}
-                <span class="rol-tag rol-tag--warn">
-                  <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
-                  بلا نطاق
-                </span>
-              {% endif %}
-            </div>
-
-            {% if row.can_have_scope %}
-              <a class="rol-btn rol-btn--ghost" href="{% url 'reports:staff_role_scope' row.primary.pk %}">
-                <i class="fa-solid fa-sliders" aria-hidden="true"></i>
-                {% if row.scope %}تعديل النطاق{% else %}ضبط النطاق{% endif %}
-              </a>
-            {% endif %}
-          </article>
-        {% endfor %}
+  {# ═══ المؤشرات ════════════════════════════════════════════ #}
+  <section class="rol-stats" aria-label="ملخص المنسوبين">
+    <article class="rol-stat">
+      <span class="rol-stat__i"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
+      <div>
+        <div class="rol-stat__v">{{ counts.all }}</div>
+        <div class="rol-stat__l">منسوب</div>
       </div>
-    {% else %}
-      <div class="rol-empty">
-        <div class="rol-empty__icon"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
-        <p>لا يوجد منسوبون بعد. أضف حسابات منسوبيك أولاً من صفحة إدارة المستخدمين، ثم عُد لتوزيع الأدوار.</p>
+    </article>
+    <article class="rol-stat">
+      <span class="rol-stat__i"><i class="fa-solid fa-user-tie" aria-hidden="true"></i></span>
+      <div>
+        <div class="rol-stat__v">{{ counts.deputy }}</div>
+        <div class="rol-stat__l">في الوكالة</div>
       </div>
-    {% endif %}
+    </article>
+    <article class="rol-stat" data-tone="gold">
+      <span class="rol-stat__i"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i></span>
+      <div>
+        <div class="rol-stat__v">{{ counts.needs_scope }}</div>
+        <div class="rol-stat__l">بلا نطاق محدَّد</div>
+      </div>
+    </article>
+    <article class="rol-stat" {% if active_delegation_count %}data-tone="gold"{% endif %}>
+      <span class="rol-stat__i"><i class="fa-solid fa-handshake-angle" aria-hidden="true"></i></span>
+      <div>
+        <div class="rol-stat__v">{{ active_delegation_count }}</div>
+        <div class="rol-stat__l">تفويض سارٍ الآن</div>
+      </div>
+    </article>
   </section>
 
-  {# ═══ إسناد دور ═══════════════════════════════════════════ #}
-  <section class="rol-card">
-    <div class="rol-card__head">
-      <h2 class="rol-card__title">إسناد دور</h2>
+  {# ═══ الألسنة ═════════════════════════════════════════════ #}
+  <div class="rol-tabs" role="tablist" aria-label="أقسام الشاشة">
+    <button type="button" class="rol-tab" role="tab" data-tab="roster" id="tab-roster"
+            aria-controls="panel-roster" aria-selected="false">
+      <i class="fa-solid fa-list-ul" aria-hidden="true"></i>
+      كشف المنسوبين
+      <span class="rol-tab__n">{{ counts.all }}</span>
+    </button>
+    <button type="button" class="rol-tab" role="tab" data-tab="assign" id="tab-assign"
+            aria-controls="panel-assign" aria-selected="false">
+      <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+      إسناد دور
+    </button>
+    <button type="button" class="rol-tab" role="tab" data-tab="delegate" id="tab-delegate"
+            aria-controls="panel-delegate" aria-selected="false">
+      <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i>
+      التفويض المؤقت
+      {% if active_delegation_count %}<span class="rol-tab__n">{{ active_delegation_count }}</span>{% endif %}
+    </button>
+  </div>
+
+  {# ═══ لوحة الكشف ══════════════════════════════════════════ #}
+  <section class="rol-panel" id="panel-roster" role="tabpanel" aria-labelledby="tab-roster" hidden>
+    <div class="rol-card">
+      <div class="rol-card__head">
+        <h2 class="rol-card__title">منسوبو المدرسة</h2>
+        <span class="rol-card__grow"></span>
+        <span class="rol-count">
+          {% if is_filtered %}{{ matched_count }} من {{ counts.all }}{% else %}{{ counts.all }}{% endif %}
+        </span>
+      </div>
+      <p class="rol-card__hint">
+        صفٌّ لكل شخص لا لكل دور — فمن يجمع بين الوكالة والنصاب التدريسي يظهر مرة
+        واحدة بوسمَين، ويشغل مقعداً واحداً من باقتك.
+      </p>
+
+      {# ── البحث والتصفية ─────────────────────────────────── #}
+      <form method="get" class="rol-search" role="search">
+        <div class="rol-search__box">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <input type="search" name="q" value="{{ query }}" id="rosterSearch"
+                 placeholder="ابحث بالاسم أو الجوال أو المسمّى…" aria-label="بحث في المنسوبين">
+        </div>
+        {% if role_filter %}<input type="hidden" name="role" value="{{ role_filter }}">{% endif %}
+        <button type="submit" class="rol-btn rol-btn--primary">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          بحث
+        </button>
+        {% if is_filtered %}
+          <a class="rol-btn rol-btn--ghost" href="{% url 'reports:staff_roles' %}">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            تفريغ
+          </a>
+        {% endif %}
+      </form>
+
+      <div class="rol-filters" style="margin-bottom:1rem">
+        <a class="rol-filter" {% if not role_filter %}aria-current="true"{% endif %}
+           href="?{% if query %}q={{ query|urlencode }}{% endif %}">الكل <b>{{ counts.all }}</b></a>
+        <a class="rol-filter" {% if role_filter == 'deputy' %}aria-current="true"{% endif %}
+           href="?role=deputy{% if query %}&q={{ query|urlencode }}{% endif %}">وكالة <b>{{ counts.deputy }}</b></a>
+        <a class="rol-filter" {% if role_filter == 'admin_staff' %}aria-current="true"{% endif %}
+           href="?role=admin_staff{% if query %}&q={{ query|urlencode }}{% endif %}">إداريون <b>{{ counts.admin_staff }}</b></a>
+        <a class="rol-filter" {% if role_filter == 'lab_tech' %}aria-current="true"{% endif %}
+           href="?role=lab_tech{% if query %}&q={{ query|urlencode }}{% endif %}">محضرو المختبر <b>{{ counts.lab_tech }}</b></a>
+        <a class="rol-filter" {% if role_filter == 'teacher' %}aria-current="true"{% endif %}
+           href="?role=teacher{% if query %}&q={{ query|urlencode }}{% endif %}">معلمون <b>{{ counts.teacher }}</b></a>
+        <a class="rol-filter" {% if role_filter == 'needs_scope' %}aria-current="true"{% endif %}
+           href="?role=needs_scope{% if query %}&q={{ query|urlencode }}{% endif %}">بلا نطاق <b>{{ counts.needs_scope }}</b></a>
+      </div>
+
+      {% if rows %}
+        <div class="rol-people" id="rosterList">
+          {% for row in rows %}
+            <article class="rol-person" data-kind="{{ row.kind }}"
+                     data-needs-scope="{% if row.can_have_scope and not row.scope %}1{% endif %}"
+                     data-name="{{ row.person.name|default:'' }} {{ row.person.phone|default:'' }} {{ row.role_label }}">
+              <div class="rol-person__avatar" aria-hidden="true">{{ row.person.name|slice:":1"|default:"؟" }}</div>
+
+              <div class="rol-person__main">
+                <div class="rol-person__name">{{ row.person.name|default:"—" }}</div>
+                <div class="rol-person__sub">
+                  {{ row.person.phone|default:"" }}
+                  {% if row.scope and row.scope.departments.exists %}
+                    · يشرف على
+                    {% for dept in row.scope.departments.all %}{{ dept.name }}{% if not forloop.last %}، {% endif %}{% endfor %}
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="rol-person__tags">
+                {% if row.kind == 'deputy' %}
+                  <span class="rol-tag rol-tag--deputy">{{ row.role_label }}</span>
+                  {% if row.scope and row.scope.domain %}
+                    <span class="rol-tag">{{ row.scope.get_domain_display }}</span>
+                  {% endif %}
+                {% elif row.kind == 'lab_tech' %}
+                  <span class="rol-tag rol-tag--clerk">
+                    <i class="fa-solid fa-flask" aria-hidden="true"></i>
+                    {{ row.role_label }}
+                  </span>
+                {% elif row.kind == 'admin_staff' %}
+                  <span class="rol-tag rol-tag--clerk">{{ row.role_label }}</span>
+                {% else %}
+                  <span class="rol-tag rol-tag--muted">{{ row.role_label }}</span>
+                {% endif %}
+
+                {% if row.also_teaches %}
+                  <span class="rol-tag rol-tag--muted">+ نصاب تدريسي</span>
+                {% endif %}
+
+                {% if row.can_have_scope and not row.scope %}
+                  <span class="rol-tag rol-tag--warn">
+                    <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                    بلا نطاق
+                  </span>
+                {% endif %}
+              </div>
+
+              <div class="rol-person__acts">
+                {% if row.can_have_scope %}
+                  <a class="rol-btn rol-btn--ghost rol-btn--sm" href="{% url 'reports:staff_role_scope' row.primary.pk %}">
+                    <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                    {% if row.scope %}تعديل النطاق{% else %}ضبط النطاق{% endif %}
+                  </a>
+                {% endif %}
+                <button type="button" class="rol-btn rol-btn--ghost rol-btn--sm"
+                        data-assign="{{ row.person.pk }}" data-person="{{ row.person.name }}">
+                  <i class="fa-solid fa-user-pen" aria-hidden="true"></i>
+                  تغيير الدور
+                </button>
+                <button type="button" class="rol-btn rol-btn--ghost rol-btn--sm"
+                        data-delegate="{{ row.person.pk }}" data-person="{{ row.person.name }}">
+                  <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i>
+                  فوّضه
+                </button>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+          <nav class="rol-pager" aria-label="تنقّل بين صفحات الكشف">
+            {% if page_obj.has_previous %}
+              <a class="rol-btn rol-btn--ghost rol-btn--sm"
+                 href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}">
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                السابق
+              </a>
+            {% endif %}
+            <span class="rol-pager__n">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+              <a class="rol-btn rol-btn--ghost rol-btn--sm"
+                 href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}">
+                التالي
+                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+              </a>
+            {% endif %}
+          </nav>
+        {% endif %}
+      {% else %}
+        <div class="rol-empty">
+          <div class="rol-empty__icon"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
+          {% if is_filtered %}
+            <p>
+              لا أحد يطابق بحثك.
+              <a href="{% url 'reports:staff_roles' %}">اعرض الكشف كاملاً</a>.
+            </p>
+          {% else %}
+            <p>لا يوجد منسوبون بعد. أضف حسابات منسوبيك أولاً من صفحة إدارة المستخدمين، ثم عُد لتوزيع الأدوار.</p>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
-    <p class="rol-card__hint">
-      إسناد الدور <strong>استبدال لا إضافة</strong>: يحلّ الدور الجديد محل
-      السابق. فإن كان صاحبه يدرّس أيضاً، فعّل خيار النصاب التدريسي ليحتفظ
-      بدور المعلّم بجانبه.
-    </p>
+  </section>
 
-    <form method="post" novalidate>
-      {% csrf_token %}
-      <input type="hidden" name="action" value="assign_role">
+  {# ═══ لوحة الإسناد ════════════════════════════════════════ #}
+  <section class="rol-panel" id="panel-assign" role="tabpanel" aria-labelledby="tab-assign" hidden>
+    <div class="rol-card">
+      <div class="rol-card__head">
+        <h2 class="rol-card__title">إسناد دور</h2>
+      </div>
+      <p class="rol-card__hint">
+        إسناد الدور <strong>استبدال لا إضافة</strong>: يحلّ الدور الجديد محل
+        السابق. فإن كان صاحبه يدرّس أيضاً، فعّل خيار النصاب التدريسي ليحتفظ
+        بدور المعلّم بجانبه.
+      </p>
 
-      <div class="rol-grid">
-        <div class="rol-field">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="assign_role">
+
+        <div class="rol-field" style="margin-bottom:1rem">
           <label for="{{ assign_form.member.id_for_label }}">{{ assign_form.member.label }}</label>
+          <input type="search" class="rol-pick" data-picks="{{ assign_form.member.id_for_label }}"
+                 placeholder="اكتب حرفاً من الاسم لتصفية القائمة…" aria-label="تصفية قائمة المنسوبين"
+                 style="margin-bottom:.4rem">
           {{ assign_form.member }}
           {% if assign_form.member.errors %}
             <ul class="rol-errors">{% for e in assign_form.member.errors %}<li>{{ e }}</li>{% endfor %}</ul>
           {% endif %}
+          <div class="rol-field__help">القائمة مقصورة على منسوبي مدرستك.</div>
         </div>
 
         <div class="rol-field">
-          <label for="{{ assign_form.role_type.id_for_label }}">{{ assign_form.role_type.label }}</label>
-          {{ assign_form.role_type }}
+          <label>{{ assign_form.role_type.label }}</label>
+          <div class="rol-roles">
+            {% for value, label in assign_form.role_type.field.choices %}
+              <div class="rol-role">
+                <input type="radio" name="role_type" id="role-{{ forloop.counter }}" value="{{ value }}"
+                       {% if assign_form.role_type.value|stringformat:"s" == value|stringformat:"s" %}checked{% endif %}>
+                <label class="rol-role__box" for="role-{{ forloop.counter }}">
+                  <span class="rol-role__t">
+                    {% if value == 'deputy' %}<i class="fa-solid fa-user-tie" aria-hidden="true"></i>
+                    {% elif value == 'lab_tech' %}<i class="fa-solid fa-flask" aria-hidden="true"></i>
+                    {% elif value == 'admin_staff' %}<i class="fa-solid fa-user-gear" aria-hidden="true"></i>
+                    {% else %}<i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>{% endif %}
+                    {{ label }}
+                  </span>
+                  <span class="rol-role__x">
+                    {% if value == 'deputy' %}إشراف ومراجعة ضمن نطاق تحدّده أنت. لا يعتمد نهائياً.
+                    {% elif value == 'lab_tech' %}تجهيز المختبر وتوثيق تجاربه وعُهدته — صلاحيته صلاحية الموظف الإداري.
+                    {% elif value == 'admin_staff' %}إعداد وتنفيذ وتوثيق، ويرفع عمله للمراجعة.
+                    {% else %}توثيق أعماله المهنية وملف إنجازه وتنفيذ التكليفات.{% endif %}
+                  </span>
+                </label>
+              </div>
+            {% endfor %}
+          </div>
           {% if assign_form.role_type.errors %}
             <ul class="rol-errors">{% for e in assign_form.role_type.errors %}<li>{{ e }}</li>{% endfor %}</ul>
           {% endif %}
         </div>
 
-        <div class="rol-field">
-          <label>&nbsp;</label>
-          <label class="rol-check">
+        <div class="rol-field" style="margin-top:1rem">
+          <label class="rol-switch">
             {{ assign_form.keep_teaching_role }}
             <span>{{ assign_form.keep_teaching_role.label }}</span>
           </label>
           <div class="rol-field__help">{{ assign_form.keep_teaching_role.help_text }}</div>
         </div>
 
-        <div class="rol-field">
-          <label>&nbsp;</label>
+        {% if assign_form.non_field_errors %}
+          <ul class="rol-errors">{% for e in assign_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+
+        <div style="margin-top:1.1rem">
           <button type="submit" class="rol-btn rol-btn--primary">
             <i class="fa-solid fa-user-check" aria-hidden="true"></i>
             إسناد الدور
           </button>
         </div>
+      </form>
+
+      <div class="rol-card__hint" style="margin:1.2rem 0 0">
+        {% for item in role_help %}
+          <div style="margin-top:.4rem">
+            <span class="rol-tag">{{ item.label }}</span> {{ item.text }}
+          </div>
+        {% endfor %}
       </div>
-
-      {% if assign_form.non_field_errors %}
-        <ul class="rol-errors">{% for e in assign_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
-      {% endif %}
-    </form>
-
-    <div class="rol-card__hint" style="margin-top:1rem">
-      {% for value, text in role_help.items %}
-        <div style="margin-top:.35rem">
-          <span class="rol-tag">{{ value }}</span> {{ text }}
-        </div>
-      {% endfor %}
     </div>
   </section>
 
-  {# ═══ التفويض المؤقت ══════════════════════════════════════ #}
-  <section class="rol-card">
-    <div class="rol-card__head">
-      <h2 class="rol-card__title">التفويض المؤقت</h2>
-      {% if active_delegation_count %}
-        <span class="rol-count">{{ active_delegation_count }} سارٍ</span>
-      {% endif %}
-    </div>
-    <p class="rol-card__hint">
-      يُمارَس بالنيابة عنك ضمن مدة تنتهي بنفسها — لا تحتاج إلى تذكّر سحبه.
-      وكل إجراء يُنفَّذ به يُسجَّل في سجل الإجراءات منسوباً إليك وإليه معاً.
-    </p>
+  {# ═══ لوحة التفويض ════════════════════════════════════════ #}
+  <section class="rol-panel" id="panel-delegate" role="tabpanel" aria-labelledby="tab-delegate" hidden>
 
-    <form method="post" novalidate>
-      {% csrf_token %}
-      <input type="hidden" name="action" value="grant_delegation">
-
-      <div class="rol-grid">
-        <div class="rol-field">
-          <label for="{{ delegation_form.delegate.id_for_label }}">{{ delegation_form.delegate.label }}</label>
-          {{ delegation_form.delegate }}
-          {% if delegation_form.delegate.errors %}
-            <ul class="rol-errors">{% for e in delegation_form.delegate.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-          {% endif %}
+    {% if live_delegations %}
+      <div class="rol-card">
+        <div class="rol-card__head">
+          <h2 class="rol-card__title">تفويضات قائمة</h2>
+          <span class="rol-card__grow"></span>
+          <span class="rol-count">{{ live_delegations|length }}</span>
         </div>
-        <div class="rol-field">
-          <label for="{{ delegation_form.starts_at.id_for_label }}">{{ delegation_form.starts_at.label }}</label>
-          {{ delegation_form.starts_at }}
-        </div>
-        <div class="rol-field">
-          <label for="{{ delegation_form.ends_at.id_for_label }}">{{ delegation_form.ends_at.label }}</label>
-          {{ delegation_form.ends_at }}
-          <div class="rol-field__help">{{ delegation_form.ends_at.help_text }}</div>
-          {% if delegation_form.ends_at.errors %}
-            <ul class="rol-errors">{% for e in delegation_form.ends_at.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-          {% endif %}
-        </div>
-        <div class="rol-field">
-          <label for="{{ delegation_form.reason.id_for_label }}">{{ delegation_form.reason.label }}</label>
-          {{ delegation_form.reason }}
-        </div>
-      </div>
-
-      <div class="rol-field" style="margin-top:.9rem">
-        <label>{{ delegation_form.capabilities.label }}</label>
-        <div class="rol-caps">
-          {% for choice in delegation_form.capabilities %}
-            <label>{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
-          {% endfor %}
-        </div>
-        {% if delegation_form.capabilities.errors %}
-          <ul class="rol-errors">{% for e in delegation_form.capabilities.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-        {% endif %}
-        <div class="rol-field__help">
-          تُعرض هنا الصلاحيات النافذة فعلاً فقط. تفويض صلاحية غير مفعّلة يمنحك
-          طمأنينة كاذبة وقت غيابك.
-        </div>
-      </div>
-
-      <div style="margin-top:1rem">
-        <button type="submit" class="rol-btn rol-btn--primary">
-          <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i>
-          منح التفويض
-        </button>
-      </div>
-
-      {% if delegation_form.non_field_errors %}
-        <ul class="rol-errors">{% for e in delegation_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
-      {% endif %}
-    </form>
-
-    {% if delegations %}
-      <div class="rol-deleg" style="margin-top:1.3rem">
-        {% for d in delegations %}
-          <div class="rol-deleg__row" data-state="{{ d.state }}">
-            <div class="rol-deleg__who">{{ d.delegate.name }}</div>
-            <div class="rol-deleg__meta">
-              {% if d.state == 'active' %}
-                <span class="rol-tag rol-tag--deputy">سارٍ</span>
-              {% elif d.state == 'scheduled' %}
-                <span class="rol-tag rol-tag--warn">لم يبدأ بعد</span>
-              {% elif d.state == 'revoked' %}
-                <span class="rol-tag">مسحوب</span>
-              {% else %}
-                <span class="rol-tag">منتهٍ</span>
-              {% endif %}
-              · من {{ d.starts_at|date:"Y-m-d H:i" }} إلى {{ d.ends_at|date:"Y-m-d H:i" }}
-              {% if d.reason %} · {{ d.reason }}{% endif %}
-            </div>
-            {% if d.state == 'active' or d.state == 'scheduled' %}
-              <div class="rol-deleg__actions">
+        <div class="rol-deleg">
+          {% for d in live_delegations %}
+            <div class="rol-deleg__row" data-state="{{ d.state }}">
+              <div class="rol-deleg__who">{{ d.delegate.name }}</div>
+              <div class="rol-deleg__meta">
+                {% if d.state == 'active' %}
+                  <span class="rol-tag rol-tag--deputy">سارٍ الآن</span>
+                {% else %}
+                  <span class="rol-tag rol-tag--warn">يبدأ لاحقاً</span>
+                {% endif %}
+                · من {{ d.starts_at|hijri }} هـ ({{ d.starts_at|time:"H:i" }})
+                إلى {{ d.ends_at|hijri }} هـ ({{ d.ends_at|time:"H:i" }})
+                · {{ d.capabilities|length }} صلاحية
+                {% if d.reason %} · {{ d.reason }}{% endif %}
+              </div>
+              <div class="rol-deleg__acts">
                 <form method="post" action="{% url 'reports:delegation_revoke' d.pk %}">
                   {% csrf_token %}
-                  <button type="submit" class="rol-btn rol-btn--danger">
+                  <button type="submit" class="rol-btn rol-btn--danger rol-btn--sm"
+                          data-confirm="سحب تفويض {{ d.delegate.name }}؟">
                     <i class="fa-solid fa-ban" aria-hidden="true"></i>
                     سحب
                   </button>
                 </form>
               </div>
-            {% endif %}
-          </div>
-        {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
       </div>
-    {% else %}
-      <div class="rol-empty" style="margin-top:1.2rem">
-        <div class="rol-empty__icon"><i class="fa-solid fa-handshake-angle" aria-hidden="true"></i></div>
-        <p>لا توجد تفويضات. امنح تفويضاً عند سفرك أو إجازتك ليستمر عمل المدرسة دون أن تنتقل صلاحياتك بشكل دائم.</p>
+    {% endif %}
+
+    <div class="rol-card">
+      <div class="rol-card__head">
+        <h2 class="rol-card__title">تفويض جديد</h2>
+      </div>
+      <p class="rol-card__hint">
+        يُمارَس بالنيابة عنك ضمن مدة تنتهي بنفسها — لا تحتاج إلى تذكّر سحبه.
+        وكل إجراء يُنفَّذ به يُسجَّل في سجل الإجراءات منسوباً إليك وإليه معاً.
+      </p>
+
+      <form method="post" novalidate id="delegationForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="grant_delegation">
+
+        {# ① المفوَّض إليه #}
+        <div class="rol-field">
+          <label for="{{ delegation_form.delegate.id_for_label }}">
+            ① {{ delegation_form.delegate.label }}
+          </label>
+          <input type="search" class="rol-pick" data-picks="{{ delegation_form.delegate.id_for_label }}"
+                 placeholder="اكتب حرفاً من الاسم لتصفية القائمة…" aria-label="تصفية قائمة المفوَّض إليهم"
+                 style="margin-bottom:.4rem">
+          {{ delegation_form.delegate }}
+          {% if delegation_form.delegate.errors %}
+            <ul class="rol-errors">{% for e in delegation_form.delegate.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+          {% endif %}
+        </div>
+
+        {# ② المدة #}
+        <div class="rol-field" style="margin-top:1.2rem">
+          <label>② المدة</label>
+          <div class="rol-chips" style="margin-bottom:.7rem">
+            <button type="button" class="rol-chip rol-chip--gold" data-days="1" aria-pressed="false">يوم واحد</button>
+            <button type="button" class="rol-chip rol-chip--gold" data-days="3" aria-pressed="false">٣ أيام</button>
+            <button type="button" class="rol-chip rol-chip--gold" data-days="7" aria-pressed="false">أسبوع</button>
+            <button type="button" class="rol-chip rol-chip--gold" data-days="14" aria-pressed="false">أسبوعان</button>
+            <button type="button" class="rol-chip rol-chip--gold" data-days="30" aria-pressed="false">شهر</button>
+          </div>
+          <div class="rol-grid">
+            <div>
+              <label for="{{ delegation_form.starts_at.id_for_label }}">{{ delegation_form.starts_at.label }}</label>
+              {{ delegation_form.starts_at }}
+              {% if delegation_form.starts_at.errors %}
+                <ul class="rol-errors">{% for e in delegation_form.starts_at.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+              {% endif %}
+            </div>
+            <div>
+              <label for="{{ delegation_form.ends_at.id_for_label }}">{{ delegation_form.ends_at.label }}</label>
+              {{ delegation_form.ends_at }}
+              <div class="rol-field__help">{{ delegation_form.ends_at.help_text }}</div>
+              {% if delegation_form.ends_at.errors %}
+                <ul class="rol-errors">{% for e in delegation_form.ends_at.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+              {% endif %}
+            </div>
+            <div>
+              <label for="{{ delegation_form.reason.id_for_label }}">{{ delegation_form.reason.label }}</label>
+              {{ delegation_form.reason }}
+              <div class="rol-field__help">يظهر في سجل الإجراءات وفي هذه الشاشة.</div>
+            </div>
+          </div>
+        </div>
+
+        {# ③ الصلاحيات #}
+        <div class="rol-field" style="margin-top:1.3rem">
+          <label>③ {{ delegation_form.capabilities.label }}</label>
+          <p class="rol-card__hint" style="margin-bottom:.7rem">
+            ابدأ بتوليفة جاهزة ثم عدّلها. وتُعرض هنا الصلاحيات النافذة فعلاً
+            فقط — تفويض صلاحية غير مفعّلة يمنحك طمأنينة كاذبة وقت غيابك.
+          </p>
+
+          <div class="rol-preset" style="margin-bottom:.9rem">
+            {% for preset in delegation_presets %}
+              <button type="button" class="rol-preset__b" data-preset="{{ preset.capabilities|join:',' }}">
+                <span class="rol-preset__t">
+                  <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                  {{ preset.label }}
+                </span>
+                <span class="rol-preset__x">{{ preset.hint }}</span>
+              </button>
+            {% endfor %}
+          </div>
+
+          <div class="rol-chips" style="margin-bottom:.8rem">
+            <button type="button" class="rol-chip" id="capsNone">
+              <i class="fa-solid fa-eraser" aria-hidden="true"></i>
+              مسح الاختيار
+            </button>
+            <span class="rol-tag" id="capsCount">لم تُختر صلاحيات</span>
+          </div>
+
+          {% for group, items in delegation_groups %}
+            <div class="rol-capgroup">
+              <div class="rol-capgroup__h">{{ group }}</div>
+              <div class="rol-caps">
+                {% for cap in items %}
+                  <div class="rol-cap">
+                    <input type="checkbox" name="capabilities" value="{{ cap.code }}"
+                           id="cap-{{ cap.code }}" class="rol-cap__input"
+                           {% if cap.code in delegation_selected %}checked{% endif %}>
+                    <label class="rol-cap__box" for="cap-{{ cap.code }}">
+                      <span class="rol-cap__mark" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+                      <span>
+                        <span class="rol-cap__t">{{ cap.label }}</span>
+                        <span class="rol-cap__x">{{ cap.description }}</span>
+                      </span>
+                    </label>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+
+          {% if delegation_form.capabilities.errors %}
+            <ul class="rol-errors">{% for e in delegation_form.capabilities.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+          {% endif %}
+        </div>
+
+        <div class="rol-summary" id="delegationSummary" aria-live="polite">
+          اختر المفوَّض إليه والمدة والصلاحيات ليظهر ملخّص التفويض هنا.
+        </div>
+
+        {% if delegation_form.non_field_errors %}
+          <ul class="rol-errors">{% for e in delegation_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+
+        <div style="margin-top:1.1rem">
+          <button type="submit" class="rol-btn rol-btn--primary">
+            <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i>
+            منح التفويض
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {% if past_delegations %}
+      <div class="rol-card">
+        <div class="rol-card__head">
+          <h2 class="rol-card__title">تفويضات سابقة</h2>
+          <span class="rol-card__grow"></span>
+          <span class="rol-count">{{ past_delegations|length }}</span>
+        </div>
+        <p class="rol-card__hint">
+          المنتهي والمسحوب يبقيان مقروءين — فالمسؤولية عمّا نُفِّذ بالتفويض لا
+          تنتهي بانتهاء مدته.
+        </p>
+        <div class="rol-deleg">
+          {% for d in past_delegations %}
+            <div class="rol-deleg__row" data-state="{{ d.state }}">
+              <div class="rol-deleg__who">{{ d.delegate.name }}</div>
+              <div class="rol-deleg__meta">
+                {% if d.state == 'revoked' %}
+                  <span class="rol-tag">مسحوب</span>
+                {% else %}
+                  <span class="rol-tag">منتهٍ</span>
+                {% endif %}
+                · من {{ d.starts_at|hijri }} هـ إلى {{ d.ends_at|hijri }} هـ
+                {% if d.reason %} · {{ d.reason }}{% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% elif not live_delegations %}
+      <div class="rol-card">
+        <div class="rol-empty">
+          <div class="rol-empty__icon"><i class="fa-solid fa-handshake-angle" aria-hidden="true"></i></div>
+          <p>
+            لا توجد تفويضات. امنح تفويضاً عند سفرك أو إجازتك ليستمر عمل المدرسة
+            دون أن تنتقل صلاحياتك بشكل دائم.
+          </p>
+        </div>
       </div>
     {% endif %}
   </section>
 
 </div>
+
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+  (function () {
+    var OPEN = "{{ open_tab }}";
+
+    /* ── الألسنة ───────────────────────────────────────────── */
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.rol-tab'));
+    function show(name) {
+      tabs.forEach(function (tab) {
+        var on = tab.getAttribute('data-tab') === name;
+        tab.setAttribute('aria-selected', on ? 'true' : 'false');
+        var panel = document.getElementById('panel-' + tab.getAttribute('data-tab'));
+        if (panel) panel.hidden = !on;
+      });
+      try { window.history.replaceState(null, '', '#' + name); } catch (error) { /* لا يضر */ }
+    }
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () { show(tab.getAttribute('data-tab')); });
+    });
+    var fromHash = (window.location.hash || '').replace('#', '');
+    show(['roster', 'assign', 'delegate'].indexOf(fromHash) >= 0 ? fromHash : OPEN);
+
+    /* ── تصفية القوائم المنسدلة الطويلة ────────────────────── */
+    // كشفٌ من مئتَي اسم في قائمة منسدلة لا يُختار منه؛ فالكتابة تُقلّصه.
+    document.querySelectorAll('.rol-pick').forEach(function (box) {
+      var select = document.getElementById(box.getAttribute('data-picks'));
+      if (!select) return;
+      var options = Array.prototype.slice.call(select.options).map(function (option) {
+        return { option: option, text: (option.textContent || '').toLowerCase() };
+      });
+      box.addEventListener('input', function () {
+        var needle = box.value.trim().toLowerCase();
+        var shown = 0;
+        options.forEach(function (item) {
+          var ok = !needle || item.text.indexOf(needle) >= 0 || !item.option.value;
+          item.option.hidden = !ok;
+          if (ok && item.option.value) shown += 1;
+        });
+        // أوّل مطابق يُنتقى تلقائياً حين لا يبقى غيره.
+        if (shown === 1) {
+          options.forEach(function (item) {
+            if (!item.option.hidden && item.option.value) select.value = item.option.value;
+          });
+          select.dispatchEvent(new Event('change'));
+        }
+      });
+    });
+
+    /* ── التنقّل من الكشف إلى النموذجين ────────────────────── */
+    function pick(selectId, personId, tab) {
+      var select = document.getElementById(selectId);
+      if (select) {
+        select.value = String(personId);
+        select.dispatchEvent(new Event('change'));
+      }
+      show(tab);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    document.querySelectorAll('[data-assign]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        pick('{{ assign_form.member.id_for_label }}', button.getAttribute('data-assign'), 'assign');
+      });
+    });
+    document.querySelectorAll('[data-delegate]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        pick('{{ delegation_form.delegate.id_for_label }}', button.getAttribute('data-delegate'), 'delegate');
+      });
+    });
+
+    /* ── التفويض: المدة والصلاحيات والملخّص ────────────────── */
+    var startField = document.getElementById('{{ delegation_form.starts_at.id_for_label }}');
+    var endField = document.getElementById('{{ delegation_form.ends_at.id_for_label }}');
+    var delegateField = document.getElementById('{{ delegation_form.delegate.id_for_label }}');
+    var summary = document.getElementById('delegationSummary');
+    var capsCount = document.getElementById('capsCount');
+    var capBoxes = Array.prototype.slice.call(document.querySelectorAll('.rol-cap__input'));
+
+    function stamp(date) {
+      // الحقل يقرأ التوقيت المحلي بلا منطقة زمنية، فيُبنى بالخانات لا بـ toISOString.
+      function two(value) { return String(value).padStart(2, '0'); }
+      return date.getFullYear() + '-' + two(date.getMonth() + 1) + '-' + two(date.getDate())
+        + 'T' + two(date.getHours()) + ':' + two(date.getMinutes());
+    }
+
+    function readDate(field) {
+      if (!field || !field.value) return null;
+      var parsed = new Date(field.value);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function describe() {
+      if (!summary) return;
+      var name = '';
+      if (delegateField && delegateField.selectedIndex >= 0) {
+        var option = delegateField.options[delegateField.selectedIndex];
+        if (option && option.value) name = option.textContent.trim();
+      }
+      var chosen = capBoxes.filter(function (box) { return box.checked; }).length;
+      if (capsCount) {
+        capsCount.textContent = chosen ? ('اختيرت ' + chosen + ' صلاحية') : 'لم تُختر صلاحيات';
+      }
+
+      var from = readDate(startField);
+      var to = readDate(endField);
+      if (!name || !from || !to || !chosen) {
+        summary.textContent = 'اختر المفوَّض إليه والمدة والصلاحيات ليظهر ملخّص التفويض هنا.';
+        return;
+      }
+      if (to <= from) {
+        summary.textContent = 'نهاية التفويض يجب أن تكون بعد بدايته.';
+        return;
+      }
+      var days = Math.max(1, Math.round((to - from) / 86400000));
+      summary.textContent = 'سيمارس ' + name + ' ' + chosen + ' من صلاحياتك بالنيابة عنك لمدة '
+        + days + ' يوماً، وينتهي التفويض بنفسه بعدها دون أن تسحبه.';
+    }
+
+    document.querySelectorAll('[data-days]').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var days = parseInt(chip.getAttribute('data-days'), 10) || 1;
+        var from = readDate(startField) || new Date();
+        if (!startField.value) startField.value = stamp(from);
+        var to = new Date(from.getTime() + days * 86400000);
+        if (endField) endField.value = stamp(to);
+        document.querySelectorAll('[data-days]').forEach(function (other) {
+          other.setAttribute('aria-pressed', other === chip ? 'true' : 'false');
+        });
+        describe();
+      });
+    });
+
+    document.querySelectorAll('[data-preset]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var wanted = (button.getAttribute('data-preset') || '').split(',').filter(Boolean);
+        capBoxes.forEach(function (box) { box.checked = wanted.indexOf(box.value) >= 0; });
+        describe();
+      });
+    });
+
+    var clear = document.getElementById('capsNone');
+    if (clear) {
+      clear.addEventListener('click', function () {
+        capBoxes.forEach(function (box) { box.checked = false; });
+        describe();
+      });
+    }
+
+    capBoxes.forEach(function (box) { box.addEventListener('change', describe); });
+    [startField, endField, delegateField].forEach(function (field) {
+      if (field) field.addEventListener('change', describe);
+    });
+    describe();
+
+    /* ── ما لا يُسترجع يُسأل عنه ───────────────────────────── */
+    document.querySelectorAll('[data-confirm]').forEach(function (button) {
+      button.addEventListener('click', function (event) {
+        if (!window.confirm(button.getAttribute('data-confirm'))) event.preventDefault();
+      });
+    });
+  }());
+</script>
 {% endblock %}

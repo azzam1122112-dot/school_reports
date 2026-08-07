@@ -5,6 +5,8 @@
 
 - ``my_assignments`` — «ما المطلوب مني؟» للمكلَّف.
 - ``assignment_board`` — «أين وصل ما كلّفتُ به؟» للمكلِّف، ومعه المتأخرات.
+- ``assignment_view`` — التكليف الواحد كوثيقة: نصّه وموعده وجدول المكلَّفين،
+  ومنه الطباعة والمشاركة. اللوحة تعرض الأرقام، وهذه الشاشة تعرض التكليف نفسه.
 - ``assignment_detail`` — لوحة العمل الواحد: القبول والنسبة والشواهد والإرسال.
 
 وسير الاعتماد على التكليف لا يُكتب هنا: ``AssignmentTarget`` يرث
@@ -53,6 +55,8 @@ __all__ = [
     "my_assignments",
     "assignment_board",
     "assignment_create",
+    "assignment_view",
+    "assignment_print",
     "assignment_detail",
     "assignment_target_action",
     "assignment_approval_action",
@@ -204,6 +208,112 @@ def assignment_create(request):
         "reports/assignment_create.html",
         {"active": "assignment_board", "active_school": school, "form": form},
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# التكليف الواحد: عرضاً وطباعةً ومشاركة
+# ─────────────────────────────────────────────────────────────────────────────
+def _assignment_for(request, pk: int, school) -> Assignment:
+    """التكليف مع فحص من يحق له عرضه.
+
+    الحقّ في العرض أوسع من الحقّ في الإجراء: المكلِّف، ومدير المدرسة التي وقع
+    فيها، والمكلَّف نفسه، ومن يراجع تنفيذه. ومن لا يملك واحدة منها لا يعلم أن
+    التكليف موجود أصلاً — ولذلك ``Http404`` لا رسالة منع.
+    """
+    assignment = get_object_or_404(
+        Assignment.objects.select_related("issuer", "department", "school", "group"),
+        pk=pk,
+    )
+
+    if assignment.issuer_id == request.user.pk:
+        return assignment
+    if assignment.targets.filter(assignee=request.user).exists():
+        return assignment
+    if school is not None and is_school_manager(request.user, active_school=school):
+        # تكليف المجموعة لا مدرسةَ له، فيُعرف بمدرسة مكلَّفيه.
+        if assignment.school_id == school.pk or assignment.targets.filter(school=school).exists():
+            return assignment
+    if any(
+        target.can_review_approval(request.user, school)
+        for target in assignment.targets.select_related("assignment", "school")
+    ):
+        return assignment
+
+    raise Http404
+
+
+def _assignment_context(request, assignment, school) -> dict:
+    """ما تعرضه شاشتا العرض والطباعة معاً — بلا ازدواج يفترق عند أول تعديل."""
+    targets = list(
+        assignment.targets.select_related("assignee", "school").order_by(
+            "assignee__name", "id"
+        )
+    )
+    done = sum(1 for t in targets if t.approval_state == ApprovalState.APPROVED)
+    overdue = sum(1 for t in targets if t.is_overdue)
+    pending = sum(
+        1
+        for t in targets
+        if t.approval_state
+        in (ApprovalState.SUBMITTED, ApprovalState.UNDER_REVIEW, ApprovalState.RECOMMENDED)
+    )
+
+    return {
+        "active_school": school,
+        "assignment": assignment,
+        "targets": targets,
+        "totals": {
+            "total": len(targets),
+            "done": done,
+            "pending": pending,
+            "overdue": overdue,
+            "percent": round(done * 100 / len(targets)) if targets else 0,
+        },
+    }
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def assignment_view(request, pk: int):
+    """التكليف كوثيقة واحدة: نصّه وشروطه وجدول من صدر إليهم."""
+    school = _get_active_school(request)
+    assignment = _assignment_for(request, pk, school)
+
+    context = _assignment_context(request, assignment, school)
+    context.update(
+        {
+            "active": "assignment_board",
+            "can_manage": (
+                assignment.issuer_id == request.user.pk
+                or (school is not None and is_school_manager(request.user, active_school=school))
+            ),
+            "share_url": request.build_absolute_uri(
+                reverse("reports:assignment_view", args=[assignment.pk])
+            ),
+        }
+    )
+    return render(request, "reports/assignment_view.html", context)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def assignment_print(request, pk: int):
+    """نسخة A4 من التكليف — ما يُوقَّع ويُحفَظ في الملف الورقي."""
+    school = _get_active_school(request)
+    assignment = _assignment_for(request, pk, school)
+
+    moe_logo_url = (getattr(settings, "MOE_LOGO_URL", "") or "").strip()
+    if not moe_logo_url:
+        moe_logo_url = static("img/UntiTtled-1.png")
+
+    context = _assignment_context(request, assignment, school)
+    context.update(
+        {
+            "now": timezone.localtime(timezone.now()),
+            "MOE_LOGO_URL": moe_logo_url,
+        }
+    )
+    return render(request, "reports/assignment_print.html", context)
 
 
 @login_required(login_url="reports:login")

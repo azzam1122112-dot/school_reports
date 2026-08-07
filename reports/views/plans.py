@@ -43,6 +43,9 @@ __all__ = [
     "plan_list",
     "plan_create",
     "plan_detail",
+    "plan_edit",
+    "plan_delete",
+    "plan_print",
     "plan_action",
     "plan_approval_action",
     # الاقتراح يقع في ``initiative_list`` نفسها: نموذج الاقتراح بجوار قائمة
@@ -64,6 +67,11 @@ def _may_plan(user, school) -> bool:
     if is_school_manager(user, active_school=school):
         return True
     return capability_source(user, caps.TRACK_PLANS, school) is not None
+
+
+def _may_manage(user, plan, school) -> bool:
+    """من يملك الخطة: مُعِدُّها أو مدير مدرستها. وهو مقياس التعديل والحذف معاً."""
+    return plan.owner_id == user.pk or is_school_manager(user, active_school=school)
 
 
 def _plan_for(request, pk: int, school) -> Plan:
@@ -103,6 +111,8 @@ def plan_list(request):
         .select_related("plan", "assignment")
         .order_by("due_at", "id")[:50]
     )
+    tasks_total = sum(row["total"] for row in rows)
+    done = sum(row["done"] for row in rows)
 
     return render(
         request,
@@ -117,6 +127,10 @@ def plan_list(request):
                 "plans": len(rows),
                 "late": sum(row["late"] for row in rows),
                 "tasks": sum(row["total"] for row in rows),
+                "done": done,
+                # نسبة المدرسة كلها = المهام المنجَزة ÷ مهام خططها. متوسّطُ نسبِ
+                # الخطط يساوي بين خطة من مهمتين وأخرى من أربعين.
+                "percent": round(done * 100 / tasks_total) if tasks_total else 0,
             },
         },
     )
@@ -159,9 +173,7 @@ def plan_detail(request, pk: int):
         return redirect_response
 
     plan = _plan_for(request, pk, school)
-    may_edit = plan.owner_id == request.user.pk or is_school_manager(
-        request.user, active_school=school
-    )
+    may_manage = _may_manage(request.user, plan, school)
 
     tasks = list(
         plan.tasks.select_related("goal", "responsible", "assignment")
@@ -176,7 +188,13 @@ def plan_detail(request, pk: int):
             "active": "plan_list",
             "active_school": school,
             "plan": plan,
-            "may_edit": may_edit and plan.is_editable_by_owner,
+            # ``may_edit`` تحكم بنود الخطة: تُضاف الأهداف والمهام ما دامت الخطة
+            # في مرحلة تسمح بذلك. و``may_manage`` تحكم ملكيتها: الطباعة والحذف
+            # والوصول إلى شاشة التحرير.
+            "may_edit": may_manage and plan.is_editable_by_owner,
+            "may_manage": may_manage,
+            "can_delete": may_manage and _delete_block(plan) is None,
+            "delete_block": _delete_block(plan),
             "goals": list(plan.goals.all()),
             "tasks": tasks,
             "summary": plan.task_summary,
@@ -185,6 +203,135 @@ def plan_detail(request, pk: int):
             "task_form": PlanTaskForm(plan=plan),
             "actions": available_actions(plan, request.user, school=school),
             "timeline": list(transitions_for(plan)),
+            "share_url": request.build_absolute_uri(
+                reverse("reports:plan_detail", args=[plan.pk])
+            ),
+        },
+    )
+
+
+def _delete_block(plan: Plan) -> str | None:
+    """ما يمنع حذف الخطة، أو ``None`` إن كانت تُحذف.
+
+    الخطة تُحذف ما دامت مسودّةً لم يترتّب عليها شيء. فإذا اعتُمدت صارت وثيقة
+    صادرة، وإذا تحوّلت مهمةٌ منها إلى تكليف صار على منسوبٍ عملٌ قائم — وحذفها
+    حينها يترك تكليفاً بلا سند يُعرف منه لماذا صدر. وفي الحالتين تُغلق ولا
+    تُحذف، فيبقى السجل مقروءاً.
+    """
+    if plan.is_final:
+        return "الخطة معتمدة — وثيقةٌ صادرة تُغلق ولا تُحذف."
+    if plan.tasks.filter(assignment__isnull=False).exists():
+        return "تحوّلت مهام من هذه الخطة إلى تكليفات قائمة — أغلقها بدل حذفها."
+    return None
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def plan_edit(request, pk: int):
+    """تعديل بيانات الخطة — عنوانها ووصفها ومداها الزمني.
+
+    وأهدافها ومهامها تُعدَّل من صفحتها نفسها، فالتحرير هنا للوثيقة لا لبنودها.
+    """
+    school, redirect_response = _school_or_redirect(request)
+    if redirect_response is not None:
+        return redirect_response
+
+    plan = _plan_for(request, pk, school)
+    if not _may_manage(request.user, plan, school):
+        messages.error(request, "تعديل الخطة لمُعِدّها أو لمدير المدرسة.")
+        return redirect("reports:plan_detail", pk=pk)
+    if not plan.is_editable_by_owner:
+        messages.error(
+            request,
+            "الخطة في مرحلة لا تُعدَّل فيها — اسحبها للتعديل أولاً إن كانت تنتظر قراراً.",
+        )
+        return redirect("reports:plan_detail", pk=pk)
+
+    form = PlanForm(
+        request.POST or None,
+        instance=plan,
+        school=plan.school,
+        group=plan.group,
+        owner=plan.owner,
+    )
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "حُفظت تعديلات الخطة.")
+        return redirect("reports:plan_detail", pk=plan.pk)
+
+    if request.method == "POST":
+        messages.error(request, "تعذّر حفظ التعديلات — تحقّق من الحقول.")
+
+    return render(
+        request,
+        "reports/plan_edit.html",
+        {"active": "plan_list", "active_school": school, "plan": plan, "form": form},
+    )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def plan_delete(request, pk: int):
+    """حذف خطة لم يترتّب عليها شيء بعد."""
+    school, redirect_response = _school_or_redirect(request)
+    if redirect_response is not None:
+        return redirect_response
+
+    plan = _plan_for(request, pk, school)
+    if not _may_manage(request.user, plan, school):
+        messages.error(request, "حذف الخطة لمُعِدّها أو لمدير المدرسة.")
+        return redirect("reports:plan_detail", pk=pk)
+
+    block = _delete_block(plan)
+    if block is not None:
+        messages.error(request, block)
+        return redirect("reports:plan_detail", pk=pk)
+
+    title = plan.title
+    plan.delete()
+    messages.success(request, f"حُذفت خطة «{title}».")
+    return redirect("reports:plan_list")
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def plan_print(request, pk: int):
+    """نسخة A4 رسمية من الخطة: أهدافها بمؤشراتها، ومهامها بمسؤوليها ومواعيدها."""
+    school, redirect_response = _school_or_redirect(request)
+    if redirect_response is not None:
+        return redirect_response
+
+    plan = _plan_for(request, pk, school)
+
+    tasks = list(
+        plan.tasks.select_related("goal", "responsible", "department", "assignment")
+        .prefetch_related("assignment__targets")
+        .order_by("order", "id")
+    )
+    goals = list(plan.goals.all())
+    # المهام تحت أهدافها كما تُقرأ الخطة على الورق — ومهامٌ بلا هدف تُجمع أخيراً
+    # ولا تُخفى، فإخفاؤها يجعل مجموع الجدول أقل من مجموع الخطة.
+    grouped = [{"goal": goal, "tasks": [t for t in tasks if t.goal_id == goal.pk]} for goal in goals]
+    loose = [task for task in tasks if task.goal_id is None]
+
+    moe_logo_url = (getattr(settings, "MOE_LOGO_URL", "") or "").strip()
+    if not moe_logo_url:
+        moe_logo_url = static("img/UntiTtled-1.png")
+
+    return render(
+        request,
+        "reports/plan_print.html",
+        {
+            "active_school": school,
+            "plan": plan,
+            "goals": goals,
+            "tasks": tasks,
+            "grouped": grouped,
+            "loose": loose,
+            "summary": plan.task_summary,
+            "percent": plan.progress_percent,
+            "now": timezone.localtime(timezone.now()),
+            "MOE_LOGO_URL": moe_logo_url,
         },
     )
 

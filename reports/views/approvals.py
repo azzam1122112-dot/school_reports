@@ -17,6 +17,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from .. import capabilities as caps
@@ -95,16 +96,37 @@ def approval_inbox(request):
     else:
         state_filter = ""
 
+    now = timezone.now()
     rows = []
     for report in reports[:200]:
+        actions = available_actions(report, request.user, school=active_school)
+        # عمر الانتظار يُحسب هنا لا في القالب: صندوقٌ يعرض عشرين عملاً بلا
+        # تمييزٍ بين ما وصل اليوم وما ينتظر منذ أسبوعين يُقرأ بالترتيب لا
+        # بالأولوية — فيُنسى الأقدم لأنه في الأسفل.
+        waiting_days = (
+            (now - report.submitted_at).days if report.submitted_at else None
+        )
         rows.append(
             {
                 "report": report,
-                "actions": available_actions(report, request.user, school=active_school),
+                "actions": actions,
                 "order": _STATE_ORDER.get(report.approval_state, 9),
+                "waiting_days": waiting_days,
+                # «قرارك» = ما ينتهي عندك، تمييزاً عمّا تراه وتنتظر فيه غيرك.
+                "is_mine": bool({"approve", "recommend"} & set(actions)),
             }
         )
-    rows.sort(key=lambda row: (row["order"], -(row["report"].pk or 0)))
+    # ما ينتهي عندك أولاً، ثم بترتيب الحالة. و``regroup`` في القالب يجمع
+    # المتجاورَ وحده، فالفرز بـ ``is_mine`` شرطُ صحّته لا تحسينُ عرض.
+    rows.sort(
+        key=lambda row: (not row["is_mine"], row["order"], -(row["report"].pk or 0))
+    )
+
+    mine_count = sum(1 for row in rows if row["is_mine"])
+    oldest_days = max(
+        (row["waiting_days"] for row in rows if row["waiting_days"] is not None),
+        default=0,
+    )
 
     counts = {
         state: sum(1 for row in rows if row["report"].approval_state == state)
@@ -120,6 +142,8 @@ def approval_inbox(request):
             "rows": rows,
             "counts": counts,
             "total": len(rows),
+            "mine_count": mine_count,
+            "oldest_days": oldest_days,
             "state_filter": state_filter,
             "is_manager": is_manager,
             "states": ApprovalState.choices,

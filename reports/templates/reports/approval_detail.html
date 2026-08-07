@@ -6,8 +6,14 @@
 {% block head %}
 {% include "reports/_approval_theme.html" %}
 <style>
-  .det-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; }
-  @media (max-width: 900px) { .det-grid { grid-template-columns: 1fr; } }
+  .det-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); align-items: start; }
+  @media (max-width: 980px) { .det-grid { grid-template-columns: 1fr; } }
+
+  /* لوحة القرار تلاصق أعلى الشاشة: التقرير قد يطول عشرات الأسطر، وإجبار
+     المراجع على العودة للأعلى بعد قراءته يجعل القرار رحلة تمرير. */
+  .det-side { position: sticky; top: 1rem; }
+  @media (max-width: 980px) { .det-side { position: static; } }
+  .det-required { font-size: .77rem; font-weight: 800; color: var(--apr-danger); margin-top: .4rem; }
 
   .det-meta { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
   .det-meta__item { font-size: .82rem; }
@@ -107,7 +113,7 @@
           {% if report.submitted_at %}
             <div class="det-meta__item">
               <div class="det-meta__label">أُرسل للمراجعة</div>
-              <div class="det-meta__value">{{ report.submitted_at|date:"Y-m-d H:i" }}</div>
+              <div class="det-meta__value">{{ report.submitted_at|hijri }} هـ</div>
             </div>
           {% endif %}
           {% if report.decided_by %}
@@ -182,7 +188,7 @@
                 <div class="det-step__who">
                   {{ step.actor_display }}
                   {% if step.actor_role %} · {{ step.actor_role }}{% endif %}
-                  · {{ step.created_at|date:"Y-m-d H:i" }}
+                  · {{ step.created_at|hijri }} هـ — {{ step.created_at|time:"H:i" }}
                 </div>
                 {% if step.note %}
                   <div class="det-step__note">{{ step.note }}</div>
@@ -200,7 +206,7 @@
 
     {# ═══ العمود الثاني: الإجراءات ══════════════════════════ #}
     <div>
-      <section class="apr-card" style="margin-top:0">
+      <section class="apr-card det-side" style="margin-top:0">
         <h2 class="apr-card__title">
           {% if is_owner %}إجراءاتك على تقريرك{% else %}قرارك{% endif %}
         </h2>
@@ -218,8 +224,9 @@
             <input type="hidden" name="approval_action" id="approvalAction" value="">
 
             {% if not is_owner %}
-              <textarea name="note" class="det-note-field"
+              <textarea name="note" id="approvalNote" class="det-note-field"
                         placeholder="ملاحظتك على هذا العمل…"></textarea>
+              <div class="det-required" id="approvalNoteError" hidden></div>
             {% endif %}
 
             <div class="det-actions__row">
@@ -276,10 +283,30 @@
               var form = document.querySelector('.det-actions');
               if (!form) return;
               var field = form.querySelector('#approvalAction');
+              var note = form.querySelector('#approvalNote');
+              var error = form.querySelector('#approvalNoteError');
+              // الإعادة وطلب الاستكمال يرفضهما الخادم بلا ملاحظة. قولُ ذلك هنا
+              // يوفّر على المراجع دورة ذهاب وإياب يفقد فيها ما كتبه.
+              var NEEDS_NOTE = { 'return': 1, 'request_info': 1 };
+
               form.querySelectorAll('[data-approval]').forEach(function (button) {
                 button.addEventListener('click', function () {
                   field.value = button.getAttribute('data-approval');
                 });
+              });
+
+              form.addEventListener('submit', function (event) {
+                if (!note || !NEEDS_NOTE[field.value]) return;
+                if (note.value.trim()) {
+                  if (error) error.hidden = true;
+                  return;
+                }
+                event.preventDefault();
+                if (error) {
+                  error.textContent = 'اكتب سبب الإعادة — قرارٌ بلا سبب يُرجع صاحبه حائراً.';
+                  error.hidden = false;
+                }
+                note.focus();
               });
             })();
           </script>

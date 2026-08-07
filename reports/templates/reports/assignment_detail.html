@@ -74,6 +74,17 @@
     <p class="asg-hero__meta">
       المكلَّف: {{ target.assignee.name }} · من {{ assignment.issuer_name|default:"—" }}
     </p>
+    <div style="margin-top:.9rem;display:flex;gap:.5rem;flex-wrap:wrap">
+      <a class="asg-hero__eyebrow" href="{% url 'reports:assignment_view' assignment.pk %}">
+        <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+        التكليف كاملاً
+      </a>
+      <a class="asg-hero__eyebrow" href="{% url 'reports:assignment_print' assignment.pk %}"
+         target="_blank" rel="noopener">
+        <i class="fa-solid fa-print" aria-hidden="true"></i>
+        طباعة
+      </a>
+    </div>
   </header>
 
   <div class="dtl-grid">

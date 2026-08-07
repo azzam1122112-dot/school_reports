@@ -152,6 +152,28 @@ html[data-theme="dark"] .bottom-nav a:hover {
   color: #d9f4e5 !important;
   background: rgba(66, 202, 136, .12) !important;
 }
+
+/* مجموعات الشريط: القائمة المنسدلة وعناصرها. تمييز العنصر بالخلفية وحدها لا
+   يكفي هنا — لون البطاقة الداكن ولون التمرير المشتق منه متجاوران، فيضيع الفرق. */
+html[data-theme="dark"] .nav-pop {
+  background: #0d241d !important;
+  border-color: rgba(205, 225, 216, .16) !important;
+}
+html[data-theme="dark"] .hdr-nav .nav-group.open > .tab-trigger {
+  color: #d9f4e5 !important;
+  background: rgba(66, 202, 136, .16) !important;
+}
+html[data-theme="dark"] .np-item:hover,
+html[data-theme="dark"] .np-item:focus-visible {
+  background: rgba(66, 202, 136, .12) !important;
+}
+html[data-theme="dark"] .np-item.is-active {
+  background: rgba(66, 202, 136, .16) !important;
+  box-shadow: inset -3px 0 0 rgba(212, 177, 109, .75) !important;
+}
+html[data-theme="dark"] .np-item.is-active b,
+html[data-theme="dark"] .np-item:hover b { color: #d9f4e5 !important; }
+html[data-theme="dark"] .np-sep { background: rgba(205, 225, 216, .14) !important; }
 html[data-theme="dark"] .btn-outline,
 html[data-theme="dark"] .btn-soft,
 html[data-theme="dark"] .secondary,
@@ -816,6 +838,43 @@ html[data-theme="dark"] .section-title,
 html[data-theme="dark"] .credential,
 html[data-theme="dark"] .recovery-card h1,
 html[data-theme="dark"] .main-panel h1 { color: #edf6f1 !important; }
+
+/* Login page: brand block and the passkey panel. */
+html[data-theme="dark"] .brand-title { color: #f0f8f4; }
+html[data-theme="dark"] .brand-sub { color: #a9bfb5; }
+html[data-theme="dark"] .logo-circle {
+  background: linear-gradient(150deg, #12291f, #0d241d) !important;
+  border-color: rgba(205, 225, 216, .18) !important;
+}
+html[data-theme="dark"] .password-toggle:hover { color: #6fd3ac; background: rgba(205, 225, 216, .08); }
+html[data-theme="dark"] .passkey-divider { color: #8ba398; }
+html[data-theme="dark"] .passkey-divider::before,
+html[data-theme="dark"] .passkey-divider::after {
+  background: linear-gradient(90deg, transparent, rgba(205, 225, 216, .2), transparent);
+}
+html[data-theme="dark"] .passkey-panel {
+  border-color: rgba(111, 211, 172, .26);
+  background: linear-gradient(155deg, #12291f, #0d241d 72%, #0b2019);
+}
+html[data-theme="dark"] .passkey-panel__head strong { color: #f0f8f4; }
+html[data-theme="dark"] .passkey-panel__head small { color: #a9bfb5; }
+html[data-theme="dark"] .btn-passkey {
+  color: #e3f3ea;
+  border-color: rgba(111, 211, 172, .3);
+  background: rgba(205, 225, 216, .06);
+}
+html[data-theme="dark"] .btn-passkey:hover { border-color: #6fd3ac; background: rgba(205, 225, 216, .1); }
+html[data-theme="dark"] .btn-passkey i { color: #6fd3ac; }
+html[data-theme="dark"] .passkey-status {
+  color: #d7ebe1;
+  border-color: rgba(111, 211, 172, .26);
+  background: rgba(205, 225, 216, .06);
+}
+html[data-theme="dark"] .passkey-status.is-error {
+  color: #ffb4b4;
+  border-color: rgba(248, 113, 113, .34);
+  background: rgba(127, 29, 29, .26);
+}
 html[data-theme="dark"] .field-help,
 html[data-theme="dark"] .credential-label,
 html[data-theme="dark"] .receipt-intro,

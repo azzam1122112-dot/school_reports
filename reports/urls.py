@@ -137,6 +137,9 @@ urlpatterns = [
     path("plans/", views.plan_list, name="plan_list"),
     path("plans/new/", views.plan_create, name="plan_create"),
     path("plans/<int:pk>/", views.plan_detail, name="plan_detail"),
+    path("plans/<int:pk>/edit/", views.plan_edit, name="plan_edit"),
+    path("plans/<int:pk>/delete/", views.plan_delete, name="plan_delete"),
+    path("plans/<int:pk>/print/", views.plan_print, name="plan_print"),
     path("plans/<int:pk>/action/", views.plan_action, name="plan_action"),
     path("plans/<int:pk>/approval/", views.plan_approval_action, name="plan_approval_action"),
     path("initiatives/", views.initiative_list, name="initiative_list"),
@@ -148,6 +151,7 @@ urlpatterns = [
     path("meetings/", views.meeting_list, name="meeting_list"),
     path("meetings/new/", views.meeting_create, name="meeting_create"),
     path("meetings/<int:pk>/", views.meeting_detail, name="meeting_detail"),
+    path("meetings/<int:pk>/print/", views.meeting_print, name="meeting_print"),
     path("meetings/<int:pk>/action/", views.meeting_action, name="meeting_action"),
     path(
         "meetings/<int:pk>/minutes/approval/",
@@ -161,6 +165,8 @@ urlpatterns = [
     path("assignments/mine/", views.my_assignments, name="my_assignments"),
     path("assignments/board/", views.assignment_board, name="assignment_board"),
     path("assignments/new/", views.assignment_create, name="assignment_create"),
+    path("assignments/<int:pk>/", views.assignment_view, name="assignment_view"),
+    path("assignments/<int:pk>/print/", views.assignment_print, name="assignment_print"),
     path("assignments/<int:pk>/cancel/", views.assignment_cancel, name="assignment_cancel"),
     path("assignments/target/<int:pk>/", views.assignment_detail, name="assignment_detail"),
     path(

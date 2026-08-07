@@ -834,7 +834,9 @@ def passkey_delete(request: HttpRequest, pk: int) -> JsonResponse:
 
 
 @require_http_methods(["POST"])
-@ratelimit(key="ip", rate="20/m", method="POST", block=False)
+# Generous on purpose: a whole school shares one NAT address, and autofill fires
+# this once per page load. It still stops scripted enumeration of phone numbers.
+@ratelimit(key="ip", rate="60/m", method="POST", block=False)
 def passkey_login_options(request: HttpRequest) -> JsonResponse:
     """Start a sign-in ceremony.
 

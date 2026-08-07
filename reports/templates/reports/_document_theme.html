@@ -1,0 +1,79 @@
+{% comment %}
+رموز تصميم الوثائق — مشتركة بين الأرشيف وصفحة الوثيقة.
+
+تُبنى فوق سمة التكليفات لا بدلاً منها: الحالات (مسودة/مُرسَلة/معتمَدة) لغةٌ
+واحدة في المنصّة كلها، وإعادة تعريف ألوانها هنا كانت ستجعل «معتمَد» أخضرَ
+في شاشة وذهبياً في أخرى.
+
+المضاف هنا خاصٌّ بالوثائق: لونُ نوعٍ لكل صنف، فالعين تفرز «عقد» من «محضر»
+قبل أن تقرأ العنوان — وهو ما يفرّق شبكةً من أربعٍ وعشرين بطاقة عن قائمةِ
+عناوين متشابهة.
+{% endcomment %}
+<style>
+  .asg-page {
+    --doc-shadow: 0 12px 30px -24px rgba(16,35,26,.8);
+    --doc-shadow-lift: 0 18px 38px -22px rgba(8,100,59,.42);
+  }
+  [data-theme="dark"] .asg-page {
+    --doc-shadow: 0 12px 30px -22px rgba(0,0,0,.85);
+    --doc-shadow-lift: 0 18px 38px -20px rgba(0,0,0,.9);
+  }
+
+  /* ── لون لكل نوع وثيقة ─────────────────────────────────────── */
+  .doc-kind { --k: var(--asg-muted); }
+  .doc-kind[data-kind="minutes"]     { --k: #0a7a48; }
+  .doc-kind[data-kind="circular"]    { --k: #b68a42; }
+  .doc-kind[data-kind="letter"]      { --k: #1f6feb; }
+  .doc-kind[data-kind="report"]      { --k: #6d4aff; }
+  .doc-kind[data-kind="form"]        { --k: #0e7490; }
+  .doc-kind[data-kind="financial"]   { --k: #b45309; }
+  .doc-kind[data-kind="contract"]    { --k: #9333ea; }
+  .doc-kind[data-kind="certificate"] { --k: #b42318; }
+  [data-theme="dark"] .doc-kind[data-kind="minutes"]     { --k: #6ed3a0; }
+  [data-theme="dark"] .doc-kind[data-kind="circular"]    { --k: #eabf58; }
+  [data-theme="dark"] .doc-kind[data-kind="letter"]      { --k: #7cb2ff; }
+  [data-theme="dark"] .doc-kind[data-kind="report"]      { --k: #b5a0ff; }
+  [data-theme="dark"] .doc-kind[data-kind="form"]        { --k: #5fd0e0; }
+  [data-theme="dark"] .doc-kind[data-kind="financial"]   { --k: #f0b264; }
+  [data-theme="dark"] .doc-kind[data-kind="contract"]    { --k: #d5a6ff; }
+  [data-theme="dark"] .doc-kind[data-kind="certificate"] { --k: #ff9d96; }
+
+  .doc-ico {
+    width: 40px; height: 40px; flex: none; border-radius: 12px;
+    display: grid; place-items: center; font-size: 1rem;
+    color: var(--k); background: color-mix(in srgb, var(--k) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--k) 26%, transparent);
+  }
+  .doc-ico--lg { width: 54px; height: 54px; border-radius: 16px; font-size: 1.35rem; }
+
+  /* ── شارة الحالة ──────────────────────────────────────────── */
+  .doc-state {
+    display: inline-flex; align-items: center; gap: .34rem; white-space: nowrap;
+    font-size: .72rem; font-weight: 800; padding: .24rem .66rem; border-radius: 999px;
+    border: 1px solid currentColor; color: var(--asg-muted);
+  }
+  .doc-state[data-s="approved"] { color: #fff; background: var(--asg-green); border-color: transparent; }
+  [data-theme="dark"] .doc-state[data-s="approved"] { color: #06251a; }
+  .doc-state[data-s="draft"]    { color: var(--asg-muted); }
+  .doc-state[data-s="pending"]  { color: var(--asg-gold); }
+  .doc-state[data-s="returned"] { color: var(--asg-danger); }
+
+  /* ── رقائق المرشّحات الفعّالة ──────────────────────────────── */
+  .doc-chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .85rem; }
+  .doc-chip {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .74rem; font-weight: 800; padding: .28rem .5rem .28rem .72rem;
+    border-radius: 999px; text-decoration: none;
+    color: var(--asg-green); background: var(--asg-soft);
+    border: 1px solid color-mix(in srgb, var(--asg-green) 30%, transparent);
+  }
+  .doc-chip__x {
+    display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%;
+    background: color-mix(in srgb, var(--asg-green) 16%, transparent); font-size: .6rem;
+  }
+  .doc-chip:hover .doc-chip__x { background: var(--asg-danger); color: #fff; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .doc-card, .doc-ico, .doc-drop { transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+  }
+</style>

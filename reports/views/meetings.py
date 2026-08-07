@@ -11,6 +11,7 @@
 """
 from __future__ import annotations
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -18,6 +19,9 @@ from django.db import transaction
 from django.db.models import Max, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
+from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from .. import capabilities as caps
@@ -52,6 +56,7 @@ __all__ = [
     "meeting_list",
     "meeting_create",
     "meeting_detail",
+    "meeting_print",
     "meeting_action",
     "minutes_approval_action",
 ]
@@ -200,6 +205,42 @@ def meeting_detail(request, pk: int):
             "agenda_form": AgendaItemForm(),
             "decision_form": DecisionForm(meeting=meeting),
             "decisions": decision_followup_rows(meeting),
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def meeting_print(request, pk: int):
+    """محضر الاجتماع على ورق رسمي A4.
+
+    الوثيقة التي تُوقَّع وتُحفَظ. لا تُقيَّد باعتماد المحضر: اجتماعٌ انعقد
+    ومحضره قيد المراجعة يحتاج نسخةً تُعرَض على الحاضرين ليوقّعوا، وحالة
+    الاعتماد تُطبع في ترويسة النسخة حتى لا تُقرأ مسوّدةٌ على أنها معتمدة.
+    """
+    school, redirect_response = _school_or_redirect(request)
+    if redirect_response is not None:
+        return redirect_response
+
+    meeting = _meeting_for(request, pk, school)
+
+    moe_logo_url = (getattr(settings, "MOE_LOGO_URL", "") or "").strip()
+    if not moe_logo_url:
+        moe_logo_url = static("img/UntiTtled-1.png")
+
+    return render(
+        request,
+        "reports/meeting_print.html",
+        {
+            "active_school": school,
+            "meeting": meeting,
+            "agenda": list(meeting.agenda_items.all()),
+            "attendees": list(meeting.attendees.select_related("person")),
+            "attendance": meeting.attendance_summary,
+            "minutes": getattr(meeting, "minutes", None),
+            "decisions": decision_followup_rows(meeting),
+            "now": timezone.localtime(timezone.now()),
+            "MOE_LOGO_URL": moe_logo_url,
         },
     )
 

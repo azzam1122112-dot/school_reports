@@ -19,6 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from reports import capabilities as caps
+from reports.forms_assignments import SchoolAssignmentForm
 from reports.model_parts.approvals import ApprovalState
 from reports.models import (
     Assignment,
@@ -473,6 +474,91 @@ class AssignmentScreenTests(AssignmentBase):
         )
         self.assertEqual(response.status_code, 404)
 
+    def test_the_board_links_to_the_assignment_itself(self):
+        target = self._target()
+        self._enter(self.manager)
+
+        response = self.client.get(reverse("reports:assignment_board"))
+        self.assertContains(
+            response, reverse("reports:assignment_view", args=[target.assignment.pk])
+        )
+        self.assertContains(
+            response, reverse("reports:assignment_print", args=[target.assignment.pk])
+        )
+
+    def test_the_issuer_opens_the_assignment_and_its_print(self):
+        target = self._target()
+        self._enter(self.manager)
+
+        page = self.client.get(
+            reverse("reports:assignment_view", args=[target.assignment.pk])
+        )
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "جرد المستودع")
+        self.assertContains(page, self.staff.name)
+        # الرابط المعروض للمشاركة هو الصفحة نفسها مطلقاً.
+        self.assertContains(
+            page,
+            f"http://testserver{reverse('reports:assignment_view', args=[target.assignment.pk])}",
+        )
+
+        printed = self.client.get(
+            reverse("reports:assignment_print", args=[target.assignment.pk])
+        )
+        self.assertEqual(printed.status_code, 200)
+        self.assertContains(printed, "جرد المستودع")
+        self.assertContains(printed, self.staff.name)
+
+    def test_the_assignee_opens_the_assignment_they_were_given(self):
+        target = self._target()
+        self._enter(self.staff)
+
+        response = self.client.get(
+            reverse("reports:assignment_view", args=[target.assignment.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_a_stranger_cannot_open_the_assignment_or_print_it(self):
+        target = self._target()
+        other = _user("زميل بلا علاقة", "0500030030")
+        SchoolMembership.objects.create(
+            school=self.school, teacher=other, role_type=SchoolMembership.RoleType.TEACHER
+        )
+        self._enter(other)
+
+        self.assertEqual(
+            self.client.get(
+                reverse("reports:assignment_view", args=[target.assignment.pk])
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("reports:assignment_print", args=[target.assignment.pk])
+            ).status_code,
+            404,
+        )
+
+    def test_an_assignment_of_another_school_reads_as_missing(self):
+        elsewhere = _school("مدرسة أخرى", "asg-other")
+        stranger = _user("غريب", "0500030031")
+        far_assignment = Assignment.objects.create(
+            scope=Assignment.Scope.SCHOOL,
+            school=elsewhere,
+            issuer=stranger,
+            title="تكليف مدرسة أخرى",
+            due_at=timezone.now() + timedelta(days=3),
+        )
+        AssignmentTarget.objects.create(
+            assignment=far_assignment, assignee=stranger, school=elsewhere
+        )
+        self._enter(self.manager)
+
+        response = self.client.get(
+            reverse("reports:assignment_view", args=[far_assignment.pk])
+        )
+        self.assertEqual(response.status_code, 404)
+
     def test_the_assignee_updates_progress_through_the_screen(self):
         target = self._target()
         self._enter(self.staff)
@@ -507,3 +593,134 @@ class AssignmentScreenTests(AssignmentBase):
         )
         assignment.refresh_from_db()
         self.assertTrue(assignment.is_cancelled)
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class AssigneeScopeTests(AssignmentBase):
+    """من يجوز تكليفه.
+
+    نطاق التكليف داخل المدرسة هو المدرسة لا القسم: يُكلَّف المعلم والوكيل
+    والموظف الإداري سواء. وكان النطاق محصوراً بأقسام المكلِّف، فترتّب عليه منعان
+    بلا مقابل يثبّتهما هذان الاختباران الأولان صراحةً.
+    """
+
+    def _deputy(self, *, departments=()):
+        deputy = _user("الوكيل المُصدِر", "0500030030")
+        membership = SchoolMembership.objects.create(
+            school=self.school, teacher=deputy, role_type=SchoolMembership.RoleType.DEPUTY
+        )
+        scope = StaffScope.objects.create(
+            membership=membership, capabilities=[caps.ASSIGN_TASKS]
+        )
+        for department in departments:
+            scope.departments.add(department)
+        return deputy
+
+    def _offered(self, issuer):
+        form = SchoolAssignmentForm(school=self.school, issuer=issuer)
+        return list(form.fields["assignees"].queryset)
+
+    def test_a_deputy_without_departments_still_has_someone_to_assign(self):
+        """نطاقٌ لم تُسنَد إليه أقسام بعد كان لا يكلّف أحداً على الإطلاق."""
+        self.assertIn(self.staff, self._offered(self._deputy()))
+
+    def test_an_employee_outside_every_department_is_offered(self):
+        """الموظف الإداري بلا قسم لم يكن قابلاً للتكليف أصلاً."""
+        loner = _user("إداري بلا قسم", "0500030031")
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=loner,
+            role_type=SchoolMembership.RoleType.ADMIN_STAFF,
+        )
+        self.assertIn(loner, self._offered(self._deputy()))
+
+    def test_every_staff_role_is_offered(self):
+        teacher = _user("معلم", "0500030032")
+        SchoolMembership.objects.create(
+            school=self.school, teacher=teacher, role_type=SchoolMembership.RoleType.TEACHER
+        )
+        deputy = self._deputy()
+
+        self.assertEqual(
+            {person.pk for person in self._offered(self.manager)},
+            {teacher.pk, deputy.pk, self.staff.pk},
+        )
+
+    def test_the_issuer_is_never_offered_to_themselves(self):
+        """المكلِّف يعتمد التنفيذ، فتكليفه لنفسه عملٌ لا مخرج له."""
+        deputy = self._deputy()
+        self.assertNotIn(deputy, self._offered(deputy))
+
+    def test_a_member_of_another_school_is_not_offered(self):
+        elsewhere = _school("مدرسة أخرى", "asg-other")
+        stranger = _user("غريب عن المدرسة", "0500030033")
+        SchoolMembership.objects.create(
+            school=elsewhere, teacher=stranger, role_type=SchoolMembership.RoleType.TEACHER
+        )
+        self.assertNotIn(stranger, self._offered(self.manager))
+
+    def test_each_option_carries_its_role_and_departments(self):
+        form = SchoolAssignmentForm(school=self.school, issuer=self.manager)
+        option = next(
+            item for item in form.assignee_options() if item["value"] == self.staff.pk
+        )
+
+        self.assertEqual(option["role"], SchoolMembership.RoleType.ADMIN_STAFF)
+        self.assertEqual(option["departments"], ["الشؤون الإدارية"])
+
+    def test_a_deputy_who_also_teaches_reads_as_a_deputy(self):
+        """الرجل الواحد يحمل الدورين عمداً، ويُعرَّف بالأخصّ منهما."""
+        deputy = self._deputy()
+        SchoolMembership.objects.create(
+            school=self.school, teacher=deputy, role_type=SchoolMembership.RoleType.TEACHER
+        )
+
+        form = SchoolAssignmentForm(school=self.school, issuer=self.manager)
+        option = next(
+            item for item in form.assignee_options() if item["value"] == deputy.pk
+        )
+        self.assertEqual(option["role"], SchoolMembership.RoleType.DEPUTY)
+
+    def test_a_deputy_may_issue_beyond_their_departments(self):
+        far_department = Department.objects.create(
+            school=self.school, name="قسم بعيد", slug="far-dept"
+        )
+        deputy = self._deputy(departments=[far_department])
+        teacher = _user("معلم خارج نطاقه", "0500030034")
+        SchoolMembership.objects.create(
+            school=self.school, teacher=teacher, role_type=SchoolMembership.RoleType.TEACHER
+        )
+
+        self.client.force_login(deputy)
+        session = self.client.session
+        session["active_school_id"] = self.school.pk
+        session.save()
+
+        due = timezone.localtime() + timedelta(days=3)
+        response = self.client.post(
+            reverse("reports:assignment_create"),
+            {
+                "title": "حصر العهد",
+                "priority": Assignment.Priority.NORMAL,
+                "due_at": due.strftime("%Y-%m-%dT%H:%M"),
+                "min_evidence_count": 1,
+                "assignees": [teacher.pk],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        assignment = Assignment.objects.get(title="حصر العهد")
+        self.assertEqual(
+            [target.assignee_id for target in assignment.targets.all()], [teacher.pk]
+        )
+
+    def test_a_department_outside_the_scope_is_not_even_offered(self):
+        """عرضُ خيارٍ يُرفض بعد ملء النموذج كله عيبٌ في العرض لا حماية."""
+        mine = Department.objects.create(school=self.school, name="قسمي", slug="mine")
+        deputy = self._deputy(departments=[mine])
+
+        form = SchoolAssignmentForm(school=self.school, issuer=deputy)
+        self.assertEqual(
+            [department.pk for department in form.fields["department"].queryset],
+            [mine.pk],
+        )

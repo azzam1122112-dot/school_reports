@@ -1,0 +1,416 @@
+{% load static hijri_tags %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>محضر اجتماع: {% firstof meeting.title "بدون عنوان" %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    :root {
+      --font-body: 'Cairo', Tahoma, Arial, sans-serif;
+      --ink: #111;
+      --muted: #444;
+      --line: #000;
+      --shade: #f3f3f3;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-body);
+      background: #e5e5e5;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 18px auto;
+      background: #fff;
+      padding: 14mm 12mm 18mm;
+      position: relative;
+      box-shadow: 0 0 14px rgba(0,0,0,0.10);
+    }
+
+    @page { size: A4; margin: 14mm 12mm; }
+    @media print {
+      body { background: #fff; }
+      .page {
+        width: auto;
+        min-height: auto;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+      }
+      .no-print { display: none !important; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #111;
+      color: #fff;
+      padding: 10px;
+      text-align: center;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      font-weight: 800;
+    }
+    .btn {
+      background: #fff;
+      color: #111;
+      border: 1px solid rgba(0,0,0,0.15);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .btn-print { background: #006c35; color: #fff; border-color: #006c35; }
+
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: start;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--line);
+    }
+    .hdr-block { font-size: 13px; line-height: 1.7; font-weight: 800; }
+    .hdr-center { text-align: center; }
+    .hdr-right { text-align: right; }
+    .hdr-left { text-align: left; }
+    .logo { height: 78px; width: auto; object-fit: contain; display: block; margin: 0 auto; }
+
+    .title { text-align: center; margin: 14px 0 6px; font-weight: 1000; font-size: 20px; }
+    .subtitle { text-align: center; margin: 0 0 8px; color: var(--muted); font-weight: 800; font-size: 13px; }
+
+    /* A draft read as an approved record is the one failure this document must
+       not allow, so the approval state is stamped above the body. */
+    .stamp {
+      margin: 0 auto 14px;
+      width: max-content;
+      max-width: 100%;
+      padding: 5px 14px;
+      border: 2px solid var(--line);
+      border-radius: 4px;
+      font-size: 12.5px;
+      font-weight: 900;
+      letter-spacing: .5px;
+    }
+    .stamp--draft { border-style: dashed; color: #7a3b00; background: #fff6e8; }
+    .stamp--final { color: #0a4d2c; background: #eaf6ef; }
+
+    .meta-table, .people-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: 0 0 14px;
+    }
+    .meta-table th, .meta-table td,
+    .people-table th, .people-table td {
+      border: 1px solid var(--line);
+      padding: 9px 10px;
+      vertical-align: middle;
+      text-align: right;
+    }
+    .meta-table th { background: var(--shade); font-weight: 900; width: 22%; white-space: nowrap; }
+    .people-table th { background: var(--shade); font-weight: 900; }
+    .people-table tr { page-break-inside: avoid; }
+    .people-table .num { width: 34px; text-align: center; }
+    .people-table .sign { width: 26%; }
+
+    .section { border: 1px solid var(--line); padding: 10px; margin: 0 0 14px; }
+    .section-h { font-weight: 1000; font-size: 15px; margin: 0 0 8px; }
+    .section-body {
+      font-size: 15px;
+      line-height: 2;
+      white-space: pre-wrap;
+      text-align: justify;
+      min-height: 60px;
+    }
+
+    .agenda-list { margin: 0; padding: 0 18px 0 0; font-size: 14.5px; line-height: 2; }
+    .agenda-list li { page-break-inside: avoid; margin-bottom: 4px; }
+    .agenda-list .note { display: block; font-size: 13px; color: var(--muted); font-weight: 600; }
+
+    .dec-kind { white-space: nowrap; font-weight: 900; }
+    .muted-cell { color: var(--muted); }
+
+    .signatures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 18px;
+      page-break-inside: avoid;
+    }
+    .sign-box { border: 1px solid var(--line); padding: 10px; min-height: 90px; font-weight: 900; font-size: 13px; }
+    .sign-line { margin-top: 44px; border-top: 1px dotted var(--line); }
+
+    .footer {
+      margin-top: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    @media screen and (max-width: 1024px) {
+      html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+      body { background: #eef2f0; }
+      .toolbar { padding: 10px 12px max(10px, env(safe-area-inset-bottom)); flex-wrap: wrap; }
+      .toolbar > span { flex: 1 1 100%; line-height: 1.5; }
+      .toolbar .btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+      .page {
+        width: min(210mm, calc(100% - 24px));
+        max-width: 100%;
+        min-height: auto;
+        margin: 12px auto 24px;
+        border-radius: 10px;
+      }
+      .section-body, .meta-table td, .people-table td, .footer { overflow-wrap: anywhere; }
+    }
+
+    @media screen and (max-width: 720px) {
+      .page { width: calc(100% - 16px); margin-block: 8px 18px; padding: 22px 16px 24px; }
+      .header { grid-template-columns: 1fr; gap: 8px; text-align: center; }
+      .hdr-right, .hdr-left { text-align: center; }
+      .logo { height: 66px; }
+      .meta-table, .meta-table tbody, .meta-table tr, .meta-table th, .meta-table td { display: block; width: 100%; }
+      .meta-table tr { border: 1px solid var(--line); border-bottom: 0; }
+      .meta-table th, .meta-table td { border: 0; border-bottom: 1px solid var(--line); white-space: normal; }
+      .meta-table th { background: var(--shade); }
+      .people-table { font-size: 12.5px; }
+      .signatures { grid-template-columns: 1fr; }
+      .footer { flex-wrap: wrap; }
+    }
+
+    @media screen and (max-width: 520px) {
+      .toolbar .btn { flex: 1 1 calc(50% - 5px); }
+      .page { padding-inline: 12px; }
+      .title { font-size: 18px; }
+      .section { padding: 9px; }
+      .footer { display: grid; grid-template-columns: 1fr; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar no-print">
+    <span>معاينة الطباعة (A4)</span>
+    <button type="button" id="mtgPrintBtn" class="btn btn-print">
+      <i class="fas fa-print"></i> طباعة / حفظ كـ PDF
+    </button>
+    <a href="{% url 'reports:meeting_detail' meeting.pk %}" class="btn">
+      <i class="fas fa-arrow-right"></i> عودة
+    </a>
+  </div>
+
+  <div class="page">
+    <header class="header">
+      <div class="hdr-block hdr-right">
+        <div>المملكة العربية السعودية</div>
+        <div>وزارة التعليم</div>
+        <div>{% firstof meeting.school.name active_school.name SCHOOL_NAME "المدرسة" %}</div>
+      </div>
+
+      <div class="hdr-center">
+        <img
+          src="{% if MOE_LOGO_URL %}{{ MOE_LOGO_URL }}{% else %}{% static 'img/UntiTtled-1.png' %}{% endif %}"
+          alt="شعار وزارة التعليم"
+          class="logo"
+        />
+      </div>
+
+      <div class="hdr-block hdr-left">
+        <div>التاريخ: {{ now|hijri }} هـ</div>
+        <div>وقت الطباعة: {{ now|time:"H:i" }}</div>
+        <div>رقم الاجتماع: {{ meeting.id }}</div>
+      </div>
+    </header>
+
+    <div class="title">محضر اجتماع{% if meeting.is_cancelled %} (ملغى){% endif %}</div>
+    <div class="subtitle">الموضوع: {% firstof meeting.title "—" %}</div>
+
+    {% if minutes and minutes.is_final %}
+      <div class="stamp stamp--final">محضر معتمد — {{ minutes.get_approval_state_display }}</div>
+    {% elif minutes %}
+      <div class="stamp stamp--draft">مسودة غير معتمدة — {{ minutes.get_approval_state_display }}</div>
+    {% elif meeting.is_held %}
+      <div class="stamp stamp--draft">لم يُكتب المحضر بعد</div>
+    {% else %}
+      <div class="stamp stamp--draft">دعوة اجتماع — لم ينعقد بعد</div>
+    {% endif %}
+
+    <table class="meta-table">
+      <tr>
+        <th>موعد الانعقاد</th>
+        <td>{{ meeting.scheduled_at|hijri }} هـ — {{ meeting.scheduled_at|time:"H:i" }}</td>
+        <th>المكان</th>
+        <td>{% firstof meeting.location "—" %}</td>
+      </tr>
+      <tr>
+        <th>منظّم الاجتماع</th>
+        <td>{% firstof meeting.organizer.name meeting.organizer_name "—" %}</td>
+        <th>اللجنة / القسم</th>
+        <td>{% firstof meeting.department.name "—" %}</td>
+      </tr>
+      <tr>
+        <th>حالة الاجتماع</th>
+        <td>
+          {{ meeting.get_status_display }}
+          {% if meeting.held_at %} — انعقد {{ meeting.held_at|hijri }} هـ{% endif %}
+        </td>
+        <th>كاتب المحضر</th>
+        <td>{% firstof minutes.recorder.name "—" %}</td>
+      </tr>
+      <tr>
+        <th>عدد المدعوين</th>
+        <td>{{ attendance.total }}</td>
+        <th>الحضور والغياب</th>
+        <td>حضر {{ attendance.present }} · غاب {{ attendance.absent }} · اعتذر {{ attendance.excused }}</td>
+      </tr>
+    </table>
+
+    {% if meeting.purpose %}
+      <section class="section">
+        <div class="section-h">الغرض من الاجتماع</div>
+        <div class="section-body" style="min-height:0">{{ meeting.purpose }}</div>
+      </section>
+    {% endif %}
+
+    {% if meeting.is_cancelled %}
+      <section class="section">
+        <div class="section-h">الإلغاء</div>
+        <div class="section-body" style="min-height:0">
+          أُلغي هذا الاجتماع.{% if meeting.cancel_reason %} السبب: {{ meeting.cancel_reason }}{% endif %}
+        </div>
+      </section>
+    {% endif %}
+
+    <section class="section">
+      <div class="section-h">جدول الأعمال</div>
+      {% if agenda %}
+        <ol class="agenda-list">
+          {% for item in agenda %}
+            <li>
+              {{ item.title }}
+              {% if item.note %}<span class="note">{{ item.note }}</span>{% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <div class="section-body" style="min-height:0">لم تُسجَّل بنود لجدول الأعمال.</div>
+      {% endif %}
+    </section>
+
+    <section class="section">
+      <div class="section-h">نص المحضر</div>
+      <div class="section-body">{% firstof minutes.body "—" %}</div>
+    </section>
+
+    <section class="section">
+      <div class="section-h">القرارات والتوصيات</div>
+      {% if decisions %}
+        <table class="people-table">
+          <thead>
+            <tr>
+              <th class="num">م</th>
+              <th>النص</th>
+              <th class="dec-kind">النوع</th>
+              <th>المسؤول</th>
+              <th>موعد التنفيذ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in decisions %}
+              <tr>
+                <td class="num">{{ forloop.counter }}</td>
+                <td>
+                  {{ row.decision.title }}
+                  {% if row.decision.body %}<div class="muted-cell">{{ row.decision.body }}</div>{% endif %}
+                  {% if row.decision.agenda_item %}
+                    <div class="muted-cell">عن بند: {{ row.decision.agenda_item.title }}</div>
+                  {% endif %}
+                </td>
+                <td class="dec-kind">{{ row.decision.get_kind_display }}</td>
+                <td>{% firstof row.decision.responsible.name "—" %}</td>
+                <td>{% if row.decision.due_at %}{{ row.decision.due_at|hijri }} هـ{% else %}—{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="section-body" style="min-height:0">لم تُسجَّل قرارات.</div>
+      {% endif %}
+    </section>
+
+    <section class="section">
+      <div class="section-h">المدعوون والحضور</div>
+      <table class="people-table">
+        <thead>
+          <tr>
+            <th class="num">م</th>
+            <th>الاسم</th>
+            <th>الحضور</th>
+            <th class="sign">التوقيع</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for att in attendees %}
+            <tr>
+              <td class="num">{{ forloop.counter }}</td>
+              <td>{% firstof att.person_name att.person.name "—" %}</td>
+              <td>{{ att.get_status_display }}</td>
+              <td></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="muted-cell">لا مدعوين مسجّلين.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <div class="signatures">
+      <div class="sign-box">
+        كاتب المحضر: {% firstof minutes.recorder.name "—" %}
+        <div class="sign-line"></div>
+      </div>
+      <div class="sign-box">
+        المعتمِد / مدير المدرسة:
+        <div class="sign-line"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>منصة توثيق — {% firstof meeting.school.name active_school.name "المدرسة" %}</span>
+      <span>طُبعت في {{ now|hijri }} هـ الساعة {{ now|time:"H:i" }}</span>
+    </div>
+  </div>
+
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    (function () {
+      var button = document.getElementById('mtgPrintBtn');
+      if (button) button.addEventListener('click', function () { window.print(); });
+    })();
+  </script>
+</body>
+</html>

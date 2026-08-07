@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}خطة جديدة | منصة توثيق{% endblock %}
+{% block title %}تعديل: {{ plan.title }} | الخطط{% endblock %}
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
@@ -13,14 +13,14 @@
   <header class="pln-hero">
     <div class="pln-hero__grid">
       <div class="pln-hero__main">
-        <a class="pln-crumb" href="{% url 'reports:plan_list' %}">
+        <a class="pln-crumb" href="{% url 'reports:plan_detail' plan.pk %}">
           <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-          الخطط
+          {{ plan.title }}
         </a>
-        <h1 class="pln-hero__title">خطة جديدة</h1>
+        <h1 class="pln-hero__title">تعديل بيانات الخطة</h1>
         <p class="pln-hero__lead">
-          ابدأ بوثيقة الخطة: عنوانها وغايتها ومداها. ثم تُضاف أهدافها ومهامها من
-          صفحتها، وكل مهمة تتحوّل إلى تكليف بموعده وشواهده.
+          هنا وثيقة الخطة: عنوانها ووصفها ومداها الزمني. أما أهدافها ومهامها
+          فتُضاف وتُعدَّل من صفحة الخطة نفسها حيث تُقرأ مع نسبها.
         </p>
       </div>
     </div>
@@ -73,10 +73,10 @@
 
     <div class="pln-actions" style="margin-top:1.2rem">
       <button type="submit" class="asg-btn asg-btn--primary">
-        <i class="fa-solid fa-compass-drafting" aria-hidden="true"></i>
-        إنشاء الخطة
+        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+        حفظ التعديلات
       </button>
-      <a class="asg-btn asg-btn--ghost" href="{% url 'reports:plan_list' %}">إلغاء</a>
+      <a class="asg-btn asg-btn--ghost" href="{% url 'reports:plan_detail' plan.pk %}">إلغاء</a>
     </div>
   </form>
 

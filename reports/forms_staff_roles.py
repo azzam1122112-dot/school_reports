@@ -15,18 +15,54 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from . import capabilities as caps
+from .gender_labels import school_gender_labels
 from .models import Delegation, Department, SchoolMembership, StaffScope, Teacher
 
-__all__ = ["StaffRoleAssignForm", "StaffScopeForm", "DelegationForm"]
+__all__ = ["StaffRoleAssignForm", "StaffScopeForm", "DelegationForm", "ASSIGNMENTS"]
 
 
-# الأدوار التي يجوز لمدير المدرسة إسنادها. «مدير» ليس منها: نقل الإدارة قرار
-# يخص مالك النظام، ولو أُتيح هنا لاستطاع المدير أن يعزل نفسه بنقرة.
-ASSIGNABLE_ROLES = (
-    SchoolMembership.RoleType.DEPUTY,
-    SchoolMembership.RoleType.ADMIN_STAFF,
-    SchoolMembership.RoleType.TEACHER,
-)
+# ما يختاره المدير من قائمة «الدور» ليس ``RoleType`` وحده. «محضر المختبر» مسمّى
+# وظيفي لا دور — صلاحيته صلاحية الموظف الإداري — لكنه في نظر المدير خيار من
+# خيارات الإسناد كبقيتها، وغيابُه من القائمة كان يضطره إلى إسناده معلّماً فيُعامَل
+# معاملة المعلّم في الصلاحية والكشوف. فتُعرض الخيارات في قائمة واحدة، ويُترجَم كل
+# خيار هنا إلى (دور، مسمّى) عند التطبيق.
+#
+# «مدير» ليس منها: نقل الإدارة قرار يخص مالك النظام، ولو أُتيح هنا لاستطاع
+# المدير أن يعزل نفسه بنقرة.
+ASSIGNMENTS: dict[str, tuple[str, str | None]] = {
+    SchoolMembership.RoleType.DEPUTY: (SchoolMembership.RoleType.DEPUTY, None),
+    SchoolMembership.RoleType.ADMIN_STAFF: (
+        SchoolMembership.RoleType.ADMIN_STAFF,
+        SchoolMembership.JobTitle.ADMIN_STAFF,
+    ),
+    SchoolMembership.JobTitle.LAB_TECH: (
+        SchoolMembership.RoleType.ADMIN_STAFF,
+        SchoolMembership.JobTitle.LAB_TECH,
+    ),
+    SchoolMembership.RoleType.TEACHER: (
+        SchoolMembership.RoleType.TEACHER,
+        SchoolMembership.JobTitle.TEACHER,
+    ),
+}
+
+# الأدوار التي يجوز لمدير المدرسة إسنادها — مشتقة من الخيارات أعلاه لا مكرّرة
+# عنها، فلا يبقى مصدران للحقيقة الواحدة.
+ASSIGNABLE_ROLES = tuple({role for role, _ in ASSIGNMENTS.values()})
+
+
+def assignment_choices(school=None) -> list[tuple[str, str]]:
+    """خيارات الإسناد بمسمّياتها حسب جنس المدرسة النشطة.
+
+    الوكيل في مدرسة بنات «وكيلة»، والمحضر «محضرة مختبر» — والتسمية تُقرأ من
+    مرجع المسمّيات لا تُكتب هنا.
+    """
+    labels = school_gender_labels(school)
+    return [
+        (SchoolMembership.RoleType.DEPUTY, str(labels["deputy"])),
+        (SchoolMembership.RoleType.ADMIN_STAFF, str(labels["admin_staff"])),
+        (SchoolMembership.JobTitle.LAB_TECH, str(labels["lab_tech"])),
+        (SchoolMembership.RoleType.TEACHER, str(labels["teacher_indefinite"])),
+    ]
 
 
 class StaffRoleAssignForm(forms.Form):
@@ -39,11 +75,8 @@ class StaffRoleAssignForm(forms.Form):
     )
     role_type = forms.ChoiceField(
         label="الدور",
-        choices=[
-            (value, label)
-            for value, label in SchoolMembership.RoleType.choices
-            if value in ASSIGNABLE_ROLES
-        ],
+        choices=assignment_choices,
+        error_messages={"invalid_choice": "دور غير معتمد."},
     )
     keep_teaching_role = forms.BooleanField(
         label="يحتفظ بنصابه التدريسي",
@@ -54,6 +87,7 @@ class StaffRoleAssignForm(forms.Form):
     def __init__(self, *args, school=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.school = school
+        self.fields["role_type"].choices = assignment_choices(school)
         # قائمة المنسوبين مقصورة على المدرسة النشطة، فمعرّف من خارجها يُرفض
         # في ``clean`` لا في القالب.
         self.fields["member"].queryset = (
@@ -68,11 +102,20 @@ class StaffRoleAssignForm(forms.Form):
             else Teacher.objects.none()
         )
 
+    @property
+    def selected_label(self) -> str:
+        """مسمّى الخيار المُسنَد كما رآه المدير في القائمة."""
+        chosen = str(self.cleaned_data.get("role_type") or "")
+        for value, label in self.fields["role_type"].choices:
+            if str(value) == chosen:
+                return str(label)
+        return chosen
+
     def clean(self):
         cleaned = super().clean()
         member = cleaned.get("member")
-        role = cleaned.get("role_type")
-        if not member or not role:
+        choice = cleaned.get("role_type")
+        if not member or not choice:
             return cleaned
 
         if self.school is None:
@@ -97,9 +140,14 @@ class StaffRoleAssignForm(forms.Form):
         الإسناد **استبدال لا تكديس**: أدوار المنسوب السابقة تُزال ما لم يُطلب
         الاحتفاظ بالنصاب التدريسي صراحةً. لولا ذلك لتراكمت الأدوار بالنقر
         المتكرر حتى يصير الجميع كل شيء.
+
+        ويُكتب المسمّى الوظيفي مع الدور لا بعده في شاشة أخرى: إسناد «محضر
+        المختبر» بلا مسمّاه يجعله موظفاً إدارياً في كل كشف وتصدير، وهو ما كان
+        يُفقده اسمه.
         """
         member = self.cleaned_data["member"]
-        role = self.cleaned_data["role_type"]
+        choice = self.cleaned_data["role_type"]
+        role, job_title = ASSIGNMENTS[choice]
         keep_teaching = bool(self.cleaned_data.get("keep_teaching_role"))
 
         keep = {role}
@@ -122,9 +170,25 @@ class StaffRoleAssignForm(forms.Form):
                 role_type=wanted,
                 defaults={"is_active": True},
             )
+            updates = []
             if not obj.is_active:
                 obj.is_active = True
-                obj.save(update_fields=["is_active"])
+                updates.append("is_active")
+
+            # عضوية «النصاب التدريسي» المصاحبة مسمّاها معلّم دائماً؛ والمسمّى
+            # المختار يُكتب على العضوية الأصلية. أما الوكيل فلا مسمّى وظيفياً
+            # له في القائمة، فيُترك مسمّاه كما هو ولا يُصفَّر بالإسناد.
+            wanted_title = (
+                SchoolMembership.JobTitle.TEACHER
+                if wanted == SchoolMembership.RoleType.TEACHER and wanted != role
+                else job_title
+            )
+            if wanted_title and obj.job_title != wanted_title:
+                obj.job_title = wanted_title
+                updates.append("job_title")
+
+            if updates:
+                obj.save(update_fields=updates)
             if wanted == role:
                 membership = obj
 
@@ -198,8 +262,15 @@ class DelegationForm(forms.ModelForm):
         model = Delegation
         fields = ("delegate", "capabilities", "reason", "starts_at", "ends_at")
         widgets = {
-            "starts_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
-            "ends_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            # الصيغة مثبَّتة على ما يقرأه ``datetime-local``: بدونها يُطبع الوقت
+            # الابتدائي بصيغة جانغو العامة فيرفضه المتصفح ويعرض حقلاً فارغاً،
+            # فيظن المدير أن عليه كتابة التاريخين من الصفر.
+            "starts_at": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
+            "ends_at": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
             "reason": forms.TextInput(attrs={"placeholder": "مثال: إجازة المدير من 5 إلى 12"}),
         }
 

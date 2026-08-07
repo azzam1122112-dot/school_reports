@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% load hijri_tags %}
+
+{% block title %}{{ assignment.title }} | التكليفات{% endblock %}
+
+{% block head %}
+{% include "reports/_assignment_theme.html" %}
+<style>
+  .vw-body { font-size: .9rem; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .vw-meta { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 1rem; }
+  .vw-meta__l { font-size: .73rem; color: var(--asg-muted); font-weight: 700; }
+  .vw-meta__v { font-size: .87rem; font-weight: 800; margin-top: .12rem; }
+
+  .vw-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+  .vw-table th, .vw-table td { padding: .55rem .6rem; text-align: start; border-bottom: 1px solid var(--asg-line); }
+  .vw-table th { font-size: .74rem; font-weight: 900; color: var(--asg-muted); white-space: nowrap; }
+  .vw-table tbody tr:last-child td { border-bottom: 0; }
+  .vw-table__name { font-weight: 800; }
+  .vw-table__name a { color: inherit; text-decoration: none; }
+  .vw-table__name a:hover { text-decoration: underline; }
+  .vw-scroll { overflow-x: auto; }
+
+  .vw-mini { width: 92px; }
+  .vw-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1.1rem; }
+  .vw-share { display: flex; gap: .4rem; align-items: center; margin-top: .8rem; }
+  .vw-share input {
+    flex: 1; min-width: 0; padding: .45rem .6rem; border-radius: 9px; font-size: .78rem;
+    border: 1px solid var(--asg-line); background: var(--asg-soft); color: var(--asg-muted);
+    font-family: inherit; direction: ltr; text-align: left;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asg-page">
+
+  <header class="asg-hero">
+    <a class="asg-hero__eyebrow" href="{% url 'reports:assignment_board' %}">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      لوحة التكليفات
+    </a>
+    <h1 class="asg-hero__title">{{ assignment.title }}</h1>
+    <p class="asg-hero__meta">
+      أصدره {{ assignment.issuer_name|default:"—" }}
+      · يستحق {{ assignment.due_at|hijri }} هـ
+      {% if assignment.is_cancelled %} · <strong>ملغى</strong>{% endif %}
+    </p>
+    <div class="vw-actions">
+      <a class="asg-btn asg-btn--primary" style="background:#fff;color:#08643b"
+         href="{% url 'reports:assignment_print' assignment.pk %}" target="_blank" rel="noopener">
+        <i class="fa-solid fa-print" aria-hidden="true"></i>
+        خطاب التكليف للطباعة
+      </a>
+      <button type="button" class="asg-btn asg-btn--ghost" id="shareBtn"
+              style="color:#fff;border-color:rgba(255,255,255,.45)"
+              data-url="{{ share_url }}" data-title="{{ assignment.title }}">
+        <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+        مشاركة
+      </button>
+    </div>
+  </header>
+
+  <section class="asg-kpis" aria-label="ملخص التنفيذ">
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ totals.total }}</div>
+      <div class="asg-kpi__l">مكلَّف</div>
+    </article>
+    <article class="asg-kpi">
+      <div class="asg-kpi__v">{{ totals.percent }}%</div>
+      <div class="asg-kpi__l">اعتُمد تنفيذهم</div>
+    </article>
+    <article class="asg-kpi" data-tone="warn">
+      <div class="asg-kpi__v">{{ totals.pending }}</div>
+      <div class="asg-kpi__l">بانتظار القرار</div>
+    </article>
+    <article class="asg-kpi" data-tone="danger">
+      <div class="asg-kpi__v">{{ totals.overdue }}</div>
+      <div class="asg-kpi__l">متأخر</div>
+    </article>
+  </section>
+
+  {# ═══ نص التكليف ══════════════════════════════════════════ #}
+  <section class="asg-card">
+    <h2 class="asg-card__title">نصّ التكليف</h2>
+
+    <div class="vw-meta">
+      <div>
+        <div class="vw-meta__l">موعد التسليم</div>
+        <div class="vw-meta__v">{{ assignment.due_at|hijri }} هـ</div>
+        <div class="vw-meta__l">{{ assignment.due_at|date:"Y-m-d H:i" }} م</div>
+      </div>
+      <div>
+        <div class="vw-meta__l">الأولوية</div>
+        <div class="vw-meta__v">{{ assignment.get_priority_display }}</div>
+      </div>
+      <div>
+        <div class="vw-meta__l">القسم المعني</div>
+        <div class="vw-meta__v">{{ assignment.department.name|default:"—" }}</div>
+      </div>
+      <div>
+        <div class="vw-meta__l">تاريخ الإصدار</div>
+        <div class="vw-meta__v">{{ assignment.created_at|hijri }} هـ</div>
+      </div>
+    </div>
+
+    {% if assignment.description %}
+      <div class="vw-body">{{ assignment.description }}</div>
+    {% else %}
+      <p class="asg-card__hint" style="margin:0">لم يُكتب تفصيل للمطلوب.</p>
+    {% endif %}
+
+    {% if assignment.requires_evidence %}
+      <p class="asg-card__hint" style="margin:.9rem 0 0">
+        <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
+        يشترط هذا التكليف {{ assignment.min_evidence_count }} شاهداً على الأقل،
+        ولا يُقبل إرسال التنفيذ للمراجعة قبل استيفائها.
+      </p>
+    {% endif %}
+
+    {% if assignment.is_cancelled %}
+      <p class="asg-card__hint" style="margin:.9rem 0 0;color:var(--asg-danger)">
+        أُلغي هذا التكليف{% if assignment.cancel_reason %} — {{ assignment.cancel_reason }}{% endif %}.
+        ويبقى ظاهراً في السجل بسبب إلغائه.
+      </p>
+    {% endif %}
+  </section>
+
+  {# ═══ المكلَّفون ═══════════════════════════════════════════ #}
+  <section class="asg-card">
+    <h2 class="asg-card__title">من صدر إليهم</h2>
+    <p class="asg-card__hint">
+      لكل مكلَّف حالته ونسبته على حدة — فتكليفٌ واحد يُنجزه بعضهم ويتأخر بعضهم
+      دون أن تخفي حالةٌ واحدة ذلك.
+    </p>
+
+    {% if targets %}
+      <div class="vw-scroll">
+        <table class="vw-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>المكلَّف</th>
+              <th>الحالة</th>
+              <th>الإنجاز</th>
+              <th>الشواهد</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for target in targets %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td class="vw-table__name">
+                  <a href="{% url 'reports:assignment_detail' target.pk %}">{{ target.assignee.name }}</a>
+                  {% if target.is_overdue %}
+                    <span class="asg-tag asg-tag--late" style="margin-inline-start:.35rem">متأخر</span>
+                  {% endif %}
+                </td>
+                <td>{{ target.get_approval_state_display }}</td>
+                <td>
+                  <div class="asg-bar vw-mini">
+                    <div class="asg-bar__track">
+                      <div class="asg-bar__fill" style="width:{{ target.progress_percent }}%"></div>
+                    </div>
+                    <div class="asg-bar__label">{{ target.progress_percent }}%</div>
+                  </div>
+                </td>
+                <td>{{ target.evidence_count }}</td>
+                <td>
+                  <a class="asg-btn asg-btn--ghost asg-btn--sm"
+                     href="{% url 'reports:assignment_detail' target.pk %}">فتح</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="asg-card__hint" style="margin:0">لم يُسند هذا التكليف إلى أحد.</p>
+    {% endif %}
+  </section>
+
+  {# ═══ الإدارة ══════════════════════════════════════════════ #}
+  {% if can_manage %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">إدارة التكليف</h2>
+
+      <div class="vw-share">
+        <input type="text" id="shareUrl" value="{{ share_url }}" readonly aria-label="رابط التكليف">
+        <button type="button" class="asg-btn asg-btn--ghost asg-btn--sm" id="shareCopy">نسخ الرابط</button>
+      </div>
+
+      {% if not assignment.is_cancelled %}
+        <form method="post" action="{% url 'reports:assignment_cancel' assignment.pk %}" style="margin-top:1rem">
+          {% csrf_token %}
+          <div class="asg-field">
+            <label for="cancelReason">سبب الإلغاء</label>
+            <input type="text" id="cancelReason" name="reason" placeholder="يبقى في السجل بياناً لسبب توقّف العمل">
+          </div>
+          <button type="submit" class="asg-btn asg-btn--danger">
+            <i class="fa-solid fa-ban" aria-hidden="true"></i>
+            إلغاء التكليف
+          </button>
+          <div class="asg-field__help">
+            التكليف يُلغى ولا يُحذف — فما وصل المكلَّف صار واقعة، ومحوه يجعل من
+            نُفّذ عليه إجراءٌ بلا سبب ظاهر.
+          </div>
+        </form>
+      {% endif %}
+    </section>
+  {% endif %}
+
+</div>
+
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+  (function () {
+    function copy(value, done) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(value).then(done, function () {});
+          return;
+        }
+        if (document.execCommand('copy')) done();
+      } catch (error) { /* يبقى الرابط محدَّداً للنسخ اليدوي. */ }
+    }
+
+    var button = document.getElementById('shareCopy');
+    var field = document.getElementById('shareUrl');
+    if (button && field) {
+      button.addEventListener('click', function () {
+        field.select();
+        copy(field.value, function () { button.textContent = 'نُسخ'; });
+      });
+    }
+
+    // مشاركة الجهاز حيث تتوفّر — وهي ما يتوقّعه من يفتح الشاشة على جواله.
+    // ومن لا متصفحه يدعمها ينسخ الرابط، فلا يبقى الزر بلا أثر.
+    var shareButton = document.getElementById('shareBtn');
+    if (shareButton) {
+      shareButton.addEventListener('click', function () {
+        var url = shareButton.getAttribute('data-url');
+        var title = shareButton.getAttribute('data-title');
+        if (navigator.share) {
+          navigator.share({ title: title, text: title, url: url }).catch(function () {});
+          return;
+        }
+        copy(url, function () {
+          shareButton.textContent = 'نُسخ الرابط';
+        });
+      });
+    }
+  }());
+</script>
+{% endblock %}

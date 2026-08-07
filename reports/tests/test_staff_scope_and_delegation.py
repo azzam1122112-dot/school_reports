@@ -440,6 +440,111 @@ class StaffRolesScreenTests(TestCase):
             SchoolMembership.objects.filter(school=self.school, teacher=outsider).exists()
         )
 
+    def test_the_lab_technician_is_an_option_on_the_screen(self):
+        """غيابه من القائمة كان يضطر المدير إلى إسناده معلّماً."""
+        self._enter(self.manager)
+        response = self.client.get(self.url)
+        self.assertContains(response, "محضر مختبر")
+
+    def test_assigning_a_lab_technician_writes_role_and_job_title(self):
+        """محضّر المختبر موظف إداري صلاحيةً، ومحضّرٌ مسمّى — والاثنان يُكتبان معاً."""
+        self._enter(self.manager)
+        response = self.client.post(
+            self.url,
+            {
+                "action": "assign_role",
+                "member": self.teacher.pk,
+                "role_type": SchoolMembership.JobTitle.LAB_TECH,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+
+        memberships = list(
+            SchoolMembership.objects.filter(school=self.school, teacher=self.teacher)
+        )
+        self.assertEqual(len(memberships), 1)
+        self.assertEqual(
+            memberships[0].role_type, SchoolMembership.RoleType.ADMIN_STAFF
+        )
+        self.assertEqual(
+            memberships[0].job_title, SchoolMembership.JobTitle.LAB_TECH
+        )
+
+    def test_a_lab_technician_is_listed_by_their_own_name_not_as_a_teacher(self):
+        SchoolMembership.objects.filter(
+            school=self.school, teacher=self.teacher
+        ).update(
+            role_type=SchoolMembership.RoleType.ADMIN_STAFF,
+            job_title=SchoolMembership.JobTitle.LAB_TECH,
+        )
+        self._enter(self.manager)
+
+        response = self.client.get(self.url)
+        body = response.content.decode()
+        self.assertIn("محضر مختبر", body)
+
+    def test_a_lab_technician_keeps_their_title_beside_a_teaching_load(self):
+        """العضوية التدريسية المصاحبة مسمّاها معلّم، والمسمّى المختار على الأصل."""
+        self._enter(self.manager)
+        self.client.post(
+            self.url,
+            {
+                "action": "assign_role",
+                "member": self.teacher.pk,
+                "role_type": SchoolMembership.JobTitle.LAB_TECH,
+                "keep_teaching_role": "on",
+            },
+        )
+
+        titles = dict(
+            SchoolMembership.objects.filter(
+                school=self.school, teacher=self.teacher
+            ).values_list("role_type", "job_title")
+        )
+        self.assertEqual(
+            titles,
+            {
+                SchoolMembership.RoleType.ADMIN_STAFF: SchoolMembership.JobTitle.LAB_TECH,
+                SchoolMembership.RoleType.TEACHER: SchoolMembership.JobTitle.TEACHER,
+            },
+        )
+
+    def test_a_lab_technicians_scope_screen_opens(self):
+        """صلاحيته صلاحية الموظف الإداري، فنطاقه يُضبط كنطاقه."""
+        self._enter(self.manager)
+        self.client.post(
+            self.url,
+            {
+                "action": "assign_role",
+                "member": self.teacher.pk,
+                "role_type": SchoolMembership.JobTitle.LAB_TECH,
+            },
+        )
+        membership = SchoolMembership.objects.get(
+            school=self.school,
+            teacher=self.teacher,
+            role_type=SchoolMembership.RoleType.ADMIN_STAFF,
+        )
+
+        response = self.client.get(
+            reverse("reports:staff_role_scope", args=[membership.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_the_header_calls_a_lab_technician_by_their_title(self):
+        from reports.permissions import effective_user_role_label
+
+        SchoolMembership.objects.filter(
+            school=self.school, teacher=self.teacher
+        ).update(
+            role_type=SchoolMembership.RoleType.ADMIN_STAFF,
+            job_title=SchoolMembership.JobTitle.LAB_TECH,
+        )
+        self.assertEqual(
+            effective_user_role_label(self.teacher, active_school=self.school),
+            "محضر مختبر",
+        )
+
     def test_the_scope_screen_refuses_a_plain_teacher(self):
         membership = SchoolMembership.objects.get(
             school=self.school, teacher=self.teacher
@@ -583,6 +688,106 @@ class StaffRolesScreenTests(TestCase):
 
         fresh = Teacher.objects.get(pk=deputy.pk)
         self.assertTrue(has_capability(fresh, caps.VIEW_AUDIT_LOG, self.school))
+
+    def test_a_large_roster_is_searched_filtered_and_paged(self):
+        """كشفٌ من مئة اسم لا يُقرأ دفعةً واحدة — يُبحث فيه ويُصفَّى ويُصفَّح."""
+        from reports.views.staff_roles import ROSTER_PAGE_SIZE
+
+        for index in range(ROSTER_PAGE_SIZE + 12):
+            person = _user(f"منسوب رقم {index}", f"05009{index:05d}")
+            SchoolMembership.objects.create(
+                school=self.school,
+                teacher=person,
+                role_type=SchoolMembership.RoleType.TEACHER,
+            )
+        marked = _user("سلمان المميّز", "0500014999")
+        SchoolMembership.objects.create(
+            school=self.school, teacher=marked, role_type=SchoolMembership.RoleType.DEPUTY
+        )
+        self._enter(self.manager)
+
+        first = self.client.get(self.url)
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(len(first.context["rows"]), ROSTER_PAGE_SIZE)
+        self.assertEqual(first.context["counts"]["all"], ROSTER_PAGE_SIZE + 14)
+        self.assertTrue(first.context["page_obj"].has_next())
+
+        second = self.client.get(self.url, {"page": 2})
+        self.assertEqual(second.context["page_obj"].number, 2)
+
+        # البحث بالاسم يقع على الكشف كله لا على الصفحة المعروضة.
+        found = self.client.get(self.url, {"q": "المميّز"})
+        names = [row["person"].pk for row in found.context["rows"]]
+        self.assertEqual(names, [marked.pk])
+
+        # والبحث بالجوال كذلك، فالمدير يبحث بما يذكره.
+        by_phone = self.client.get(self.url, {"q": "0500014999"})
+        self.assertEqual(
+            [row["person"].pk for row in by_phone.context["rows"]], [marked.pk]
+        )
+
+        deputies = self.client.get(self.url, {"role": "deputy"})
+        self.assertEqual(
+            [row["person"].pk for row in deputies.context["rows"]], [marked.pk]
+        )
+        self.assertEqual(deputies.context["counts"]["deputy"], 1)
+
+    def test_the_needs_scope_filter_finds_deputies_without_a_scope(self):
+        deputy = _user("وكيل بلا نطاق", "0500014001")
+        SchoolMembership.objects.create(
+            school=self.school, teacher=deputy, role_type=SchoolMembership.RoleType.DEPUTY
+        )
+        self._enter(self.manager)
+
+        response = self.client.get(self.url, {"role": "needs_scope"})
+        self.assertEqual(
+            [row["person"].pk for row in response.context["rows"]], [deputy.pk]
+        )
+        self.assertEqual(response.context["counts"]["needs_scope"], 1)
+
+    def test_the_delegation_form_offers_ready_made_bundles_and_durations(self):
+        """التفويض يُمنح على عجل، فالتوليفة الجاهزة تسبق الخانات العشرين."""
+        self._enter(self.manager)
+        response = self.client.get(self.url)
+
+        codes = {preset["code"] for preset in response.context["delegation_presets"]}
+        self.assertEqual(codes, {"full", "review", "operations"})
+        # لا تُفوَّض صلاحية غير نافذة — التفويض الجوف طمأنينة كاذبة.
+        available = {item.code for item in caps.ALL if item.available}
+        for preset in response.context["delegation_presets"]:
+            self.assertTrue(set(preset["capabilities"]) <= available)
+            self.assertTrue(preset["capabilities"])
+
+        body = response.content.decode()
+        self.assertIn('data-days="7"', body)
+        self.assertIn("سيمارس", body)
+
+    def test_a_failed_delegation_reopens_its_own_tab(self):
+        """الخطأ يجب أن يُرى حيث وقع لا أن يُبحث عنه في لوحة أخرى."""
+        self._enter(self.manager)
+        starts = timezone.localtime()
+
+        response = self.client.post(
+            self.url,
+            {
+                "action": "grant_delegation",
+                "delegate": "",
+                "capabilities": [],
+                "starts_at": starts.strftime("%Y-%m-%dT%H:%M"),
+                "ends_at": (starts + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M"),
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["open_tab"], "delegate")
+
+    def test_the_delegation_datetimes_render_for_the_browser(self):
+        """صيغة جانغو العامة يرفضها ``datetime-local`` فيظهر الحقل فارغاً."""
+        self._enter(self.manager)
+        response = self.client.get(self.url)
+
+        rendered = str(response.context["delegation_form"]["starts_at"])
+        self.assertIn('type="datetime-local"', rendered)
+        self.assertRegex(rendered, r'value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}"')
 
     def test_granting_and_revoking_a_delegation_through_the_screen(self):
         deputy = _user("وكيل التفويض", "0500013013")

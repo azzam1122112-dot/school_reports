@@ -728,7 +728,15 @@ def effective_user_role_label(
             # وظيفي آخر يحمله — ووكيلٌ له نصاب تدريسي يظل وكيلاً في الترويسة.
             label = labels["deputy"]
         else:
+            # عضوية الموظف الإداري تُطلب أولاً: من يجمع بين وظيفته ونصاب تدريسي
+            # يحمل عضويتين، وأيّهما تعود من استعلام «المنسوبين» رهنٌ بترتيب
+            # المعرّفات — فكان المحضّر يظهر «معلّماً» لأن عضويته التدريسية أسبق.
             staff_membership = _get_school_membership(
+                user,
+                active_school=school,
+                active_school_id=school_id,
+                role_types=[SchoolMembership.RoleType.ADMIN_STAFF],
+            ) or _get_school_membership(
                 user,
                 active_school=school,
                 active_school_id=school_id,
@@ -737,12 +745,14 @@ def effective_user_role_label(
             if staff_membership is not None:
                 job_title = (getattr(staff_membership, "job_title", "") or "").strip()
                 role_type = (getattr(staff_membership, "role_type", "") or "").strip()
-                if role_type == SchoolMembership.RoleType.ADMIN_STAFF:
+                # المسمّى يسبق الدور: ``admin_staff`` وصف صلاحية، و«محضر
+                # المختبر» اسم عمله — والترويسة تُظهر ما يعرف به صاحبها.
+                if job_title == SchoolMembership.JobTitle.LAB_TECH:
+                    label = labels["lab_tech"]
+                elif role_type == SchoolMembership.RoleType.ADMIN_STAFF:
                     label = labels["admin_staff"]
                 elif job_title == SchoolMembership.JobTitle.ADMIN_STAFF:
                     label = labels["admin_staff"]
-                elif job_title == SchoolMembership.JobTitle.LAB_TECH:
-                    label = labels["lab_tech"]
                 else:
                     label = labels["teacher"]
             else:

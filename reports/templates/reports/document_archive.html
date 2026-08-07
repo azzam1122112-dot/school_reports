@@ -1,34 +1,67 @@
 {% extends "base.html" %}
+{% load hijri_tags %}
 
 {% block title %}أرشيف الوثائق | منصة توثيق{% endblock %}
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
+{% include "reports/_document_theme.html" %}
 <style>
-  .doc-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); align-items: start; }
-  @media (max-width: 900px) { .doc-grid { grid-template-columns: 1fr; } }
+  .doc-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr); align-items: start; }
+  @media (max-width: 980px) { .doc-grid { grid-template-columns: 1fr; } }
 
-  .doc-filters { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end; }
-  .doc-cards { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); margin-top: 1rem; }
+  /* لوحة الرفع تلاصق أعلى الشاشة: الموظف يرفع عدة وثائق تباعاً، وإرجاعه
+     إلى أعلى الصفحة بعد كل تمرير يجعل المهمة اليومية رحلة تمرير. */
+  .doc-side { position: sticky; top: 1rem; }
+  @media (max-width: 980px) { .doc-side { position: static; } }
+
+  /* ── منطقة الإفلات ────────────────────────────────────────── */
+  .doc-drop {
+    position: relative; display: grid; place-items: center; gap: .5rem;
+    padding: 1.5rem 1rem; text-align: center; cursor: pointer;
+    border: 2px dashed var(--asg-line); border-radius: 16px; background: var(--asg-soft);
+  }
+  .doc-drop:hover, .doc-drop:focus-within { border-color: var(--asg-green); }
+  .doc-drop[data-over="1"] { border-color: var(--asg-green); background: color-mix(in srgb, var(--asg-green) 10%, transparent); transform: scale(1.01); }
+  .doc-drop input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .doc-drop__icon { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 1.15rem; background: var(--asg-surface); color: var(--asg-green); border: 1px solid var(--asg-line); }
+  .doc-drop__title { font-size: .87rem; font-weight: 800; }
+  .doc-drop__hint { font-size: .74rem; color: var(--asg-muted); line-height: 1.7; }
+
+  /* ── الملف المختار ────────────────────────────────────────── */
+  .doc-picked { display: none; align-items: center; gap: .7rem; padding: .7rem .8rem; border-radius: 13px; border: 1px solid var(--asg-line); background: var(--asg-surface); }
+  .doc-picked[data-on="1"] { display: flex; }
+  .doc-picked__name { flex: 1; min-width: 0; font-size: .84rem; font-weight: 800; overflow-wrap: anywhere; }
+  .doc-picked__sub { font-size: .73rem; color: var(--asg-muted); margin-top: .1rem; }
+  .doc-picked__x { flex: none; border: 0; background: transparent; color: var(--asg-muted); cursor: pointer; font-size: .95rem; padding: .25rem; border-radius: 8px; }
+  .doc-picked__x:hover { color: var(--asg-danger); }
+
+  /* ── شريط التقدّم ─────────────────────────────────────────── */
+  .doc-prog { display: none; margin-top: .85rem; }
+  .doc-prog[data-on="1"] { display: block; }
+  .doc-prog__track { height: 8px; border-radius: 999px; background: var(--asg-soft); overflow: hidden; border: 1px solid var(--asg-line); }
+  .doc-prog__fill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--asg-green), var(--asg-gold)); transition: width .18s ease; }
+  .doc-prog__label { font-size: .76rem; font-weight: 800; color: var(--asg-muted); margin-top: .35rem; text-align: center; }
+  .doc-alert { margin-top: .7rem; font-size: .78rem; font-weight: 700; color: var(--asg-danger); line-height: 1.7; }
+
+  /* ── شبكة الوثائق ─────────────────────────────────────────── */
+  .doc-cards { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); margin-top: 1.1rem; }
   .doc-card {
-    border: 1px solid var(--asg-line); border-radius: 14px; padding: .85rem .9rem;
-    background: var(--asg-surface); display: flex; flex-direction: column; gap: .4rem;
-    transition: border-color .18s ease;
+    position: relative; overflow: hidden; display: flex; flex-direction: column; gap: .5rem;
+    border: 1px solid var(--asg-line); border-radius: 15px; padding: .9rem;
+    background: var(--asg-surface); box-shadow: var(--doc-shadow);
   }
-  .doc-card:hover { border-color: var(--asg-green); }
-  .doc-card[data-archived="1"] { border-inline-start: 3px solid var(--asg-green); }
-  .doc-card__top { display: flex; gap: .55rem; align-items: flex-start; }
-  .doc-icon {
-    width: 34px; height: 34px; flex: none; border-radius: 10px;
-    display: grid; place-items: center; font-size: .9rem;
-    background: var(--asg-soft); color: var(--asg-green);
-  }
-  .doc-card__title { font-size: .88rem; font-weight: 800; line-height: 1.5; }
+  .doc-card:hover { border-color: color-mix(in srgb, var(--k) 55%, transparent); box-shadow: var(--doc-shadow-lift); transform: translateY(-2px); }
+  .doc-card::before { content: ""; position: absolute; inset-block-start: 0; inset-inline: 0; height: 3px; background: var(--k); opacity: .85; }
+  .doc-card__top { display: flex; gap: .6rem; align-items: flex-start; }
+  .doc-card__title { font-size: .89rem; font-weight: 800; line-height: 1.55; overflow-wrap: anywhere; }
   .doc-card__title a { color: inherit; text-decoration: none; }
-  .doc-card__title a:hover { text-decoration: underline; }
+  .doc-card__title a::after { content: ""; position: absolute; inset: 0; }
+  .doc-card:hover .doc-card__title a { color: var(--k); }
   .doc-card__meta { font-size: .74rem; color: var(--asg-muted); line-height: 1.7; }
-  .doc-card__tags { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: auto; padding-top: .35rem; }
+  .doc-card__foot { display: flex; gap: .3rem; flex-wrap: wrap; align-items: center; margin-top: auto; padding-top: .45rem; border-top: 1px solid var(--asg-line); }
 
+  .doc-filters { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); align-items: end; }
   .doc-pager { display: flex; gap: .6rem; align-items: center; justify-content: center; margin-top: 1.2rem; flex-wrap: wrap; }
   .doc-pager__n { font-size: .8rem; font-weight: 700; color: var(--asg-muted); }
 </style>
@@ -70,23 +103,37 @@
     <div>
       {% if pending %}
         <section class="asg-card">
-          <h2 class="asg-card__title">تنتظر اعتماد الأرشفة</h2>
+          <h2 class="asg-card__title">
+            <i class="fa-solid fa-hourglass-half" aria-hidden="true" style="color:var(--asg-gold)"></i>
+            تنتظر اعتماد الأرشفة
+          </h2>
           <p class="asg-card__hint">راجع بياناتها وتصنيفها ثم اعتمد نقلها أو أعِدها بملاحظة.</p>
           {% for item in pending %}
-            <article class="asg-item">
+            <article class="asg-item doc-kind" data-kind="{{ item.kind }}" data-soon="1">
+              <span class="doc-ico" aria-hidden="true">
+                {% if item.kind == 'minutes' %}<i class="fa-solid fa-file-signature"></i>
+                {% elif item.kind == 'financial' %}<i class="fa-solid fa-file-invoice-dollar"></i>
+                {% elif item.kind == 'contract' %}<i class="fa-solid fa-file-contract"></i>
+                {% elif item.kind == 'certificate' %}<i class="fa-solid fa-award"></i>
+                {% elif item.kind == 'circular' %}<i class="fa-solid fa-bullhorn"></i>
+                {% elif item.kind == 'letter' %}<i class="fa-solid fa-envelope-open-text"></i>
+                {% elif item.kind == 'form' %}<i class="fa-solid fa-file-pen"></i>
+                {% elif item.kind == 'report' %}<i class="fa-solid fa-chart-simple"></i>
+                {% else %}<i class="fa-solid fa-file-lines"></i>{% endif %}
+              </span>
               <div class="asg-item__main">
                 <div class="asg-item__title">
                   <a href="{% url 'reports:document_detail' item.pk %}">{{ item.title }}</a>
                 </div>
                 <div class="asg-item__sub">
                   {{ item.owner_name|default:"—" }} · {{ item.get_kind_display }}
-                  {% if item.academic_year %} · {{ item.academic_year }}{% endif %}
+                  {% if item.academic_year %} · {{ item.academic_year }} هـ{% endif %}
                   {% if item.department %} · {{ item.department.name }}{% endif %}
                 </div>
               </div>
               <div class="asg-item__side">
-                <span class="asg-tag">{{ item.get_approval_state_display }}</span>
-                <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{% url 'reports:document_detail' item.pk %}">فتح</a>
+                <span class="doc-state" data-s="pending">{{ item.get_approval_state_display }}</span>
+                <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{% url 'reports:document_detail' item.pk %}">مراجعة</a>
               </div>
             </article>
           {% endfor %}
@@ -94,7 +141,10 @@
       {% endif %}
 
       <section class="asg-card">
-        <h2 class="asg-card__title">البحث في الوثائق</h2>
+        <h2 class="asg-card__title">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true" style="color:var(--asg-green)"></i>
+          البحث في الوثائق
+        </h2>
         <p class="asg-card__hint">
           ثلاثة محاور مجتمعة — السنة والقسم والنوع. ومحورٌ واحد يترك الباحث
           يقلّب مئات النتائج.
@@ -110,7 +160,7 @@
             <select id="f-year" name="year">
               <option value="">كل السنوات</option>
               {% for year in years %}
-                <option value="{{ year }}" {% if q_year == year %}selected{% endif %}>{{ year }}</option>
+                <option value="{{ year }}" {% if q_year == year %}selected{% endif %}>{{ year }} هـ</option>
               {% endfor %}
             </select>
           </div>
@@ -138,22 +188,58 @@
               بحث
             </button>
             {% if has_filters %}
-              <a class="asg-btn asg-btn--ghost" href="{% url 'reports:document_archive' %}">إلغاء</a>
+              <a class="asg-btn asg-btn--ghost" href="{% url 'reports:document_archive' %}">إلغاء الكل</a>
             {% endif %}
           </div>
         </form>
 
+        {% comment %}
+        رقائق المرشّحات الفعّالة: كل رقاقة تحذف نفسها وتُبقي الباقي. بدونها يرى
+        الباحث «لا نتائج» ولا يعرف أيُّ مرشّحٍ أخفى ما يبحث عنه.
+        {% endcomment %}
+        {% if has_filters %}
+          <div class="doc-chips" aria-label="المرشّحات الفعّالة">
+            {% if q_term %}
+              <a class="doc-chip" href="?{% if q_year %}year={{ q_year|urlencode }}&{% endif %}{% if q_department %}department={{ q_department|urlencode }}&{% endif %}{% if q_kind %}kind={{ q_kind|urlencode }}{% endif %}">
+                <span>«{{ q_term }}»</span>
+                <span class="doc-chip__x" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>
+              </a>
+            {% endif %}
+            {% if q_year %}
+              <a class="doc-chip" href="?{% if q_term %}q={{ q_term|urlencode }}&{% endif %}{% if q_department %}department={{ q_department|urlencode }}&{% endif %}{% if q_kind %}kind={{ q_kind|urlencode }}{% endif %}">
+                <span>{{ q_year }} هـ</span>
+                <span class="doc-chip__x" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>
+              </a>
+            {% endif %}
+            {% if q_department %}
+              <a class="doc-chip" href="?{% if q_term %}q={{ q_term|urlencode }}&{% endif %}{% if q_year %}year={{ q_year|urlencode }}&{% endif %}{% if q_kind %}kind={{ q_kind|urlencode }}{% endif %}">
+                <span>القسم المحدَّد</span>
+                <span class="doc-chip__x" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>
+              </a>
+            {% endif %}
+            {% if q_kind %}
+              <a class="doc-chip" href="?{% if q_term %}q={{ q_term|urlencode }}&{% endif %}{% if q_year %}year={{ q_year|urlencode }}&{% endif %}{% if q_department %}department={{ q_department|urlencode }}{% endif %}">
+                <span>النوع المحدَّد</span>
+                <span class="doc-chip__x" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+
         {% if page_obj.object_list %}
           <div class="doc-cards">
             {% for doc in page_obj %}
-              <article class="doc-card" data-archived="{% if doc.is_archived %}1{% endif %}">
+              <article class="doc-card doc-kind" data-kind="{{ doc.kind }}">
                 <div class="doc-card__top">
-                  <span class="doc-icon" aria-hidden="true">
+                  <span class="doc-ico" aria-hidden="true">
                     {% if doc.kind == 'minutes' %}<i class="fa-solid fa-file-signature"></i>
                     {% elif doc.kind == 'financial' %}<i class="fa-solid fa-file-invoice-dollar"></i>
                     {% elif doc.kind == 'contract' %}<i class="fa-solid fa-file-contract"></i>
                     {% elif doc.kind == 'certificate' %}<i class="fa-solid fa-award"></i>
                     {% elif doc.kind == 'circular' %}<i class="fa-solid fa-bullhorn"></i>
+                    {% elif doc.kind == 'letter' %}<i class="fa-solid fa-envelope-open-text"></i>
+                    {% elif doc.kind == 'form' %}<i class="fa-solid fa-file-pen"></i>
+                    {% elif doc.kind == 'report' %}<i class="fa-solid fa-chart-simple"></i>
                     {% else %}<i class="fa-solid fa-file-lines"></i>{% endif %}
                   </span>
                   <div class="doc-card__title">
@@ -161,17 +247,25 @@
                   </div>
                 </div>
                 <div class="doc-card__meta">
-                  {{ doc.owner_name|default:"—" }} · {{ doc.created_at|date:"Y-m-d" }}
-                  {% if doc.size_kb %} · {{ doc.size_kb }} ك.ب{% endif %}
+                  {{ doc.owner_name|default:"—" }}
+                  · {{ doc.created_at|hijri }} هـ
+                  {% if doc.storage_bytes %} · {{ doc.storage_bytes|filesizeformat }}{% endif %}
                 </div>
-                <div class="doc-card__tags">
-                  <span class="asg-tag">{{ doc.get_kind_display }}</span>
-                  {% if doc.academic_year %}<span class="asg-tag">{{ doc.academic_year }}</span>{% endif %}
+                <div class="doc-card__foot">
+                  <span class="asg-tag" style="color:var(--k)">{{ doc.get_kind_display }}</span>
+                  {% if doc.academic_year %}<span class="asg-tag">{{ doc.academic_year }} هـ</span>{% endif %}
                   {% if doc.department %}<span class="asg-tag">{{ doc.department.name }}</span>{% endif %}
                   {% if doc.is_archived %}
-                    <span class="asg-tag asg-tag--done">مؤرشَفة</span>
+                    <span class="doc-state" data-s="approved">
+                      <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+                      مؤرشَفة
+                    </span>
+                  {% elif doc.approval_state == 'draft' %}
+                    <span class="doc-state" data-s="draft">مسودة</span>
+                  {% elif doc.approval_state == 'returned' or doc.approval_state == 'needs_info' %}
+                    <span class="doc-state" data-s="returned">{{ doc.get_approval_state_display }}</span>
                   {% else %}
-                    <span class="asg-tag asg-tag--soon">{{ doc.get_approval_state_display }}</span>
+                    <span class="doc-state" data-s="pending">{{ doc.get_approval_state_display }}</span>
                   {% endif %}
                 </div>
               </article>
@@ -181,11 +275,17 @@
           {% if page_obj.paginator.num_pages > 1 %}
             <nav class="doc-pager">
               {% if page_obj.has_previous %}
-                <a class="asg-btn asg-btn--ghost asg-btn--sm" href="?page={{ page_obj.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">الأحدث</a>
+                <a class="asg-btn asg-btn--ghost asg-btn--sm" href="?page={{ page_obj.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">
+                  <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                  الأحدث
+                </a>
               {% endif %}
               <span class="doc-pager__n">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
               {% if page_obj.has_next %}
-                <a class="asg-btn asg-btn--ghost asg-btn--sm" href="?page={{ page_obj.next_page_number }}{% if qs %}&{{ qs }}{% endif %}">الأقدم</a>
+                <a class="asg-btn asg-btn--ghost asg-btn--sm" href="?page={{ page_obj.next_page_number }}{% if qs %}&{{ qs }}{% endif %}">
+                  الأقدم
+                  <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                </a>
               {% endif %}
             </nav>
           {% endif %}
@@ -195,7 +295,7 @@
             <h2>{% if has_filters %}لا نتائج مطابقة{% else %}لا وثائق بعد{% endif %}</h2>
             <p>
               {% if has_filters %}
-                جرّب توسيع البحث أو إلغاء أحد المرشّحات.
+                جرّب توسيع البحث أو إلغاء أحد المرشّحات أعلاه.
               {% else %}
                 ارفع أول وثيقة وصنّفها بالسنة والقسم والنوع، لتصير قابلة للبحث
                 بعد سنوات.
@@ -208,13 +308,40 @@
 
     {# ═══ الرفع ═══════════════════════════════════════ #}
     <div>
-      <section class="asg-card">
-        <h2 class="asg-card__title">رفع وثيقة</h2>
+      <section class="asg-card doc-side" id="uploadPanel">
+        <h2 class="asg-card__title">
+          <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true" style="color:var(--asg-green)"></i>
+          رفع وثيقة
+        </h2>
         <p class="asg-card__hint">تُحفظ مسودةً، وترسلها لاعتماد الأرشفة حين تكتمل.</p>
 
-        <form method="post" enctype="multipart/form-data" novalidate>
+        <form method="post" enctype="multipart/form-data" novalidate id="docUploadForm">
           {% csrf_token %}
-          <div class="asg-field">
+
+          {% comment %}
+          الملف أولاً لا أخيراً: هو ما جاء المستخدم ليفعله، وبقية الحقول وصفٌ
+          له. ووضعه في الذيل يجعل الشاشة تسأل عن التصنيف قبل أن يوجد المصنَّف.
+          {% endcomment %}
+          <div class="doc-drop" id="docDrop" data-limit="5242880">
+            <span class="doc-drop__icon" aria-hidden="true"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+            <span class="doc-drop__title">اسحب الملف هنا أو انقر للاختيار</span>
+            <span class="doc-drop__hint">{{ form.file.help_text }}</span>
+            {{ form.file }}
+          </div>
+          {% if form.file.errors %}<ul class="asg-errors">{% for e in form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+          <div class="doc-picked" id="docPicked" style="margin-top:.7rem">
+            <span class="doc-ico" id="docPickedIcon" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span>
+            <span class="doc-picked__name">
+              <span id="docPickedName"></span>
+              <span class="doc-picked__sub" id="docPickedSize"></span>
+            </span>
+            <button type="button" class="doc-picked__x" id="docPickedClear" aria-label="إزالة الملف">
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <div class="asg-field" style="margin-top:1rem">
             <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
             {{ form.title }}
             {% if form.title.errors %}<ul class="asg-errors">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
@@ -237,19 +364,175 @@
             <label for="{{ form.kind.id_for_label }}">{{ form.kind.label }}</label>
             {{ form.kind }}
           </div>
-          <div class="asg-field">
-            <label for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>
-            {{ form.file }}
-            <div class="asg-field__help">{{ form.file.help_text }}</div>
-            {% if form.file.errors %}<ul class="asg-errors">{% for e in form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-          </div>
-          <button type="submit" class="asg-btn asg-btn--primary">
+
+          <button type="submit" class="asg-btn asg-btn--primary" id="docSubmit" style="width:100%;justify-content:center">
             <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
-            رفع الوثيقة
+            <span id="docSubmitText">رفع الوثيقة</span>
           </button>
+
+          <div class="doc-prog" id="docProg" aria-live="polite">
+            <div class="doc-prog__track"><div class="doc-prog__fill" id="docProgFill"></div></div>
+            <div class="doc-prog__label" id="docProgLabel">جارٍ الرفع…</div>
+          </div>
+          <div class="doc-alert" id="docAlert" hidden></div>
         </form>
       </section>
     </div>
   </div>
 </div>
+
+{% comment %}
+رفعٌ بلا مؤشّر يبدو للمستخدم تعليقاً. القالب السابق كان يرسل النموذج إرسالاً
+عادياً، فيبقى المتصفّح صامتاً حتى تنتهي خمسة ميغابايت — والمستخدم يظن أن
+الصفحة تجمّدت فيضغط مرة أخرى.
+
+هنا يُرفع الملف عبر XHR بمؤشّر حقيقي، ويُفحص حجمه ونوعه قبل أن تُرسَل بايتة
+واحدة. وإن غاب JavaScript بقي النموذج يعمل إرسالاً عادياً كما كان.
+{% endcomment %}
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+(function () {
+  var form = document.getElementById('docUploadForm');
+  var drop = document.getElementById('docDrop');
+  if (!form || !drop) return;
+
+  var input = drop.querySelector('input[type="file"]');
+  var picked = document.getElementById('docPicked');
+  var pickedName = document.getElementById('docPickedName');
+  var pickedSize = document.getElementById('docPickedSize');
+  var pickedIcon = document.getElementById('docPickedIcon');
+  var clearBtn = document.getElementById('docPickedClear');
+  var submit = document.getElementById('docSubmit');
+  var submitText = document.getElementById('docSubmitText');
+  var prog = document.getElementById('docProg');
+  var fill = document.getElementById('docProgFill');
+  var label = document.getElementById('docProgLabel');
+  var alertBox = document.getElementById('docAlert');
+  if (!input) return;
+
+  var LIMIT = parseInt(drop.getAttribute('data-limit'), 10) || 5242880;
+  var ALLOWED = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'];
+  var ICONS = {
+    pdf: 'fa-file-pdf', jpg: 'fa-file-image', jpeg: 'fa-file-image', png: 'fa-file-image',
+    doc: 'fa-file-word', docx: 'fa-file-word', xls: 'fa-file-excel', xlsx: 'fa-file-excel'
+  };
+
+  function humanSize(bytes) {
+    if (bytes < 1024) return bytes + ' بايت';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' ك.ب';
+    return (bytes / 1048576).toFixed(2) + ' م.ب';
+  }
+
+  function say(message) {
+    if (!alertBox) return;
+    alertBox.textContent = message || '';
+    alertBox.hidden = !message;
+  }
+
+  function reset() {
+    input.value = '';
+    if (picked) picked.setAttribute('data-on', '0');
+    say('');
+  }
+
+  function show(file) {
+    say('');
+    var ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (ALLOWED.indexOf(ext) === -1) {
+      reset();
+      say('نوع الملف غير مقبول. المسموح: ' + ALLOWED.join('، ') + '.');
+      return;
+    }
+    // الفحص قبل الإرسال لا بعده: رفض خمسة ميغابايت بعد رفعها كاملةً يهدر
+    // دقيقةً من وقت المستخدم ليقول له ما كان يمكن قوله فوراً.
+    if (file.size > LIMIT) {
+      reset();
+      say('حجم الملف ' + humanSize(file.size) + ' — الحدّ ' + humanSize(LIMIT) + '.');
+      return;
+    }
+    if (pickedName) pickedName.textContent = file.name;
+    if (pickedSize) pickedSize.textContent = humanSize(file.size);
+    if (pickedIcon) pickedIcon.innerHTML = '<i class="fa-solid ' + (ICONS[ext] || 'fa-file-lines') + '"></i>';
+    if (picked) picked.setAttribute('data-on', '1');
+  }
+
+  input.addEventListener('change', function () {
+    if (input.files && input.files.length) show(input.files[0]);
+    else if (picked) picked.setAttribute('data-on', '0');
+  });
+
+  if (clearBtn) clearBtn.addEventListener('click', reset);
+
+  ['dragenter', 'dragover'].forEach(function (name) {
+    drop.addEventListener(name, function (event) {
+      event.preventDefault();
+      drop.setAttribute('data-over', '1');
+    });
+  });
+  ['dragleave', 'drop'].forEach(function (name) {
+    drop.addEventListener(name, function (event) {
+      event.preventDefault();
+      drop.setAttribute('data-over', '0');
+    });
+  });
+  drop.addEventListener('drop', function (event) {
+    var files = event.dataTransfer && event.dataTransfer.files;
+    if (!files || !files.length) return;
+    try {
+      input.files = files;           // مدعوم في المتصفّحات الحديثة
+    } catch (error) {
+      return;                        // وإلا تُرك الاختيار اليدوي
+    }
+    show(files[0]);
+  });
+
+  form.addEventListener('submit', function (event) {
+    if (!window.FormData || !window.XMLHttpRequest) return;   // إرسال عادي
+    if (!input.files || !input.files.length) return;          // يتولّاه الخادم
+
+    event.preventDefault();
+    say('');
+    submit.disabled = true;
+    if (submitText) submitText.textContent = 'جارٍ الرفع…';
+    if (prog) prog.setAttribute('data-on', '1');
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', form.getAttribute('action') || window.location.pathname);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+    xhr.upload.addEventListener('progress', function (event) {
+      if (!event.lengthComputable) return;
+      var percent = Math.round((event.loaded / event.total) * 100);
+      if (fill) fill.style.width = percent + '%';
+      if (label) {
+        label.textContent = percent < 100
+          ? 'جارٍ الرفع… ' + percent + '٪'
+          : 'اكتمل الرفع — يُحفظ الآن…';
+      }
+    });
+
+    function fail(message) {
+      submit.disabled = false;
+      if (submitText) submitText.textContent = 'رفع الوثيقة';
+      if (prog) prog.setAttribute('data-on', '0');
+      if (fill) fill.style.width = '0';
+      say(message);
+    }
+
+    xhr.addEventListener('load', function () {
+      var landed = xhr.responseURL || '';
+      // نجاحُ الرفع ينتهي بتحويلٍ إلى صفحة الوثيقة. بقاؤنا على العنوان نفسه
+      // يعني أن الخادم أعاد عرض النموذج بأخطائه.
+      if (xhr.status >= 200 && xhr.status < 400 && landed && landed !== window.location.href) {
+        window.location.assign(landed);
+        return;
+      }
+      fail('تعذّر رفع الوثيقة — تحقّق من الحقول ثم أعد المحاولة.');
+    });
+    xhr.addEventListener('error', function () { fail('انقطع الاتصال أثناء الرفع. أعد المحاولة.'); });
+    xhr.addEventListener('abort', function () { fail('أُلغي الرفع.'); });
+
+    xhr.send(new FormData(form));
+  });
+})();
+</script>
 {% endblock %}

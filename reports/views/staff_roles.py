@@ -21,6 +21,7 @@ from django.views.decorators.http import require_http_methods
 
 from .. import capabilities as caps
 from ..forms_staff_roles import DelegationForm, StaffRoleAssignForm, StaffScopeForm
+from ..gender_labels import school_gender_labels
 from ..models import Delegation, SchoolMembership, StaffScope
 from ..permissions import prefetch_memberships_for_school, role_required
 from ._helpers import *  # noqa: F401,F403 — نفس مدخلات بقية شاشات المدير
@@ -45,11 +46,32 @@ def _require_manager_school(request):
     return active_school, None
 
 
+def _display_role(membership, labels) -> tuple[str, str]:
+    """(نوع الوسم، مسمّاه) لعضوية بعينها.
+
+    المسمّى الوظيفي يسبق الدور حين يكون أدقّ منه: ``admin_staff`` وسمٌ لصلاحية،
+    و«محضر المختبر» اسمُ عمل — والمدير يبحث في كشفه عن الثاني.
+    """
+    role_type = str(getattr(membership, "role_type", "") or "")
+    job_title = str(getattr(membership, "job_title", "") or "")
+
+    if role_type == SchoolMembership.RoleType.DEPUTY:
+        return "deputy", str(labels["deputy"])
+    if job_title == SchoolMembership.JobTitle.LAB_TECH:
+        return "lab_tech", str(labels["lab_tech"])
+    if role_type == SchoolMembership.RoleType.ADMIN_STAFF:
+        return "admin_staff", str(labels["admin_staff"])
+    return "teacher", str(labels["teacher_indefinite"])
+
+
 def _roster(school) -> list[dict]:
     """منسوبو المدرسة، صفٌّ لكل شخص لا لكل عضوية.
 
     الشاشة تعرض أشخاصاً لا عضويات: صاحب الدورين سطر واحد يحمل وسمَين، لا
     سطران يوهمان بأنهما رجلان.
+
+    والوسم يُقرأ من الدور **والمسمّى** معاً: محضّر المختبر موظف إداري صلاحيةً،
+    فلو عُرض بدوره وحده لظهر «موظف إداري» ولم يجده المدير في كشفه باسمه.
     """
     memberships = (
         SchoolMembership.objects.filter(
@@ -83,10 +105,12 @@ def _roster(school) -> list[dict]:
         SchoolMembership.RoleType.ADMIN_STAFF: 1,
         SchoolMembership.RoleType.TEACHER: 2,
     }
+    labels = school_gender_labels(school)
     rows = []
     for row in by_person.values():
         primary = min(row["memberships"], key=lambda m: precedence.get(m.role_type, 9))
         row["primary"] = primary
+        row["kind"], row["role_label"] = _display_role(primary, labels)
         row["scope"] = getattr(primary, "scope", None)
         row["can_have_scope"] = primary.role_type in {
             SchoolMembership.RoleType.DEPUTY,
@@ -104,8 +128,111 @@ def _roster(school) -> list[dict]:
             (getattr(r["person"], "name", "") or ""),
         )
     )
-    prefetch_memberships_for_school([r["person"] for r in rows], school)
     return rows
+
+
+# الفرز والبحث يقعان على الكشف كاملاً، والصفحة تُقتطع منه بعدهما — فالعدّاد
+# يقول «١٤ وكيلاً» ولو لم يظهر منهم في هذه الصفحة إلا اثنان.
+ROSTER_PAGE_SIZE = 24
+
+
+def _matches(row, needle: str) -> bool:
+    """بحثٌ بالاسم أو الجوال أو المسمّى الوظيفي.
+
+    ثلاثتها لأن المدير يبحث بما يذكره: اسمَ من يعرفه، ورقمَ من أدخله للتوّ،
+    و«محضر المختبر» حين ينسى اسمه.
+    """
+    person = row["person"]
+    haystack = " ".join(
+        str(part or "")
+        for part in (
+            getattr(person, "name", ""),
+            getattr(person, "phone", ""),
+            row.get("role_label", ""),
+            getattr(row["primary"], "job_title", ""),
+        )
+    ).lower()
+    return all(word in haystack for word in needle.lower().split())
+
+
+def _kind_of(row) -> str:
+    return str(row.get("kind") or "teacher")
+
+
+def _roster_counts(rows) -> dict:
+    counts = {"all": len(rows), "deputy": 0, "admin_staff": 0, "lab_tech": 0, "teacher": 0}
+    for row in rows:
+        counts[_kind_of(row)] = counts.get(_kind_of(row), 0) + 1
+    counts["needs_scope"] = sum(
+        1 for row in rows if row["can_have_scope"] and not row["scope"]
+    )
+    return counts
+
+
+def _filter_rows(rows, *, needle: str, kind: str) -> list[dict]:
+    result = rows
+    if kind == "needs_scope":
+        result = [row for row in result if row["can_have_scope"] and not row["scope"]]
+    elif kind in {"deputy", "admin_staff", "lab_tech", "teacher"}:
+        result = [row for row in result if _kind_of(row) == kind]
+    if needle:
+        result = [row for row in result if _matches(row, needle)]
+    return result
+
+
+def _delegation_presets() -> list[dict]:
+    """توليفات جاهزة للتفويض المؤقت.
+
+    التفويض يُمنح على عجل — قبل سفر أو إجازة — وعشرون خانةً في تلك اللحظة تدفع
+    المدير إما إلى تفويض كل شيء أو إلى تأجيل الأمر. فتُعرض ثلاث حالات مفهومة،
+    ويبقى التعديل اليدوي فوقها لمن يحتاجه.
+    """
+    available = [item.code for item in caps.ALL if item.available]
+    review = [
+        code
+        for code in (caps.REVIEW_REPORTS, caps.RECOMMEND_APPROVAL, caps.HANDLE_REQUESTS)
+        if code in available
+    ]
+    operations = [
+        code
+        for code in (
+            caps.HANDLE_REQUESTS,
+            caps.DRAFT_CIRCULARS,
+            caps.ARCHIVE_DOCUMENTS,
+            caps.MANAGE_MEETINGS,
+            caps.ASSIGN_TASKS,
+        )
+        if code in available
+    ]
+    return [
+        {
+            "code": "full",
+            "label": "تصريف الأعمال كاملاً",
+            "hint": "كل ما هو نافذ — للسفر والإجازة الطويلة.",
+            "capabilities": available,
+        },
+        {
+            "code": "review",
+            "label": "المراجعة والتوصية",
+            "hint": "لا يتوقّف سير الأعمال بانتظار عودتك.",
+            "capabilities": review,
+        },
+        {
+            "code": "operations",
+            "label": "الأعمال اليومية",
+            "hint": "الطلبات والتعاميم والاجتماعات والأرشفة.",
+            "capabilities": operations,
+        },
+    ]
+
+
+def _delegation_capability_groups() -> list[tuple[str, list]]:
+    """الصلاحيات النافذة مجمّعة كما تُعرض — مجموعةً مجموعة لا قائمةً واحدة."""
+    groups: dict[str, list] = {}
+    for item in caps.ALL:
+        if item.available:
+            groups.setdefault(item.group, []).append(item)
+    return list(groups.items())
 
 
 @login_required(login_url="reports:login")
@@ -130,7 +257,7 @@ def staff_roles(request):
                     membership = assign_form.apply(actor=request.user)
                 messages.success(
                     request,
-                    f"تم إسناد دور «{membership.get_role_type_display()}» إلى {membership.teacher.name}.",
+                    f"تم إسناد دور «{assign_form.selected_label}» إلى {membership.teacher.name}.",
                 )
                 return redirect("reports:staff_roles")
             messages.error(request, "تعذّر إسناد الدور — تحقّق من الحقول.")
@@ -162,11 +289,27 @@ def staff_roles(request):
             messages.error(request, "إجراء غير معروف.")
             return redirect("reports:staff_roles")
 
+    school_labels = school_gender_labels(active_school)
     delegations = list(
         Delegation.objects.filter(school=active_school)
         .select_related("delegate", "delegator")
         .order_by("-starts_at", "-id")[:25]
     )
+    live_delegations = [d for d in delegations if d.state in {"active", "scheduled"}]
+    past_delegations = [d for d in delegations if d.state not in {"active", "scheduled"}]
+
+    # كشفٌ من مئتَي منسوب لا يُقرأ دفعةً واحدة: يُبحث فيه ويُصفّى ثم يُصفَّح.
+    needle = (request.GET.get("q") or "").strip()
+    kind = (request.GET.get("role") or "").strip()
+    all_rows = _roster(active_school)
+    counts = _roster_counts(all_rows)
+    matched = _filter_rows(all_rows, needle=needle, kind=kind)
+
+    paginator = Paginator(matched, ROSTER_PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_rows = list(page_obj.object_list)
+    # التهيئة على صفحةٍ واحدة لا على الكشف كله — وهي أصل التوفير حين يكبر العدد.
+    prefetch_memberships_for_school([row["person"] for row in page_rows], active_school)
 
     return render(
         request,
@@ -174,16 +317,46 @@ def staff_roles(request):
         {
             "active": "staff_roles",
             "active_school": active_school,
-            "rows": _roster(active_school),
+            "rows": page_rows,
+            "page_obj": page_obj,
+            "paginator": paginator,
+            "counts": counts,
+            "matched_count": len(matched),
+            "query": needle,
+            "role_filter": kind,
+            "is_filtered": bool(needle or kind),
             "assign_form": assign_form,
             "delegation_form": delegation_form,
+            "delegation_presets": _delegation_presets(),
+            "delegation_groups": _delegation_capability_groups(),
+            "delegation_selected": list(delegation_form["capabilities"].value() or []),
             "delegations": delegations,
+            "live_delegations": live_delegations,
+            "past_delegations": past_delegations,
+            # اللوحة التي تُفتح أولاً: حيث وقع الخطأ إن وقع، وإلا فالكشف.
+            "open_tab": (
+                "delegate"
+                if delegation_form.is_bound and delegation_form.errors
+                else "assign"
+                if assign_form.is_bound and assign_form.errors
+                else "roster"
+            ),
             "active_delegation_count": sum(1 for d in delegations if d.state == "active"),
-            "role_help": {
-                SchoolMembership.RoleType.DEPUTY: "إشراف ومراجعة ضمن نطاق يحدّده المدير. لا يعتمد نهائياً.",
-                SchoolMembership.RoleType.ADMIN_STAFF: "إعداد وتنفيذ وتوثيق. يرفع عمله للمراجعة.",
-                SchoolMembership.RoleType.TEACHER: "توثيق أعماله المهنية وملف إنجازه وتنفيذ التكليفات.",
-            },
+            # الشرح يُبنى قائمةً بمسمّياتها المعروضة، لا قاموساً بمفاتيح الدور:
+            # المفتاح كان يُطبع في القالب كما هو (``deputy``) فيقرأ المدير
+            # مصطلحاً إنجليزياً لا يعنيه.
+            "role_help": [
+                {"label": label, "text": text}
+                for label, text in (
+                    (school_labels["deputy"], "إشراف ومراجعة ضمن نطاق يحدّده المدير. لا يعتمد نهائياً."),
+                    (school_labels["admin_staff"], "إعداد وتنفيذ وتوثيق. يرفع عمله للمراجعة."),
+                    (
+                        school_labels["lab_tech"],
+                        "تجهيز المختبر وتوثيق تجاربه وعُهدته. صلاحيته صلاحية الموظف الإداري، ونطاقه يُضبط كنطاقه.",
+                    ),
+                    (school_labels["teacher_indefinite"], "توثيق أعماله المهنية وملف إنجازه وتنفيذ التكليفات."),
+                )
+            ],
         },
     )
 

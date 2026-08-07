@@ -450,6 +450,113 @@ class PlanScreenTests(PlanBase):
         response = self.client.get(reverse("reports:my_assignments"))
         self.assertContains(response, "تجهيز معرض")
 
+    def test_the_owner_edits_the_plan_document(self):
+        plan = self._plan()
+        self._enter(self.manager)
+
+        page = self.client.get(reverse("reports:plan_edit", args=[plan.pk]))
+        self.assertEqual(page.status_code, 200)
+
+        response = self.client.post(
+            reverse("reports:plan_edit", args=[plan.pk]),
+            {
+                "title": "خطة تحسين نواتج التعلم (منقّحة)",
+                "description": "نسخة معدّلة",
+                "academic_year": "1447-1448",
+                "starts_on": "",
+                "ends_on": "",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        plan.refresh_from_db()
+        self.assertEqual(plan.title, "خطة تحسين نواتج التعلم (منقّحة)")
+        # التعديل لا يمس ملكية الخطة ولا نطاقها.
+        self.assertEqual(plan.owner_id, self.manager.pk)
+        self.assertEqual(plan.school_id, self.school.pk)
+
+    def test_an_unrelated_teacher_cannot_reach_the_edit_screen(self):
+        plan = self._plan()
+        stranger = _user("غريب على الخطة", "0500070041")
+        SchoolMembership.objects.create(
+            school=self.school, teacher=stranger, role_type=SchoolMembership.RoleType.TEACHER
+        )
+        self._enter(stranger)
+
+        response = self.client.get(reverse("reports:plan_edit", args=[plan.pk]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_an_approved_plan_is_not_edited(self):
+        plan = self._plan()
+        self._task(plan)
+        issue(plan, self.manager, school=self.school)
+        self._enter(self.manager)
+
+        response = self.client.get(reverse("reports:plan_edit", args=[plan.pk]))
+        self.assertEqual(response.status_code, 302)
+
+    def test_a_draft_plan_is_deleted(self):
+        plan = self._plan()
+        self._enter(self.manager)
+
+        response = self.client.post(reverse("reports:plan_delete", args=[plan.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Plan.objects.filter(pk=plan.pk).exists())
+
+    def test_a_plan_whose_tasks_became_assignments_is_not_deleted(self):
+        """تكليفٌ قائم بلا خطة يُعرف منها سببه — فتُغلق الخطة ولا تُحذف."""
+        plan = self._plan()
+        task = self._task(
+            plan, responsible=self.teacher, due_at=timezone.now() + timedelta(days=4)
+        )
+        convert_task_to_assignment(task, self.manager)
+        self._enter(self.manager)
+
+        self.client.post(reverse("reports:plan_delete", args=[plan.pk]))
+        self.assertTrue(Plan.objects.filter(pk=plan.pk).exists())
+
+    def test_an_approved_plan_is_not_deleted(self):
+        plan = self._plan()
+        self._task(plan)
+        issue(plan, self.manager, school=self.school)
+        self._enter(self.manager)
+
+        self.client.post(reverse("reports:plan_delete", args=[plan.pk]))
+        self.assertTrue(Plan.objects.filter(pk=plan.pk).exists())
+
+    def test_a_teacher_cannot_delete_a_plan_they_only_execute(self):
+        plan = self._plan()
+        self._task(plan, responsible=self.teacher)
+        self._enter(self.teacher)
+
+        self.client.post(reverse("reports:plan_delete", args=[plan.pk]))
+        self.assertTrue(Plan.objects.filter(pk=plan.pk).exists())
+
+    def test_the_plan_prints_with_its_goals_and_tasks(self):
+        plan = self._plan()
+        goal = PlanGoal.objects.create(plan=plan, order=1, title="رفع نسبة الإتقان")
+        self._task(plan, title="ورشة القياس", goal=goal, responsible=self.teacher)
+        self._enter(self.manager)
+
+        response = self.client.get(reverse("reports:plan_print", args=[plan.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "رفع نسبة الإتقان")
+        self.assertContains(response, "ورشة القياس")
+        self.assertContains(response, self.teacher.name)
+
+    def test_the_screens_offer_printing_and_sharing(self):
+        plan = self._plan()
+        self._enter(self.manager)
+
+        listing = self.client.get(reverse("reports:plan_list"))
+        self.assertContains(listing, reverse("reports:plan_print", args=[plan.pk]))
+
+        detail = self.client.get(reverse("reports:plan_detail", args=[plan.pk]))
+        self.assertContains(detail, reverse("reports:plan_print", args=[plan.pk]))
+        self.assertContains(detail, reverse("reports:plan_edit", args=[plan.pk]))
+        self.assertContains(
+            detail, f"http://testserver{reverse('reports:plan_detail', args=[plan.pk])}"
+        )
+
     def test_a_teacher_proposes_an_initiative_from_the_screen(self):
         self._enter(self.teacher)
         response = self.client.post(
