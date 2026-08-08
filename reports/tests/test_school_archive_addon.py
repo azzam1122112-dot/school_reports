@@ -245,4 +245,4 @@ class SchoolArchiveAddonTests(TestCase):
         self.assertEqual(msg, "")
 
         msg = archive_storage_capacity_error(self.school, [Sized(700 * mb)])
-        self.assertIn("تم تجاوز حد التخزين", msg)
+        self.assertIn("تم تجاوز حد مساحة عمل المدرسة", msg)

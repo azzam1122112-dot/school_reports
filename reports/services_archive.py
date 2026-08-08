@@ -622,11 +622,11 @@ def archive_snapshot_capacity_error(school: School | None, incoming_bytes: int) 
         return ""
 
     return (
-        "لا تتسع مساحة الأرشيف لنسخة جديدة. "
+        "لا تتسع مساحة الأرشفة السنوية لنسخة جديدة. "
         f"المحفوظ حالياً {_human_size(used)} من أصل {_human_size(limit)}، "
         f"والنسخة الجديدة {_human_size(incoming)}. "
         "نزّل نسخة سنة سابقة على جهازك ثم احذفها من المنصة لتحرير المساحة، "
-        "أو اطلب مساحة أرشيف إضافية. "
+        "أو اطلب زيادة مساحة الأرشفة من صفحة اشتراك المدرسة. "
         "لا يؤثر ذلك على عمل المعلمين اليومي؛ الرفع والتوثيق يعملان كالمعتاد."
     )
 
@@ -889,7 +889,7 @@ def archive_storage_capacity_error(school: School | None, incoming_files, *, rep
 
     replaced_text = f"، وسيتم استبدال {_human_size(replaced_bytes)}" if replaced_bytes else ""
     base = (
-        f"تم تجاوز حد التخزين المتاح للمدرسة. المستخدم حالياً {_human_size(used_bytes)}، "
+        f"تم تجاوز حد مساحة عمل المدرسة. المستخدم حالياً {_human_size(used_bytes)}، "
         f"والملفات الجديدة {_human_size(incoming_bytes)}{replaced_text}، "
         f"والحد المتاح {_human_size(limit_bytes)}. "
     )
@@ -900,11 +900,11 @@ def archive_storage_capacity_error(school: School | None, incoming_files, *, rep
     if reclaimable:
         biggest = reclaimable[0]
         return base + (
-            f"يمكنك رفع الحد من صفحة الاشتراك، أو تفريغ مساحة بحذف ملفات "
+            f"يمكنك طلب زيادة مساحة العمل من صفحة الاشتراك، أو تفريغ مساحة بحذف ملفات "
             f"{biggest['label']} ({biggest['size_label']}) — لها نسخة سنوية محفوظة "
             "تحتفظ بها كاملة."
         )
-    return base + "يمكنك رفع حد التخزين من صفحة الاشتراك."
+    return base + "يمكنك طلب زيادة مساحة العمل من صفحة اشتراك المدرسة."
 
 
 def archive_available_years(*, school: School, teacher=None, school_wide: bool = False) -> list[str]:

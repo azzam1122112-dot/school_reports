@@ -144,7 +144,7 @@
         font-weight: 800;
         color: var(--text-main);
         margin: 0;
-        background: linear-gradient(135deg, var(--primary-color), #b9975b);
+        background: linear-gradient(135deg, var(--primary-color), var(--id-gold));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -185,7 +185,7 @@
     
     .filter-btn.active {
         background: var(--primary-color);
-        color: white;
+        color: var(--id-accent-ink);
         box-shadow: var(--shadow-md);
     }
 
@@ -229,13 +229,64 @@
     }
 
     .hero-panel {
-        padding: 1.35rem 1.5rem;
+        padding: 1.6rem 1.6rem;
         display: flex;
         justify-content: space-between;
         gap: 1rem;
         align-items: center;
         overflow: hidden;
         position: relative;
+        border-radius: var(--id-r4);
+        border: 1px solid var(--id-gold-line);
+        color: var(--id-hero-ink);
+        background:
+            radial-gradient(120% 150% at 92% -22%, rgba(212, 177, 109, .26), transparent 46%),
+            linear-gradient(135deg, var(--id-hero-from) 0%, var(--id-hero-via) 56%, var(--id-hero-to) 100%);
+        box-shadow: var(--id-e3);
+    }
+    /* الخيط الذهبي — التوقيع الذي تشترك فيه لوحات الأدوار الأربع. */
+    .hero-panel::before {
+        content: "";
+        position: absolute;
+        inset-inline: 0;
+        inset-block-start: 0;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, var(--id-gold-500) 18%, var(--id-gold-300) 50%, var(--id-gold-500) 82%, transparent);
+    }
+    .hero-panel .eyebrow {
+        border: 1px solid rgba(212, 177, 109, .5);
+        background: rgba(212, 177, 109, .16);
+        color: var(--id-gold-300);
+    }
+    .hero-panel h1 {
+        background: linear-gradient(92deg, #fff 0%, var(--id-gold-300) 96%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    /* الترويسة داكنة في الوضعين، فحبر ما بداخلها حبرُ الترويسات لا حبر
+       الصفحة. وإلا ظهر النص الفاتح داكناً على داكن في الوضع النهاري —
+       وهو ما يحدث حين يُقلب سطحٌ ويُترك ما فوقه. */
+    .hero-panel .hero-copy p {
+        color: var(--id-hero-ink-soft);
+    }
+    .hero-panel .btn-modern.outline {
+        color: var(--id-hero-ink);
+        border-color: rgba(255, 255, 255, .32);
+        background: rgba(255, 255, 255, .1);
+    }
+    .hero-panel .btn-modern.outline:hover {
+        background: rgba(255, 255, 255, .18);
+        border-color: rgba(212, 177, 109, .55);
+        color: var(--id-hero-ink);
+    }
+    /* الإجراء الأول ذهبيّ كنظيره في لوحات الأدوار الأخرى. */
+    .hero-panel .btn-modern:not(.outline) {
+        background: linear-gradient(135deg, var(--id-gold-400), var(--id-gold-600));
+        color: var(--id-green-950);
+    }
+    .hero-panel .btn-modern:not(.outline):hover {
+        background: linear-gradient(135deg, var(--id-gold-300), var(--id-gold-500));
     }
 
     .hero-copy {
@@ -511,7 +562,7 @@
         border: 1px solid var(--border-color);
         border-radius: 10px;
         padding: 0.85rem;
-        background: rgba(248, 250, 252, 0.62);
+        background: var(--id-surface-2);
         min-width: 0;
     }
 
@@ -562,8 +613,8 @@
 
     .action-badge {
         margin-inline-start: auto;
-        background: #ef4444;
-        color: white;
+        background: var(--id-tone-danger);
+        color: var(--id-accent-ink);
         min-width: 1.65rem;
         height: 1.65rem;
         border-radius: 999px;
@@ -647,7 +698,7 @@
         right: 0;
         width: 100px;
         height: 100px;
-        background: linear-gradient(135deg, rgba(0, 108, 53, 0.05), transparent);
+        background: linear-gradient(135deg, var(--id-accent-wash), transparent);
         border-radius: 0 0 0 100%;
         pointer-events: none;
     }
@@ -789,7 +840,7 @@
     
     .timeline-time {
         font-size: 0.75rem;
-        color: #9ca3af;
+        color: var(--id-muted);
         margin-top: 0.25rem;
         display: block;
     }
@@ -908,7 +959,7 @@
     }
     
     .status-active { background: #d1fae5; color: #047857; }
-    .status-inactive { background: #f3f4f6; color: #374151; }
+    .status-inactive { background: var(--id-tone-draft-wash); color: var(--id-tone-draft); }
     .status-warning { background: #fef3c7; color: #b45309; }
     .status-danger { background: #fee2e2; color: #b91c1c; }
 
@@ -919,7 +970,7 @@
         gap: 0.5rem;
         padding: 0.625rem 1.25rem;
         background: var(--primary-color);
-        color: white;
+        color: var(--id-accent-ink);
         border-radius: var(--radius-md);
         font-weight: 600;
         font-size: 0.9rem;
@@ -930,7 +981,7 @@
     }
     
     .btn-modern:hover {
-        background: #00542a;
+        background: var(--id-accent-strong);
         transform: translateY(-1px);
     }
     
@@ -969,7 +1020,7 @@
         width: 36px;
         height: 36px;
         border-radius: 50%;
-        background: #f3f4f6;
+        background: var(--id-surface-2);
         color: var(--text-muted);
         display: flex;
         align-items: center;
@@ -992,14 +1043,14 @@
     
     .notif-time { 
         font-size: 0.75rem; 
-        color: #9ca3af; 
+        color: var(--id-muted); 
         margin-top: 0.25rem; 
         display: block; 
     }
     
     /* Loading Skeleton */
     .skeleton {
-        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background: linear-gradient(90deg, var(--id-surface-2) 25%, var(--id-line) 50%, var(--id-surface-2) 75%);
         background-size: 200% 100%;
         animation: loading 1.5s infinite;
         border-radius: var(--radius-md);
@@ -1235,7 +1286,7 @@
         .card-panel {
             page-break-inside: avoid;
             box-shadow: none;
-            border: 1px solid #ddd;
+            border: 1px solid var(--id-line);
         }
         
         .chart-container {
@@ -1725,6 +1776,13 @@
 
 <!-- JavaScript للرسوم البيانية والتفاعلية -->
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+/* حبر الرسوم من جذر الهوية لا مكتوباً هنا: لونٌ ثابت لا يتبع الوضع الليلي،
+   فيبقى الرمادي الفاتح على خلفية داكنة. */
+function chartInk() {
+    const styles = getComputedStyle(document.documentElement);
+    return styles.getPropertyValue('--id-muted').trim() || '#6b7280';
+}
+
 if (typeof Chart === 'undefined') {
     window.Chart = function () {
         return {
@@ -1732,7 +1790,7 @@ if (typeof Chart === 'undefined') {
             update: function () {}
         };
     };
-    window.Chart.defaults = { font: {}, color: '#6b7280' };
+    window.Chart.defaults = { font: {}, color: chartInk() };
     document.querySelectorAll('.chart-container').forEach((box) => {
         if (box.querySelector('.chart-fallback')) return;
         const notice = document.createElement('div');
@@ -1745,7 +1803,7 @@ if (typeof Chart === 'undefined') {
 
 // إعدادات Chart.js العامة
 Chart.defaults.font.family = 'Cairo, sans-serif';
-Chart.defaults.color = '#6b7280';
+Chart.defaults.color = chartInk();
 
 // الألوان
 const colors = {

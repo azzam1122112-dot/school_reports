@@ -871,6 +871,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "SHOW_ASSIGNED_TO_ME": False,
             "SHOW_SUPERVISION_GROUP": False,
             "IS_EXECUTIVE_DIRECTOR": False,
+            "IS_GROUP_ONLY_DIRECTOR": False,
             "GROUP_NAME": None,
             **_empty_capability_flags(),
             "DEPARTMENT_REPORTS_URLNAME": None,
@@ -927,7 +928,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
                 # الإصدار يُزاد مع كل تغيير في **شكل** الناتج لا في قيمته: قيمةٌ
                 # مخزَّنة بالشكل القديم تصل قالباً يقرأ مفاتيح لا وجود لها فيها،
                 # فتُقرأ فارغةً بلا خطأ — وتختفي روابط لثوانٍ بعد كل نشر.
-                f"navctx:v6:u{uid}:s{sid_for_key}:r{role_id}:"
+                f"navctx:v7:u{uid}:s{sid_for_key}:r{role_id}:"
                 f"f{user_flags}:v{role_version}:c{dismissed_sig}"
             )
             cached = cache.get(cache_key)
@@ -1085,6 +1086,17 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         from .permissions import is_executive_director as _is_executive_director
 
         is_executive_director_user = bool(_is_executive_director(u))
+        # المدير التنفيذي **بلا عضوية مدرسة** — وهي حالته المُصمَّمة. تُميَّز عمّن
+        # جمع الصفتين لأن شريطه يختلف: من لا مدرسة له لا تُعرض له شاشات العمل
+        # الشخصي (تقاريره وطلباته وملف إنجازه)، فكلها تسأل عن مدرسة أولاً وتردّه.
+        if is_executive_director_user:
+            from .models import SchoolMembership as _SchoolMembership
+
+            group_only_director = not _SchoolMembership.objects.filter(
+                teacher=u, is_active=True
+            ).exists()
+        else:
+            group_only_director = False
         if is_executive_director_user:
             # اسم المجموعة يحلّ محل اسم المدرسة في الترويسة: المدير التنفيذي
             # لا مدرسةَ نشطةَ له، فكانت ترويسته تقول «منصة توثيق» — اسمُ
@@ -1093,6 +1105,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             group_name = getattr(first_group, "name", None)
     except Exception:
         is_executive_director_user = False
+        group_only_director = False
         group_name = None
 
     # الأدوار المدرسية — القائمة كانت تعرف «مديراً» أو «معلّماً» ولا شيء بينهما.
@@ -1222,6 +1235,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "IS_LAB_TECHNICIAN": is_lab_tech_user,
         "SHOW_LAB_NAV": show_lab_nav,
         "IS_EXECUTIVE_DIRECTOR": is_executive_director_user,
+        "IS_GROUP_ONLY_DIRECTOR": group_only_director,
         "GROUP_NAME": group_name,
         # «مهامي المعيّنة» كان مشروطاً بكوْن المستخدم مسؤول قسم، والعدّاد يُحسب
         # للجميع: طلبٌ يُحال إلى موظف إداري يُحتسب في القائمة ولا رابط يوصله

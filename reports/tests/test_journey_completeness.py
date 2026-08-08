@@ -468,3 +468,123 @@ class PlanListIsScopedTests(CompletenessTestCase):
         self._enter(self.teacher)
         response = self.client.get(reverse("reports:plan_detail", args=[plan.pk]))
         self.assertEqual(response.status_code, 200)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# هـ) شريط المدير التنفيذي
+# ═══════════════════════════════════════════════════════════════════════
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class ExecutiveHeaderNavigationTests(TestCase):
+    """شريطه كان تسعة مداخل مسطّحة — العلّة نفسها التي جُمّع من أجلها شريط المدير.
+
+    وتُحرَس هنا الخصائص الثلاث نفسها: أن الشريط بقي قصيراً، وأن شيئاً من وجهاته
+    لم يسقط في أثناء التجميع، وأن المجموعات تُشغَّل بلوحة المفاتيح وقارئ الشاشة.
+    """
+
+    def setUp(self):
+        cache.clear()
+        self.group = SchoolGroup.objects.create(name="مجموعة الشريط", code="bar-group")
+        _school("مدرسة الشريط", "bar-school-1", group=self.group)
+        self.director = _user("مدير الشريط التنفيذي", "0500043001")
+        SchoolGroupMembership.objects.create(
+            group=self.group,
+            user=self.director,
+            role_type=SchoolGroupMembership.RoleType.EXECUTIVE_DIRECTOR,
+        )
+
+    def _header(self) -> str:
+        """الشريط وحده — لا بقية الصفحة، فلا تُخلط روابط المحتوى بروابطه."""
+        import re
+
+        self.client.force_login(self.director)
+        page = self.client.get(reverse("reports:executive_dashboard")).content.decode()
+        nav = re.search(r'<nav class="hdr-nav".*?</nav>', page, re.S)
+        self.assertIsNotNone(nav, "شريط التنقّل غير موجود في الصفحة")
+        return nav.group(0)
+
+    def test_the_bar_stays_short(self):
+        import re
+
+        header = self._header()
+        direct_tabs = len(re.findall(r'<a class="tab ', header))
+        groups = header.count("data-nav-group")
+        self.assertLessEqual(
+            direct_tabs + groups, 5, "شريط المدير التنفيذي عاد إلى الازدحام"
+        )
+
+    def test_no_destination_was_lost_in_the_grouping(self):
+        """التجميع إخفاءٌ للضجيج لا للوجهات."""
+        header = self._header()
+        for name in (
+            "reports:executive_dashboard",
+            "reports:group_approval_inbox",
+            "reports:group_assignment_board",
+            "reports:council_list",
+            "reports:group_practices",
+            "reports:group_report",
+            "reports:group_audit_log",
+            "reports:group_archive",
+            "reports:group_notifications_sent",
+        ):
+            with self.subTest(destination=name):
+                self.assertIn(f'href="{reverse(name)}"', header)
+
+    def test_approval_stays_a_single_click(self):
+        """عملُه اليومي لا يُدفَن تحت نقرة ثانية — معيارُ المدير نفسه."""
+        import re
+
+        header = self._header()
+        inbox = reverse("reports:group_approval_inbox")
+        self.assertRegex(header, rf'class="tab [^"]*"\s+href="{re.escape(inbox)}"')
+
+    def test_every_group_is_operable_by_keyboard_and_screen_reader(self):
+        header = self._header()
+        self.assertEqual(
+            header.count("data-nav-group"), header.count('aria-haspopup="true"')
+        )
+        self.assertEqual(
+            header.count("data-nav-group"), header.count('aria-expanded="false"')
+        )
+        self.assertEqual(header.count('class="nav-pop"'), header.count('role="menu"'))
+
+    def test_the_grouped_shell_is_marked_for_the_director_too(self):
+        """الوسم هو ما يؤخّر انهيار الشريط، فيُمنح لكل شريط مجمَّع."""
+        import re
+
+        self.client.force_login(self.director)
+        page = self.client.get(reverse("reports:executive_dashboard")).content.decode()
+        shell = re.search(r"<header[^>]*>", page)
+        self.assertIsNotNone(shell)
+        self.assertIn("hdr-grouped", shell.group(0))
+
+    def test_personal_work_screens_are_not_offered_to_him(self):
+        """ثلاث شاشات تسأل عن مدرسة نشطة وتردّه — فلا تُعرض له.
+
+        وهي القاعدة نفسها المطبَّقة في كل الشريط: لا زرّ يقود إلى منع.
+        """
+        header = self._header()
+        for name in (
+            "reports:my_reports",
+            "reports:my_requests",
+            "reports:achievement_my_files",
+        ):
+            with self.subTest(destination=name):
+                self.assertNotIn(f'href="{reverse(name)}"', header)
+
+    def test_they_really_would_have_refused_him(self):
+        """إثبات أن الإخفاء ليس تجميلاً: الشاشة تردّه فعلاً."""
+        self.client.force_login(self.director)
+        response = self.client.get(reverse("reports:achievement_my_files"))
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_a_director_who_also_teaches_keeps_them(self):
+        """من جمع الصفتين له عملٌ شخصي فعلاً، فلا يُحجب عنه."""
+        school = School.objects.get(code="bar-school-1")
+        SchoolMembership.objects.create(
+            school=school,
+            teacher=self.director,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        cache.clear()
+        header = self._header()
+        self.assertIn(f'href="{reverse("reports:my_reports")}"', header)

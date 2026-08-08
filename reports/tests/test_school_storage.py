@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from django.core.files.base import ContentFile
 from django.test import TestCase
 from django.utils import timezone
 
@@ -16,6 +17,7 @@ from reports.models import (
     PlatformSettings,
     Report,
     School,
+    SchoolArchiveAddon,
     SchoolMembership,
     SchoolSubscription,
     SchoolYearArchive,
@@ -175,8 +177,19 @@ class StorageThresholdAlertTaskTests(TestCase):
         self.limit = 25 * 200 * MB
 
     def _use_percent(self, percent):
+        # ``storage_used_bytes`` هو الإجمالي على القرص، ومساحة العمل = الإجمالي
+        # ناقص النسخ السنوية. فلضبط استهلاك العمل عند نسبة ما، تُضاف النسخ
+        # المحفوظة إلى المطلوب — وإلا صار العمل صفراً كلما وُجدت نسخة كبيرة.
+        from django.db.models import Sum
+
+        snapshots = int(
+            SchoolYearArchive.objects.filter(school=self.school)
+            .aggregate(total=Sum("storage_bytes"))
+            .get("total")
+            or 0
+        )
         School.objects.filter(pk=self.school.pk).update(
-            storage_used_bytes=int(self.limit * percent / 100)
+            storage_used_bytes=int(self.limit * percent / 100) + snapshots
         )
 
     def _run(self):
@@ -215,7 +228,7 @@ class StorageThresholdAlertTaskTests(TestCase):
         self._run()
 
         message = self._messages()[0]
-        self.assertIn("رفع حد التخزين", message)
+        self.assertIn("رفع حد مساحة العمل", message)
         self.assertIn("نسخة", message)
 
     def test_alert_points_at_a_reclaimable_year_when_one_exists(self):
@@ -275,3 +288,74 @@ class StorageThresholdAlertTaskTests(TestCase):
             schedule["check-storage-thresholds-daily"]["task"],
             "reports.tasks.check_storage_thresholds_task",
         )
+
+    # ------------------------------------------------ المساحة الثانية تُنذر أيضاً
+
+    def _archive_addon(self, *, limit_gb=10):
+        return SchoolArchiveAddon.objects.create(
+            school=self.school,
+            is_enabled=True,
+            start_date=timezone.localdate() - timedelta(days=1),
+            end_date=timezone.localdate() + timedelta(days=90),
+            storage_limit_gb=limit_gb,
+        )
+
+    def _fill_archive(self, percent, *, limit_gb=10):
+        archive = SchoolYearArchive(
+            school=self.school,
+            academic_year="1446-1447",
+            version=1,
+            status=SchoolYearArchive.Status.READY,
+        )
+        archive.archive_file.save("snap.zip", ContentFile(b"x"), save=False)
+        archive.save()
+        SchoolYearArchive.objects.filter(pk=archive.pk).update(
+            storage_bytes=int(limit_gb * 1024 * MB * percent / 100)
+        )
+        return archive
+
+    def test_the_archive_space_warns_before_it_blocks_archiving(self):
+        """كانت تمتلئ صامتةً حتى تفشل أرشفة سنةٍ كاملة — وهي عملية سنوية،
+        فاكتشاف العطل عندها يعني تأجيلها لا إصلاحها."""
+        self._archive_addon(limit_gb=10)
+        self._fill_archive(85)
+
+        self.assertEqual(self._run()["warnings_sent"], 1)
+        message = self._messages()[0]
+        self.assertIn("مساحة الأرشفة السنوية", message)
+        self.assertIn("لا يؤثر ذلك على عمل المعلمين", message)
+
+    def test_a_full_archive_says_only_archiving_stopped(self):
+        self._archive_addon(limit_gb=10)
+        self._fill_archive(100)
+
+        self._run()
+
+        message = self._messages()[0]
+        self.assertIn("حفظ أي نسخة سنوية جديدة متوقف", message)
+
+    def test_each_space_gets_its_own_alert(self):
+        self._archive_addon(limit_gb=10)
+        self._fill_archive(97)
+        self._use_percent(85)
+
+        summary = self._run()
+
+        self.assertEqual(summary["warnings_sent"], 2)
+        joined = "\n".join(self._messages())
+        self.assertIn("مساحة عمل", joined)
+        self.assertIn("مساحة الأرشفة السنوية", joined)
+
+    def test_a_full_archive_never_alerts_about_the_work_space(self):
+        self._archive_addon(limit_gb=10)
+        self._fill_archive(100)
+        self._use_percent(20)
+
+        self._run()
+
+        self.assertNotIn("رفع أي ملف جديد متوقف", "\n".join(self._messages()))
+
+    def test_a_school_without_the_archive_service_is_never_nagged(self):
+        self._use_percent(20)
+
+        self.assertEqual(self._run()["warnings_sent"], 0)

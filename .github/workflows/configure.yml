@@ -44,6 +44,10 @@ on:
 
 permissions:
   contents: read
+  # The restart pulls the released image from GHCR. Without this the pull is
+  # answered with 403 and the job dies after the env file has already been
+  # rewritten — the worst possible place to stop.
+  packages: read
 
 concurrency:
   group: configure-production

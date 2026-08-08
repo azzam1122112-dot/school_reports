@@ -1413,12 +1413,17 @@ def check_archive_addon_expiry_task(self) -> dict:
 
 @shared_task(bind=True, ignore_result=True)
 def check_storage_thresholds_task(self) -> dict:
-    """Warn managers before their school runs out of storage.
+    """Warn managers before either storage space runs out.
 
     Discovering a full disk from a failed upload — mid-lesson, with a photo the
     teacher wanted to file — is the worst possible moment. This gives managers
     days of notice and names both ways out: raise the limit, or clear a year
     that a saved snapshot already preserves.
+
+    Both spaces are checked, because both are enforced. The yearly-archive space
+    is the quieter of the two: nothing consumes it day to day, so it fills
+    silently and only announces itself when the once-a-year archiving run is
+    refused.
     """
     task_id, retries, trace_id = _task_ctx(self)
     summary = {"schools_checked": 0, "warnings_sent": 0, "skipped_duplicate": 0}
@@ -1430,7 +1435,11 @@ def check_storage_thresholds_task(self) -> dict:
         logger.info("Storage threshold task skipped: another instance is running.")
         return {**summary, "skipped": "lock"}
 
-    from .services_archive import STORAGE_CRITICAL_PERCENT, school_storage_overview
+    from .services_archive import (
+        STORAGE_CRITICAL_PERCENT,
+        school_archive_overview,
+        school_storage_overview,
+    )
 
     School = apps.get_model("reports", "School")
     SchoolMembership = apps.get_model("reports", "SchoolMembership")
@@ -1440,28 +1449,11 @@ def check_storage_thresholds_task(self) -> dict:
     dedup_cutoff = timezone.now() - timedelta(days=3)
 
     schools = School.objects.filter(is_active=True).select_related(
-        "subscription", "subscription__plan"
+        "subscription", "subscription__plan", "archive_addon"
     )
 
-    for school in schools.iterator():
-        overview = school_storage_overview(school)
-        if not overview["needs_attention"]:
-            continue
-
-        summary["schools_checked"] += 1
-        percent = overview["usage_percent"]
-        level = overview["warning_level"]
-
-        # One title per level, so crossing from warning to critical still gets
-        # through while a steady state does not repeat every day.
-        dedup_title = f"💾 مساحة عمل {school.name} ({level})"
-        if Notification.objects.filter(
-            title=dedup_title, school=school, created_at__gte=dedup_cutoff
-        ).exists():
-            summary["skipped_duplicate"] += 1
-            continue
-
-        manager_ids = list(
+    def _managers_of(school) -> list[int]:
+        return list(
             SchoolMembership.objects.filter(
                 school=school,
                 role_type="manager",
@@ -1469,39 +1461,21 @@ def check_storage_thresholds_task(self) -> dict:
                 teacher__is_active=True,
             ).values_list("teacher_id", flat=True)
         )
-        if not manager_ids:
-            continue
 
-        if level == "full":
-            headline = (
-                f"امتلأت مساحة عمل {school.name} ({overview['used_label']} من "
-                f"{overview['limit_label']}). رفع أي ملف جديد متوقف الآن."
-            )
-        else:
-            headline = (
-                f"مساحة عمل {school.name} وصلت {percent}% "
-                f"({overview['used_label']} من {overview['limit_label']})."
-            )
-
-        lines = [headline, "", "أمامك خياران:"]
-        lines.append("• رفع حد التخزين من صفحة الاشتراك.")
-        if overview["reclaimable_years"]:
-            biggest = overview["reclaimable_years"][0]
-            lines.append(
-                f"• تفريغ {overview['reclaimable_label']} بحذف ملفات سنوات لها نسخة "
-                f"سنوية محفوظة (أكبرها {biggest['label']} بحجم {biggest['size_label']}). "
-                "النسخة المحفوظة تحتفظ بالسنة كاملة."
-            )
-        else:
-            lines.append(
-                "• أو حفظ نسخة سنوية لسنة سابقة ثم حذف ملفاتها الحية لتفريغ مساحتها."
-            )
+    def _notify(school, manager_ids, *, title, lines, important) -> bool:
+        # One title per level, so crossing from warning to critical still gets
+        # through while a steady state does not repeat every day.
+        if Notification.objects.filter(
+            title=title, school=school, created_at__gte=dedup_cutoff
+        ).exists():
+            summary["skipped_duplicate"] += 1
+            return False
 
         notification = Notification.objects.create(
-            title=dedup_title,
+            title=title,
             message="\n".join(lines),
             school=school,
-            is_important=(level in {"critical", "full"}),
+            is_important=important,
         )
         NotificationRecipient.objects.bulk_create(
             [
@@ -1518,10 +1492,95 @@ def check_storage_thresholds_task(self) -> dict:
             )
         except Exception:
             pass
-
         summary["warnings_sent"] += 1
-        if percent >= STORAGE_CRITICAL_PERCENT:
-            opmetrics.increment("storage.school.critical")
+        return True
+
+    for school in schools.iterator():
+        overview = school_storage_overview(school)
+        archive = school_archive_overview(school)
+        if not (overview["needs_attention"] or archive["needs_attention"]):
+            continue
+
+        summary["schools_checked"] += 1
+        manager_ids = _managers_of(school)
+        if not manager_ids:
+            continue
+
+        if overview["needs_attention"]:
+            percent = overview["usage_percent"]
+            level = overview["warning_level"]
+
+            if level == "full":
+                headline = (
+                    f"امتلأت مساحة عمل {school.name} ({overview['used_label']} من "
+                    f"{overview['limit_label']}). رفع أي ملف جديد متوقف الآن."
+                )
+            else:
+                headline = (
+                    f"مساحة عمل {school.name} وصلت {percent}% "
+                    f"({overview['used_label']} من {overview['limit_label']})."
+                )
+
+            lines = [headline, "", "أمامك خياران:"]
+            lines.append("• رفع حد مساحة العمل من صفحة الاشتراك.")
+            if overview["reclaimable_years"]:
+                biggest = overview["reclaimable_years"][0]
+                lines.append(
+                    f"• تفريغ {overview['reclaimable_label']} بحذف ملفات سنوات لها نسخة "
+                    f"سنوية محفوظة (أكبرها {biggest['label']} بحجم {biggest['size_label']}). "
+                    "النسخة المحفوظة تحتفظ بالسنة كاملة."
+                )
+            else:
+                lines.append(
+                    "• أو حفظ نسخة سنوية لسنة سابقة ثم حذف ملفاتها الحية لتفريغ مساحتها."
+                )
+
+            sent = _notify(
+                school,
+                manager_ids,
+                title=f"💾 مساحة عمل {school.name} ({level})",
+                lines=lines,
+                important=level in {"critical", "full"},
+            )
+            if sent and percent >= STORAGE_CRITICAL_PERCENT:
+                opmetrics.increment("storage.school.critical")
+
+        # المساحة الثانية تحتاج تنبيهها الخاص: حدّها مستقل، وامتلاؤها لا يظهر
+        # في أي مكان حتى تفشل أرشفة سنةٍ كاملة — وهي عملية تُجرى مرة في العام،
+        # فاكتشاف العطل عندها يعني تأجيلها لا إصلاحها.
+        if archive["needs_attention"]:
+            archive_level = archive["warning_level"]
+            if archive_level == "full":
+                archive_headline = (
+                    f"امتلأت مساحة الأرشفة السنوية في {school.name} "
+                    f"({archive['used_label']} من {archive['limit_label']}). "
+                    "حفظ أي نسخة سنوية جديدة متوقف الآن."
+                )
+            else:
+                archive_headline = (
+                    f"مساحة الأرشفة السنوية في {school.name} وصلت "
+                    f"{archive['usage_percent']}% ({archive['used_label']} من "
+                    f"{archive['limit_label']})."
+                )
+
+            archive_lines = [
+                archive_headline,
+                "",
+                "لا يؤثر ذلك على عمل المعلمين اليومي؛ الرفع والتوثيق يعملان كالمعتاد.",
+                "",
+                "أمامك خياران:",
+                "• طلب مساحة أرشفة إضافية من صفحة الاشتراك.",
+                "• أو تنزيل نسخة سنة سابقة على جهازك ثم حذفها من المنصة لتحرير مساحتها.",
+            ]
+            sent = _notify(
+                school,
+                manager_ids,
+                title=f"🗄️ مساحة الأرشفة {school.name} ({archive_level})",
+                lines=archive_lines,
+                important=archive_level in {"critical", "full"},
+            )
+            if sent and archive["usage_percent"] >= STORAGE_CRITICAL_PERCENT:
+                opmetrics.increment("storage.archive.critical")
 
     logger.info(
         "Task success name=check_storage_thresholds_task task_id=%s trace_id=%s retries=%s summary=%s",

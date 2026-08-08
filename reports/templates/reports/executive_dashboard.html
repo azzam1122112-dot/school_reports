@@ -67,7 +67,21 @@
     background: rgba(255,255,255,.16);
     border: 1px solid rgba(255,255,255,.24);
   }
-  .exec-hero__title { margin: .75rem 0 .3rem; font-size: 1.65rem; font-weight: 900; }
+  /* عنوان الترويسة بتدرّج أبيض←ذهبي كما في لوحات الأدوار الثلاث الأخرى. */
+  .exec-hero__title {
+    margin: .75rem 0 .3rem;
+    font-size: 1.65rem;
+    font-weight: 900;
+    background: linear-gradient(92deg, #fff 0%, var(--id-gold-300) 96%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .exec-hero__eyebrow {
+    border: 1px solid rgba(212, 177, 109, .5);
+    background: rgba(212, 177, 109, .16);
+    color: var(--id-gold-300);
+  }
   .exec-hero__meta { margin: 0; font-size: .92rem; opacity: .9; }
   .exec-hero__note {
     position: relative;

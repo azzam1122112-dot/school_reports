@@ -144,7 +144,7 @@ class StorageAllowanceTests(TestCase):
 
         error = archive_storage_capacity_error(self.school, [_Upload(2 * MB)])
 
-        self.assertIn("رفع حد التخزين", error)
+        self.assertIn("زيادة مساحة العمل", error)
 
     def test_over_limit_message_offers_clearing_an_archived_year(self):
         self._subscribe(seats=25)

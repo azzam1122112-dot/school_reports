@@ -462,6 +462,32 @@ class Command(BaseCommand):
         except Exception as exc:
             self._record(section, Check.WARN, "Could not read platform settings", str(exc)[:160])
 
+        # Both storage spaces are enforced by their own limit, so both need a
+        # product. A space that can fill but cannot be bought leaves the school
+        # blocked with nothing to do about it.
+        try:
+            ArchiveStorageOption = apps.get_model("reports", "ArchiveStorageOption")
+            sold = set(
+                ArchiveStorageOption.objects.filter(is_active=True)
+                .values_list("bucket", flat=True)
+                .distinct()
+            )
+            for bucket, label in (
+                ("work", "school work space"),
+                ("archive", "yearly-archive space"),
+            ):
+                if bucket in sold:
+                    self._record(section, Check.OK, f"Expansion published for {label}")
+                else:
+                    self._record(
+                        section,
+                        Check.WARN,
+                        f"No expansion option for {label}",
+                        "A school that fills this space is blocked with nothing to buy.",
+                    )
+        except Exception as exc:
+            self._record(section, Check.WARN, "Could not read storage options", str(exc)[:160])
+
     def _check_business_identity(self):
         section = "Business disclosure"
         required = {
