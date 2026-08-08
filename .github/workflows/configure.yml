@@ -122,14 +122,33 @@ jobs:
           | ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
               "DEPLOY_PATH='$DEPLOY_PATH' python3 '$DEPLOY_PATH/deploy/hetzner/apply_runtime_config.py' $FLAGS"
 
+      # Restart through remote_deploy.sh, not a bare `compose up -d`.
+      #
+      # compose interpolates `image: ${APP_IMAGE:-school-reports:local}` from the
+      # shell, never from env_file. A bare `up -d` therefore does not restart the
+      # deployed image — it starts whatever that fallback resolves to. The static
+      # volume still holds the real release's hashed files, so collectstatic tried
+      # to replace them and died on PermissionError, migrate exited 1, and web —
+      # which waits on service_completed_successfully — never came back. A config
+      # change took the site down.
+      #
+      # remote_deploy.sh is the one path that gets this right: it requires
+      # APP_IMAGE, pulls it, ensures the edge network, waits for web to report
+      # healthy, and dumps logs if it does not. `:latest` is the tag the deploy
+      # job pushes alongside the commit sha, so it is the running release.
       - name: Restart the services that read the file
         env:
           SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
           SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
-            "cd '$DEPLOY_PATH' && docker compose -f compose.hetzner.yaml -f compose.caddy.yaml up -d"
+          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]'):latest"
+          printf '%s' "$GHCR_TOKEN" \
+          | ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+              "DEPLOY_PATH='$DEPLOY_PATH' APP_IMAGE='$IMAGE' \
+               GHCR_USER='${{ github.actor }}' GHCR_TOKEN_FROM_STDIN=1 \
+               bash '$DEPLOY_PATH/deploy/hetzner/remote_deploy.sh'"
 
       # ``compose up`` reports only that a service exited non-zero, never why.
       # When the service in question is ``migrate`` that is the difference between
