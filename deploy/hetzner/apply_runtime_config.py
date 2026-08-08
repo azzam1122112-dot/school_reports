@@ -102,6 +102,48 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
     return values
 
 
+def _assert_gateway_can_boot(path: Path, values: dict[str, str]) -> None:
+    """Refuse to enable Moyasar unless a matching key will be in place.
+
+    ``settings.py`` raises ``ImproperlyConfigured`` at import time when Moyasar
+    is enabled without a key, or with a key whose prefix disagrees with the
+    environment. That is a module-level raise: every container refuses to boot
+    and the site goes down.
+
+    Turning the gateway on while leaving the key unchanged is the easy way into
+    that state — the operator sees only a dropdown, and whether the server's env
+    file already holds a key is invisible from the workflow form. So the check
+    happens here, reading the file we are about to rewrite, and fails *before*
+    anything is written.
+    """
+    if values.get("MOYASAR_ENABLED") != "True":
+        return
+
+    existing: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = re.match(r"^([A-Z0-9_]+)=(.*)$", line)
+        if match:
+            existing[match.group(1)] = match.group(2).strip()
+
+    key = values.get("MOYASAR_SECRET_KEY") or existing.get("MOYASAR_SECRET_KEY", "")
+    if not key:
+        raise SystemExit(
+            "Refusing to enable Moyasar: no MOYASAR_SECRET_KEY on the server and "
+            "none supplied. Re-run with the key (update_moyasar_key) — enabling "
+            "without it stops every container from booting."
+        )
+
+    environment = values.get("MOYASAR_ENVIRONMENT") or existing.get(
+        "MOYASAR_ENVIRONMENT", "test"
+    )
+    expected = "sk_live_" if environment == "live" else "sk_test_"
+    if not key.startswith(expected):
+        raise SystemExit(
+            f"Refusing to enable Moyasar: the stored key does not match "
+            f"MOYASAR_ENVIRONMENT={environment}. Supply a {expected}* key."
+        )
+
+
 def _prune_backups(path: Path, keep: int = BACKUPS_TO_KEEP) -> list[str]:
     """Keep the most recent backups and shred the rest.
 
@@ -175,6 +217,7 @@ def main() -> None:
         raise SystemExit(f"{path} not found — run this on the server.")
 
     values = _collect(args)
+    _assert_gateway_can_boot(path, values)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     backup = path.with_name(f"{path.name}.bak.{timestamp}")
