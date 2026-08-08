@@ -131,6 +131,20 @@ jobs:
           ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
             "cd '$DEPLOY_PATH' && docker compose -f compose.hetzner.yaml -f compose.caddy.yaml up -d"
 
+      # ``compose up`` reports only that a service exited non-zero, never why.
+      # When the service in question is ``migrate`` that is the difference between
+      # a one-line fix and an outage spent guessing: Django refuses to boot on a
+      # bad setting, and the reason is in the container's own output, nowhere else.
+      - name: Show why the release failed
+        if: failure()
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+            "cd '$DEPLOY_PATH' && docker compose -f compose.hetzner.yaml logs --tail 80 migrate web" || true
+
       # The same gate the deploy runs. A configuration change that leaves the
       # platform misconfigured has to fail here, not on a customer's payment.
       - name: Verify the running release
