@@ -35,7 +35,10 @@ class SchoolStorageLimitTests(TestCase):
         # ملف 2MB > الحد 1MB → رسالة خطأ
         err = archive_storage_capacity_error(self.school, [_FakeUpload(2 * 1024 * 1024)])
         self.assertTrue(err)
-        self.assertIn("حد التخزين", err)
+        # الرسالة أُعيدت صياغتها إلى «مساحة عمل المدرسة»، وهو ما تؤكّده
+        # بقية الاختبارات (test_school_archive_addon.py وغيره) — وبقي هذا
+        # التوكيد على الصياغة القديمة وحده.
+        self.assertIn("تم تجاوز حد مساحة عمل المدرسة", err)
 
     def test_allows_upload_within_free_baseline(self):
         err = archive_storage_capacity_error(self.school, [_FakeUpload(300 * 1024)])  # 300KB < 1MB
