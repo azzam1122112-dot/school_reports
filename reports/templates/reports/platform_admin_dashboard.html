@@ -7,30 +7,31 @@
 <!-- Chart.js Library -->
 <script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" data-cfasync="false"></script>
 
-<style>
-    /* 2026 Premium Modern Dashboard Styling */
-    :root {
-        --primary-color: #006c35; /* Indigo */
-        --secondary-color: #16845b; /* Emerald */
-        --danger-color: #ef4444; /* Red */
-        --warning-color: #b9975b; /* Amber */
-        --dark-bg: #111827;
-        --card-bg: #ffffff;
-        --text-main: #1f2937;
-        --text-muted: #6b7280;
-        --border-color: #e5e7eb;
-        --radius-lg: 16px;
-        --radius-md: 12px;
-        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-    
-    [data-theme="dark"] {
-        --card-bg: #1f2937;
-        --text-main: #f9fafb;
-        --text-muted: #9ca3af;
-        --border-color: #374151;
+<style nonce="{{ CSP_NONCE }}">
+    /* رموز هذه الصفحة — **مقصورة على حاويتها**.
+       كانت معلنة على `:root` عاماً، وفيها ``--shadow-sm`` و``--shadow-md``
+       و``--shadow-lg`` بأسماء يعلنها `base.html` نفسه. وورقةُ الصفحة تأتي
+       بعد ورقة القاعدة، فكانت تُعيد تعريف ظلال المنصة كلها في هذه الصفحة
+       وحدها — تصادمٌ لا يُصدر خطأً ولا يظهر إلا بالمقارنة بين صفحتين.
+
+       والقيم من جذر الهوية: كانت لوحة رمادية-إردوازية (`#1f2937` و`#6b7280`
+       و`#e5e7eb`) لا صلة لها بأخضر المنصة، فتُقرأ هذه اللوحة كأنها من نظام
+       آخر. ولذلك لا كتلة ليلية هنا — الجذر يقلبها. */
+    .dashboard-container {
+        --primary-color: var(--id-accent);
+        --secondary-color: var(--id-green-500);
+        --danger-color: var(--id-tone-danger);
+        --warning-color: var(--id-gold);
+        --dark-bg: var(--id-green-950);
+        --card-bg: var(--id-surface);
+        --text-main: var(--id-ink);
+        --text-muted: var(--id-muted);
+        --border-color: var(--id-line);
+        --radius-lg: var(--id-r3);
+        --radius-md: var(--id-r2);
+        --shadow-sm: var(--id-e1);
+        --shadow-md: var(--id-e2);
+        --shadow-lg: var(--id-e3);
     }
     
     /* Animations */
@@ -121,7 +122,7 @@
     }
     
     .search-result-item:hover {
-        background: rgba(0, 108, 53, 0.05);
+        background: var(--id-accent-wash);
     }
     
     .search-result-item:last-child {
@@ -159,7 +160,7 @@
     .time-filters {
         display: flex;
         gap: 0.5rem;
-        background: rgba(0, 108, 53, 0.05);
+        background: var(--id-accent-wash);
         padding: 0.5rem;
         border-radius: var(--radius-md);
         margin-bottom: 1.5rem;
@@ -178,7 +179,7 @@
     }
     
     .filter-btn:hover {
-        background: rgba(0, 108, 53, 0.1);
+        background: var(--id-accent-wash);
         color: var(--primary-color);
     }
     
@@ -246,8 +247,8 @@
         align-items: center;
         gap: 0.4rem;
         color: var(--primary-color);
-        background: rgba(0, 108, 53, 0.08);
-        border: 1px solid rgba(0, 108, 53, 0.12);
+        background: var(--id-accent-wash);
+        border: 1px solid var(--id-gold-line);
         padding: 0.35rem 0.7rem;
         border-radius: 999px;
         font-size: 0.78rem;
@@ -435,7 +436,7 @@
     a.metric-card:hover,
     a.metric-card:focus-visible {
         transform: translateY(-3px);
-        border-color: rgba(0, 108, 53, 0.38);
+        border-color: var(--id-gold-line);
         box-shadow: var(--shadow-md);
     }
 
@@ -544,8 +545,8 @@
     }
 
     .action-card:hover {
-        border-color: rgba(0, 108, 53, 0.2);
-        background: rgba(0, 108, 53, 0.035);
+        border-color: var(--id-gold-line);
+        background: var(--id-accent-wash);
         transform: translateY(-1px);
     }
 
@@ -745,7 +746,7 @@
     }
     
     .timeline-item:hover {
-        background: rgba(0, 108, 53, 0.03);
+        background: var(--id-accent-wash);
     }
     
     .timeline-item:nth-child(1) { animation-delay: 0.1s; }
@@ -818,7 +819,7 @@
     .export-btn:hover {
         border-color: var(--primary-color);
         color: var(--primary-color);
-        background: rgba(0, 108, 53, 0.05);
+        background: var(--id-accent-wash);
     }
 
     /* Sections */
@@ -961,7 +962,7 @@
     }
 
     .notif-item-link:hover, .notif-item:hover {
-        background: rgba(0, 108, 53, 0.03);
+        background: var(--id-accent-wash);
     }
     
     .notif-icon {
@@ -1261,34 +1262,15 @@
         background: rgba(0, 0, 0, 0.3);
     }
     
-    /* Dark Mode Enhancements */
+    /* الهيكل العظمي أثناء التحميل: سطحان من الهوية لا رماديّان مكتوبان. */
     [data-theme="dark"] .skeleton {
-        background: linear-gradient(90deg, #2d3748 25%, #1a202c 50%, #2d3748 75%);
+        background: linear-gradient(90deg, var(--id-line) 25%, var(--id-surface-2) 50%, var(--id-line) 75%);
         background-size: 200% 100%;
     }
-    
-    [data-theme="dark"] .stat-card::before {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), transparent);
-    }
-    
-    [data-theme="dark"] .quick-search {
-        background: #1f2937;
-        border-color: #374151;
-    }
-    
-    [data-theme="dark"] .search-results {
-        background: #1f2937;
-        border-color: #374151;
-    }
-    
-    [data-theme="dark"] .time-filters {
-        background: rgba(139, 92, 246, 0.1);
-    }
-    
-    [data-theme="dark"] .notif-item:hover,
-    [data-theme="dark"] .notif-item-link:hover {
-        background: rgba(139, 92, 246, 0.1);
-    }
+
+    /* ``.quick-search`` و``.search-results`` كانتا تُثبّتان الإردوازي ليلاً
+       فوق ``--card-bg`` و``--border-color`` — وهما الآن من الجذر وينقلبان
+       وحدهما. فالقاعدتان زائدتان، وإبقاؤهما يعني لونين يتنازعان السطح. */
 </style>
 {% endblock %}
 

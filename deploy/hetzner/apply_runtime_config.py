@@ -45,6 +45,9 @@ DEFAULT_ENV_PATH = Path(
 
 BOOL_CHOICES = ("True", "False")
 
+# Enough to undo a bad change; beyond that each one is another live-secret copy.
+BACKUPS_TO_KEEP = 5
+
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -99,6 +102,27 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
     return values
 
 
+def _prune_backups(path: Path, keep: int = BACKUPS_TO_KEEP) -> list[str]:
+    """Keep the most recent backups and shred the rest.
+
+    Every backup is a **complete copy of the live secrets**. Letting them pile up
+    turns one 0600 file into a growing directory of them: more copies to leak,
+    more to forget when rotating a key. A handful is enough to undo a bad change;
+    beyond that they are liability, not safety.
+
+    The timestamp is a sortable UTC stamp, so lexical order is chronological.
+    """
+    backups = sorted(path.parent.glob(f"{path.name}.bak.*"))
+    removed: list[str] = []
+    for old in backups[:-keep] if keep else backups:
+        try:
+            old.unlink()
+            removed.append(old.name)
+        except OSError:
+            pass
+    return removed
+
+
 def _rewrite(path: Path, values: dict[str, str]) -> list[str]:
     original = path.read_text(encoding="utf-8").splitlines()
     remaining = dict(values)
@@ -120,7 +144,26 @@ def _rewrite(path: Path, values: dict[str, str]) -> list[str]:
         output.append(f"{key}={value}")
         changed.append(key)
 
-    path.write_text("\n".join(output) + "\n", encoding="utf-8")
+    # Write to a sibling temp file, then rename over the original. ``rename``
+    # within a directory is atomic on POSIX, so a reader either sees the whole
+    # old file or the whole new one — never a half-written env that would stop
+    # every container from booting. Writing in place left exactly that window;
+    # the backup could undo it, but only after someone noticed the outage.
+    #
+    # 0600 is set on the temp file *before* the content lands in it, so the
+    # secrets are never briefly world-readable.
+    tmp = path.with_name(f"{path.name}.tmp.{os.getpid()}")
+    try:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(output) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, path)
+    finally:
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
+
     path.chmod(0o600)
     return changed
 
@@ -141,7 +184,11 @@ def main() -> None:
 
     # Names only. Printing a value here would put a live payment key into the
     # workflow log, which is exactly what reading it from stdin was for.
+    pruned = _prune_backups(path)
+
     print(f"[config] backup: {backup.name}")
+    if pruned:
+        print(f"[config] pruned {len(pruned)} older backup(s)")
     print(f"[config] updated: {', '.join(sorted(changed)) or 'nothing (already current)'}")
 
 

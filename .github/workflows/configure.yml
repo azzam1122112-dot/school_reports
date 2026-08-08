@@ -95,7 +95,19 @@ jobs:
           FLAGS="$FLAGS --moyasar-enabled '${{ inputs.moyasar_enabled }}'"
           FLAGS="$FLAGS --moyasar-environment '${{ inputs.moyasar_environment }}'"
           FLAGS="$FLAGS --pdf-offload-enabled '${{ inputs.pdf_offload_enabled }}'"
-          FLAGS="$FLAGS --celery-media-concurrency '${{ inputs.celery_media_concurrency }}'"
+
+          # The free-text input is the only one that can arrive empty — a cleared
+          # field, or a workflow_dispatch API call that omits it. Passing it on
+          # regardless reached argparse's type=int as '' and died with
+          # "invalid int value: ''". That failed safe (nothing written, nothing
+          # restarted) but it failed for a reason nobody could read from the form.
+          # An empty value now means "leave CELERY_MEDIA_CONCURRENCY alone".
+          CONCURRENCY='${{ inputs.celery_media_concurrency }}'
+          if [ -n "$CONCURRENCY" ]; then
+            FLAGS="$FLAGS --celery-media-concurrency '$CONCURRENCY'"
+          else
+            echo "::notice title=Concurrency left unchanged::No value given, so CELERY_MEDIA_CONCURRENCY keeps its current setting."
+          fi
 
           if [ "${{ inputs.update_moyasar_key }}" = "true" ]; then
             if [ -z "$MOYASAR_SECRET_KEY" ]; then

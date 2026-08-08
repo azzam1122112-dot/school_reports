@@ -5,38 +5,26 @@
 
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/consumption-panel.css' %}?v=20260805.1">
-<style>
+<style nonce="{{ CSP_NONCE }}">
+  /* القيم من جذر الهوية، ولا كتلة ليلية هنا: الجذر يقلب الرموز مرة واحدة.
+     و``--exec-green-fill`` حُذف — كان معرَّفاً ولا يستعمله سطر واحد، وغائباً
+     عن الكتلة الليلية أصلاً، فرمزٌ لا يُقرأ ولا يتقلّب ليس رمزاً. */
   .exec-page {
-    --exec-ink: #10231a;
-    --exec-muted: #607067;
-    --exec-line: #dfe8e2;
-    --exec-soft: #f3f8f5;
-    --exec-surface: #ffffff;
-    /* اللون الأخضر يُستعمل نصاً وخلفيةً، فيُفصل الرمزان ليُضبط كلٌّ لسمته. */
-    --exec-green: #08643b;
-    --exec-green-fill: #08643b;
-    --exec-gold: #b68a42;
-    --exec-danger: #b42318;
-    --exec-warning: #9a6700;
+    --exec-ink: var(--id-ink);
+    --exec-muted: var(--id-muted);
+    --exec-line: var(--id-line);
+    --exec-soft: var(--id-surface-2);
+    --exec-surface: var(--id-surface);
+    --exec-green: var(--id-accent);
+    --exec-gold: var(--id-gold);
+    --exec-danger: var(--id-tone-danger);
+    --exec-warning: var(--id-tone-attention);
     max-width: 1440px;
     margin-inline: auto;
     padding: 1.25rem;
     color: var(--exec-ink);
   }
 
-  [data-theme="dark"] .exec-page {
-    /* نفس منطق لوحة المدير: النص يفتح، والتعبئة تبقى داكنة ليحتفظ
-       الرقم الأبيض فوقها بتباينه. */
-    --exec-ink: #eff8f2;
-    --exec-muted: #afc1b5;
-    --exec-line: #2d4637;
-    --exec-soft: #13271c;
-    --exec-surface: #102019;
-    --exec-green: #6ed3a0;
-    --exec-gold: #eabf58;
-    --exec-danger: #ff9d96;
-    --exec-warning: #eabf58;
-  }
 
   /* ── الترويسة ───────────────────────────────────────────────── */
   .exec-hero {
@@ -44,9 +32,17 @@
     overflow: hidden;
     border-radius: 20px;
     padding: 1.9rem 1.75rem;
-    background: linear-gradient(135deg, #08643b 0%, #0a7a48 55%, #075334 100%);
-    color: #fff;
-    box-shadow: 0 18px 40px -22px rgba(8, 100, 59, .75);
+    background: linear-gradient(135deg, var(--id-hero-from) 0%, var(--id-hero-via) 56%, var(--id-hero-to) 100%);
+    color: var(--id-hero-ink);
+    box-shadow: var(--id-e4);
+  }
+  .exec-hero::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--id-gold-500) 18%, var(--id-gold-300) 50%, var(--id-gold-500) 82%, transparent);
   }
   .exec-hero::after {
     content: "";
@@ -88,10 +84,10 @@
   .exec-groups a {
     font-size: .82rem; font-weight: 800; text-decoration: none;
     padding: .38rem .85rem; border-radius: 999px;
-    color: #fff; background: rgba(255,255,255,.14);
+    color: var(--id-hero-ink); background: rgba(255,255,255,.14);
     border: 1px solid rgba(255,255,255,.24);
   }
-  .exec-groups a.is-active { background: #fff; color: #08643b; }
+  .exec-groups a.is-active { background: #fff; color: var(--id-green-800); }
 
   /* ── بطاقات المؤشرات ────────────────────────────────────────── */
   .exec-kpis {
@@ -103,7 +99,7 @@
     border: 1px solid var(--exec-line);
     border-radius: 16px;
     padding: 1.05rem 1.1rem;
-    box-shadow: 0 10px 26px -24px rgba(16,35,26,.75);
+    box-shadow: var(--id-e2);
   }
   .exec-kpi__icon {
     width: 38px; height: 38px; border-radius: 11px;
@@ -156,7 +152,7 @@
   }
   .exec-bar__fill {
     display: block; height: 100%; border-radius: 999px;
-    background: linear-gradient(90deg, #0a7a48, #b68a42);
+    background: linear-gradient(90deg, var(--id-green-600), var(--id-gold-400));
   }
 
   .exec-chip {
@@ -165,10 +161,10 @@
     padding: .26rem .62rem; border-radius: 999px;
     white-space: nowrap;
   }
-  .exec-chip--active  { background: rgba(8,100,59,.12);  color: var(--exec-green); }
-  .exec-chip--ending  { background: rgba(154,103,0,.14); color: var(--exec-warning); }
+  .exec-chip--active  { background: var(--id-tone-approved-wash);  color: var(--id-tone-approved); }
+  .exec-chip--ending  { background: var(--id-tone-attention-wash); color: var(--exec-warning); }
   .exec-chip--expired,
-  .exec-chip--none    { background: rgba(180,35,24,.12); color: var(--exec-danger); }
+  .exec-chip--none    { background: var(--id-tone-danger-wash); color: var(--exec-danger); }
 
   .exec-empty { padding: 2.4rem 1.2rem; text-align: center; color: var(--exec-muted); }
   .exec-empty i { font-size: 1.7rem; color: var(--exec-green); display: block; margin-bottom: .6rem; }

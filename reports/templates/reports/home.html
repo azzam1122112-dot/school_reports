@@ -8,34 +8,27 @@
 
 {% block head %}
 <style nonce="{{ CSP_NONCE }}">
+  /* الأسماء `--th-*` باقية للقراءة، وقيمها من جذر الهوية لا من هنا: لوحةٌ
+     ثانية بجوار الأولى تعني أخضرين يفترقان عند أول تعديل. ولذلك لا كتلة
+     ليلية في هذا الملف — الجذر يتكفّل بها. */
   .teacher-home {
-    --th-green: #006c35;
-    --th-green-dark: #064e2c;
-    --th-green-soft: #ecf8f1;
-    --th-gold: #b9975b;
-    --th-blue: #2563eb;
-    --th-orange: #c96a16;
-    --th-red: #c33b3b;
-    --th-ink: #17221c;
-    --th-muted: #617067;
-    --th-border: #dce7df;
-    --th-card: #fff;
-    --th-surface: #f6faf7;
-    --th-shadow: 0 14px 42px rgba(20, 64, 39, .09);
+    --th-green: var(--id-accent);
+    --th-green-dark: var(--id-green-800);
+    --th-green-soft: var(--id-accent-wash);
+    --th-gold: var(--id-gold);
+    --th-blue: var(--id-tone-pending);
+    --th-orange: var(--id-tone-attention);
+    --th-red: var(--id-tone-danger);
+    --th-ink: var(--id-ink);
+    --th-muted: var(--id-muted);
+    --th-border: var(--id-line);
+    --th-card: var(--id-surface);
+    --th-surface: var(--id-surface-2);
+    --th-shadow: var(--id-e3);
     max-width: 1320px;
     margin: 0 auto;
     padding: 26px 20px 92px;
     color: var(--th-ink);
-  }
-
-  html[data-theme="dark"] .teacher-home {
-    --th-green-soft: rgba(35, 130, 77, .18);
-    --th-ink: #eef7f1;
-    --th-muted: #a9b9ae;
-    --th-border: #2d4937;
-    --th-card: #16271d;
-    --th-surface: #102018;
-    --th-shadow: 0 14px 42px rgba(0, 0, 0, .28);
   }
 
   .th-hero {
@@ -47,14 +40,26 @@
     align-items: center;
     min-height: 260px;
     padding: 38px;
-    border: 1px solid rgba(185, 151, 91, .36);
-    border-radius: 28px;
-    color: #fff;
+    border: 1px solid var(--id-gold-line);
+    border-radius: var(--id-r5);
+    color: var(--id-hero-ink);
     background:
-      radial-gradient(circle at 8% 15%, rgba(255, 255, 255, .16), transparent 26%),
-      radial-gradient(circle at 86% 105%, rgba(185, 151, 91, .34), transparent 35%),
-      linear-gradient(128deg, #064e2c 0%, #006c35 58%, #0a7543 100%);
-    box-shadow: 0 22px 55px rgba(6, 78, 44, .2);
+      radial-gradient(120% 150% at 92% -22%, rgba(212, 177, 109, .26), transparent 46%),
+      radial-gradient(90% 120% at 4% 108%, rgba(22, 149, 90, .34), transparent 52%),
+      linear-gradient(135deg, var(--id-hero-from) 0%, var(--id-hero-via) 56%, var(--id-hero-to) 100%);
+    box-shadow: var(--id-e4);
+  }
+
+  /* الخيط الذهبي — التوقيع نفسه الذي تحمله لوحة المدير، فتُقرأ اللوحتان
+     منصّةً واحدة لا شاشتين متجاورتين. */
+  .th-hero::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--id-gold-500) 18%, var(--id-gold-300) 50%, var(--id-gold-500) 82%, transparent);
+    z-index: 2;
   }
 
   .th-hero::after {
@@ -72,30 +77,40 @@
   .th-hero-main,
   .th-hero-side { position: relative; z-index: 1; }
 
+  /* وسمُ الدور يأخذ كبسولة ذهبية كترويسة المدير: هي أول ما يقرؤه صاحب
+     الصفحة عن نفسه، ومناداته باسمه قرارٌ سبق أن اتُّخذ في هذه اللوحة. */
   .th-eyebrow {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 12px;
-    color: #e5f5eb;
-    font-size: .86rem;
-    font-weight: 800;
+    margin-bottom: 14px;
+    padding: 7px 15px;
+    border: 1px solid rgba(212, 177, 109, .5);
+    border-radius: var(--id-pill);
+    background: rgba(212, 177, 109, .16);
+    color: var(--id-gold-300);
+    font-size: .78rem;
+    font-weight: 900;
+    letter-spacing: .2px;
   }
 
   .th-title {
     margin: 0;
     max-width: 760px;
-    color: #fff;
     font-size: clamp(1.7rem, 3vw, 2.55rem);
     font-weight: 950;
     line-height: 1.35;
     letter-spacing: -.5px;
+    background: linear-gradient(92deg, #fff 0%, var(--id-gold-300) 96%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .th-lead {
     max-width: 700px;
     margin: 12px 0 22px;
-    color: rgba(255, 255, 255, .82);
+    color: var(--id-hero-ink-soft);
     font-size: 1rem;
     line-height: 1.9;
   }
@@ -121,33 +136,37 @@
   }
 
   .th-btn:hover { transform: translateY(-2px); }
+  /* الإجراء الأول ذهبيٌّ كنظيره في لوحة المدير: لونٌ واحد يعني «ابدأ من هنا». */
   .th-btn-primary {
-    color: var(--th-green-dark);
-    background: #fff;
-    box-shadow: 0 10px 26px rgba(0, 0, 0, .17);
+    color: var(--id-green-950);
+    background: linear-gradient(135deg, var(--id-gold-400), var(--id-gold-600));
+    box-shadow: 0 12px 26px -14px rgba(212, 177, 109, .9);
   }
+  .th-btn-primary:hover { background: linear-gradient(135deg, var(--id-gold-300), var(--id-gold-500)); }
   .th-btn-secondary {
-    color: #fff;
+    color: var(--id-hero-ink);
     border-color: rgba(255, 255, 255, .32);
     background: rgba(255, 255, 255, .1);
   }
 
   .th-hero-side {
     padding: 22px;
-    border: 1px solid rgba(255, 255, 255, .22);
-    border-radius: 20px;
-    background: rgba(2, 45, 25, .28);
+    border: 1px solid var(--id-gold-line);
+    border-radius: var(--id-r4);
+    background: rgba(3, 32, 20, .3);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
   }
 
   .th-side-label {
     margin-bottom: 7px;
-    color: rgba(255, 255, 255, .7);
+    color: var(--id-gold-300);
     font-size: .78rem;
-    font-weight: 800;
+    font-weight: 900;
   }
   .th-side-value {
-    color: #fff;
+    color: var(--id-hero-ink);
     font-size: 1.05rem;
     font-weight: 950;
     line-height: 1.55;
@@ -158,9 +177,12 @@
     background: rgba(255, 255, 255, .16);
   }
 
+  /* الشبكة تتبع عدد المؤشرات لا رقماً مكتوباً: كانت ثلاثة أعمدة ثابتة، فلمّا
+     أُضيف مؤشر «التكليفات» صار الرابع سطراً وحده. و`auto-fit` يجعل إضافة
+     الخامس لاحقاً تعديلاً في لا شيء. */
   .th-kpis {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: 14px;
     margin-top: 18px;
   }
@@ -175,13 +197,13 @@
     gap: 15px;
     color: inherit;
     background: var(--th-card);
-    box-shadow: 0 8px 28px rgba(25, 70, 43, .055);
+    box-shadow: var(--id-e2);
     text-decoration: none;
     transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
   }
   .th-kpi:hover {
     transform: translateY(-3px);
-    border-color: rgba(0, 108, 53, .4);
+    border-color: var(--id-gold-line);
     box-shadow: var(--th-shadow);
   }
   .th-kpi-icon {
@@ -195,8 +217,8 @@
     background: var(--th-green-soft);
     font-size: 1.12rem;
   }
-  .th-kpi:nth-child(2) .th-kpi-icon { color: var(--th-blue); background: rgba(37, 99, 235, .1); }
-  .th-kpi:nth-child(3) .th-kpi-icon { color: var(--th-orange); background: rgba(201, 106, 22, .1); }
+  .th-kpi:nth-child(2) .th-kpi-icon { color: var(--th-blue); background: var(--id-tone-pending-wash); }
+  .th-kpi:nth-child(3) .th-kpi-icon { color: var(--th-orange); background: var(--id-tone-attention-wash); }
   .th-kpi-value { font-size: 1.55rem; font-weight: 950; line-height: 1.15; }
   .th-kpi-label { margin-top: 4px; color: var(--th-muted); font-size: .82rem; font-weight: 800; }
 
@@ -214,7 +236,7 @@
     border: 1px solid var(--th-border);
     border-radius: 21px;
     background: var(--th-card);
-    box-shadow: 0 8px 28px rgba(25, 70, 43, .055);
+    box-shadow: var(--id-e2);
   }
   .th-card-head {
     display: flex;
@@ -263,40 +285,36 @@
   }
   .th-flag-late {
     padding: 1px 7px;
-    border-radius: 999px;
-    color: #b42318;
-    background: #fee4e2;
+    border-radius: var(--id-pill);
+    color: var(--id-tone-danger);
+    background: var(--id-tone-danger-wash);
     font-weight: 950;
   }
-  html[data-theme="dark"] .th-flag-late { color: #ffc5c8; background: #40151a; }
 
-  /* شارة حالة الاعتماد. الألوان هي ألوان `_approval_theme` نفسها بمقاسٍ
-     أصغر: الحالة الواحدة يجب أن تحمل اللون نفسه في اللوحة وصندوق المراجعة،
-     وإلا صار «مُعاد للملاحظة» إنذاراً هنا وخبراً هناك. */
+  /* شارة حالة الاعتماد — نغماتها من جذر الهوية. كانت مكتوبة هنا بقيمها
+     ومعها أربع قواعد ليلية، وهي القيم نفسها في `_approval_theme`: الحالة
+     الواحدة يجب أن تحمل اللون نفسه في اللوحة وفي صندوق المراجعة، وإلا صار
+     «مُعاد للملاحظة» إنذاراً هنا وخبراً هناك. */
   .th-state {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     padding: 1px 8px;
     border: 1px solid currentColor;
-    border-radius: 999px;
+    border-radius: var(--id-pill);
     font-size: .68rem;
     font-weight: 950;
     white-space: nowrap;
   }
-  .th-state[data-tone="draft"] { color: var(--th-muted); }
-  .th-state[data-tone="pending"] { color: #1f6feb; }
-  .th-state[data-tone="attention"] { color: #b68a42; }
-  .th-state[data-tone="recommended"] { color: #6d4aff; }
+  .th-state[data-tone="draft"] { color: var(--id-tone-draft); }
+  .th-state[data-tone="pending"] { color: var(--id-tone-pending); }
+  .th-state[data-tone="attention"] { color: var(--id-tone-attention); }
+  .th-state[data-tone="recommended"] { color: var(--id-tone-recommended); }
   .th-state[data-tone="approved"] {
-    color: #fff;
+    color: var(--id-accent-ink);
     border-color: transparent;
-    background: var(--th-green);
+    background: var(--id-tone-approved);
   }
-  html[data-theme="dark"] .th-state[data-tone="pending"] { color: #7cb2ff; }
-  html[data-theme="dark"] .th-state[data-tone="attention"] { color: #eabf58; }
-  html[data-theme="dark"] .th-state[data-tone="recommended"] { color: #b5a0ff; }
-  html[data-theme="dark"] .th-state[data-tone="approved"] { color: #06251a; }
 
   /* سطر خافت أسفل عنوان البطاقة: عددٌ ينتظر غيرك ليس بنداً عليك، فلا يأخذ
      وزن البطاقات ولا لون الإنذار. */
@@ -346,8 +364,8 @@
     border-radius: 999px;
     display: grid;
     place-items: center;
-    color: #fff;
-    background: var(--th-green);
+    color: var(--id-accent-ink);
+    background: var(--id-accent);
     font-size: .76rem;
     font-weight: 950;
   }
@@ -407,7 +425,7 @@
     color: var(--th-muted);
     font-size: .73rem;
   }
-  .th-item-arrow { color: #93a49a; font-size: .8rem; }
+  .th-item-arrow { color: var(--id-muted); font-size: .8rem; }
 
   .th-empty {
     padding: 28px 16px;
@@ -484,9 +502,9 @@
     border-radius: 18px;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    background: var(--th-green);
-    box-shadow: 0 14px 30px rgba(0, 108, 53, .36);
+    color: var(--id-accent-ink);
+    background: var(--id-accent);
+    box-shadow: var(--id-e3);
     text-decoration: none;
     font-size: 1.25rem;
   }
@@ -518,8 +536,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 15px;
-    color: #fff;
-    background: linear-gradient(120deg, var(--th-green-dark), var(--th-green));
+    color: var(--id-hero-ink);
+    background: linear-gradient(120deg, var(--id-hero-from), var(--id-hero-via));
   }
   .th-notification-head h2 { margin: 0; font-size: 1.05rem; font-weight: 950; }
   .th-notification-close {
@@ -528,7 +546,7 @@
     flex: 0 0 44px;
     border: 1px solid rgba(255, 255, 255, .28);
     border-radius: 11px;
-    color: #fff;
+    color: var(--id-hero-ink);
     background: rgba(255, 255, 255, .1);
     cursor: pointer;
   }
