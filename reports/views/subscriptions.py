@@ -4106,6 +4106,14 @@ def reconcile_pending_gateway_payments(
             if payment.payment_method == Payment.Method.MOYASAR:
                 if not payment.batch_ref:
                     continue
+                # A disabled gateway may still have historical pending rows.
+                # Without credentials those rows cannot be reconciled, and
+                # retrying every row every 20 minutes only floods production
+                # logs with the same configuration exception. Keep the rows
+                # pending for an operator to resolve once credentials exist.
+                if not str(getattr(settings, "MOYASAR_SECRET_KEY", "") or "").strip():
+                    summary["still_pending"] += 1
+                    continue
                 status = _sync_moyasar_batch(payment.batch_ref)
                 if status == "paid":
                     summary["activated"] += 1
