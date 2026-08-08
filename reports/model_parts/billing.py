@@ -184,7 +184,11 @@ class Payment(models.Model):
     class Purpose(models.TextChoices):
         SUBSCRIPTION = "subscription", "اشتراك المدرسة"
         ARCHIVE_ADDON = "archive_addon", "إضافة الأرشفة"
-        ARCHIVE_STORAGE = "archive_storage", "زيادة مساحة الأرشيف"
+        # القيمة المخزّنة تبقى ``archive_storage`` للتوافق مع السجلات القائمة،
+        # لكن هذا الغرض كان دائمًا يضيف إلى مساحة العمل لا الأرشيف — والاسم
+        # المعروض كان يقول العكس.
+        WORK_STORAGE = "archive_storage", "زيادة مساحة عمل المدرسة"
+        ARCHIVE_SPACE = "archive_space", "زيادة مساحة الأرشفة السنوية"
 
     school = models.ForeignKey(
         School,
@@ -263,9 +267,12 @@ class Payment(models.Model):
         db_index=True,
     )
     archive_storage_gb = models.PositiveIntegerField(
-        "مساحة أرشيف إضافية (GB)",
+        "المساحة الإضافية المطلوبة (GB)",
         default=0,
-        help_text="تستخدم فقط عند طلب زيادة مساحة تخزين الأرشيف.",
+        help_text=(
+            "تُستخدم في طلبات زيادة المساحة. يحدّد ``الغرض`` أي مساحة تُضاف "
+            "إليها: عمل المدرسة أم الأرشفة السنوية."
+        ),
     )
     batch_ref = models.CharField(
         "مرجع الطلب الموحّد",
@@ -343,8 +350,19 @@ class SchoolArchiveAddon(models.Model):
         help_text="اتركه فارغًا إذا كان الملحق مفتوح المدة.",
         db_index=True,
     )
-    storage_limit_gb = models.PositiveIntegerField("حد التخزين (GB)", default=50)
-    storage_used_bytes = models.PositiveBigIntegerField("المستخدم من التخزين (بايت)", default=0)
+    storage_limit_gb = models.PositiveIntegerField(
+        "حد مساحة النسخ السنوية (GB)",
+        default=50,
+        help_text="مساحة الأرشفة وحدها، مستقلة عن مساحة عمل المدرسة اليومية.",
+    )
+    storage_used_bytes = models.PositiveBigIntegerField(
+        "المستخدم من مساحة النسخ السنوية (بايت)",
+        default=0,
+        help_text=(
+            "مجموع أحجام النسخ السنوية المحفوظة فقط. يُحدَّث تلقائيًا ولا يشمل "
+            "ملفات العمل اليومي."
+        ),
+    )
     paid_amount = models.DecimalField("قيمة الملحق", max_digits=10, decimal_places=2, default=0)
     notes = models.TextField("ملاحظات", blank=True, default="")
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True)
@@ -403,8 +421,28 @@ def school_has_archive_addon(school: School | None) -> bool:
 
 
 class ArchiveStorageOption(models.Model):
-    """خيارات زيادة مساحة الأرشيف التي يديرها مدير النظام."""
+    """باقات زيادة المساحة التي يسعّرها مدير النظام وتشتريها المدرسة.
 
+    لكل خيار **دلوٌ** يحدّد أين تُضاف المساحة. المساحتان منفصلتان في النظام
+    (حدّان وعدّادان وبوابتان)، فبيعهما بمنتج واحد كان يعني أن المدرسة تدفع
+    لتوسعة مساحة غير التي امتلأت عندها.
+    """
+
+    class Bucket(models.TextChoices):
+        WORK = "work", "مساحة عمل المدرسة"
+        ARCHIVE = "archive", "مساحة الأرشفة السنوية"
+
+    bucket = models.CharField(
+        "المساحة المستهدفة",
+        max_length=16,
+        choices=Bucket.choices,
+        default=Bucket.WORK,
+        db_index=True,
+        help_text=(
+            "عمل المدرسة: التقارير والإنجاز والوثائق والمرفقات. "
+            "الأرشفة السنوية: النسخ الثابتة المحفوظة لكل سنة."
+        ),
+    )
     storage_gb = models.PositiveIntegerField("المساحة (GB)", validators=[MinValueValidator(1)])
     price = models.DecimalField("السعر", max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     is_active = models.BooleanField("مفعّل؟", default=True, db_index=True)
@@ -413,12 +451,12 @@ class ArchiveStorageOption(models.Model):
     updated_at = models.DateTimeField("تاريخ التحديث", auto_now=True)
 
     class Meta:
-        verbose_name = "خيار زيادة مساحة الأرشيف"
-        verbose_name_plural = "خيارات زيادة مساحة الأرشيف"
-        ordering = ["sort_order", "storage_gb", "id"]
+        verbose_name = "خيار زيادة مساحة"
+        verbose_name_plural = "خيارات زيادة المساحة"
+        ordering = ["bucket", "sort_order", "storage_gb", "id"]
 
     def __str__(self):
-        return f"{self.storage_gb}GB - {self.price} ريال"
+        return f"{self.get_bucket_display()} · {self.storage_gb}GB - {self.price} ريال"
 
 
 def school_year_archive_upload_to(instance, filename: str) -> str:

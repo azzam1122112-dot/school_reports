@@ -968,6 +968,12 @@
   <link rel="stylesheet" href="{% static 'css/mobile-professional.css' %}?v=20260731.3" />
   <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}?v=20260802.1" />
 
+  {% comment %}
+    جذر الهوية قبل قوالب الصفحات: الرموز تكون متاحة لها، وتبقى لها الكلمة
+    الأخيرة عند التعارض.
+  {% endcomment %}
+  {% include "reports/_identity.html" %}
+
   {% block head %}{% endblock %}
   <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260807.1" />
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
@@ -979,17 +985,17 @@
 
   <form id="__csrf" hidden aria-hidden="true">{% csrf_token %}</form>
 
-  <header class="site-header{% if IS_SCHOOL_MANAGER and not IS_EXECUTIVE_DIRECTOR %} hdr-grouped{% endif %}" id="siteHeader">
+  <header class="site-header{% if IS_SCHOOL_MANAGER and not IS_EXECUTIVE_DIRECTOR or SHOW_SUPERVISION_GROUP or SHOW_LAB_NAV %} hdr-grouped{% endif %}" id="siteHeader">
     <div class="container hdr">
 
       <button class="hamburger" id="hamburger" type="button" aria-label="فتح القائمة" aria-controls="mobileDrawer" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
 
-      <a class="hdr-brand" href="{% if request.user.is_superuser %}{% url 'reports:platform_admin_dashboard' %}{% elif IS_SCHOOL_MANAGER %}{% url 'reports:admin_dashboard' %}{% else %}{% url 'reports:home' %}{% endif %}">
+      <a class="hdr-brand" href="{% if request.user.is_superuser %}{% url 'reports:platform_admin_dashboard' %}{% elif IS_SCHOOL_MANAGER %}{% url 'reports:admin_dashboard' %}{% elif IS_EXECUTIVE_DIRECTOR and not SCHOOL_NAME %}{% url 'reports:executive_dashboard' %}{% else %}{% url 'reports:home' %}{% endif %}">
         <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/brand-mark.svg' %}{% endif %}" alt="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}شعار المدرسة{% else %}شعار منصة توثيق{% endif %}" width="42" height="42" loading="eager" decoding="async">
         <div class="hdr-brand-txt">
-          <div class="hdr-brand-name">{% if request.user.is_superuser %}إدارة المنصة{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}منصة توثيق{% endif %}</div>
+          <div class="hdr-brand-name">{% if request.user.is_superuser %}إدارة المنصة{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% elif GROUP_NAME %}{{ GROUP_NAME }}{% else %}منصة توثيق{% endif %}</div>
           <div class="hdr-brand-sub">{% if request.user.is_superuser %}مركز التشغيل{% else %}منصة توثيق{% endif %}</div>
         </div>
       </a>
@@ -1007,7 +1013,7 @@
             <a class="tab {% if active == 'platform_complaints_list' or active == 'platform_complaint_detail' %}is-active{% endif %}" href="{% url 'reports:platform_complaints_list' %}">الشكاوى</a>
             <a class="tab {% if active == 'platform_settings' or active == 'platform_archive_addons_list' or active == 'platform_plans_list' or active == 'platform_mansour_content' %}is-active{% endif %}" href="{% url 'reports:platform_settings' %}">الإعدادات</a>
           {% else %}
-            <a class="tab {% if active == 'home' or IS_SCHOOL_MANAGER and active == 'admin_dashboard' %}is-active{% endif %}" href="{% if IS_SCHOOL_MANAGER %}{% url 'reports:admin_dashboard' %}{% else %}{% url 'reports:home' %}{% endif %}">الرئيسية</a>
+            <a class="tab {% if active == 'home' or IS_SCHOOL_MANAGER and active == 'admin_dashboard' or IS_EXECUTIVE_DIRECTOR and active == 'executive_dashboard' %}is-active{% endif %}" href="{% if IS_SCHOOL_MANAGER %}{% url 'reports:admin_dashboard' %}{% elif IS_EXECUTIVE_DIRECTOR and not SCHOOL_NAME %}{% url 'reports:executive_dashboard' %}{% else %}{% url 'reports:home' %}{% endif %}">الرئيسية</a>
 
             {% if IS_SCHOOL_MANAGER %}
               {# ── الفريق: من يعمل، وفي أي قسم، وبأي صلاحية ── #}
@@ -1055,6 +1061,16 @@
                     <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
                     <span><b>المبادرات</b><em>المبادرات المدرسية وأثرها</em></span>
                   </a>
+                  {% if SHOW_LAB_NAV %}
+                    <a class="np-item {% if active == 'lab_assets' or active == 'lab_asset_detail' or active == 'lab_dashboard' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:lab_dashboard' %}">
+                      <i class="fa-solid fa-flask" aria-hidden="true"></i>
+                      <span><b>المختبر</b><em>العهدة والتجارب</em></span>
+                    </a>
+                    <a class="np-item {% if active == 'lab_experiments' or active == 'lab_experiment_detail' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:lab_experiments' %}">
+                      <i class="fa-solid fa-vials" aria-hidden="true"></i>
+                      <span><b>تجارب المختبر</b><em>مراجعتها واعتمادها</em></span>
+                    </a>
+                  {% endif %}
                 </div>
               </div>
 
@@ -1117,7 +1133,9 @@
                 </div>
               </div>
             {% else %}
-              {% if IS_OFFICER or SHOW_DEPARTMENT_REPORTS_LINK %}
+              {% comment %} الشرط وجودُ ما يُعرض لا حملُ دور: العدّاد كان يُحسب لكل مستخدم
+                 والرابط مقصوراً على مسؤولي الأقسام. {% endcomment %}
+              {% if SHOW_ASSIGNED_TO_ME %}
                 <a class="tab {% if active == 'assigned_to_me' %}is-active{% endif %}" href="{% url 'reports:assigned_to_me' %}">
                   مهامي
                   {% if NAV_ASSIGNED_TO_ME %}<span class="pill">{{ NAV_ASSIGNED_TO_ME }}</span>{% endif %}
@@ -1125,9 +1143,115 @@
               {% endif %}
               <a class="tab {% if active == 'my_reports' or active == 'add_report' or active == 'report_print' %}is-active{% endif %}" href="{% url 'reports:my_reports' %}">تقاريري</a>
               <a class="tab {% if active == 'my_requests' or active == 'request_create' or active == 'ticket_detail' %}is-active{% endif %}" href="{% url 'reports:my_requests' %}">طلباتي</a>
-              {% if not IS_OFFICER and not SHOW_DEPARTMENT_REPORTS_LINK %}
-                <a class="tab {% if active == 'achievement_my_files' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_my_files' %}">ملف الإنجاز</a>
-              {% endif %}
+              {% comment %} ملف الإنجاز **ملفُ صاحبه**، فلا يُحجب عنه لأنه عضو قسم.
+                 كان الشرط يخفيه عن كل مسؤول قسم وعضوٍ فيه، فيفقد رابطَ ملفه
+                 الشخصي من الشريط ولا يبقى له إلا الدرج — وهو ملفٌ يُقيَّم عليه
+                 سنوياً، لا شاشةٌ ثانوية. {% endcomment %}
+              <a class="tab {% if active == 'achievement_my_files' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_my_files' %}">ملف الإنجاز</a>
+            {% endif %}
+
+            {% comment %} الوكيل الذي مُنح صلاحية المراجعة يملكها ولا يجد إليها باباً:
+               التبويب أعلاه داخل شرط «مدير مدرسة». وشرط الرابط هنا هو شرط
+               ``approval_inbox`` نفسه، فلا يُعرض رابطٌ يردّ صاحبه. {% endcomment %}
+            {% if CAN_REVIEW_APPROVALS and not IS_SCHOOL_MANAGER %}
+              <a class="tab {% if active == 'approval_inbox' or active == 'approval_detail' %}is-active{% endif %}" href="{% url 'reports:approval_inbox' %}">الاعتماد</a>
+            {% endif %}
+
+            {% comment %} ── المختبر: عهدةٌ وتجارب ──
+               تُعرض لمن المختبر عملُه (المحضّر) ولمن مُنح متابعته. وهي مجموعة
+               لا تبويبين، لأن شريط المحضّر يحمل تبويبات المعلّم كاملةً — فهو
+               معلّمٌ في كل ما سوى المختبر، وتبويبان إضافيان يُطيلانه فوق حدّه. {% endcomment %}
+            {% if SHOW_LAB_NAV and not IS_SCHOOL_MANAGER %}
+              <div class="nav-group" data-nav-group>
+                <button type="button" class="tab tab-trigger {% if active == 'lab_dashboard' or active == 'lab_assets' or active == 'lab_asset_detail' or active == 'lab_experiments' or active == 'lab_experiment_detail' %}is-active{% endif %}" aria-expanded="false" aria-haspopup="true">
+                  <span>المختبر</span>
+                  <i class="fa-solid fa-chevron-down chev" aria-hidden="true"></i>
+                </button>
+                <div class="nav-pop" role="menu" aria-label="المختبر">
+                  <a class="np-item {% if active == 'lab_dashboard' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:lab_dashboard' %}">
+                    <i class="fa-solid fa-flask" aria-hidden="true"></i>
+                    <span><b>لوحة المختبر</b><em>العهدة والتجارب وما يحتاج انتباهاً</em></span>
+                  </a>
+                  <a class="np-item {% if active == 'lab_assets' or active == 'lab_asset_detail' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:lab_assets' %}">
+                    <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>
+                    <span><b>العهدة</b><em>جرد المختبر وحركة التسليم</em></span>
+                  </a>
+                  <a class="np-item {% if active == 'lab_experiments' or active == 'lab_experiment_detail' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:lab_experiments' %}">
+                    <i class="fa-solid fa-vials" aria-hidden="true"></i>
+                    <span><b>التجارب</b><em>توثيقها وإرسالها للاعتماد</em></span>
+                  </a>
+                </div>
+              </div>
+            {% endif %}
+
+            {% comment %} ── الإشراف: ما مُنحه الوكيل والموظف الإداري بنطاقهما ──
+               مجموعةٌ لا تبويبات مسطّحة: هذه ثماني وجهات، وإضافتها واحدةً
+               واحدةً تُعيد على الوكيل ازدحامَ الشريط الذي جُمّع من أجله شريط
+               المدير. وكل مدخل مشروطٌ بصلاحيته وحدها — فمن مُنح المحاضر دون
+               التكليفات يرى المحاضر وحدها. {% endcomment %}
+            {% if SHOW_SUPERVISION_GROUP %}
+              <div class="nav-group" data-nav-group>
+                <button type="button" class="tab tab-trigger {% if active == 'admin_dashboard' or active == 'assignment_board' or active == 'assignment_create' or active == 'assignment_detail' or active == 'assignment_view' or active == 'meeting_list' or active == 'meeting_detail' or active == 'meeting_create' or active == 'plan_list' or active == 'plan_detail' or active == 'achievement_school_files' or active == 'achievement_school_teachers' or active == 'manager_school_tickets' or active == 'circular_draft_list' or active == 'circular_draft_detail' or active == 'document_archive' or active == 'document_detail' %}is-active{% endif %}" aria-expanded="false" aria-haspopup="true">
+                  <span>الإشراف</span>
+                  <i class="fa-solid fa-chevron-down chev" aria-hidden="true"></i>
+                </button>
+                <div class="nav-pop" role="menu" aria-label="الإشراف">
+                  {% if CAN_VIEW_SCHOOL_DASHBOARD %}
+                    <a class="np-item {% if active == 'staff_dashboard' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:staff_dashboard' %}">
+                      <i class="fa-solid fa-gauge" aria-hidden="true"></i>
+                      <span><b>مؤشرات نطاقي</b><em>أرقام الأقسام التي تشرف عليها</em></span>
+                    </a>
+                  {% endif %}
+                  {% if CAN_REVIEW_APPROVALS %}
+                    <a class="np-item {% if active == 'admin_reports' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:admin_reports' %}">
+                      <i class="fa-solid fa-file-shield" aria-hidden="true"></i>
+                      <span><b>تقارير نطاقي</b><em>ما وثّقته أقسامك — كشفاً لا صندوق انتظار</em></span>
+                    </a>
+                  {% endif %}
+                  {% if CAN_ASSIGN_TASKS %}
+                    <a class="np-item {% if active == 'assignment_board' or active == 'assignment_create' or active == 'assignment_detail' or active == 'assignment_view' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:assignment_board' %}">
+                      <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
+                      <span><b>التكليفات</b><em>ما أصدرتَه ومتابعة تنفيذه</em></span>
+                    </a>
+                  {% endif %}
+                  {% if CAN_MANAGE_MEETINGS %}
+                    <a class="np-item {% if active == 'meeting_list' or active == 'meeting_detail' or active == 'meeting_create' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:meeting_list' %}">
+                      <i class="fa-solid fa-users-rectangle" aria-hidden="true"></i>
+                      <span><b>الاجتماعات</b><em>تنظيمها وكتابة محاضرها</em></span>
+                    </a>
+                  {% endif %}
+                  {% if CAN_TRACK_PLANS %}
+                    <a class="np-item {% if active == 'plan_list' or active == 'plan_detail' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:plan_list' %}">
+                      <i class="fa-solid fa-compass-drafting" aria-hidden="true"></i>
+                      <span><b>الخطط</b><em>متابعة المهام المسندة إلى نطاقك</em></span>
+                    </a>
+                  {% endif %}
+                  {% if CAN_VIEW_ACHIEVEMENTS %}
+                    <a class="np-item {% if active == 'achievement_school_files' or active == 'achievement_school_teachers' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:achievement_school_files' %}">
+                      <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+                      <span><b>ملفات الإنجاز</b><em>اطّلاعٌ على ملفات نطاقك دون اعتمادها</em></span>
+                    </a>
+                  {% endif %}
+                  {% if CAN_HANDLE_REQUESTS %}
+                    <a class="np-item {% if active == 'manager_school_tickets' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:manager_school_tickets' %}">
+                      <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+                      <span><b>طلبات نطاقي</b><em>الطلبات المحالة إلى أقسامك</em></span>
+                    </a>
+                  {% endif %}
+                  {% if CAN_DRAFT_CIRCULARS %}
+                    <a class="np-item {% if active == 'circular_draft_list' or active == 'circular_draft_detail' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:circular_draft_list' %}">
+                      <i class="fa-solid fa-file-pen" aria-hidden="true"></i>
+                      <span><b>مسودات التعاميم</b><em>إعدادها ورفعها للمدير — والنشر بيده</em></span>
+                    </a>
+                  {% endif %}
+                  {% if CAN_ARCHIVE_DOCUMENTS %}
+                    <a class="np-item {% if active == 'document_archive' or active == 'document_detail' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:document_archive' %}">
+                      <i class="fa-solid fa-folder-tree" aria-hidden="true"></i>
+                      <span><b>أرشيف الوثائق</b><em>تصنيفها ورفعها للأرشفة</em></span>
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
             {% endif %}
 
             {# تقارير المدرسة وأرشيفها داخل مجموعة «التوثيق» للمدير، فلا تُكرَّر هنا. #}
@@ -1142,6 +1266,7 @@
             {% endif %}
             {% if IS_EXECUTIVE_DIRECTOR %}
               <a class="tab {% if active == 'executive_dashboard' %}is-active{% endif %}" href="{% url 'reports:executive_dashboard' %}">لوحة المجموعة</a>
+              <a class="tab {% if active == 'group_approval_inbox' %}is-active{% endif %}" href="{% url 'reports:group_approval_inbox' %}">الاعتماد</a>
               <a class="tab {% if active == 'group_assignment_board' %}is-active{% endif %}" href="{% url 'reports:group_assignment_board' %}">تكليفات المجموعة</a>
               <a class="tab {% if active == 'council_list' %}is-active{% endif %}" href="{% url 'reports:council_list' %}">مجلس المجموعة</a>
               <a class="tab {% if active == 'group_practices' %}is-active{% endif %}" href="{% url 'reports:group_practices' %}">الممارسات</a>
@@ -1467,8 +1592,8 @@
             <span>فريق المدرسة</span>
             <i class="fa-solid fa-people-group"></i>
           </a>
-          {# الأقسام كانت تُعلِّم صفّ «فريق المدرسة» ولا رابط لها هنا، فيُوصل إليها
-             من داخل شاشة أخرى فقط. #}
+          {% comment %} الأقسام كانت تُعلِّم صفّ «فريق المدرسة» ولا رابط لها هنا، فيُوصل إليها
+             من داخل شاشة أخرى فقط. {% endcomment %}
           <a class="{% if active == 'departments_list' or active == 'department_create' or active == 'department_edit' or active == 'department_members' %}is-active{% endif %}" href="{% url 'reports:departments_list' %}">
             <span>الأقسام</span>
             <i class="fa-solid fa-sitemap"></i>
@@ -1494,7 +1619,10 @@
             <i class="fa-solid fa-paper-plane"></i>
           </a>
         {% else %}
-          {% if IS_OFFICER or SHOW_DEPARTMENT_REPORTS_LINK %}
+          {% comment %} الشرط كان حملَ دور مسؤول قسم، والعدّاد يُحسب لكل مستخدم: طلبٌ
+             يُحال إلى موظف إداري كان يُعدّ في القائمة بلا رابط يوصله إليه.
+             والشرط الصحيح وجودُ ما يُعرض. {% endcomment %}
+          {% if SHOW_ASSIGNED_TO_ME %}
             <a class="{% if active == 'assigned_to_me' %}is-active{% endif %}" href="{% url 'reports:assigned_to_me' %}">
               <span>مهامي المعيّنة</span>
               <span>{% if NAV_ASSIGNED_TO_ME %}<span class="pill">{{ NAV_ASSIGNED_TO_ME }}</span>{% endif %}</span>
@@ -1567,6 +1695,18 @@
           <i class="fa-solid fa-user"></i>
         </a>
 
+        {# نفس شرط تبويب الاعتماد أعلاه: من يراجع يجد بابه في القائمتين معاً. #}
+        {% if CAN_REVIEW_APPROVALS and not IS_SCHOOL_MANAGER %}
+          <a class="{% if active == 'approval_inbox' or active == 'approval_detail' %}is-active{% endif %}" href="{% url 'reports:approval_inbox' %}">
+            <span>المراجعة والاعتماد</span>
+            <i class="fa-solid fa-clipboard-check"></i>
+          </a>
+          <a class="{% if active == 'admin_reports' %}is-active{% endif %}" href="{% url 'reports:admin_reports' %}">
+            <span>تقارير نطاقي</span>
+            <i class="fa-solid fa-file-shield"></i>
+          </a>
+        {% endif %}
+
         <a class="{% if active == 'my_assignments' %}is-active{% endif %}" href="{% url 'reports:my_assignments' %}">
           <span>تكليفاتي</span>
           <i class="fa-solid fa-list-check"></i>
@@ -1592,10 +1732,37 @@
           <i class="fa-solid fa-folder-tree"></i>
         </a>
 
-        <a class="{% if active == 'circular_draft_list' %}is-active{% endif %}" href="{% url 'reports:circular_draft_list' %}">
-          <span>مسودات التعاميم</span>
-          <i class="fa-solid fa-file-pen"></i>
-        </a>
+        {% comment %} مشروطٌ بالصلاحية: كان يظهر لكل مستخدم، والمعلّم يضغطه فيُردّ برسالة
+           «لا تملك صلاحية إعداد مسودات التعاميم» — وهو نصّ شرط ``_may_draft``
+           في العرض. وفعلٌ مرئي ممنوع أسوأ ما يقابله مستخدم. {% endcomment %}
+        {% if CAN_DRAFT_CIRCULARS %}
+          <a class="{% if active == 'circular_draft_list' %}is-active{% endif %}" href="{% url 'reports:circular_draft_list' %}">
+            <span>مسودات التعاميم</span>
+            <i class="fa-solid fa-file-pen"></i>
+          </a>
+        {% endif %}
+
+        {% if SHOW_LAB_NAV %}
+          <a class="{% if active == 'lab_dashboard' %}is-active{% endif %}" href="{% url 'reports:lab_dashboard' %}">
+            <span>لوحة المختبر</span>
+            <i class="fa-solid fa-flask"></i>
+          </a>
+          <a class="{% if active == 'lab_assets' or active == 'lab_asset_detail' %}is-active{% endif %}" href="{% url 'reports:lab_assets' %}">
+            <span>عهدة المختبر</span>
+            <i class="fa-solid fa-boxes-stacked"></i>
+          </a>
+          <a class="{% if active == 'lab_experiments' or active == 'lab_experiment_detail' %}is-active{% endif %}" href="{% url 'reports:lab_experiments' %}">
+            <span>تجارب المختبر</span>
+            <i class="fa-solid fa-vials"></i>
+          </a>
+        {% endif %}
+
+        {% if CAN_VIEW_SCHOOL_DASHBOARD and not IS_SCHOOL_MANAGER %}
+          <a class="{% if active == 'staff_dashboard' %}is-active{% endif %}" href="{% url 'reports:staff_dashboard' %}">
+            <span>مؤشرات نطاقي</span>
+            <i class="fa-solid fa-gauge"></i>
+          </a>
+        {% endif %}
 
         {% if CAN_VIEW_SCHOOL_AUDIT and not IS_SCHOOL_MANAGER %}
           <a class="{% if active == 'school_audit_logs' %}is-active{% endif %}" href="{% url 'reports:school_audit_logs' %}">

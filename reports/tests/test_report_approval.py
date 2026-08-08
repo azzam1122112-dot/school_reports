@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -413,7 +413,8 @@ class TransitionImmutabilityTests(TestCase):
             action=ApprovalTransition.Action.APPROVE,
         )
         step.note = "تعديل لاحق"
-        with self.assertRaises(Exception):
+        # سجل الانتقالات يرفض التعديل بـ ``ValidationError`` صراحةً.
+        with self.assertRaises(ValidationError):
             step.save()
 
 

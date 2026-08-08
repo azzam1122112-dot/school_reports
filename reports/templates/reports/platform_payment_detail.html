@@ -297,7 +297,9 @@
           {% if payment.purpose == 'archive_addon' %}
             إضافة الأرشفة
           {% elif payment.purpose == 'archive_storage' %}
-            زيادة مساحة الأرشيف
+            زيادة مساحة عمل المدرسة
+          {% elif payment.purpose == 'archive_space' %}
+            زيادة مساحة الأرشفة السنوية
           {% else %}
             {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}{% if payment.requested_teacher_limit %} · سعة {{ payment.requested_teacher_limit }} معلماً{% endif %}
           {% endif %}
@@ -359,7 +361,9 @@
             {% if payment.purpose == 'archive_addon' %}
               تفعيل/تجديد إضافة الأرشفة السنوية
             {% elif payment.purpose == 'archive_storage' %}
-              زيادة مساحة الأرشيف بمقدار {{ payment.archive_storage_gb }}GB
+              زيادة مساحة عمل المدرسة بمقدار {{ payment.archive_storage_gb }}GB
+            {% elif payment.purpose == 'archive_space' %}
+              زيادة مساحة الأرشفة السنوية بمقدار {{ payment.archive_storage_gb }}GB
             {% else %}
               تجديد اشتراك المدرسة{% if payment.requested_plan %} - {{ payment.requested_plan.name }}{% endif %}{% if payment.requested_teacher_limit %} · سعة {{ payment.requested_teacher_limit }} معلماً{% endif %}
             {% endif %}
@@ -384,7 +388,10 @@
           {% if payment.purpose == 'archive_addon' %}
             راجع الإيصال والمبلغ ثم اعتمد العملية لتفعيل أو تجديد إضافة الأرشفة للمدرسة تلقائيًا.
           {% elif payment.purpose == 'archive_storage' %}
-            راجع الإيصال والمبلغ ثم اعتمد العملية لزيادة حد تخزين الأرشيف تلقائيًا.
+            راجع الإيصال والمبلغ ثم اعتمد العملية لزيادة حد مساحة عمل المدرسة تلقائيًا.
+          {% elif payment.purpose == 'archive_space' %}
+            راجع الإيصال والمبلغ ثم اعتمد العملية لزيادة حد مساحة الأرشفة السنوية تلقائيًا.
+            يتطلب أن تكون خدمة الأرشفة مفعّلة للمدرسة.
           {% else %}
             راجع الإيصال والمبلغ ثم اعتمد العملية لتحويلها إلى إيراد وتجديد اشتراك المدرسة تلقائيًا عند توفر الباقة.
           {% endif %}

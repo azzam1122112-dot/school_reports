@@ -38,6 +38,7 @@
       {% endif %}
       <p class="cons-card__note">
         أساسية {{ consumption.storage.base_label }}{% if consumption.storage.extra_bytes %} + إضافية مشتراة {{ consumption.storage.extra_label }}{% endif %}
+        · العمل اليومي فقط، بلا النسخ السنوية.
       </p>
     </article>
 
@@ -115,10 +116,10 @@
                     {% if key == "reports" %}التقارير
                     {% elif key == "achievements" %}ملفات الإنجاز والشواهد
                     {% elif key == "leadership" %}شواهد القيادة
+                    {% elif key == "documents" %}أرشيف الوثائق
                     {% elif key == "tickets" %}الطلبات ومرفقاتها
                     {% elif key == "circulars" %}التعاميم
                     {% elif key == "notifications" %}الإشعارات
-                    {% elif key == "snapshots" %}النسخ السنوية المحفوظة
                     {% else %}{{ key }}{% endif %}
                   </td>
                   <td class="cons-num">{{ item.label }}</td>

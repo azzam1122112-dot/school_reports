@@ -21,10 +21,47 @@ except ImportError:
     Image = None
     UnidentifiedImageError = Exception
 
-try:
-    import magic  # type: ignore
-except Exception:
-    magic = None
+def _load_magic():
+    """استيراد ``python-magic`` بأمان، مع ردٍّ إلى الفحص بالتوقيع عند تعذّره.
+
+    **لماذا لا يكفي ``try/except Exception``؟** ``python-magic`` غلافُ ctypes حول
+    مكتبة ``libmagic`` الأصلية. فإن غابت المكتبة على ويندوز لم يرفع الاستيراد
+    استثناءً بايثونياً بل يسقط العملية بـ *access violation* — وهو انهيار على
+    مستوى C لا يلتقطه ``except`` أبداً. وكانت النتيجة أن كل أمر يستورد هذا
+    الملف (وهو كل أمر تقريباً: النماذج والاستمارات تستورده) يموت بلا رسالة،
+    فيبدو كأنه معلَّق.
+
+    ولذلك يُتحقق من وجود المكتبة الأصلية **قبل** الاستيراد لا بعده. وأثر ذلك
+    وظيفي لا تطويري فقط: بلا ``libmagic`` تعمل المدققات بالامتداد وتوقيع البايتات
+    الأولى وحدهما، وهي طبقة أضعف من شمّ النوع الحقيقي — فمن حقّ من يشغّل النظام
+    أن يعرف أنها ناقصة بدل أن تُخفى خلف ``except`` صامت.
+    """
+    import ctypes.util
+    import logging as _logging
+
+    log = _logging.getLogger(__name__)
+
+    # **الفحص قبل الاستيراد، ولا استيراد جزئي.** حتى ``import magic.loader``
+    # ينفّذ ``magic/__init__.py`` الذي يحمّل المكتبة الأصلية فوراً — فلا سبيل
+    # إلى «تجربة» الحزمة بأمان. إمّا أن تُعثر على المكتبة قبل لمس الحزمة، أو
+    # لا تُلمَس أصلاً.
+    if not any(ctypes.util.find_library(name) for name in ("magic", "libmagic", "magic1")):
+        log.warning(
+            "libmagic غير متاحة: يعمل فحص الملفات المرفوعة بالامتداد وتوقيع "
+            "البايتات فقط. ثبّت libmagic1 (Debian/Ubuntu) لتفعيل شمّ نوع المحتوى."
+        )
+        return None
+
+    try:
+        import magic  # type: ignore
+
+        return magic
+    except Exception:
+        log.warning("تعذّر تحميل python-magic؛ يعمل الفحص بالامتداد والتوقيع فقط.")
+        return None
+
+
+magic = _load_magic()
 
 
 MAX_IMAGE_MB = 10
@@ -140,8 +177,8 @@ def validate_image_file(file_obj) -> None:
 
         img = Image.open(file_obj)
         img.verify()
-    except (UnidentifiedImageError, OSError, ValueError):
-        raise ValidationError("الملف المرفوع ليس صورة صالحة.")
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise ValidationError("الملف المرفوع ليس صورة صالحة.") from exc
     finally:
         try:
             file_obj.seek(0)

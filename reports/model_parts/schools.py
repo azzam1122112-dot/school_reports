@@ -633,6 +633,18 @@ class SchoolMembership(models.Model):
     # أدواره.
     SEAT_CONSUMING_ROLES: tuple[str, ...] = STAFF_ROLES
 
+    # المسمّى يقتضي دوراً بعينه. الحقلان مستقلان في التخزين — والاستقلال مقصود
+    # لأن التوصيف التنظيمي أدقّ من الصلاحية — لكن الاتجاه من المسمّى إلى الدور
+    # ملزَمٌ بما تقوله ``JobTitle`` أعلاه: محضّر المختبر ``ADMIN_STAFF``
+    # صلاحيةً. وكانت شاشة الأدوار وحدها تعرف ذلك، فيخرج من باب «إضافة مستخدم»
+    # محضّرٌ ``TEACHER`` ومن باب الأدوار محضّرٌ ``ADMIN_STAFF``: اسمٌ واحد
+    # وصلاحيتان، ولا شيء يكشف الفرق حتى تُمنح صلاحيةٌ فلا تنطبق.
+    _ROLE_BY_JOB_TITLE: dict[str, str] = {
+        JobTitle.LAB_TECH: RoleType.ADMIN_STAFF,
+        JobTitle.ADMIN_STAFF: RoleType.ADMIN_STAFF,
+        JobTitle.TEACHER: RoleType.TEACHER,
+    }
+
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
@@ -687,6 +699,22 @@ class SchoolMembership(models.Model):
 
     def __str__(self) -> str:
         return f"{self.teacher} @ {self.school} ({self.role_type})"
+
+    # ------------------------------------------------------------------
+    # المسمّى والدور
+    # ------------------------------------------------------------------
+    @classmethod
+    def role_for_job_title(cls, job_title) -> str:
+        """الدور الذي يقتضيه المسمّى الوظيفي — مصدر الحقيقة الوحيد للربط.
+
+        يُسأل من كل باب يُنشئ عضوية: شاشة الأدوار، وإضافة مستخدم، والاستيراد
+        الجماعي. وثلاثة أبواب تكتب الربط كلٌّ على حِدة تعني ثلاث إجابات عن
+        سؤال واحد، وأولها ينحرف عند أول مسمّى جديد.
+
+        وما لا يُعرف يعود ``TEACHER``: الافتراض الأضيق صلاحيةً هو الافتراض
+        الآمن، ومسمّى مجهول يجب ألا يمنح صاحبه صلاحية موظف إداري.
+        """
+        return cls._ROLE_BY_JOB_TITLE.get(job_title, cls.RoleType.TEACHER)
 
     # ------------------------------------------------------------------
     # المقاعد

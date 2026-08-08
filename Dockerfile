@@ -12,7 +12,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies required for WeasyPrint and image handling
+# System libraries for WeasyPrint (PDF) and image handling.
+#
+# libmagic1 is required by python-magic. Without it the import fails and the
+# upload validators silently fall back to extension + magic-byte checks only —
+# i.e. the content-type sniffing that reports/validators.py documents was never
+# actually running in production.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3-dev \
@@ -28,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-dejavu-core \
     fonts-noto-core \
     shared-mime-info \
+    libmagic1 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

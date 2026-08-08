@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from .base import *
 from .audit import AuditLog
-from .achievements import AchievementEvidenceImage, AchievementEvidenceReport, TeacherAchievementFile
 from .billing import SchoolSubscription, SubscriptionPlan
 from .reports import Report
 from .schools import Department, DepartmentMembership, School, SchoolMembership, Teacher
@@ -11,6 +10,7 @@ from .notifications import Notification, TicketImage
 from .assignments import Assignment, AssignmentEvidence
 from .circular_drafts import CircularDraft
 from .documents import Document
+from .lab import LabAsset, LabAssetHandover, LabExperiment
 from .meetings import Decision, Meeting, MeetingMinutes
 from .plans import Initiative, Plan
 from .scopes import Delegation, StaffScope
@@ -43,6 +43,43 @@ def invalidate_nav_context_after_membership_delete(sender, instance, **kwargs):
     _bump_nav_context_role_version(getattr(instance, "teacher_id", None))
 
 
+# النطاق والتفويض يبطلان القائمة كما تبطلها العضوية.
+#
+# صار كونتكست التنقل يحمل علماً لكل صلاحية، وهو مخزَّن لعشرين ثانية. فبلا هذين
+# الخطّافين يمنح المديرُ الوكيلَ صلاحيةَ المراجعة، ويُحدِّث الوكيل صفحته، فلا
+# يرى الرابط — ويُبلغ أن المنح «لم يعمل» وقد عمل. والصلاحية نفسها نافذة لحظةَ
+# منحها (``capability_source`` لا يقرأ من هذه الذاكرة)، فالمخفيُّ هو الطريق
+# إليها وحده — وهو أسوأ نوع من العطل: صحيحٌ في الجوهر ومعطَّلٌ في الظاهر.
+@receiver(post_save, sender=StaffScope)
+def invalidate_nav_context_after_scope_save(sender, instance, **kwargs):
+    if kwargs.get("raw"):
+        return
+    _bump_nav_context_role_version(
+        getattr(getattr(instance, "membership", None), "teacher_id", None)
+    )
+
+
+@receiver(models.signals.post_delete, sender=StaffScope)
+def invalidate_nav_context_after_scope_delete(sender, instance, **kwargs):
+    _bump_nav_context_role_version(
+        getattr(getattr(instance, "membership", None), "teacher_id", None)
+    )
+
+
+@receiver(post_save, sender=Delegation)
+def invalidate_nav_context_after_delegation_save(sender, instance, **kwargs):
+    if kwargs.get("raw"):
+        return
+    # المفوَّض إليه هو من تتغيّر قائمته. والسحب حالةُ حفظٍ لا حذف
+    # (``revoke`` يكتب ``revoked_at``)، فهذا الخطّاف يغطّيه أيضاً.
+    _bump_nav_context_role_version(getattr(instance, "delegate_id", None))
+
+
+@receiver(models.signals.post_delete, sender=Delegation)
+def invalidate_nav_context_after_delegation_delete(sender, instance, **kwargs):
+    _bump_nav_context_role_version(getattr(instance, "delegate_id", None))
+
+
 @receiver(post_save, sender=Report)
 def trigger_report_background_tasks(sender, instance, created, **kwargs):
     """
@@ -69,73 +106,12 @@ def trigger_report_background_tasks(sender, instance, created, **kwargs):
         # بـ Pillow داخل طلب الويب يحوّل عطل الوسيط إلى بطء في كل الصفحات.
         run_task_safe(process_report_images, instance.pk, inline_fallback=False)
     # إذا لم توجد صور: لا يوجد أي مهام مطلوبة هنا
-    _sync_archive_usage_after_commit(getattr(instance, "school", None))
 
 
-def _sync_archive_usage_after_commit(school):
-    if school is None:
-        return
-
-    def _sync():
-        try:
-            from ..services_archive import sync_school_archive_storage_usage
-
-            sync_school_archive_storage_usage(school)
-        except Exception:
-            pass
-
-    try:
-        transaction.on_commit(_sync)
-    except Exception:
-        _sync()
-
-
-def _achievement_school(instance):
-    try:
-        return instance.section.file.school
-    except Exception:
-        return None
-
-
-@receiver(models.signals.post_delete, sender=Report)
-def sync_archive_usage_after_report_delete(sender, instance, **kwargs):
-    _sync_archive_usage_after_commit(getattr(instance, "school", None))
-
-
-@receiver(post_save, sender=TeacherAchievementFile)
-def sync_archive_usage_after_achievement_file_save(sender, instance, **kwargs):
-    if kwargs.get("raw"):
-        return
-    _sync_archive_usage_after_commit(getattr(instance, "school", None))
-
-
-@receiver(models.signals.post_delete, sender=TeacherAchievementFile)
-def sync_archive_usage_after_achievement_file_delete(sender, instance, **kwargs):
-    _sync_archive_usage_after_commit(getattr(instance, "school", None))
-
-
-@receiver(post_save, sender=AchievementEvidenceImage)
-def sync_archive_usage_after_evidence_image_save(sender, instance, **kwargs):
-    if kwargs.get("raw"):
-        return
-    _sync_archive_usage_after_commit(_achievement_school(instance))
-
-
-@receiver(models.signals.post_delete, sender=AchievementEvidenceImage)
-def sync_archive_usage_after_evidence_image_delete(sender, instance, **kwargs):
-    _sync_archive_usage_after_commit(_achievement_school(instance))
-
-
-@receiver(post_save, sender=AchievementEvidenceReport)
-def sync_archive_usage_after_evidence_report_save(sender, instance, **kwargs):
-    if kwargs.get("raw"):
-        return
-    _sync_archive_usage_after_commit(_achievement_school(instance))
-
-
-@receiver(models.signals.post_delete, sender=AchievementEvidenceReport)
-def sync_archive_usage_after_evidence_report_delete(sender, instance, **kwargs):
-    _sync_archive_usage_after_commit(_achievement_school(instance))
+# عدّاد ملحق الأرشفة كان يُعاد حسابه هنا بعد كل حفظ أو حذف لتقرير أو ملف إنجاز
+# أو شاهد — ثمانية مواضع لا تغيّر النسخ السنوية أصلًا. صار العدّاد يقيس النسخ
+# وحدها، ومكان صيانته الآن ``storage_tracking`` عند تغيّر النسخة نفسها. وإجمالي
+# تخزين المدرسة يتولاه ``storage_tracking`` تزايديًا في كل الأحوال.
 
 
 @receiver(post_save, sender=Ticket)
@@ -286,6 +262,12 @@ AUDITED_SAVE_MODELS = (
     Initiative,
     Document,
     CircularDraft,
+    # المختبر: العهدة ثقةٌ مادية يُسأل عنها المحضّر، فإضافة صنف وتعديل
+    # كميته وتغيير حالته إلى «مفقود» وقائعُ تُسجَّل. وحركةُ العهدة أخصُّ من
+    # ذلك: هي الجواب على «من تسلّمه ومتى؟» — وهو أول سؤال عند فقد صنف.
+    LabAsset,
+    LabAssetHandover,
+    LabExperiment,
 )
 
 # ما لا يُسجَّل عمداً: صفوف الأبناء التي تتغيّر كثيراً ولا تحمل قراراً —
@@ -313,6 +295,9 @@ AUDITED_DELETE_MODELS = (
     Initiative,
     Document,
     CircularDraft,
+    LabAsset,
+    LabAssetHandover,
+    LabExperiment,
 )
 
 

@@ -67,4 +67,7 @@ def maintenance_markdown(value: str) -> str:
 
     flush_paragraph()
     flush_bullets()
-    return mark_safe("".join(parts))
+    # آمنٌ لأن كل قيمة قادمة من المستخدم تمرّ بـ ``escape`` داخل
+    # ``_inline_markdown`` قبل أن تُركَّب، والوسوم المُدرَجة هنا حرفية لا مبنية
+    # من المدخل. لو نُقل الهروب إلى ما بعد التركيب لصار هذا السطر ثغرة XSS.
+    return mark_safe("".join(parts))  # noqa: S308

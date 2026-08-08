@@ -147,7 +147,7 @@ class PaymentAmountIntegrityTests(TestCase):
         )
 
         payment = Payment.objects.get(
-            school=self.school, purpose=Payment.Purpose.ARCHIVE_STORAGE
+            school=self.school, purpose=Payment.Purpose.WORK_STORAGE
         )
         self.assertEqual(payment.amount, Decimal("149.00"))
         self.assertEqual(payment.archive_storage_gb, 50)
@@ -177,7 +177,7 @@ class PaymentAmountIntegrityTests(TestCase):
         self.client.post(
             reverse("reports:payment_create"),
             {
-                "payment_kind": Payment.Purpose.ARCHIVE_STORAGE,
+                "payment_kind": Payment.Purpose.WORK_STORAGE,
                 "archive_storage_option_id": str(option.id),
                 "receipt_image": _receipt(),
             },
@@ -185,7 +185,7 @@ class PaymentAmountIntegrityTests(TestCase):
 
         self.assertTrue(
             Payment.objects.filter(
-                school=self.school, purpose=Payment.Purpose.ARCHIVE_STORAGE
+                school=self.school, purpose=Payment.Purpose.WORK_STORAGE
             ).exists()
         )
 

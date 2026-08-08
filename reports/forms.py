@@ -2435,8 +2435,8 @@ class SupportTicketForm(forms.ModelForm):
 
             img = Image.open(f)
             img = ImageOps.exif_transpose(img)
-        except (UnidentifiedImageError, OSError, ValueError):
-            raise ValidationError("الملف المرفق ليس صورة صالحة.")
+        except (UnidentifiedImageError, OSError, ValueError) as exc:
+            raise ValidationError("الملف المرفق ليس صورة صالحة.") from exc
 
         has_alpha = img.mode in ("RGBA", "LA", "P")
         img = img.convert("RGBA" if has_alpha else "RGB")
@@ -2657,9 +2657,14 @@ class SchoolArchiveAddonForm(forms.ModelForm):
             "is_enabled": "مفعّل؟",
             "start_date": "تاريخ بداية الملحق",
             "end_date": "تاريخ نهاية الملحق",
-            "storage_limit_gb": "حد التخزين (GB)",
+            "storage_limit_gb": "حد مساحة النسخ السنوية (GB)",
             "paid_amount": "قيمة الملحق",
             "notes": "ملاحظات",
+        }
+        help_texts = {
+            # الملحق يشتري مساحة أرشفة فقط؛ مساحة العمل اليومي تأتي من سعة
+            # المعلمين ومن المساحة الإضافية المشتراة، ولا تتأثر بهذا الحقل.
+            "storage_limit_gb": "مساحة النسخ السنوية وحدها — مستقلة عن مساحة عمل المدرسة.",
         }
 
     def __init__(self, *args, **kwargs):
@@ -2760,14 +2765,16 @@ class PlatformSettingsForm(forms.ModelForm):
 class ArchiveStorageOptionForm(forms.ModelForm):
     class Meta:
         model = ArchiveStorageOption
-        fields = ["storage_gb", "price", "sort_order", "is_active"]
+        fields = ["bucket", "storage_gb", "price", "sort_order", "is_active"]
         widgets = {
+            "bucket": forms.Select(attrs={"class": "form-select"}),
             "storage_gb": forms.NumberInput(attrs={"class": "form-control", "min": "1", "step": "1"}),
             "price": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01"}),
             "sort_order": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "1"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         labels = {
+            "bucket": "المساحة المستهدفة",
             "storage_gb": "المساحة (GB)",
             "price": "السعر",
             "sort_order": "الترتيب",

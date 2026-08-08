@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 
+from itertools import pairwise
+
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -92,7 +94,7 @@ class PricingModelConsistencyTests(TestCase):
         self.assertEqual(FLEXIBLE_CAPACITIES[-1], 100)
         steps = {
             second - first
-            for first, second in zip(FLEXIBLE_CAPACITIES, FLEXIBLE_CAPACITIES[1:])
+            for first, second in pairwise(FLEXIBLE_CAPACITIES)
         }
         self.assertEqual(steps, {5}, f"خطوات غير منتظمة: {FLEXIBLE_CAPACITIES}")
 
@@ -100,7 +102,7 @@ class PricingModelConsistencyTests(TestCase):
         """Each +5 block must carry its own price, never a flat band."""
         for entry in build_flexible_pricing_catalog():
             quotes = sorted(entry["quotes"], key=lambda q: q["capacity"])
-            for lower, upper in zip(quotes, quotes[1:]):
+            for lower, upper in pairwise(quotes):
                 self.assertGreater(
                     float(upper["price"]),
                     float(lower["price"]),

@@ -180,7 +180,7 @@
           <tr>
             <th style="text-align:right">المدرسة</th>
             <th>الفترة</th>
-            <th>التخزين</th>
+            <th>مساحة النسخ السنوية</th>
             <th>القيمة</th>
             <th>الحالة</th>
             <th>إجراءات</th>
@@ -201,7 +201,7 @@
               </td>
               <td data-label="التخزين">
                 <div>{{ addon.storage_used_gb }}GB / {{ addon.storage_limit_gb }}GB</div>
-                <div class="subline">{{ addon.storage_usage_percent }}% مستخدم</div>
+                <div class="subline">{{ addon.storage_usage_percent }}% من مساحة النسخ السنوية</div>
               </td>
               <td data-label="القيمة">{{ addon.paid_amount|floatformat:0|intcomma }} ريال</td>
               <td data-label="الحالة">

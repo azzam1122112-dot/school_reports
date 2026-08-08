@@ -516,7 +516,7 @@
                   {% elif payment.status == 'cancelled' %}
                     <span class="badge warning"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
                   {% elif payment.payment_method == 'tamara' %}
-                    <span class="badge warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار تمارا</span>
+                    <span class="badge warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار{% if tamara_enabled %} تمارا{% else %} مزود الدفع{% endif %}</span>
                   {% elif payment.payment_method == 'moyasar' %}
                     <span class="badge warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار ميّسر</span>
                   {% else %}

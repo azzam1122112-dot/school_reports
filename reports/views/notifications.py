@@ -163,7 +163,7 @@ def _recipient_is_read(rec) -> tuple[bool, str | None]:
                 pass
     if hasattr(rec, "status"):
         try:
-            st = str(getattr(rec, "status") or "").lower()
+            st = str(rec.status or "").lower()
             if st in {"read", "seen", "opened", "done"}:
                 return (True, None)
         except Exception:
@@ -488,7 +488,7 @@ def notification_signatures_print(request: HttpRequest, pk: int) -> HttpResponse
     # Batch-prefetch memberships to avoid N+1 in effective_user_role_label
     recipients_list = list(qs)
     if active_school:
-        _teachers = [getattr(r, "teacher") for r in recipients_list if getattr(r, "teacher", None)]
+        _teachers = [r.teacher for r in recipients_list if getattr(r, "teacher", None)]
         if _teachers:
             from ..permissions import prefetch_memberships_for_school
             prefetch_memberships_for_school(_teachers, active_school)
@@ -577,7 +577,7 @@ def notification_signatures_csv(request: HttpRequest, pk: int) -> HttpResponse:
     # Batch-prefetch memberships to avoid N+1
     recipients_list = list(qs)
     if active_school:
-        _teachers = [getattr(r, "teacher") for r in recipients_list if getattr(r, "teacher", None)]
+        _teachers = [r.teacher for r in recipients_list if getattr(r, "teacher", None)]
         if _teachers:
             from ..permissions import prefetch_memberships_for_school
             prefetch_memberships_for_school(_teachers, active_school)
@@ -835,9 +835,9 @@ def my_circulars(request: HttpRequest) -> HttpResponse:
                 for x in items:
                     if x.pk in unread_ids:
                         if "is_read" in upd:
-                            setattr(x, "is_read", True)
+                            x.is_read = True
                         if "read_at" in upd:
-                            setattr(x, "read_at", now)
+                            x.read_at = now
             page.object_list = items
     except Exception:
         pass
@@ -910,10 +910,10 @@ def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
     try:
         updated_fields: list[str] = []
         if hasattr(r, "is_read") and not bool(getattr(r, "is_read", False)):
-            setattr(r, "is_read", True)
+            r.is_read = True
             updated_fields.append("is_read")
         if hasattr(r, "read_at") and getattr(r, "read_at", None) is None:
-            setattr(r, "read_at", timezone.now())
+            r.read_at = timezone.now()
             updated_fields.append("read_at")
         if updated_fields:
             try:

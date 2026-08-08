@@ -780,7 +780,7 @@ class SchoolArchiveManagerExperienceTests(TestCase):
 
         ticket_rows = list(workbook["الطلبات والتذاكر"].iter_rows(values_only=True))
         ticket_headers = list(ticket_rows[0])
-        ticket_record = dict(zip(ticket_headers, next(row for row in ticket_rows[1:] if row[0] == ticket.id)))
+        ticket_record = dict(zip(ticket_headers, next(row for row in ticket_rows[1:] if row[0] == ticket.id), strict=True))
         self.assertEqual(ticket_record["التفاصيل"], ticket.body)
         self.assertEqual(ticket_record["المسؤول الرئيسي"], self.manager.name)
         self.assertEqual(ticket_record["عدد الملاحظات"], 1)
@@ -791,6 +791,7 @@ class SchoolArchiveManagerExperienceTests(TestCase):
             zip(
                 notification_headers,
                 next(row for row in notification_rows[1:] if row[0] == circular.id),
+                strict=True,
             )
         )
         self.assertEqual(notification_record["النص"], circular.message)

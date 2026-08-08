@@ -48,6 +48,7 @@ ASSIGN_TASKS = "assign_tasks"
 MANAGE_MEETINGS = "manage_meetings"
 TRACK_PLANS = "track_plans"
 ARCHIVE_DOCUMENTS = "archive_documents"
+MANAGE_LAB = "manage_lab"
 
 ALL: tuple[Capability, ...] = (
     # ── المتابعة والاطلاع ────────────────────────────────────────────────
@@ -121,6 +122,15 @@ ALL: tuple[Capability, ...] = (
         "يصنّف وثائق نطاقه ويرفعها إلى الأرشيف. اعتماد النقل يبقى للمدير.",
         group="إعداد",
     ),
+    # متابعة المختبر ليست من عمل المحضّر: هو صاحب العهدة والتجارب بحكم مسمّاه
+    # الوظيفي لا بحكم صلاحية تُمنح. وهذه الصلاحية لمن **يشرف عليه** — وكيلاً كان
+    # أو موظفاً إدارياً — فيقرأ الجرد ويراجع التجارب ويوصي، ولا يسجّل نيابةً عنه.
+    Capability(
+        MANAGE_LAB,
+        "متابعة المختبر وتجاربه",
+        "يطّلع على عهدة المختبر وتجاربه ويراجعها. الاعتماد النهائي يبقى للمدير.",
+        group="متابعة",
+    ),
 )
 
 BY_CODE: dict[str, Capability] = {item.code: item for item in ALL}
@@ -155,6 +165,9 @@ TEMPLATES: tuple[Template, ...] = (
             ASSIGN_TASKS,
             TRACK_PLANS,
             MANAGE_MEETINGS,
+            # المختبر شأنٌ تعليمي: تجاربه تخدم مقررات المواد، فمتابعته من وكيل
+            # الشؤون التعليمية لا من وكيل الشؤون المدرسية.
+            MANAGE_LAB,
         ),
     ),
     Template(

@@ -4,6 +4,7 @@
 
 from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
+from itertools import pairwise
 import json
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlparse
@@ -157,24 +158,47 @@ def _archive_pricing():
 
 
 def _ensure_default_archive_storage_option(settings_obj: PlatformSettings) -> None:
-    if ArchiveStorageOption.objects.exists():
-        return
-    ArchiveStorageOption.objects.create(
-        storage_gb=int(getattr(settings_obj, "archive_storage_block_gb", ARCHIVE_STORAGE_BLOCK_GB) or ARCHIVE_STORAGE_BLOCK_GB),
-        price=Decimal(getattr(settings_obj, "archive_storage_block_price", ARCHIVE_STORAGE_BLOCK_PRICE) or ARCHIVE_STORAGE_BLOCK_PRICE),
-        sort_order=10,
-        is_active=True,
+    """يزرع خيارًا واحدًا لكل مساحة حتى لا تبقى المنصة بلا منتج قابل للبيع.
+
+    الزرع لكل دلو على حدة: وجود خيار لمساحة العمل لا يعني أن مساحة الأرشفة
+    معروضة للبيع، وكان غياب هذا التمييز يترك الأرشفة بلا منتج توسعة إطلاقًا
+    رغم أن رسالة امتلائها تطلب من المدير شراء مساحة إضافية.
+    """
+    block_gb = int(
+        getattr(settings_obj, "archive_storage_block_gb", ARCHIVE_STORAGE_BLOCK_GB)
+        or ARCHIVE_STORAGE_BLOCK_GB
     )
+    block_price = Decimal(
+        getattr(settings_obj, "archive_storage_block_price", ARCHIVE_STORAGE_BLOCK_PRICE)
+        or ARCHIVE_STORAGE_BLOCK_PRICE
+    )
+    for bucket in (
+        ArchiveStorageOption.Bucket.WORK,
+        ArchiveStorageOption.Bucket.ARCHIVE,
+    ):
+        if ArchiveStorageOption.objects.filter(bucket=bucket).exists():
+            continue
+        ArchiveStorageOption.objects.create(
+            bucket=bucket,
+            storage_gb=block_gb,
+            price=block_price,
+            sort_order=10,
+            is_active=True,
+        )
 
 
-def _archive_storage_options(active_only: bool = True):
+def _archive_storage_options(active_only: bool = True, bucket: str | None = None):
     try:
         _ensure_default_archive_storage_option(PlatformSettings.get_solo())
     except Exception:
         pass
-    qs = ArchiveStorageOption.objects.all().order_by("sort_order", "storage_gb", "id")
+    qs = ArchiveStorageOption.objects.all().order_by(
+        "bucket", "sort_order", "storage_gb", "id"
+    )
     if active_only:
         qs = qs.filter(is_active=True)
+    if bucket is not None:
+        qs = qs.filter(bucket=bucket)
     return list(qs)
 
 
@@ -321,7 +345,9 @@ def platform_settings(request: HttpRequest) -> HttpResponse:
     )
     storage_options_formset = StorageOptionFormSet(
         request.POST or None,
-        queryset=ArchiveStorageOption.objects.all().order_by("sort_order", "storage_gb", "id"),
+        queryset=ArchiveStorageOption.objects.all().order_by(
+            "bucket", "sort_order", "storage_gb", "id"
+        ),
         prefix="storage_options",
     )
 
@@ -543,9 +569,23 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
             "subscription__plan__max_teachers",
             "subscription__plan__days_duration",
         )
+        # النسخ السنوية لها حدّها المستقل، فإدراجها هنا كان يعدّ المدارس التي
+        # أرشفت سنواتها «قاربت الامتلاء» وهي لم تمسّ مساحة عملها. استعلام واحد
+        # مجمّع للجميع كي لا يتحوّل العدّاد إلى استعلام لكل مدرسة.
+        snapshot_bytes_by_school = {
+            row["school"]: int(row["total"] or 0)
+            for row in SchoolYearArchive.objects.values("school").annotate(
+                total=Sum("storage_bytes")
+            )
+        }
         for school in storage_schools.iterator():
             limit_bytes = school_storage_limit_bytes(school)
-            if limit_bytes > 0 and int(school.storage_used_bytes or 0) >= int(limit_bytes * 0.8):
+            work_used = max(
+                0,
+                int(school.storage_used_bytes or 0)
+                - snapshot_bytes_by_school.get(school.pk, 0),
+            )
+            if limit_bytes > 0 and work_used >= int(limit_bytes * 0.8):
                 storage_near_limit_count += 1
         
         platform_managers_count = (
@@ -1600,9 +1640,9 @@ def _anchor_pricing_warnings(active_plans) -> list[str]:
     by_period: dict[str, list] = {}
     for plan in paid:
         by_period.setdefault(period_key_for_days(plan.days_duration), []).append(plan)
-    for period_key, plans_in_period in by_period.items():
+    for _period_key, plans_in_period in by_period.items():
         ordered = sorted(plans_in_period, key=lambda p: int(p.max_teachers or 0))
-        for lower, upper in zip(ordered, ordered[1:]):
+        for lower, upper in pairwise(ordered):
             if Decimal(upper.price) <= Decimal(lower.price):
                 warnings.append(
                     f"سعر «{upper.name}» ({upper.price}) ليس أعلى من «{lower.name}» ({lower.price}) "
@@ -1804,12 +1844,14 @@ class _ApprovalError(Exception):
     """خطأ يمنع اعتماد عملية دفع (يستوجب التراجع عن المعاملة)."""
 
 
-# ترتيب تطبيق أثر الاعتماد داخل الطلب الموحّد: الاشتراك ثم الأرشفة ثم المساحة
-# (لأن زيادة المساحة تتطلب وجود إضافة أرشفة مفعّلة).
+# ترتيب تطبيق أثر الاعتماد داخل الطلب الموحّد: الاشتراك أولاً ثم إضافة الأرشفة،
+# ثم توسعتا المساحة. ترتيب الأرشفة قبل توسعتها ضروري: شراؤهما معاً في إيصال
+# واحد يعني أن الملحق يجب أن يوجد قبل رفع حدّه.
 _PURPOSE_APPLY_ORDER = {
     Payment.Purpose.SUBSCRIPTION: 0,
     Payment.Purpose.ARCHIVE_ADDON: 1,
-    Payment.Purpose.ARCHIVE_STORAGE: 2,
+    Payment.Purpose.WORK_STORAGE: 2,
+    Payment.Purpose.ARCHIVE_SPACE: 3,
 }
 
 
@@ -1879,7 +1921,7 @@ def _apply_payment_effects(payment, today, pricing):
             )
         return applied("success", "تم تفعيل/تجديد إضافة الأرشفة للمدرسة تلقائياً.")
 
-    if purpose == Payment.Purpose.ARCHIVE_STORAGE:
+    if purpose == Payment.Purpose.WORK_STORAGE:
         added_gb = int(payment.archive_storage_gb or 0)
         if added_gb <= 0:
             raise _ApprovalError("طلب زيادة التخزين لا يحتوي على مساحة صالحة.")
@@ -1890,7 +1932,30 @@ def _apply_payment_effects(payment, today, pricing):
         school = School.objects.select_for_update().get(pk=payment.school_id)
         school.extra_storage_gb = int(school.extra_storage_gb or 0) + added_gb
         school.save(update_fields=["extra_storage_gb"])
-        return applied("success", f"تمت زيادة مساحة تخزين المدرسة بمقدار {added_gb}GB.")
+        return applied("success", f"تمت زيادة مساحة عمل المدرسة بمقدار {added_gb}GB.")
+
+    if purpose == Payment.Purpose.ARCHIVE_SPACE:
+        added_gb = int(payment.archive_storage_gb or 0)
+        if added_gb <= 0:
+            raise _ApprovalError("طلب زيادة مساحة الأرشفة لا يحتوي على مساحة صالحة.")
+
+        # مساحة الأرشفة تعيش على الملحق، فرفعُ حدّها يتطلب وجوده. الطلب لا
+        # يُقبل أصلاً بلا ملحق، لكن الاعتماد قد يأتي بعد حذفه — فنرفض بوضوح
+        # بدل إنشاء ملحق لم تشترِه المدرسة.
+        addon = (
+            SchoolArchiveAddon.objects.select_for_update()
+            .filter(school_id=payment.school_id)
+            .first()
+        )
+        if addon is None:
+            raise _ApprovalError(
+                "لا يمكن زيادة مساحة الأرشفة قبل تفعيل خدمة الأرشفة السنوية للمدرسة."
+            )
+        addon.storage_limit_gb = int(addon.storage_limit_gb or 0) + added_gb
+        addon.save(update_fields=["storage_limit_gb", "updated_at"])
+        return applied(
+            "success", f"تمت زيادة مساحة الأرشفة السنوية بمقدار {added_gb}GB."
+        )
 
     # ── الاشتراك ──
     plan_to_apply = payment.requested_plan
@@ -2219,7 +2284,12 @@ def my_subscription(request):
     ).order_by("-created_at").first()
     pending_archive_storage_payment = Payment.objects.filter(
         school=membership.school,
-        purpose=Payment.Purpose.ARCHIVE_STORAGE,
+        purpose=Payment.Purpose.WORK_STORAGE,
+        status=Payment.Status.PENDING,
+    ).order_by("-created_at").first()
+    pending_archive_space_payment = Payment.objects.filter(
+        school=membership.school,
+        purpose=Payment.Purpose.ARCHIVE_SPACE,
         status=Payment.Status.PENDING,
     ).order_by("-created_at").first()
 
@@ -2245,7 +2315,8 @@ def my_subscription(request):
         max(current_teacher_count, current_teacher_limit, 1)
     )
     flexible_catalog = build_flexible_pricing_catalog()
-    
+    storage_options = _archive_storage_options(active_only=True)
+
     context = {
         "subscription": subscription,
         "school": membership.school,
@@ -2267,13 +2338,26 @@ def my_subscription(request):
         "archive_included_storage_gb": pricing["included_storage_gb"],
         "archive_storage_block_gb": pricing["storage_block_gb"],
         "archive_storage_block_price": pricing["storage_block_price"],
-        "archive_storage_options": _archive_storage_options(active_only=True),
+        # منتجان مستقلان لمساحتين مستقلتين. عرضهما معًا في قائمة واحدة كان
+        # يبيع للمدرسة توسعةً لغير المساحة التي امتلأت عندها. قائمة واحدة
+        # تُقسَّم في الذاكرة، فلا يتضاعف عدد الاستعلامات على صفحة ثقيلة أصلًا.
+        "archive_storage_options": [
+            option
+            for option in storage_options
+            if option.bucket == ArchiveStorageOption.Bucket.WORK
+        ],
+        "archive_space_options": [
+            option
+            for option in storage_options
+            if option.bucket == ArchiveStorageOption.Bucket.ARCHIVE
+        ],
         "storage_overview": school_storage_overview(membership.school),
         # Reported separately: a full archive must never read as "the
         # platform is out of space" for the school's daily work.
         "archive_overview": school_archive_overview(membership.school),
         "pending_archive_addon_payment": pending_archive_addon_payment,
         "pending_archive_storage_payment": pending_archive_storage_payment,
+        "pending_archive_space_payment": pending_archive_space_payment,
         "tamara_enabled": tamara_is_enabled(),
         "tamara_environment": str(getattr(settings, "TAMARA_ENVIRONMENT", "sandbox") or "sandbox"),
         "moyasar_enabled": moyasar_is_enabled(),
@@ -2364,8 +2448,9 @@ def _build_unified_payment_items(request, membership, subscription):
     include_sub = (request.POST.get("include_subscription") or "") == "1"
     include_addon = (request.POST.get("include_archive_addon") or "") == "1"
     include_storage = (request.POST.get("include_archive_storage") or "") == "1"
+    include_archive_space = (request.POST.get("include_archive_space") or "") == "1"
 
-    if not (include_sub or include_addon or include_storage):
+    if not (include_sub or include_addon or include_storage or include_archive_space):
         raise _PaymentSelectionError("اختر عنصرًا واحدًا على الأقل للدفع.")
 
     archive_addon = SchoolArchiveAddon.objects.filter(school=school).first()
@@ -2426,26 +2511,62 @@ def _build_unified_payment_items(request, membership, subscription):
             })
 
     if include_storage:
-        # Storage is its own product — no yearly-archive add-on required.
+        # Work storage is its own product — no yearly-archive add-on required.
         if Payment.objects.filter(
             school=school,
-            purpose=Payment.Purpose.ARCHIVE_STORAGE,
+            purpose=Payment.Purpose.WORK_STORAGE,
             status=Payment.Status.PENDING,
         ).exists():
-            warnings.append("زيادة المساحة (يوجد طلب قيد المراجعة)")
+            warnings.append("زيادة مساحة العمل (يوجد طلب قيد المراجعة)")
         else:
             option = None
             option_id = request.POST.get("archive_storage_option_id")
             if option_id:
-                option = ArchiveStorageOption.objects.filter(pk=option_id, is_active=True).first()
+                option = ArchiveStorageOption.objects.filter(
+                    pk=option_id,
+                    is_active=True,
+                    bucket=ArchiveStorageOption.Bucket.WORK,
+                ).first()
             if option is None:
-                raise _PaymentSelectionError("اختر خيار زيادة مساحة صالح.")
+                raise _PaymentSelectionError("اختر خيار زيادة مساحة عمل صالح.")
             items.append({
-                "purpose": Payment.Purpose.ARCHIVE_STORAGE,
+                "purpose": Payment.Purpose.WORK_STORAGE,
                 "requested_plan": None,
                 "amount": option.price,
                 "archive_storage_gb": int(option.storage_gb or 0),
-                "label": f"زيادة مساحة الأرشيف {option.storage_gb}GB",
+                "label": f"زيادة مساحة عمل المدرسة {option.storage_gb}GB",
+            })
+
+    if include_archive_space:
+        # عكس مساحة العمل: هذه توسعةٌ لحدٍّ يعيش على ملحق الأرشفة، فلا معنى
+        # لبيعها لمدرسة بلا ملحق — إلا إذا كانت تشتري الملحق في الطلب نفسه.
+        if Payment.objects.filter(
+            school=school,
+            purpose=Payment.Purpose.ARCHIVE_SPACE,
+            status=Payment.Status.PENDING,
+        ).exists():
+            warnings.append("زيادة مساحة الأرشفة (يوجد طلب قيد المراجعة)")
+        elif not (addon_active or include_addon):
+            warnings.append(
+                "زيادة مساحة الأرشفة (تتطلب تفعيل خدمة الأرشفة السنوية أولاً)"
+            )
+        else:
+            option = None
+            option_id = request.POST.get("archive_space_option_id")
+            if option_id:
+                option = ArchiveStorageOption.objects.filter(
+                    pk=option_id,
+                    is_active=True,
+                    bucket=ArchiveStorageOption.Bucket.ARCHIVE,
+                ).first()
+            if option is None:
+                raise _PaymentSelectionError("اختر خيار زيادة مساحة أرشفة صالح.")
+            items.append({
+                "purpose": Payment.Purpose.ARCHIVE_SPACE,
+                "requested_plan": None,
+                "amount": option.price,
+                "archive_storage_gb": int(option.storage_gb or 0),
+                "label": f"زيادة مساحة الأرشفة السنوية {option.storage_gb}GB",
             })
 
     if not items:
@@ -2599,33 +2720,58 @@ def payment_create(request):
             messages.success(request, "تم رفع طلب تفعيل الأرشفة، وسيظهر الأرشيف فور اعتماد مدير النظام.")
             return redirect('reports:my_subscription')
 
-        if payment_kind == Payment.Purpose.ARCHIVE_STORAGE:
-            # Storage is its own product; it deliberately does not require the
-            # yearly-archive add-on any more.
+        if payment_kind in (
+            Payment.Purpose.WORK_STORAGE,
+            Payment.Purpose.ARCHIVE_SPACE,
+        ):
+            is_archive_space = payment_kind == Payment.Purpose.ARCHIVE_SPACE
+            bucket = (
+                ArchiveStorageOption.Bucket.ARCHIVE
+                if is_archive_space
+                else ArchiveStorageOption.Bucket.WORK
+            )
+            space_label = "مساحة الأرشفة السنوية" if is_archive_space else "مساحة عمل المدرسة"
+
             if Payment.objects.filter(
                 school=membership.school,
-                purpose=Payment.Purpose.ARCHIVE_STORAGE,
+                purpose=payment_kind,
                 status=Payment.Status.PENDING,
             ).exists():
-                messages.warning(request, "لديك طلب زيادة مساحة قيد المراجعة بالفعل.")
+                messages.warning(
+                    request, f"لديك طلب زيادة {space_label} قيد المراجعة بالفعل."
+                )
                 return redirect('reports:my_subscription')
 
-            option_id = request.POST.get("archive_storage_option_id")
+            if is_archive_space and not school_archive_enabled(membership.school):
+                # حدّ الأرشفة يعيش على الملحق، فبيع توسعة بلا ملحق يأخذ مالاً
+                # مقابل مساحة لا مكان لها.
+                messages.error(
+                    request,
+                    "فعّل خدمة الأرشفة السنوية أولاً، ثم يمكنك زيادة مساحتها.",
+                )
+                return redirect('reports:my_subscription')
+
+            option_field = (
+                "archive_space_option_id" if is_archive_space else "archive_storage_option_id"
+            )
+            option_id = request.POST.get(option_field)
             storage_option = None
             if option_id:
                 try:
-                    storage_option = ArchiveStorageOption.objects.get(pk=option_id, is_active=True)
+                    storage_option = ArchiveStorageOption.objects.get(
+                        pk=option_id, is_active=True, bucket=bucket
+                    )
                 except (ArchiveStorageOption.DoesNotExist, ValueError, TypeError):
                     storage_option = None
 
             if storage_option is None:
-                messages.error(request, "اختر خيار زيادة مساحة صالح.")
+                messages.error(request, f"اختر خيار زيادة {space_label} صالحاً.")
                 return redirect('reports:my_subscription')
 
             storage_gb = int(storage_option.storage_gb or 0)
             amount = storage_option.price
 
-            request_notes = f"طلب زيادة مساحة أرشيف بمقدار {storage_gb}GB."
+            request_notes = f"طلب زيادة {space_label} بمقدار {storage_gb}GB."
             if notes:
                 request_notes = f"{request_notes}\n{notes}"
 
@@ -2633,14 +2779,17 @@ def payment_create(request):
                 school=membership.school,
                 subscription=subscription,
                 requested_plan=None,
-                purpose=Payment.Purpose.ARCHIVE_STORAGE,
+                purpose=payment_kind,
                 archive_storage_gb=storage_gb,
                 amount=amount,
                 receipt_image=receipt,
                 notes=request_notes,
                 created_by=request.user,
             )
-            messages.success(request, "تم رفع طلب زيادة مساحة الأرشيف، وسيتم تحديث الحد فور الاعتماد.")
+            messages.success(
+                request,
+                f"تم رفع طلب زيادة {space_label}، وسيتم تحديث الحد فور الاعتماد.",
+            )
             return redirect('reports:my_subscription')
 
         # 1. محاولة أخذ الباقة من اختيار المستخدم

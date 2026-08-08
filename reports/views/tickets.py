@@ -41,6 +41,23 @@ def _can_act(user, ticket: Ticket) -> bool:
         ).exists():
             return True
 
+    # 3.1 من مُنح «متابعة الطلبات المحالة إليه» في نطاقه
+    # ``handle_requests`` كانت معرَّفة في مرجع الصلاحيات ولا يفحصها سطر واحد:
+    # يمنحها المدير للوكيل فلا يتغيّر شيء. وحصرُها بأقسام النطاق مقصود — نصّها
+    # «يتابع الطلبات **في نطاقه**»، ونطاقٌ بلا أقسام يعني لا شيء لا كل شيء.
+    if (not ticket.is_platform) and ticket.school_id and ticket.department_id:
+        try:
+            from ..capabilities import HANDLE_REQUESTS
+            from ..permissions import capability_source, supervised_department_ids
+
+            if capability_source(user, HANDLE_REQUESTS, active_school_id=ticket.school_id) is not None:
+                if int(ticket.department_id) in supervised_department_ids(
+                    user, active_school_id=ticket.school_id
+                ):
+                    return True
+        except Exception:
+            pass
+
     # 4. مسؤول القسم (Officer)
     # إذا كانت التذكرة تابعة لقسم، فمسؤول القسم يملك صلاحية عليها
     if ticket.department_id and DepartmentMembership is not None:
@@ -63,6 +80,57 @@ def _can_act(user, ticket: Ticket) -> bool:
             return True
 
     return False
+
+
+def _assert_ticket_access(user, ticket, active_school, *, also_allowed: bool = False) -> None:
+    """يمنع فتح طلب لست طرفاً فيه — ويرمي ``Http404`` بدل 403 عمداً.
+
+    البوابة قبل هذا التغيير كانت **العضوية في المدرسة** وحدها، فكان أي منسوب
+    يفتح أي طلب في مدرسته برقمه ويقرأ نصّه وملاحظاته ومرفقاته. والطلب قد يحمل
+    شأناً شخصياً بين مُرسِله وإدارته، فلا يكفي أن يكون القارئ من المدرسة نفسها.
+
+    فحصان لا واحد، والترتيب مقصود:
+      1. **حدّ المستأجر** — عضوية سارية في مدرسة الطلب، وتوافق المدرسة النشطة
+         معها. هذا ما يمنع التسرّب بين المدارس.
+      2. **الطرفية** — مُرسِل الطلب، أو من يملك التصرّف فيه (المكلَّف،
+         المستلمون، مدير المدرسة، مسؤول القسم). هذا ما يمنع التسرّب داخلها.
+
+    ``also_allowed`` لصفة إضافية يُثبتها المستدعي بنفسه — كاتبُ الملاحظة مثلاً
+    يظل قادراً على تعديل ملاحظته وإن لم يعد مستلماً.
+
+    و404 لا 403 لأن التفريق بينهما يكشف وجود طلب لمن لا يحق له معرفة وجوده.
+    """
+    if not getattr(user, "is_authenticated", False):
+        raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+
+    is_superuser = bool(getattr(user, "is_superuser", False))
+    is_owner = ticket.creator_id == user.id
+
+    # تذاكر المنصة خارج نطاق المدارس: مالك النظام ومُرسِلها وحدهما.
+    if getattr(ticket, "is_platform", False):
+        if not (is_superuser or is_owner or also_allowed):
+            raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+        return
+
+    if is_superuser:
+        return
+
+    # ── 1) حدّ المستأجر ──
+    if not getattr(ticket, "school_id", None):
+        raise Http404("هذه التذكرة غير مرتبطة بمدرسة.")
+    if not SchoolMembership.objects.filter(
+        teacher=user,
+        school_id=ticket.school_id,
+        is_active=True,
+    ).exists():
+        raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+    if active_school is not None and ticket.school_id != active_school.id:
+        raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")
+
+    # ── 2) الطرفية داخل المدرسة ──
+    if is_owner or also_allowed or _can_act(user, ticket):
+        return
+    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
 
 
 def _notify_ticket_status_change(ticket, actor, old_status, new_status, status_label):
@@ -320,39 +388,10 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "creator__name", "assignee__name", "assignee_id", "creator_id", "is_platform", "school_id"
     )
     
-    # إذا كانت التذكرة للمنصة، لا نفلتر بالمدرسة (لأنها قد لا تكون مرتبطة بمدرسة أو نريد السماح للمدير برؤيتها)
-    # لكن يجب التأكد أن المستخدم هو المنشئ أو مالك النظام
-    # سنحاول جلب التذكرة أولاً بدون فلتر المدرسة إذا كانت is_platform=True
-    
-    # الحل الأبسط: نعدل _filter_by_school ليتجاهل الفلتر إذا كانت التذكرة is_platform=True
-    # لكن _filter_by_school تعمل على QuerySet.
-    
-    # لذا سنقوم بالتالي:
-    # 1. نحاول جلب التذكرة بـ PK فقط
-    # 2. نتحقق من الصلاحية يدوياً
-    
+    # التذكرة تُجلب بالـ pk ثم تُفحص الصلاحية على الكائن نفسه: تذاكر المنصة
+    # قد لا ترتبط بمدرسة، فلا يصلح فلتر مدرسة على الـ QuerySet لكليهما.
     t = get_object_or_404(base_qs, pk=pk)
-    
-    # التحقق من الوصول
-    if t.is_platform:
-        # تذاكر المنصة: مسموحة للمنشئ (المدير) أو مالك النظام
-        if not (user.is_superuser or t.creator_id == user.id):
-             raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
-    else:
-        # تذاكر المدرسة: نلزم عضوية المستخدم في مدرسة التذكرة
-        if not user.is_superuser:
-            if not t.school_id:
-                raise Http404("هذه التذكرة غير مرتبطة بمدرسة.")
-            if not SchoolMembership.objects.filter(
-                teacher=user,
-                school_id=t.school_id,
-                is_active=True,
-            ).exists():
-                raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
-
-            # عند تعدد المدارس: نلزم توافق المدرسة النشطة مع مدرسة التذكرة
-            if active_school is not None and t.school_id != active_school.id:
-                raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")
+    _assert_ticket_access(user, t, active_school)
 
     is_owner = (t.creator_id == user.id)
     can_act = _can_act(user, t)
@@ -492,18 +531,9 @@ def ticket_note_edit(request: HttpRequest, pk: int) -> HttpResponse:
         messages.warning(request, "لا يمكن تعديل الملاحظات بعد تحويل الطلب إلى مكتمل أو مرفوض.")
         return redirect("reports:ticket_detail", pk=t.id)
 
-    # تحقق الوصول للتذكرة (نفس منطق ticket_detail)
-    if getattr(t, "is_platform", False):
-        if not (user.is_superuser or t.creator_id == user.id or note.author_id == user.id):
-            raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
-    else:
-        if not user.is_superuser:
-            if not getattr(t, "school_id", None):
-                raise Http404("هذه التذكرة غير مرتبطة بمدرسة.")
-            if not SchoolMembership.objects.filter(teacher=user, school_id=t.school_id, is_active=True).exists():
-                raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
-            if active_school is not None and t.school_id != active_school.id:
-                raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")
+    # نفس بوابة ``ticket_detail``، مع إبقاء كاتب الملاحظة قادراً على تعديلها
+    # ولو لم يعد مستلماً — حدّ المستأجر يبقى مفروضاً عليه كغيره.
+    _assert_ticket_access(user, t, active_school, also_allowed=True)
 
     next_url = (request.GET.get("next") or "").strip()
     if next_url and not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
@@ -552,23 +582,9 @@ def ticket_print(request: HttpRequest, pk: int) -> HttpResponse:
 
     t = get_object_or_404(base_qs, pk=pk)
 
-    # نفس منطق الصلاحيات في ticket_detail
-    if t.is_platform:
-        if not (user.is_superuser or t.creator_id == user.id):
-            raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
-    else:
-        if not user.is_superuser:
-            if not t.school_id:
-                raise Http404("هذه التذكرة غير مرتبطة بمدرسة.")
-            if not SchoolMembership.objects.filter(
-                teacher=user,
-                school_id=t.school_id,
-                is_active=True,
-            ).exists():
-                raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
-
-            if active_school is not None and t.school_id != active_school.id:
-                raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")
+    # الطباعة تكشف نفس المحتوى، فتحمل نفس البوابة — نسخةٌ ثالثة من الشرط كانت
+    # هي السبب في أن تشديد إحداها لا يشدّ الأخريات.
+    _assert_ticket_access(user, t, active_school)
 
     # المرفقات/الصور
     images_manager = getattr(t, "images", None)

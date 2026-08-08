@@ -26,7 +26,23 @@ def _static_png_as_data_uri(path: str) -> str | None:
         return None
 
 
-def generate_achievement_pdf(*, request, ach_file: TeacherAchievementFile) -> Tuple[bytes, str]:
+def achievement_pdf_filename(ach_file: TeacherAchievementFile) -> str:
+    """اسم الملف المقترح — مفصولٌ عن التوليد كي يُعرف بلا تصيير.
+
+    المستدعي الذي يفرّغ التوليد إلى العامل يحتاج الاسم في الطلب نفسه ليضعه في
+    ``Content-Disposition``، ولا يصحّ أن يشتري اسماً بتصييرِ ملفٍ كامل.
+    """
+    safe_teacher = (ach_file.teacher_name or "teacher").replace("/", "-")
+    year = (ach_file.academic_year or "").strip() or "year"
+    return f"achievement_{safe_teacher}_{year}.pdf"
+
+
+def generate_achievement_pdf(
+    *,
+    ach_file: TeacherAchievementFile,
+    request=None,
+    base_url: str | None = None,
+) -> Tuple[bytes, str]:
     """Generate an achievement file PDF.
 
     Returns: (pdf_bytes, suggested_filename)
@@ -34,6 +50,12 @@ def generate_achievement_pdf(*, request, ach_file: TeacherAchievementFile) -> Tu
     Notes:
     - Uses WeasyPrint (system deps installed in Dockerfile).
     - PDF is generated on-demand; caller decides whether to persist it.
+
+    ``request`` صار اختيارياً و``base_url`` بديلاً عنه: هذه الدالة تُنفَّذ الآن
+    في عامل الوسائط أيضاً، وهناك لا طلبَ أصلاً. ولم يكن الطلب يُستعمل إلا في
+    اشتقاق ``base_url`` — ``render_to_string`` هنا تُستدعى بلا ``request``، فلا
+    معالجات سياق تعتمد عليه — فصار الوسيط صريحاً بدل أن يُشتقّ من كائنٍ ضخم
+    لا يلزم منه إلا سطر واحد.
     """
 
     from django.db.models import Prefetch
@@ -66,15 +88,12 @@ def generate_achievement_pdf(*, request, ach_file: TeacherAchievementFile) -> Tu
     # WeasyPrint import kept inside to avoid import-time failures in dev environments.
     from weasyprint import HTML
 
-    base_url = None
-    try:
-        base_url = request.build_absolute_uri("/")
-    except Exception:
-        base_url = None
+    if base_url is None and request is not None:
+        try:
+            base_url = request.build_absolute_uri("/")
+        except Exception:
+            base_url = None
 
     pdf_bytes = HTML(string=html, base_url=base_url).write_pdf()
 
-    safe_teacher = (ach_file.teacher_name or "teacher").replace("/", "-")
-    year = (ach_file.academic_year or "").strip() or "year"
-    filename = f"achievement_{safe_teacher}_{year}.pdf"
-    return pdf_bytes, filename
+    return pdf_bytes, achievement_pdf_filename(ach_file)

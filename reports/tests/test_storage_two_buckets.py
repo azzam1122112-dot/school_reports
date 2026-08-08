@@ -29,10 +29,13 @@ from reports.models import (
 from reports.services_archive import (
     archive_snapshot_capacity_error,
     archive_storage_capacity_error,
+    attach_school_consumption_rows,
     school_archive_overview,
     school_storage_limit_bytes,
+    school_storage_overview,
     school_work_used_bytes,
     storage_bytes_for_seats,
+    sync_school_archive_storage_usage,
 )
 
 MB = 1024 * 1024
@@ -164,6 +167,77 @@ class TwoStorageBucketsTests(TestCase):
         self._set_total_used(5 * GB)  # 2GB of live work + the 3GB snapshot
 
         self.assertEqual(school_work_used_bytes(self.school), 2 * GB)
+
+    # ------------------------------------------------------ what the manager sees
+
+    def test_every_screen_quotes_the_same_number_as_the_gate(self):
+        """The card, the banner and the gate used to disagree.
+
+        The card read the school's grand total, so a school that archived a year
+        was shown as consuming working space it had not spent — and only schools
+        that bought archiving were ever shown that inflated figure.
+        """
+        self._subscribe(seats=50)
+        self._archive_addon(limit_gb=50)
+        self._snapshot(year="1446-1447", size_bytes=3 * GB)
+        self._set_total_used(5 * GB)  # 2GB live work + 3GB snapshot
+
+        overview = school_storage_overview(self.school)
+
+        self.assertEqual(overview["used_bytes"], 2 * GB)
+        self.assertEqual(overview["used_bytes"], school_work_used_bytes(self.school))
+        self.assertEqual(
+            overview["remaining_bytes"],
+            school_storage_limit_bytes(self.school) - 2 * GB,
+        )
+        # The snapshot space is still reported — under the bucket that holds it.
+        self.assertEqual(overview["snapshot_bytes"], 3 * GB)
+        self.assertEqual(school_archive_overview(self.school)["used_bytes"], 3 * GB)
+        self.assertEqual(overview["total_held_bytes"], 5 * GB)
+
+    def test_archiving_a_year_never_moves_the_work_card(self):
+        """Two identical schools; only one bought archiving. Same work reading."""
+        self._subscribe(seats=25)
+        self._archive_addon(limit_gb=50)
+        other = School.objects.create(name="مدرسة بلا أرشفة", code="no-addon")
+        SchoolSubscription.objects.create(school=other, plan=self.school.subscription.plan)
+        other.refresh_from_db()
+
+        self._snapshot(year="1446-1447", size_bytes=4 * GB)
+
+        self.assertEqual(
+            school_storage_overview(self.school)["used_bytes"],
+            school_storage_overview(other)["used_bytes"],
+        )
+        self.assertEqual(school_storage_overview(self.school)["usage_percent"], 0)
+
+    def test_the_school_list_measures_work_the_same_way(self):
+        """The platform directory and the manager's own card must not diverge."""
+        self._subscribe(seats=50)
+        self._archive_addon(limit_gb=50)
+        self._snapshot(year="1446-1447", size_bytes=3 * GB)
+        self._set_total_used(5 * GB)
+
+        schools = [School.objects.get(pk=self.school.pk)]
+        attach_school_consumption_rows(schools)
+        row = schools[0].consumption_row
+
+        self.assertEqual(row["storage"]["used"], 2 * GB)
+        self.assertEqual(row["archive"]["used"], 3 * GB)
+
+    def test_the_addon_counter_measures_snapshots_not_the_whole_school(self):
+        """``SchoolArchiveAddon.storage_used_bytes`` is shown to the operator
+        against the add-on's own GB limit, so it must hold snapshot bytes."""
+        self._subscribe(seats=50)
+        addon = self._archive_addon(limit_gb=50)
+        self._snapshot(year="1446-1447", size_bytes=1 * GB)
+        self._set_total_used(9 * GB)  # 8GB of live work on top of the snapshot
+
+        sync_school_archive_storage_usage(self.school)
+        addon.refresh_from_db()
+
+        self.assertEqual(addon.storage_used_bytes, 1 * GB)
+        self.assertEqual(addon.storage_used_gb, 1.0)
 
     # -------------------------------------------------------------- the gates
 

@@ -202,12 +202,12 @@ class SchoolArchiveAddonTests(TestCase):
         self.client.post(
             reverse("reports:payment_create"),
             {
-                "payment_kind": Payment.Purpose.ARCHIVE_STORAGE,
+                "payment_kind": Payment.Purpose.WORK_STORAGE,
                 "archive_storage_option_id": str(storage_option.id),
                 "receipt_image": storage_receipt,
             },
         )
-        storage_payment = Payment.objects.get(school=self.school, purpose=Payment.Purpose.ARCHIVE_STORAGE)
+        storage_payment = Payment.objects.get(school=self.school, purpose=Payment.Purpose.WORK_STORAGE)
         self.assertEqual(storage_payment.amount, 90)
         self.assertEqual(storage_payment.archive_storage_gb, 50)
 

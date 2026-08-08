@@ -21,6 +21,7 @@ from .models import (
     SchoolYearArchive,
     school_has_archive_addon,
 )
+from . import capabilities as caps
 from .permissions import effective_user_role_label, get_school_manager_school_ids
 from .gender_labels import school_gender_labels, school_gender_template_context
 
@@ -744,6 +745,107 @@ def _pending_signatures_count(user, request: Optional[HttpRequest] = None) -> in
 
 
 # -----------------------------
+# أعلام الصلاحيات المُنطَقة
+# -----------------------------
+# **علمٌ لكل صلاحية تفتح باباً في القائمة.** كانت القائمة تعرف شرطاً واحداً هو
+# «مدير مدرسة»، فكل ما يُمنح للوكيل والموظف الإداري يعمل في العرض ولا يجد
+# رابطاً: الصلاحية نافذة، والشاشة قائمة، والطريق إليها كتابةُ المسار يدوياً.
+#
+# والاتجاه المعاكس محكومٌ بالأعلام نفسها: رابطٌ يظهر لمن لا يملك صلاحيته يردّه
+# العرضُ برسالة منع — وفعلٌ مرئي ممنوع أسوأ ما يقابله مستخدم.
+#
+# **الحساب مرة واحدة لكل طلب.** ``scope_capabilities`` و``delegated_capabilities``
+# تُخزَّنان على كائن المستخدم، فبناء كل الأعلام من اتحادهما استعلامان لا استعلام
+# لكل علم — والبديل (نداء ``capability_source`` لكل رمز) يضاعف الكلفة بلا فائدة.
+# الرموز تُقرأ من مرجع الصلاحيات لا تُكتب نصاً: رمزٌ مكتوب بيده هنا يصمت عند
+# أي تغيير في المرجع، فيختفي رابطٌ بلا خطأ واحد.
+_NAV_CAPABILITY_FLAGS: tuple[tuple[str, str], ...] = (
+    ("CAN_VIEW_SCHOOL_DASHBOARD", caps.VIEW_SCHOOL_DASHBOARD),
+    ("CAN_REVIEW_APPROVALS", caps.REVIEW_REPORTS),
+    ("CAN_RECOMMEND_APPROVAL", caps.RECOMMEND_APPROVAL),
+    ("CAN_VIEW_ACHIEVEMENTS", caps.VIEW_ACHIEVEMENTS),
+    ("CAN_HANDLE_REQUESTS", caps.HANDLE_REQUESTS),
+    ("CAN_DRAFT_CIRCULARS", caps.DRAFT_CIRCULARS),
+    ("CAN_VIEW_SCHOOL_AUDIT", caps.VIEW_AUDIT_LOG),
+    ("CAN_ASSIGN_TASKS", caps.ASSIGN_TASKS),
+    ("CAN_MANAGE_MEETINGS", caps.MANAGE_MEETINGS),
+    ("CAN_TRACK_PLANS", caps.TRACK_PLANS),
+    ("CAN_ARCHIVE_DOCUMENTS", caps.ARCHIVE_DOCUMENTS),
+    ("CAN_MANAGE_LAB", caps.MANAGE_LAB),
+)
+
+
+def _empty_capability_flags() -> Dict[str, bool]:
+    return {name: False for name, _code in _NAV_CAPABILITY_FLAGS}
+
+
+def _capability_flags(
+    user,
+    active_school: Optional[School],
+    *,
+    is_school_manager: bool,
+) -> Dict[str, bool]:
+    """علمٌ لكل صلاحية، للمستخدم في مدرسته النشطة.
+
+    مدير المدرسة ومالك النظام يمرّان بكل الأعلام: الأول يملك كل شيء في مدرسته
+    بحكم دوره، والثاني يمر دائماً — وهي القاعدة نفسها التي تنفّذها
+    ``has_capability``، مكتوبةً هنا مرة واحدة لا في أحد عشر شرطاً.
+    """
+    flags = _empty_capability_flags()
+    if not getattr(user, "is_authenticated", False):
+        return flags
+
+    if getattr(user, "is_superuser", False) or is_school_manager:
+        # المدير بلا مدرسة نشطة لا يُفتح له شيء: كل هذه الشاشات تسأل عن مدرسة
+        # أولاً، ورابطٌ يقود إلى «فضلاً اختر مدرسة» ليس رابطاً.
+        allow_all = bool(active_school is not None or getattr(user, "is_superuser", False))
+        return {name: allow_all for name, _code in _NAV_CAPABILITY_FLAGS}
+
+    if active_school is None:
+        return flags
+
+    try:
+        from .permissions import delegated_capabilities, scope_capabilities
+
+        granted = set(scope_capabilities(user, active_school)) | set(
+            delegated_capabilities(user, active_school)
+        )
+    except Exception:
+        return flags
+
+    for name, code in _NAV_CAPABILITY_FLAGS:
+        flags[name] = code in granted
+    return flags
+
+
+# ما يُجمع في مجموعة «الإشراف» للوكيل والموظف الإداري. الشريط المسطّح لا يحتمل
+# ثمانية مداخل جديدة — وهي العلّة نفسها التي جُمّع من أجلها شريط المدير حين
+# امتلأ حتى ركب على اسم المدرسة.
+_SUPERVISION_FLAGS: tuple[str, ...] = (
+    "CAN_VIEW_SCHOOL_DASHBOARD",
+    "CAN_ASSIGN_TASKS",
+    "CAN_MANAGE_MEETINGS",
+    "CAN_TRACK_PLANS",
+    "CAN_VIEW_ACHIEVEMENTS",
+    "CAN_HANDLE_REQUESTS",
+    "CAN_DRAFT_CIRCULARS",
+    "CAN_ARCHIVE_DOCUMENTS",
+    "CAN_MANAGE_LAB",
+)
+
+
+def _shows_supervision_group(flags: Dict[str, bool], *, is_school_manager: bool) -> bool:
+    """هل يستحق هذا المستخدم مجموعة «الإشراف» في شريطه؟
+
+    المدير خارجها: مجموعاته الخمس تغطّي هذه الوجهات كلها، وإضافتها له تكرار.
+    ومن لا يملك منها شيئاً خارجها كذلك — فمجموعةٌ فارغة زرٌّ يفتح لا شيء.
+    """
+    if is_school_manager:
+        return False
+    return any(bool(flags.get(name)) for name in _SUPERVISION_FLAGS)
+
+
+# -----------------------------
 # المُعالج الرئيس لكونتكست التنقل
 # -----------------------------
 # ... (باقي الاستيرادات والدوال كما لديك تمامًا)
@@ -762,7 +864,15 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "SHOW_SCHOOL_REPORTS_LINK": False,
             "SHOW_ARCHIVE_LINK": False,
             "IS_SCHOOL_MANAGER": False,
+            "IS_SCHOOL_DEPUTY": False,
+            "IS_ADMIN_STAFF": False,
+            "IS_LAB_TECHNICIAN": False,
+            "SHOW_LAB_NAV": False,
+            "SHOW_ASSIGNED_TO_ME": False,
+            "SHOW_SUPERVISION_GROUP": False,
             "IS_EXECUTIVE_DIRECTOR": False,
+            "GROUP_NAME": None,
+            **_empty_capability_flags(),
             "DEPARTMENT_REPORTS_URLNAME": None,
             "NAV_OFFICER_REPORTS": 0,
             "SHOW_ADMIN_DASHBOARD_LINK": False,
@@ -813,7 +923,11 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             )
             role_id = int(getattr(u, "role_id", 0) or 0)
             cache_key = (
-                f"navctx:v4:u{uid}:s{sid_for_key}:r{role_id}:"
+                # v5: صار الكونتكست يحمل أعلام الصلاحيات وأدوار المدرسة. ورقم
+                # الإصدار يُزاد مع كل تغيير في **شكل** الناتج لا في قيمته: قيمةٌ
+                # مخزَّنة بالشكل القديم تصل قالباً يقرأ مفاتيح لا وجود لها فيها،
+                # فتُقرأ فارغةً بلا خطأ — وتختفي روابط لثوانٍ بعد كل نشر.
+                f"navctx:v6:u{uid}:s{sid_for_key}:r{role_id}:"
                 f"f{user_flags}:v{role_version}:c{dismissed_sig}"
             )
             cached = cache.get(cache_key)
@@ -965,29 +1079,53 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
 
     # المدير التنفيذي لمجموعة المدارس المتكاملة — رابط لوحة المجموعة وحده،
     # فالدور إشرافي لا يفتح أي مسار تحرير.
+    group_name = None
     try:
+        from .permissions import executive_director_groups as _director_groups
         from .permissions import is_executive_director as _is_executive_director
 
         is_executive_director_user = bool(_is_executive_director(u))
+        if is_executive_director_user:
+            # اسم المجموعة يحلّ محل اسم المدرسة في الترويسة: المدير التنفيذي
+            # لا مدرسةَ نشطةَ له، فكانت ترويسته تقول «منصة توثيق» — اسمُ
+            # المنتَج لا اسمُ ما يقوده.
+            first_group = _director_groups(u).first()
+            group_name = getattr(first_group, "name", None)
     except Exception:
         is_executive_director_user = False
+        group_name = None
 
-    # سجل إجراءات المدرسة: للمدير على مدرسته، وللوكيل الذي مُنح الصلاحية في
-    # نطاق إشرافه. الرابط لا يُعرض لغيرهما — فزرٌّ مرئي ممنوع أسوأ من غيابه.
+    # الأدوار المدرسية — القائمة كانت تعرف «مديراً» أو «معلّماً» ولا شيء بينهما.
     try:
-        from .capabilities import VIEW_AUDIT_LOG as _VIEW_AUDIT_LOG
-        from .permissions import capability_source as _capability_source
+        from .permissions import can_view_lab as _can_view_lab
+        from .permissions import is_admin_staff as _is_admin_staff
+        from .permissions import is_lab_technician as _is_lab_technician
+        from .permissions import is_school_deputy as _is_school_deputy
 
-        can_view_school_audit = bool(
-            is_school_manager
-            or getattr(u, "is_superuser", False)
-            or (
-                active_school is not None
-                and _capability_source(u, _VIEW_AUDIT_LOG, active_school) is not None
-            )
+        is_deputy_user = bool(
+            active_school is not None and _is_school_deputy(u, active_school)
         )
+        is_admin_staff_user = bool(
+            active_school is not None and _is_admin_staff(u, active_school)
+        )
+        # المحضّر يُحسم بمسمّاه الوظيفي: المختبر عملُه لا صلاحيةٌ تُمنح له.
+        is_lab_tech_user = bool(
+            active_school is not None and _is_lab_technician(u, active_school)
+        )
+        show_lab_nav = bool(active_school is not None and _can_view_lab(u, active_school))
     except Exception:
-        can_view_school_audit = bool(is_school_manager)
+        is_deputy_user = False
+        is_admin_staff_user = False
+        is_lab_tech_user = False
+        show_lab_nav = False
+
+    # أعلام الصلاحيات المُنطَقة — مصدر شروط القائمة كلها.
+    capability_flags = _capability_flags(
+        u, active_school, is_school_manager=is_school_manager
+    )
+    show_supervision_group = _shows_supervision_group(
+        capability_flags, is_school_manager=is_school_manager
+    )
 
     # تسمية دور المستخدم الحالي (لعرضها في الواجهة)
     user_role_label: Optional[str] = effective_user_role_label(u, active_school=active_school)
@@ -1079,8 +1217,20 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "NAV_OFFICER_REPORTS": nav_officer_reports,
         "SHOW_ADMIN_DASHBOARD_LINK": show_admin_link,
         "IS_SCHOOL_MANAGER": is_school_manager,
+        "IS_SCHOOL_DEPUTY": is_deputy_user,
+        "IS_ADMIN_STAFF": is_admin_staff_user,
+        "IS_LAB_TECHNICIAN": is_lab_tech_user,
+        "SHOW_LAB_NAV": show_lab_nav,
         "IS_EXECUTIVE_DIRECTOR": is_executive_director_user,
-        "CAN_VIEW_SCHOOL_AUDIT": can_view_school_audit,
+        "GROUP_NAME": group_name,
+        # «مهامي المعيّنة» كان مشروطاً بكوْن المستخدم مسؤول قسم، والعدّاد يُحسب
+        # للجميع: طلبٌ يُحال إلى موظف إداري يُحتسب في القائمة ولا رابط يوصله
+        # إليه. والشرط الصحيح هو وجود ما يُعرض لا حملُ دور بعينه.
+        "SHOW_ASSIGNED_TO_ME": bool(
+            is_officer or show_dept_reports_link or assigned_open
+        ),
+        "SHOW_SUPERVISION_GROUP": show_supervision_group,
+        **capability_flags,
         "NAV_NOTIFICATIONS_UNREAD": unread_count,
         "NAV_SIGNATURES_PENDING": signatures_pending,
         "NAV_NOTIFICATION_HERO": hero,
@@ -1189,3 +1339,49 @@ def seo(request: HttpRequest) -> Dict[str, Any]:
 
 
 __all__.append("seo")
+
+
+# -----------------------------
+# بوابات الدفع المفعّلة
+# -----------------------------
+def payment_gateways(request: HttpRequest) -> Dict[str, Any]:
+    """أعلام بوابات الدفع، متاحةً لكل قالب لا لصفحتين اثنتين.
+
+    **لماذا معالج سياق لا متغيّر في كل عرض؟** لأن ذكر البوابة ليس شأن صفحة
+    الدفع وحدها: سياسة الخصوصية تُفصح عن معالِج الدفع بوصفه معالجاً للبيانات،
+    وسجلّ المدفوعات يعرض حالته، ولوحة المنصة كذلك. وكانت الأعلام تُمرَّر من
+    عرضين فقط (صفحة الهبوط و«اشتراكي»)، فبقيت سياسة الخصوصية تسمّي «تمارا»
+    اسماً صريحاً غير مشروط بشيء — وهي صفحة عامة يقرؤها كل زائر.
+
+    والاسم التجاري لبوابةٍ لم تُعتمد بعد لا يجوز عرضه: العرض التزامٌ تجاري
+    تجاه مزوّد الخدمة، لا تفصيلاً في الواجهة. فمصدرُ الحقيقة واحد، ومن أراد
+    ذكر بوابة سأل عنه.
+    """
+    from .moyasar_gateway import is_enabled as _moyasar_enabled
+    from .tamara_gateway import is_enabled as _tamara_enabled
+
+    try:
+        moyasar_on = bool(_moyasar_enabled())
+    except Exception:
+        moyasar_on = False
+    try:
+        tamara_on = bool(_tamara_enabled())
+    except Exception:
+        tamara_on = False
+
+    names: List[str] = []
+    if moyasar_on:
+        names.append("ميسر")
+    if tamara_on:
+        names.append("تمارا")
+
+    return {
+        "moyasar_enabled": moyasar_on,
+        "tamara_enabled": tamara_on,
+        # جاهزة للعرض نصّاً: «ميسر» أو «ميسر وتمارا» أو فراغ عند تعطيلهما معاً.
+        "active_payment_gateway_names": " و".join(names),
+        "any_payment_gateway_enabled": bool(names),
+    }
+
+
+__all__.append("payment_gateways")

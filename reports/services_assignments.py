@@ -26,6 +26,7 @@ __all__ = [
     "remove_evidence",
     "ensure_submittable",
     "targets_for_assignee",
+    "open_targets_for_assignee",
     "overdue_targets_for_school",
     "assignment_board_rows",
 ]
@@ -83,8 +84,8 @@ def update_progress(
 
     try:
         value = int(percent)
-    except (TypeError, ValueError):
-        raise ApprovalError("نسبة الإنجاز رقم بين 0 و100.")
+    except (TypeError, ValueError) as exc:
+        raise ApprovalError("نسبة الإنجاز رقم بين 0 و100.") from exc
     if not 0 <= value <= 100:
         raise ApprovalError("نسبة الإنجاز رقم بين 0 و100.")
 
@@ -142,6 +143,17 @@ def ensure_submittable(target: AssignmentTarget) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 # استعلامات العرض
 # ─────────────────────────────────────────────────────────────────────────────
+def _in_school(qs, school):
+    """قصر التكليفات على مدرسة — قاعدةٌ واحدة لا نسختان.
+
+    تكليفات المجموعة تصل مديرَ المدرسة بمدرسته، فتُدرَج في سياقها. وكتابةُ هذا
+    الشرط مرتين تجعل شاشةً تعرض تكليف المجموعة وأخرى تُسقطه.
+    """
+    if school is None:
+        return qs
+    return qs.filter(Q(school=school) | Q(assignment__school=school))
+
+
 def targets_for_assignee(user, school=None):
     """تكليفات المستخدم، مع كل ما تحتاجه الشاشة في استعلام واحد."""
     qs = (
@@ -150,10 +162,27 @@ def targets_for_assignee(user, school=None):
         .annotate(evidence_total=Count("evidence"))
         .order_by("assignment__due_at", "id")
     )
-    if school is not None:
-        # تكليفات المجموعة تصل مديرَ المدرسة بمدرسته، فتُدرَج في سياقها.
-        qs = qs.filter(Q(school=school) | Q(assignment__school=school))
-    return qs
+    return _in_school(qs, school)
+
+
+def open_targets_for_assignee(user, school=None):
+    """ما لم يُغلق من تكليفات المستخدم — أقربها موعداً أولاً.
+
+    نسخة خفيفة من :func:`targets_for_assignee` للوحات التي تعرض العنوان
+    والموعد وحدهما: عدّ الشواهد ضمٌّ و``GROUP BY`` لا تحتاجهما بطاقةٌ لا
+    تعرضهما، وثمنهما يُدفع على صفحة الهبوط لكل منسوب.
+
+    والمعنى هنا مطابق لـ ``AssignmentTarget.is_overdue`` عمداً: الملغى خارج
+    الحساب، والمعتمد ليس مفتوحاً — فيتّفق ما تعدّه القاعدةُ وما يقوله الصفّ.
+    """
+    qs = (
+        AssignmentTarget.objects.filter(assignee=user)
+        .filter(assignment__cancelled_at__isnull=True)
+        .exclude(approval_state=ApprovalState.APPROVED)
+        .select_related("assignment")
+        .order_by("assignment__due_at", "id")
+    )
+    return _in_school(qs, school)
 
 
 def overdue_targets_for_school(school):

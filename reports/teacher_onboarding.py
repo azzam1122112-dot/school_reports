@@ -218,12 +218,15 @@ def rows_from_uploaded_file(uploaded_file) -> list[dict[str, Any]]:
 
 
 def _membership_capacity(school: School) -> dict[str, int]:
+    """المتاح من مقاعد الباقة قبل الاستيراد.
+
+    العدّ من ``seats_used`` وحده: عدّ صفوف ``TEACHER`` يُبقي وكلاء المدرسة
+    وموظفيها خارج الحساب، فيَعِد الاستيرادُ بمتّسعٍ لا وجود له ثم يفشل عند
+    الحفظ، أو يمرّ فتتجاوز المدرسة باقتها من هذا الباب وحده.
+    """
     subscription = getattr(school, "subscription", None)
     maximum = int(getattr(subscription, "teacher_limit", 0) or 0)
-    current = SchoolMembership.objects.filter(
-        school=school,
-        role_type=SchoolMembership.RoleType.TEACHER,
-    ).count()
+    current = SchoolMembership.seats_used(school)
     remaining = max(maximum - current, 0) if maximum > 0 else 0
     return {"maximum": maximum, "current": current, "remaining": remaining}
 
@@ -252,14 +255,18 @@ def build_preview(raw_rows: Iterable[dict[str, Any]], school: School) -> dict[st
         )
         if teacher.national_id
     }
-    memberships = {
-        membership.teacher_id: membership
-        for membership in SchoolMembership.objects.filter(
-            school=school,
-            teacher_id__in=[teacher.id for teacher in teachers_by_phone.values()],
-            role_type=SchoolMembership.RoleType.TEACHER,
-        ).only("id", "teacher_id", "is_active", "job_title")
-    }
+    # عضوية المنسوب أياً كان دورها. البحث عن ``TEACHER`` وحده كان يجعل محضّر
+    # المختبر المُسنَد من شاشة الأدوار يبدو غريباً عن المدرسة، فيُعرض «ربط
+    # جديد» ويُحسَب مقعداً ثانياً لرجلٍ فيها أصلاً.
+    memberships: dict[int, SchoolMembership] = {}
+    for membership in SchoolMembership.objects.filter(
+        school=school,
+        teacher_id__in=[teacher.id for teacher in teachers_by_phone.values()],
+        role_type__in=SchoolMembership.STAFF_ROLES,
+    ).only("id", "teacher_id", "is_active", "job_title").order_by("role_type", "id"):
+        # ``setdefault`` لا الإسناد: من يحمل دورين يجب أن يعود منه الصفّ نفسه
+        # في كل مرة، لا الذي صادف أن جاء أخيراً.
+        memberships.setdefault(membership.teacher_id, membership)
 
     seen_phones: set[str] = set()
     seen_national_ids: set[str] = set()
@@ -453,10 +460,12 @@ def confirm_preview(request, school: School, token: str) -> dict[str, Any]:
                     }
                 )
 
+            # الدور من قاعدة النموذج: ملفٌّ فيه «محضر مختبر» يُنشئ موظفاً
+            # إدارياً بمسمّاه، لا معلّماً يحمل اسم المحضّر.
             membership, membership_created = SchoolMembership.objects.get_or_create(
                 school=school,
                 teacher=teacher,
-                role_type=SchoolMembership.RoleType.TEACHER,
+                role_type=SchoolMembership.role_for_job_title(row["job_title"]),
                 defaults={
                     "is_active": True,
                     "job_title": row["job_title"],

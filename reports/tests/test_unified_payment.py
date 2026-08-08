@@ -96,7 +96,7 @@ class UnifiedPaymentTests(TestCase):
 
         self.assertEqual(resp.status_code, 302)
         payment = Payment.objects.get(
-            school=self.school, purpose=Payment.Purpose.ARCHIVE_STORAGE
+            school=self.school, purpose=Payment.Purpose.WORK_STORAGE
         )
         self.assertEqual(payment.amount, self.storage_option.price)
         self.assertEqual(payment.archive_storage_gb, self.storage_option.storage_gb)
@@ -145,7 +145,7 @@ class UnifiedPaymentTests(TestCase):
         })
         self.assertEqual(resp.status_code, 302)
         p = Payment.objects.get(
-            school=self.school, purpose=Payment.Purpose.ARCHIVE_STORAGE
+            school=self.school, purpose=Payment.Purpose.WORK_STORAGE
         )
         self.assertEqual(p.archive_storage_gb, 50)
         self.assertEqual(int(p.amount), 99)
@@ -194,11 +194,15 @@ class UnifiedPaymentTests(TestCase):
         self.assertContains(response, 'id="schoolSubscriptionPlans"')
         self.assertContains(response, 'id="archiveSubscriptionService"')
         self.assertContains(response, 'id="storageService"')
-        self.assertContains(response, "زيادة مساحة تخزين المدرسة")
+        self.assertContains(response, "زيادة مساحة عمل المدرسة")
+        # المساحتان تُشتريان من بندين منفصلين، لأنهما تُفرضان بحدّين منفصلين.
+        self.assertContains(response, 'id="archiveSpaceService"')
+        self.assertContains(response, "زيادة مساحة الأرشفة السنوية")
         self.assertContains(response, 'id="orderEmptyState"')
         self.assertContains(response, 'data-summary-for="subscription"')
         self.assertContains(response, 'data-summary-for="addon"')
         self.assertContains(response, 'data-summary-for="storage"')
+        self.assertContains(response, 'data-summary-for="archiveSpace"')
         self.assertContains(
             response,
             'id="submitBtn" disabled aria-disabled="true"',

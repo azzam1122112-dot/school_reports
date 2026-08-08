@@ -31,7 +31,28 @@ docker compose --env-file deploy/hetzner/env.production -f compose.hetzner.yaml 
 
 ## الدفع
 
-### تمارا
+بوابة الإطلاق هي **ميسر** وحدها. وتمارا مؤجَّلة حتى تصدر موافقتها، ومخفيّة
+بالكامل حتى ذلك الحين — اسماً وشعاراً — في صفحة الهبوط وصفحة الاشتراك وسجلّ
+المدفوعات وسياسة الخصوصية. يكفي `TAMARA_ENABLED=False` لإخفائها في هذه المواضع
+جميعاً، ويحرس ذلك `reports/tests/test_payment_brand_marks.py`.
+
+### ميسر (البوابة المفعَّلة)
+
+- ضبط `MOYASAR_ENABLED=True` و`MOYASAR_ENVIRONMENT=live` ومفتاح `sk_live_*` في
+  ملف بيئة الخادم وحده بصلاحية `0600`. الإعدادات ترفض الإقلاع إذا خالف بادئةُ
+  المفتاح البيئةَ، وترفض وضع الاختبار في الإنتاج الصارم.
+- تسجيل مسار الاستدعاء الراجع عند ميسر:
+  `https://tawtheeq-ksa.com/payments/moyasar/callback/<batch_ref>/`.
+- تنفيذ عملية إنتاج حقيقية منخفضة القيمة، ثم التحقق من أن الدفع صار `approved`،
+  وأن `effects_applied_at` غير فارغ، وأن الباقة والتواريخ فُعِّلت للمدرسة.
+- **إعادة إرسال الاستدعاء نفسه** والتأكد من عدم تمديد الاشتراك أو تطبيق أي أثر
+  مرتين. التفعيل يعتمد على التحقق من الفاتورة لدى ميسر لا على وصول العميل إلى
+  صفحة النجاح.
+- اختبار الاسترجاع ومطابقة المبلغ في لوحة ميسر.
+- التحقق من أن مهمة `reconcile_pending_gateway_payments_task` تعمل (كل ٢٠ دقيقة)
+  وأنها تُنهي الطلبات المعلّقة التي حُصِّلت فعلاً.
+
+### تمارا (مؤجَّلة — لا تُفعَّل ولا يُذكر اسمها)
 
 - اجتياز طلب كامل في Sandbox: إنشاء الطلب، `order_approved`، الاعتماد، التحصيل، ثم `order_captured`.
 - تسجيل Webhook من نوع Order على `https://tawtheeq-ksa.com/payments/tamara/webhook/` لأحداث `order_approved` و`order_authorised` و`order_captured` و`order_refunded` و`order_canceled` و`order_declined` و`order_expired`.

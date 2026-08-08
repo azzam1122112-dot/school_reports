@@ -649,9 +649,9 @@ class SchoolArchiveAddonAdmin(admin.ModelAdmin):
 
 @admin.register(ArchiveStorageOption)
 class ArchiveStorageOptionAdmin(admin.ModelAdmin):
-    list_display = ("storage_gb", "price", "is_active", "sort_order", "updated_at")
-    list_filter = ("is_active",)
-    ordering = ("sort_order", "storage_gb", "id")
+    list_display = ("bucket", "storage_gb", "price", "is_active", "sort_order", "updated_at")
+    list_filter = ("bucket", "is_active")
+    ordering = ("bucket", "sort_order", "storage_gb", "id")
 
 
 @admin.register(SchoolYearArchive)

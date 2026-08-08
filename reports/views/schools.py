@@ -18,15 +18,15 @@ from ..gender_labels import school_gender_labels
 
 # ========= دعم الأقسام =========
 def _dept_code_for(dept_obj_or_code) -> str:
-    if hasattr(dept_obj_or_code, "slug") and getattr(dept_obj_or_code, "slug"):
-        return getattr(dept_obj_or_code, "slug")
-    if hasattr(dept_obj_or_code, "code") and getattr(dept_obj_or_code, "code"):
-        return getattr(dept_obj_or_code, "code")
+    if hasattr(dept_obj_or_code, "slug") and dept_obj_or_code.slug:
+        return dept_obj_or_code.slug
+    if hasattr(dept_obj_or_code, "code") and dept_obj_or_code.code:
+        return dept_obj_or_code.code
     return str(dept_obj_or_code or "").strip()
 
 def _arabic_label_for_in_school(dept_obj_or_code, active_school: Optional[School] = None) -> str:
     """نسخة آمنة من _arabic_label_for تربط التسمية بالمدرسة النشطة لتجنب تداخل slugs بين المدارس."""
-    if hasattr(dept_obj_or_code, "name") and getattr(dept_obj_or_code, "name"):
+    if hasattr(dept_obj_or_code, "name") and dept_obj_or_code.name:
         return dept_obj_or_code.name
     code = (
         getattr(dept_obj_or_code, "slug", None)

@@ -42,6 +42,8 @@
     const planRadios = form.querySelectorAll('input[name="plan_id"]');
     const planChoices = form.querySelectorAll(".plan-duration-choice");
     const storageSelect = form.querySelector("#archiveStorageUnits");
+    // مساحتان منفصلتان تُباعان بمنتجين منفصلين، فلكل واحدة قائمتها وسطرها.
+    const archiveSpaceSelect = form.querySelector("#archiveSpaceUnits");
     const orderTotal = form.querySelector("#orderTotal");
     const orderEmptyState = form.querySelector("#orderEmptyState");
     const receiptSubmit = form.querySelector("#submitBtn");
@@ -93,6 +95,20 @@
       return option ? parsePrice(option.dataset.price) : 0;
     }
 
+    function archiveSpaceAmount() {
+      if (!archiveSpaceSelect) return null;
+      const option =
+        archiveSpaceSelect.options[archiveSpaceSelect.selectedIndex];
+      return option ? parsePrice(option.dataset.price) : 0;
+    }
+
+    function optionSizeLabel(select) {
+      if (!select) return "";
+      const option = select.options[select.selectedIndex];
+      if (!option) return "";
+      return option.textContent.trim().split("—")[0].trim();
+    }
+
     function setItemAmount(key, value) {
       const element = form.querySelector(`[data-amount-for="${key}"]`);
       if (element) {
@@ -130,12 +146,13 @@
       const subscriptionSelected = isOn("include_subscription");
       const addonSelected = isOn("include_archive_addon");
       const storageSelected = isOn("include_archive_storage");
+      const archiveSpaceSelected = isOn("include_archive_space");
       const anySelected =
-        subscriptionSelected || addonSelected || storageSelected;
+        subscriptionSelected ||
+        addonSelected ||
+        storageSelected ||
+        archiveSpaceSelected;
       const plan = selectedPlan();
-      const selectedStorage = storageSelect
-        ? storageSelect.options[storageSelect.selectedIndex]
-        : null;
       const planName = plan
         ? plan.dataset.label || plan
             .closest(".plan-duration-choice")
@@ -146,6 +163,7 @@
       setItemAmount("subscription", subscriptionAmount());
       setItemAmount("addon", addonAmount());
       setItemAmount("storage", storageAmount());
+      setItemAmount("archiveSpace", archiveSpaceAmount());
       setItemLabel("subscription", planName || "تجديد اشتراك المدرسة");
       // Storage is bought with the capacity, so name it before payment.
       const storageNote = form.querySelector("[data-summary-storage]");
@@ -156,28 +174,36 @@
           : "";
         storageNote.hidden = !includedStorage;
       }
+      const workSize = optionSizeLabel(storageSelect);
       setItemLabel(
         "storage",
-        selectedStorage
-          ? `مساحة الأرشيف ${selectedStorage.textContent
-              .trim()
-              .split("—")[0]
-              .trim()}`
-          : "مساحة إضافية للأرشيف",
+        workSize
+          ? `مساحة عمل المدرسة ${workSize}`
+          : "مساحة إضافية لعمل المدرسة",
+      );
+      const archiveSize = optionSizeLabel(archiveSpaceSelect);
+      setItemLabel(
+        "archiveSpace",
+        archiveSize
+          ? `مساحة الأرشفة السنوية ${archiveSize}`
+          : "مساحة إضافية للأرشفة السنوية",
       );
       setItemVisibility("subscription", subscriptionSelected);
       setItemVisibility("addon", addonSelected);
       setItemVisibility("storage", storageSelected);
+      setItemVisibility("archiveSpace", archiveSpaceSelected);
 
       let total = 0;
       if (subscriptionSelected) total += subscriptionAmount();
       if (addonSelected) total += addonAmount();
       if (storageSelected) total += storageAmount() || 0;
+      if (archiveSpaceSelected) total += archiveSpaceAmount() || 0;
 
       const selectedCount = [
         subscriptionSelected,
         addonSelected,
         storageSelected,
+        archiveSpaceSelected,
       ].filter(Boolean).length;
 
       if (orderTotal) orderTotal.textContent = formatAmount(total);
@@ -287,18 +313,22 @@
       recompute();
     });
 
-    if (storageSelect) {
-      storageSelect.addEventListener("change", () => {
-        const storageToggle = input("include_archive_storage");
-        if (storageToggle && !storageToggle.disabled) {
-          storageToggle.checked = true;
-          storageToggle.dispatchEvent(
-            new Event("change", { bubbles: true }),
-          );
+    // اختيار حجم يعني نيّة الشراء، فيُفعّل مفتاح بنده — لكلٍّ مفتاحه، وإلا
+    // اختار المدير مساحة أرشفة فأُضيفت مساحة عمل إلى الطلب.
+    [
+      [storageSelect, "include_archive_storage"],
+      [archiveSpaceSelect, "include_archive_space"],
+    ].forEach(([select, toggleName]) => {
+      if (!select) return;
+      select.addEventListener("change", () => {
+        const toggle = input(toggleName);
+        if (toggle && !toggle.disabled) {
+          toggle.checked = true;
+          toggle.dispatchEvent(new Event("change", { bubbles: true }));
         }
         recompute();
       });
-    }
+    });
 
     if (mobileCheckoutContinue) {
       mobileCheckoutContinue.addEventListener("click", () => {

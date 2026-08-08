@@ -6,1047 +6,911 @@
 {% block head %}
 <script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" data-cfasync="false"></script>
 <link rel="stylesheet" href="{% static 'css/consumption-panel.css' %}?v=20260805.1">
-<style>
+<style nonce="{{ CSP_NONCE }}">
+  /* لوحة مدير المدرسة — مبنية على جذر الهوية في `_identity.html`.
+     لا لون ثابتاً هنا: كل ما تراه أدناه مشتقٌّ من `--id-*`، فالوضع الليلي
+     يأتي مجاناً ولا يُصلَح في هذا الملف أصلاً. والأسماء المحلية `--mg-*`
+     أسماء مستعارة للقراءة لا لوحةٌ ثانية. */
   .manager-page {
-    --manager-ink: #10231a;
-    --manager-muted: #607067;
-    --manager-line: #dfe8e2;
-    --manager-soft: #f3f8f5;
-    /* Accent tokens are used as TEXT. --manager-green-fill is the one used as a
-       background, so the two can be re-tuned independently per theme. */
-    --manager-green: #08643b;
-    --manager-green-fill: #08643b;
-    --manager-green-dark: #06462b;
-    --manager-gold: #b68a42;
-    --manager-danger: #b42318;
-    --manager-warning: #9a6700;
+    --mg-ink: var(--id-ink);
+    --mg-muted: var(--id-muted);
+    --mg-line: var(--id-line);
+    --mg-soft: var(--id-surface-2);
+    --mg-card: var(--id-surface);
+    --mg-green: var(--id-accent);
+    --mg-gold: var(--id-gold);
+    --mg-danger: var(--id-tone-danger);
+    --mg-warning: var(--id-tone-attention);
+
     max-width: 1440px;
     margin-inline: auto;
-    padding: 1.25rem;
-    color: var(--manager-ink);
+    padding: clamp(14px, 2.2vw, 26px) clamp(12px, 2vw, 22px) 96px;
+    color: var(--mg-ink);
   }
 
-  [data-theme="dark"] .manager-page {
-    --manager-ink: #eff8f2;
-    --manager-muted: #afc1b5;
-    --manager-line: #2d4637;
-    --manager-soft: #13271c;
-    /* The light-theme accents landed at 1.7:1–3.3:1 on these dark surfaces,
-       which left icons and status text unreadable. The fill stays dark so the
-       white numerals on it keep their contrast. */
-    --manager-green: #6ed3a0;
-    --manager-warning: #eabf58;
-    --manager-danger: #ff9d96;
-    --manager-green-fill: #08643b;
+  /* ── التنبيهات العلوية ──────────────────────────────────────────── */
+  .manager-subscription-alert {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+    padding: 15px 18px;
+    border: 1px solid var(--id-line);
+    border-inline-start: 4px solid var(--mg-warning);
+    border-radius: var(--id-r3);
+    background: var(--mg-card);
+    box-shadow: var(--id-e2);
+    font-weight: 800;
   }
-
-  .manager-page *,
-  .manager-page *::before,
-  .manager-page *::after {
-    box-sizing: border-box;
+  .manager-subscription-alert > i {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--id-r2);
+    color: var(--mg-warning);
+    background: var(--id-tone-attention-wash);
+    font-size: 1.05rem;
   }
-
-  .manager-page a {
-    color: inherit;
+  .manager-subscription-alert__content { display: grid; gap: 3px; min-width: 0; }
+  .manager-subscription-alert__content strong { font-size: .98rem; font-weight: 950; }
+  .manager-subscription-alert__content span { color: var(--mg-muted); font-size: .85rem; font-weight: 700; }
+  .manager-subscription-alert a {
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+    padding: 9px 16px;
+    border-radius: var(--id-pill);
+    color: var(--id-accent-ink);
+    background: var(--id-green-700);
+    font-size: .84rem;
+    font-weight: 900;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform var(--id-fast) var(--id-ease), box-shadow var(--id-fast) var(--id-ease);
   }
+  .manager-subscription-alert a:hover { transform: translateY(-1px); box-shadow: var(--id-e2); }
+  .manager-subscription-alert.is-critical { border-inline-start-color: var(--mg-danger); }
+  .manager-subscription-alert.is-critical > i { color: var(--mg-danger); background: var(--id-tone-danger-wash); }
+  .manager-subscription-alert.is-expired {
+    border-inline-start-color: var(--mg-danger);
+    background: var(--id-tone-danger-wash);
+  }
+  .manager-subscription-alert.is-expired > i { color: var(--mg-danger); background: var(--mg-card); }
 
+  /* ── الترويسة ───────────────────────────────────────────────────
+     توقيع اللوحة: خيطٌ ذهبي، وتدرّج بثلاث محطات، ولمعةٌ قطرية تكسر
+     استواء المستطيل. المسطّح يقرأ «ملوَّناً»، وهذا يقرأ «عميقاً». */
   .manager-hero {
     position: relative;
-    isolation: isolate;
     overflow: hidden;
     display: grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(270px, .7fr);
-    gap: 1.5rem;
-    padding: clamp(1.4rem, 3vw, 2.35rem);
-    border: 1px solid rgba(209, 177, 112, .34);
-    border-radius: 26px;
-    color: #fff;
+    grid-template-columns: minmax(0, 1.5fr) minmax(250px, .5fr);
+    gap: clamp(20px, 3vw, 40px);
+    align-items: center;
+    margin-bottom: 22px;
+    padding: clamp(24px, 3.4vw, 44px);
+    border: 1px solid var(--id-gold-line);
+    border-radius: var(--id-r5);
+    color: var(--id-hero-ink);
     background:
-      radial-gradient(circle at 12% 15%, rgba(222, 194, 135, .22), transparent 30%),
-      linear-gradient(135deg, #087047 0%, #064b31 50%, #04351f 100%);
-    box-shadow: 0 24px 60px -34px rgba(4, 70, 43, .75);
+      radial-gradient(120% 150% at 92% -22%, rgba(212, 177, 109, .26), transparent 46%),
+      radial-gradient(90% 120% at 4% 108%, rgba(22, 149, 90, .34), transparent 52%),
+      linear-gradient(135deg, var(--id-hero-from) 0%, var(--id-hero-via) 56%, var(--id-hero-to) 100%);
+    box-shadow: var(--id-e4);
   }
-
-  .manager-hero::after {
+  .manager-hero::before {
     content: "";
     position: absolute;
-    z-index: -1;
-    width: 290px;
-    height: 290px;
-    inset-inline-end: -85px;
-    bottom: -150px;
-    border: 48px solid rgba(255, 255, 255, .055);
-    border-radius: 50%;
+    inset-inline: 0;
+    inset-block-start: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--id-gold-500) 18%, var(--id-gold-300) 50%, var(--id-gold-500) 82%, transparent);
   }
 
   .manager-eyebrow {
     display: inline-flex;
     align-items: center;
-    gap: .45rem;
-    width: fit-content;
-    margin-bottom: .7rem;
-    padding: .35rem .7rem;
-    border: 1px solid rgba(255, 255, 255, .24);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .09);
-    color: #f6e7c5;
+    gap: 8px;
+    padding: 7px 15px;
+    border: 1px solid rgba(212, 177, 109, .5);
+    border-radius: var(--id-pill);
+    background: rgba(212, 177, 109, .16);
+    color: var(--id-gold-300);
     font-size: .78rem;
-    font-weight: 850;
+    font-weight: 900;
+    letter-spacing: .2px;
   }
 
   .manager-hero h1 {
-    margin: 0;
-    color: #fff;
-    font-size: clamp(1.65rem, 3.6vw, 2.55rem);
-    line-height: 1.35;
-    letter-spacing: -.025em;
+    margin: 14px 0 8px;
+    font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+    font-weight: 950;
+    line-height: 1.25;
+    /* اسم المدرسة أهمّ سطر في الصفحة، فيأخذ التدرّج وحده. */
+    background: linear-gradient(92deg, #fff 0%, var(--id-gold-300) 96%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-
   .manager-hero__intro {
-    max-width: 720px;
-    margin: .75rem 0 1rem;
-    color: rgba(255, 255, 255, .8);
-    font-size: .98rem;
-    line-height: 1.9;
+    margin: 0;
+    max-width: 62ch;
+    color: var(--id-hero-ink-soft);
+    font-size: .95rem;
+    font-weight: 700;
+    line-height: 1.95;
   }
 
-  .manager-school-meta,
-  .manager-hero__actions {
+  .manager-school-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: .65rem;
+    gap: 9px;
+    margin-top: 18px;
   }
-
   .manager-school-meta span {
     display: inline-flex;
     align-items: center;
-    gap: .4rem;
-    color: rgba(255, 255, 255, .86);
-    font-size: .86rem;
-    font-weight: 750;
+    gap: 7px;
+    padding: 7px 13px;
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: var(--id-pill);
+    background: rgba(255, 255, 255, .1);
+    color: var(--id-hero-ink);
+    font-size: .81rem;
+    font-weight: 800;
   }
+  .manager-school-meta i { color: var(--id-gold-300); }
 
   .manager-hero__actions {
-    margin-top: 1.2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
   }
-
   .manager-hero__button {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: .45rem;
-    min-height: 42px;
-    padding: .65rem .9rem;
-    border: 1px solid rgba(255, 255, 255, .28);
-    border-radius: 12px;
-    color: #fff;
+    gap: 9px;
+    padding: 12px 20px;
+    border: 1px solid rgba(255, 255, 255, .26);
+    border-radius: var(--id-pill);
     background: rgba(255, 255, 255, .1);
+    color: var(--id-hero-ink);
+    font-size: .87rem;
+    font-weight: 900;
     text-decoration: none;
-    font-size: .86rem;
-    font-weight: 850;
-    transition: background .2s ease, transform .2s ease;
+    transition: transform var(--id-fast) var(--id-ease), background var(--id-fast) var(--id-ease), border-color var(--id-fast) var(--id-ease);
   }
-
   .manager-hero__button:hover {
-    color: #063b25;
-    background: #fff;
     transform: translateY(-2px);
+    background: rgba(255, 255, 255, .17);
+    border-color: rgba(212, 177, 109, .55);
   }
-
   .manager-hero__button--primary {
-    border-color: #e1c788;
-    color: #143322;
-    background: linear-gradient(135deg, #f6e7c4, #d9b86f);
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--id-gold-400), var(--id-gold-600));
+    color: var(--id-green-950);
+    box-shadow: 0 12px 26px -14px rgba(212, 177, 109, .9);
+  }
+  .manager-hero__button--primary:hover {
+    background: linear-gradient(135deg, var(--id-gold-300), var(--id-gold-500));
+    border-color: transparent;
   }
 
+  /* بطاقة الملخص: زجاجٌ فوق التدرّج بحلقة ذهبية. */
   .manager-hero__summary {
-    align-self: stretch;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 1.15rem;
-    border: 1px solid rgba(255, 255, 255, .16);
-    border-radius: 20px;
-    background: rgba(4, 42, 26, .32);
-    backdrop-filter: blur(8px);
+    display: grid;
+    gap: 6px;
+    justify-items: center;
+    text-align: center;
+    padding: clamp(20px, 2.4vw, 30px);
+    border: 1px solid rgba(212, 177, 109, .42);
+    border-radius: var(--id-r4);
+    background: rgba(3, 32, 20, .3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
   }
-
   .manager-hero__summary-label {
-    color: rgba(255, 255, 255, .68);
-    font-size: .82rem;
-    font-weight: 750;
-  }
-
-  .manager-hero__summary-value {
-    margin: .25rem 0;
-    color: #f8e8c5;
-    font-size: clamp(2.15rem, 5vw, 3.5rem);
-    font-weight: 950;
-    line-height: 1.1;
-  }
-
-  .manager-hero__summary small {
-    color: rgba(255, 255, 255, .72);
-    line-height: 1.7;
-  }
-
-  .manager-subscription-alert {
-    display: flex;
-    align-items: center;
-    gap: .8rem;
-    margin-bottom: 1rem;
-    padding: .85rem 1rem;
-    border: 1px solid #f0cd77;
-    border-radius: 16px;
-    color: #684b00;
-    background: #fff9e8;
-  }
-
-  .manager-subscription-alert.is-critical,
-  .manager-subscription-alert.is-expired {
-    border-color: #f4b4ae;
-    color: #84251d;
-    background: #fff2f0;
-  }
-
-  .manager-subscription-alert__content {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .manager-subscription-alert strong,
-  .manager-subscription-alert span {
-    display: block;
-  }
-
-  .manager-subscription-alert span {
-    margin-top: .15rem;
-    font-size: .84rem;
-    opacity: .82;
-  }
-
-  .manager-subscription-alert a {
-    flex: 0 0 auto;
-    padding: .55rem .78rem;
-    border-radius: 10px;
-    color: #fff;
-    background: #76551a;
-    text-decoration: none;
+    color: var(--id-gold-300);
     font-size: .8rem;
-    font-weight: 850;
+    font-weight: 900;
+  }
+  .manager-hero__summary-value {
+    font-size: clamp(2.6rem, 5vw, 3.6rem);
+    font-weight: 950;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+  }
+  .manager-hero__summary small {
+    color: var(--id-hero-ink-soft);
+    font-size: .78rem;
+    font-weight: 700;
+    line-height: 1.8;
   }
 
-  .manager-subscription-alert.is-critical a,
-  .manager-subscription-alert.is-expired a {
-    background: #84251d;
-  }
-
-  .manager-section {
-    margin-top: 1.55rem;
-  }
-
+  /* ── الأقسام ────────────────────────────────────────────────────── */
+  .manager-section { margin-bottom: 26px; }
   .manager-section__head {
     display: flex;
-    align-items: end;
+    align-items: flex-end;
     justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: .85rem;
+    gap: 16px;
+    margin-bottom: 16px;
   }
-
   .manager-section__head h2 {
-    margin: 0;
-    color: var(--manager-ink);
-    font-size: 1.15rem;
+    position: relative;
+    margin: 0 0 5px;
+    padding-inline-start: 15px;
+    font-size: clamp(1.05rem, 1.9vw, 1.28rem);
     font-weight: 950;
   }
-
+  /* شعرة ذهبية رأسية بدل النقطة: تُميّز العنوان بلا أن تزاحمه. */
+  .manager-section__head h2::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block: 2px 3px;
+    width: 4px;
+    border-radius: var(--id-pill);
+    background: linear-gradient(180deg, var(--id-gold-300), var(--id-gold-600));
+  }
   .manager-section__head p {
-    margin: .25rem 0 0;
-    color: var(--manager-muted);
-    font-size: .84rem;
+    margin: 0;
+    color: var(--mg-muted);
+    font-size: .86rem;
+    font-weight: 700;
+  }
+  .manager-period-context {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 8px;
+    color: var(--mg-muted);
+    font-size: .78rem;
+    font-weight: 700;
   }
 
+  /* ── المؤشرات ───────────────────────────────────────────────────── */
   .manager-kpis {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: .85rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
   }
-
   .manager-kpi {
     position: relative;
     overflow: hidden;
-    min-height: 142px;
-    padding: 1rem;
-    border: 1px solid var(--manager-line);
-    border-radius: 18px;
-    background: var(--surface, #fff);
+    display: grid;
+    gap: 8px;
+    padding: 20px;
+    border: 1px solid var(--mg-line);
+    border-radius: var(--id-r4);
+    background: var(--mg-card);
+    box-shadow: var(--id-e2);
+    color: inherit;
     text-decoration: none;
-    box-shadow: 0 12px 30px -26px rgba(10, 70, 42, .55);
-    transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+    transition: transform var(--id-slow) var(--id-ease), box-shadow var(--id-slow) var(--id-ease), border-color var(--id-slow) var(--id-ease);
   }
-
+  /* مسحة ذهبية تنزلق أسفل البطاقة عند التحويم — أثرٌ يُحسّ ولا يُقرأ. */
+  .manager-kpi::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--id-gold-500), var(--id-gold-300));
+    transform: scaleX(0);
+    transform-origin: inline-end;
+    transition: transform var(--id-slow) var(--id-ease);
+  }
   .manager-kpi:hover {
-    border-color: rgba(8, 100, 59, .42);
     transform: translateY(-3px);
-    box-shadow: 0 18px 34px -25px rgba(10, 70, 42, .6);
+    border-color: var(--id-gold-line);
+    box-shadow: var(--id-e3);
   }
-
+  .manager-kpi:hover::after { transform: scaleX(1); }
   .manager-kpi__top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: .75rem;
   }
-
   .manager-kpi__icon {
     display: grid;
-    width: 42px;
-    height: 42px;
     place-items: center;
-    border-radius: 13px;
-    color: var(--manager-green);
-    background: #e8f5ed;
+    width: 46px;
+    height: 46px;
+    border: 1px solid var(--id-gold-line);
+    border-radius: var(--id-r2);
+    background: var(--id-accent-wash);
+    color: var(--mg-green);
+    font-size: 1.1rem;
   }
-
-  .manager-kpi--attention .manager-kpi__icon {
-    color: var(--manager-warning);
-    background: #fff3cf;
-  }
-
   .manager-kpi__arrow {
-    color: #99a8a0;
+    color: var(--mg-muted);
     font-size: .8rem;
+    transition: transform var(--id-slow) var(--id-ease), color var(--id-slow) var(--id-ease);
   }
-
+  .manager-kpi:hover .manager-kpi__arrow { transform: translateX(-4px); color: var(--mg-green); }
   .manager-kpi__value {
-    display: block;
-    margin: .8rem 0 .15rem;
-    color: var(--manager-ink);
-    font-size: 1.75rem;
+    font-size: clamp(1.8rem, 3vw, 2.3rem);
     font-weight: 950;
     line-height: 1;
+    font-variant-numeric: tabular-nums;
   }
-
   .manager-kpi__label {
-    display: block;
-    color: var(--manager-muted);
-    font-size: .82rem;
-    font-weight: 780;
+    color: var(--mg-muted);
+    font-size: .84rem;
+    font-weight: 800;
+    line-height: 1.7;
   }
-
-  /* Two KPIs follow the selected period and two do not; say so on the card
-     itself instead of letting one heading imply it covers all four. */
   .manager-kpi__scope {
-    color: var(--manager-muted);
+    color: var(--mg-muted);
     font-size: .72rem;
     font-style: normal;
     font-weight: 700;
-    opacity: .78;
+    opacity: .85;
+  }
+  /* التمييز مقصورٌ على ما ينتظر إجراءً فعلاً — وسمٌ يُمنح لكل شيء لا يُنبّه على شيء. */
+  .manager-kpi--attention {
+    border-color: var(--mg-warning);
+    background:
+      linear-gradient(180deg, var(--id-tone-attention-wash), transparent 62%),
+      var(--mg-card);
+  }
+  .manager-kpi--attention .manager-kpi__icon {
+    color: var(--mg-warning);
+    background: var(--id-tone-attention-wash);
+    border-color: var(--mg-warning);
   }
 
-  .manager-toggle {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: .75rem;
-    margin-bottom: .85rem;
-    padding: .85rem;
-    border: 1px solid var(--manager-line);
-    border-radius: 14px;
-    background: var(--manager-soft);
-  }
-
-  .manager-toggle__copy {
-    display: grid;
-    gap: .3rem;
-    min-width: 0;
-  }
-
-  .manager-toggle__copy strong {
-    color: var(--manager-ink);
-    font-size: .92rem;
-  }
-
-  .manager-toggle__copy small {
-    color: var(--manager-muted);
-    font-size: .75rem;
-  }
-
-  .manager-toggle__state {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    font-size: .75rem;
-    font-weight: 800;
-  }
-
-  .manager-toggle__state.is-on { color: var(--manager-green); }
-  .manager-toggle__state.is-off { color: var(--manager-warning); }
-
-  .manager-toggle__buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .45rem;
-  }
-
-  .manager-toggle__button {
-    min-height: 38px;
-    padding: .45rem .95rem;
-    border: 1px solid var(--manager-line);
-    border-radius: 10px;
-    color: var(--manager-muted);
-    background: var(--surface, #fff);
-    font-size: .8rem;
-    font-weight: 850;
-    cursor: pointer;
-    transition: border-color .18s ease, color .18s ease;
-  }
-
-  .manager-toggle__button:hover {
-    border-color: rgba(8, 100, 59, .42);
-    color: var(--manager-ink);
-  }
-
-  .manager-toggle__button.is-selected {
-    border-color: var(--manager-green);
-    color: var(--manager-green);
-    background: rgba(8, 100, 59, .09);
-  }
-
+  /* ── متابعة اليوم ───────────────────────────────────────────────── */
   .manager-focus {
-    display: grid;
-    grid-template-columns: minmax(220px, .75fr) minmax(0, 2.25fr);
-    gap: 1rem;
-    padding: 1rem;
-    border: 1px solid var(--manager-line);
-    border-radius: 20px;
-    background: var(--surface, #fff);
+    padding: clamp(18px, 2.2vw, 26px);
+    border: 1px solid var(--mg-line);
+    border-radius: var(--id-r4);
+    background: var(--mg-card);
+    box-shadow: var(--id-e2);
   }
-
-  .manager-focus__intro {
-    padding: .45rem .55rem;
-  }
-
   .manager-focus__intro h2 {
-    margin: 0 0 .4rem;
-    color: var(--manager-ink);
-    font-size: 1.08rem;
+    position: relative;
+    margin: 0 0 5px;
+    padding-inline-start: 15px;
+    font-size: 1.15rem;
+    font-weight: 950;
   }
-
+  .manager-focus__intro h2::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block: 2px 3px;
+    width: 4px;
+    border-radius: var(--id-pill);
+    background: linear-gradient(180deg, var(--id-gold-300), var(--id-gold-600));
+  }
   .manager-focus__intro p {
-    margin: 0;
-    color: var(--manager-muted);
-    font-size: .82rem;
-    line-height: 1.75;
+    margin: 0 0 16px;
+    color: var(--mg-muted);
+    font-size: .86rem;
+    font-weight: 700;
   }
-
-  /* Up to five chips can appear; a fixed 4-column track strands the fifth. */
   .manager-focus__items {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
-    gap: .65rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 12px;
   }
-
-  /* A subset row drills into the row above it; it is not extra work. */
-  .manager-focus__item.is-subset {
-    border-style: dashed;
-    border-color: var(--manager-line);
-    background: transparent;
-  }
-
-  .manager-focus__item.is-subset .manager-focus__count {
-    color: var(--manager-green);
-    background: rgba(8, 100, 59, .14);
-  }
-
   .manager-focus__item {
     display: flex;
     align-items: center;
-    gap: .7rem;
-    min-height: 72px;
-    padding: .75rem;
-    border: 1px solid transparent;
-    border-radius: 14px;
-    background: var(--manager-soft);
+    gap: 14px;
+    padding: 15px 16px;
+    border: 1px solid var(--mg-line);
+    border-radius: var(--id-r3);
+    background: var(--mg-soft);
+    color: inherit;
     text-decoration: none;
+    transition: transform var(--id-fast) var(--id-ease), border-color var(--id-fast) var(--id-ease), box-shadow var(--id-fast) var(--id-ease);
   }
-
   .manager-focus__item:hover {
-    border-color: rgba(8, 100, 59, .26);
+    transform: translateY(-2px);
+    border-color: var(--id-gold-line);
+    box-shadow: var(--id-e2);
   }
-
   .manager-focus__count {
     display: grid;
-    flex: 0 0 36px;
-    width: 36px;
-    height: 36px;
     place-items: center;
-    border-radius: 11px;
+    flex: 0 0 auto;
+    min-width: 50px;
+    height: 50px;
+    padding-inline: 10px;
+    border-radius: var(--id-r2);
+    background: linear-gradient(140deg, var(--id-green-700), var(--id-green-900));
     color: #fff;
-    background: var(--manager-green-fill);
+    font-size: 1.15rem;
     font-weight: 950;
+    font-variant-numeric: tabular-nums;
+    box-shadow: var(--id-e2);
   }
-
-  .manager-focus__item strong,
-  .manager-focus__item small {
-    display: block;
+  .manager-focus__item span:last-child { display: grid; gap: 3px; min-width: 0; }
+  .manager-focus__item strong { font-size: .93rem; font-weight: 950; }
+  .manager-focus__item small { color: var(--mg-muted); font-size: .79rem; font-weight: 700; line-height: 1.7; }
+  /* التفصيل تابعٌ لبندٍ فوقه، فيُزاح ويخفت — لا يُعدّ بنداً ثانياً. */
+  .manager-focus__item.is-subset {
+    background: transparent;
+    border-style: dashed;
   }
-
-  .manager-focus__item strong {
-    color: var(--manager-ink);
-    font-size: .82rem;
+  .manager-focus__item.is-subset .manager-focus__count {
+    background: var(--id-accent-wash);
+    color: var(--mg-green);
+    box-shadow: none;
   }
-
-  .manager-focus__item small {
-    margin-top: .15rem;
-    color: var(--manager-muted);
-    font-size: .72rem;
-  }
-
   .manager-focus__clear {
-    grid-column: 1 / -1;
     display: flex;
     align-items: center;
-    gap: .8rem;
-    min-height: 76px;
-    padding: .9rem 1rem;
-    border: 1px solid rgba(8, 100, 59, .2);
-    border-radius: 15px;
-    color: var(--manager-green);
-    background: rgba(8, 100, 59, .06);
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid var(--id-tone-approved);
+    border-radius: var(--id-r3);
+    background: var(--id-tone-approved-wash);
   }
+  .manager-focus__clear i { color: var(--id-tone-approved); font-size: 1.5rem; }
+  .manager-focus__clear span { display: grid; gap: 3px; }
+  .manager-focus__clear strong { font-size: .95rem; font-weight: 950; }
+  .manager-focus__clear small { color: var(--mg-muted); font-size: .8rem; font-weight: 700; }
 
-  .manager-focus__clear i { font-size: 1.35rem; }
-  .manager-focus__clear strong,
-  .manager-focus__clear small { display: block; }
-  .manager-focus__clear small {
-    margin-top: .15rem;
-    color: var(--manager-muted);
-  }
-
+  /* ── جاهزية المساحة ─────────────────────────────────────────────── */
   .manager-setup {
     display: grid;
-    grid-template-columns: minmax(220px, .55fr) minmax(0, 1.45fr);
-    gap: 1rem;
-    padding: 1rem;
-    border: 1px solid var(--manager-line);
-    border-radius: 20px;
-    background: var(--manager-soft);
+    grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+    gap: clamp(18px, 2.4vw, 32px);
+    padding: clamp(18px, 2.2vw, 26px);
+    border: 1px solid var(--mg-line);
+    border-radius: var(--id-r4);
+    background: var(--mg-card);
+    box-shadow: var(--id-e2);
   }
-
-  .manager-setup__summary {
-    padding: 1rem;
-    border-radius: 16px;
-    color: #fff;
-    background: linear-gradient(145deg, #0b6840, #06462b);
-  }
-
   .manager-setup__summary h2 {
-    margin: 0;
-    color: #fff;
-    font-size: 1.05rem;
+    margin: 0 0 6px;
+    font-size: 1.12rem;
+    font-weight: 950;
   }
-
   .manager-setup__summary p {
-    margin: .45rem 0 .9rem;
-    color: rgba(255, 255, 255, .76);
-    font-size: .78rem;
-    line-height: 1.75;
+    margin: 0 0 16px;
+    color: var(--mg-muted);
+    font-size: .85rem;
+    font-weight: 700;
+    line-height: 1.8;
   }
-
   .manager-setup__percent {
     display: flex;
     align-items: baseline;
-    gap: .35rem;
+    gap: 10px;
+    margin-bottom: 10px;
   }
-
   .manager-setup__percent strong {
-    color: #f6e7c4;
-    font-size: 2rem;
+    font-size: clamp(2rem, 3.6vw, 2.7rem);
     font-weight: 950;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(120deg, var(--id-green-600), var(--id-gold-500));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-
+  .manager-setup__percent span { color: var(--mg-muted); font-size: .84rem; font-weight: 800; }
   .manager-setup__track {
-    height: 7px;
-    margin-top: .65rem;
+    height: 10px;
+    border-radius: var(--id-pill);
+    background: var(--id-line-soft);
     overflow: hidden;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .18);
   }
-
-  .manager-setup__track span {
+  .manager-setup__track > span {
     display: block;
     height: 100%;
-    border-radius: inherit;
-    background: #f0d596;
+    border-radius: var(--id-pill);
+    background: linear-gradient(90deg, var(--id-green-700), var(--id-green-500) 62%, var(--id-gold-400));
+    transition: width var(--id-slow) var(--id-ease);
   }
-
-  .manager-setup__steps {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .65rem;
-  }
-
+  .manager-setup__steps { display: grid; gap: 10px; align-content: start; }
   .manager-setup__step {
     display: flex;
     align-items: center;
-    gap: .65rem;
-    padding: .75rem;
-    border: 1px solid var(--manager-line);
-    border-radius: 14px;
-    background: var(--surface, #fff);
+    gap: 13px;
+    padding: 13px 15px;
+    border: 1px solid var(--mg-line);
+    border-radius: var(--id-r3);
+    background: var(--mg-soft);
+    color: inherit;
     text-decoration: none;
+    transition: transform var(--id-fast) var(--id-ease), border-color var(--id-fast) var(--id-ease);
   }
-
-  .manager-setup__step:hover {
-    border-color: rgba(8, 100, 59, .42);
-    background: rgba(8, 100, 59, .055);
-  }
-
+  .manager-setup__step:hover { transform: translateX(-3px); border-color: var(--id-gold-line); }
   .manager-setup__state {
     display: grid;
-    flex: 0 0 36px;
+    place-items: center;
+    flex: 0 0 auto;
     width: 36px;
     height: 36px;
-    place-items: center;
-    border-radius: 50%;
-    color: var(--manager-warning);
-    background: #fff3cd;
+    border-radius: var(--id-r1);
+    background: var(--id-accent-wash);
+    color: var(--mg-green);
+    font-size: .85rem;
   }
-
+  .manager-setup__step span:last-child { display: grid; gap: 2px; min-width: 0; }
+  .manager-setup__step strong { font-size: .9rem; font-weight: 900; }
+  .manager-setup__step small { color: var(--mg-muted); font-size: .78rem; font-weight: 700; line-height: 1.7; }
+  .manager-setup__step.is-complete { opacity: .72; }
   .manager-setup__step.is-complete .manager-setup__state {
-    color: var(--manager-green);
-    background: #dff3e7;
+    background: var(--id-tone-approved-wash);
+    color: var(--id-tone-approved);
   }
 
-  .manager-setup__step strong,
-  .manager-setup__step small { display: block; }
-  .manager-setup__step strong {
-    color: var(--manager-ink);
-    font-size: .79rem;
-  }
-  .manager-setup__step small {
-    margin-top: .12rem;
-    color: var(--manager-muted);
-    font-size: .68rem;
-    line-height: 1.55;
-  }
-
-  .manager-period-context {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    margin-top: .4rem;
-    padding: .3rem .6rem;
-    border-radius: 999px;
-    color: var(--manager-green);
-    background: rgba(8, 100, 59, .08);
-    font-size: .72rem;
-    font-weight: 850;
-  }
-
+  /* ── ابدأ مهمة ──────────────────────────────────────────────────── */
   .manager-primary-actions {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: .75rem;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 13px;
   }
-
   .manager-primary-action {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    min-height: 132px;
-    padding: 1rem;
-    border: 1px solid var(--manager-line);
-    border-radius: 17px;
-    background: var(--surface, #fff);
-    text-decoration: none;
-    transition: background .2s ease, border-color .2s ease, transform .2s ease;
-  }
-
-  .manager-primary-action:hover {
-    border-color: rgba(8, 100, 59, .38);
-    background: var(--manager-soft);
-    transform: translateY(-3px);
-  }
-
-  .manager-primary-action i {
+    position: relative;
+    overflow: hidden;
     display: grid;
-    width: 40px;
-    height: 40px;
-    margin-bottom: .65rem;
+    gap: 7px;
+    padding: 20px;
+    border: 1px solid var(--mg-line);
+    border-radius: var(--id-r3);
+    background: var(--mg-card);
+    box-shadow: var(--id-e1);
+    color: inherit;
+    text-decoration: none;
+    transition: transform var(--id-fast) var(--id-ease), box-shadow var(--id-fast) var(--id-ease), border-color var(--id-fast) var(--id-ease);
+  }
+  /* ركنٌ ذهبي يتفتّح عند التحويم — تفصيلة صغيرة تُقرأ عنايةً. */
+  .manager-primary-action::before {
+    content: "";
+    position: absolute;
+    inset-block-start: -30px;
+    inset-inline-end: -30px;
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(212, 177, 109, .34), transparent 68%);
+    opacity: 0;
+    transition: opacity var(--id-slow) var(--id-ease);
+  }
+  .manager-primary-action:hover {
+    transform: translateY(-3px);
+    border-color: var(--id-gold-line);
+    box-shadow: var(--id-e3);
+  }
+  .manager-primary-action:hover::before { opacity: 1; }
+  .manager-primary-action > i {
+    width: 44px;
+    height: 44px;
+    display: grid;
     place-items: center;
-    border-radius: 12px;
-    color: var(--manager-green);
-    background: #e8f5ed;
+    border-radius: var(--id-r2);
+    background: var(--id-accent-wash);
+    color: var(--mg-green);
+    font-size: 1.05rem;
   }
+  .manager-primary-action strong { font-size: .95rem; font-weight: 950; }
+  .manager-primary-action small { color: var(--mg-muted); font-size: .8rem; font-weight: 700; line-height: 1.75; }
 
-  .manager-primary-action strong {
-    color: var(--manager-ink);
-    font-size: .86rem;
-  }
-
-  .manager-primary-action small {
-    margin-top: .2rem;
-    color: var(--manager-muted);
-    font-size: .72rem;
-    line-height: 1.55;
-  }
-
+  /* ── مساحات العمل ───────────────────────────────────────────────── */
   .manager-workspaces {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .9rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 14px;
   }
-
   .manager-workspace {
-    padding: 1rem;
-    border: 1px solid var(--manager-line);
-    border-radius: 20px;
-    background: var(--surface, #fff);
+    display: grid;
+    gap: 14px;
+    align-content: start;
+    padding: clamp(16px, 2vw, 22px);
+    border: 1px solid var(--mg-line);
+    border-radius: var(--id-r4);
+    background: var(--mg-card);
+    box-shadow: var(--id-e2);
   }
-
   .manager-workspace__head {
     display: flex;
-    align-items: center;
-    gap: .7rem;
-    margin-bottom: .75rem;
-    padding-bottom: .75rem;
-    border-bottom: 1px solid var(--manager-line);
+    align-items: flex-start;
+    gap: 13px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid var(--id-line-soft);
   }
-
-  .manager-workspace__head i {
+  .manager-workspace__head > i {
     display: grid;
-    width: 38px;
-    height: 38px;
     place-items: center;
-    border-radius: 12px;
-    color: var(--manager-green);
-    background: #e8f5ed;
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    border: 1px solid var(--id-gold-line);
+    border-radius: var(--id-r2);
+    background: linear-gradient(140deg, var(--id-accent-wash), transparent);
+    color: var(--mg-green);
+    font-size: 1.1rem;
   }
-
-  .manager-workspace__head h3,
-  .manager-workspace__head p {
-    margin: 0;
-  }
-
-  .manager-workspace__head h3 {
-    color: var(--manager-ink);
-    font-size: .95rem;
-  }
-
-  .manager-workspace__head p {
-    margin-top: .15rem;
-    color: var(--manager-muted);
-    font-size: .72rem;
-  }
-
-  .manager-workspace__links {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .45rem;
-  }
-
+  .manager-workspace__head h3 { margin: 0 0 3px; font-size: 1rem; font-weight: 950; }
+  .manager-workspace__head p { margin: 0; color: var(--mg-muted); font-size: .81rem; font-weight: 700; line-height: 1.7; }
+  .manager-workspace__links { display: grid; gap: 6px; }
   .manager-workspace__link {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: .6rem;
-    min-height: 46px;
-    padding: .65rem .7rem;
-    border-radius: 11px;
-    color: var(--manager-ink);
-    background: var(--manager-soft);
-    text-decoration: none;
-    font-size: .78rem;
+    gap: 10px;
+    padding: 11px 13px;
+    border: 1px solid transparent;
+    border-radius: var(--id-r2);
+    background: var(--mg-soft);
+    color: inherit;
+    font-size: .87rem;
     font-weight: 800;
+    text-decoration: none;
+    transition: transform var(--id-fast) var(--id-ease), border-color var(--id-fast) var(--id-ease), background var(--id-fast) var(--id-ease);
   }
-
   .manager-workspace__link:hover {
-    color: var(--manager-green);
-    background: #e8f5ed;
+    transform: translateX(-3px);
+    border-color: var(--id-gold-line);
+    background: var(--id-accent-wash);
   }
-
-  [data-theme="dark"] .manager-workspace__link:hover,
-  [data-theme="dark"] .manager-primary-action i,
-  [data-theme="dark"] .manager-workspace__head i,
-  [data-theme="dark"] .manager-kpi__icon {
-    background: #183b28;
-  }
-
-  .manager-workspace__link--locked {
-    border: 1px dashed #d1aa5f;
-    color: #76551a;
-    background: #fff9e9;
-  }
-
-  .manager-workspace__link .manager-lock {
+  .manager-workspace__link > i { color: var(--mg-muted); font-size: .78rem; }
+  .manager-workspace__link:hover > i { color: var(--mg-green); }
+  /* المقفل يُعرض ولا يُخفى: إخفاء ما لم يُشترَ يمنع معرفته أصلاً. */
+  .manager-workspace__link--locked { opacity: .78; }
+  .manager-lock {
     display: inline-flex;
     align-items: center;
-    gap: .25rem;
-    color: #956d24;
-    font-size: .68rem;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: var(--id-pill);
+    background: var(--id-tone-attention-wash);
+    color: var(--mg-warning);
+    font-size: .72rem;
+    font-weight: 900;
+    white-space: nowrap;
   }
 
+  /* ── مفتاح الملخص الأسبوعي ──────────────────────────────────────── */
+  .manager-toggle {
+    display: grid;
+    gap: 12px;
+    padding: 15px;
+    border: 1px solid var(--id-line-soft);
+    border-radius: var(--id-r3);
+    background: var(--mg-soft);
+  }
+  .manager-toggle__copy { display: grid; gap: 4px; }
+  .manager-toggle__copy strong { font-size: .89rem; font-weight: 950; }
+  .manager-toggle__copy small { color: var(--mg-muted); font-size: .78rem; font-weight: 700; }
+  .manager-toggle__state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    justify-self: start;
+    margin-top: 4px;
+    padding: 3px 11px;
+    border-radius: var(--id-pill);
+    font-size: .74rem;
+    font-weight: 900;
+  }
+  .manager-toggle__state.is-on { background: var(--id-tone-approved-wash); color: var(--id-tone-approved); }
+  .manager-toggle__state.is-off { background: var(--id-tone-draft-wash); color: var(--id-tone-draft); }
+  .manager-toggle__buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 4px;
+    border-radius: var(--id-pill);
+    background: var(--id-line-soft);
+  }
+  .manager-toggle__button {
+    padding: 9px 12px;
+    border: 0;
+    border-radius: var(--id-pill);
+    background: transparent;
+    color: var(--mg-muted);
+    font-family: inherit;
+    font-size: .83rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: background var(--id-fast) var(--id-ease), color var(--id-fast) var(--id-ease), box-shadow var(--id-fast) var(--id-ease);
+  }
+  .manager-toggle__button.is-selected {
+    background: var(--mg-card);
+    color: var(--mg-green);
+    box-shadow: var(--id-e1);
+  }
+
+  /* ── أداء المدرسة ───────────────────────────────────────────────── */
   .manager-analytics {
-    padding: 1rem;
-    border: 1px solid var(--manager-line);
-    border-radius: 22px;
-    background: var(--surface, #fff);
+    padding: clamp(18px, 2.2vw, 26px);
+    border: 1px solid var(--mg-line);
+    border-radius: var(--id-r4);
+    background: var(--mg-card);
+    box-shadow: var(--id-e2);
   }
-
   .manager-analytics__toolbar {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  .manager-periods {
-    display: flex;
     flex-wrap: wrap;
-    gap: .35rem;
-    padding: .25rem;
-    border-radius: 12px;
-    background: var(--manager-soft);
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--id-line-soft);
   }
-
+  .manager-live-status {
+    display: inline-block;
+    margin-top: 8px;
+    color: var(--mg-muted);
+    font-size: .77rem;
+    font-weight: 700;
+  }
+  .manager-periods {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--id-line-soft);
+    border-radius: var(--id-pill);
+    background: var(--mg-soft);
+  }
   .manager-period {
-    min-height: 36px;
-    padding: .45rem .72rem;
+    padding: 8px 15px;
     border: 0;
-    border-radius: 9px;
-    color: var(--manager-muted);
+    border-radius: var(--id-pill);
     background: transparent;
+    color: var(--mg-muted);
+    font-family: inherit;
+    font-size: .82rem;
+    font-weight: 900;
     cursor: pointer;
-    font: inherit;
-    font-size: .75rem;
-    font-weight: 850;
+    white-space: nowrap;
+    transition: background var(--id-fast) var(--id-ease), color var(--id-fast) var(--id-ease), box-shadow var(--id-fast) var(--id-ease);
   }
-
   .manager-period.is-active {
+    background: linear-gradient(140deg, var(--id-green-700), var(--id-green-900));
     color: #fff;
-    background: var(--manager-green);
+    box-shadow: var(--id-e2);
   }
-
   .manager-refresh {
     display: inline-flex;
     align-items: center;
-    gap: .4rem;
-    min-height: 38px;
-    padding: .45rem .72rem;
-    border: 1px solid var(--manager-line);
-    border-radius: 10px;
-    color: var(--manager-ink);
-    background: var(--surface, #fff);
+    gap: 8px;
+    padding: 9px 17px;
+    border: 1px solid var(--mg-line);
+    border-radius: var(--id-pill);
+    background: var(--mg-card);
+    color: var(--mg-ink);
+    font-family: inherit;
+    font-size: .82rem;
+    font-weight: 900;
     cursor: pointer;
-    font: inherit;
-    font-size: .76rem;
-    font-weight: 850;
+    transition: transform var(--id-fast) var(--id-ease), border-color var(--id-fast) var(--id-ease);
   }
-
-  .manager-refresh:disabled {
-    cursor: progress;
-    opacity: .58;
-  }
+  .manager-refresh:hover { transform: translateY(-1px); border-color: var(--id-gold-line); }
+  .manager-refresh i { color: var(--mg-green); }
 
   .manager-analytics__grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr);
-    gap: .9rem;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, .65fr);
+    gap: 16px;
   }
-
-  .manager-chart,
-  .manager-insight {
-    border: 1px solid var(--manager-line);
-    border-radius: 16px;
-    background: var(--manager-soft);
+  .manager-chart, .manager-insight {
+    padding: 17px;
+    border: 1px solid var(--id-line-soft);
+    border-radius: var(--id-r3);
+    background: var(--mg-soft);
   }
-
-  .manager-chart {
-    min-height: 330px;
-    padding: .9rem;
-  }
-
-  .manager-chart h3,
-  .manager-insight h3 {
-    margin: 0 0 .75rem;
-    color: var(--manager-ink);
-    font-size: .86rem;
-  }
-
-  .manager-chart__canvas {
-    position: relative;
-    height: 260px;
-  }
-
-  .manager-insights {
-    display: grid;
-    gap: .75rem;
-  }
-
-  .manager-insight {
-    padding: .9rem;
-  }
-
-  .manager-insight__number {
-    color: var(--manager-green);
-    font-size: 1.75rem;
+  .manager-chart h3, .manager-insight h3 {
+    margin: 0 0 13px;
+    font-size: .92rem;
     font-weight: 950;
   }
-
-  .manager-insight p {
-    margin: .35rem 0 0;
-    color: var(--manager-muted);
-    font-size: .75rem;
-    line-height: 1.7;
+  .manager-chart__canvas { position: relative; height: 300px; }
+  .manager-chart__canvas canvas { max-width: 100%; }
+  /* يُنشئه JS حين يتعذّر تحميل مكتبة الرسم. بلا تنسيقٍ له يظهر نصاً عارياً
+     في منتصف بطاقة فارغة، فيُقرأ عطلاً في الصفحة لا في الرسم وحده. */
+  .manager-chart-fallback {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    padding: 16px;
+    border: 1px dashed var(--mg-line);
+    border-radius: var(--id-r2);
+    color: var(--mg-muted);
+    font-size: .84rem;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.8;
   }
-
+  .manager-insights { display: grid; gap: 13px; align-content: start; }
+  .manager-insight__number {
+    display: block;
+    margin-bottom: 9px;
+    font-size: clamp(1.7rem, 3vw, 2.15rem);
+    font-weight: 950;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--mg-green);
+  }
+  .manager-insight p { margin: 9px 0 0; color: var(--mg-muted); font-size: .81rem; font-weight: 700; line-height: 1.8; }
   .manager-progress {
-    height: 8px;
-    margin-top: .65rem;
+    height: 9px;
+    border-radius: var(--id-pill);
+    background: var(--id-line-soft);
     overflow: hidden;
-    border-radius: 999px;
-    background: var(--manager-line);
   }
-
-  .manager-progress span {
+  .manager-progress > span {
     display: block;
     height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, var(--manager-green-fill), #19a064);
+    border-radius: var(--id-pill);
+    background: linear-gradient(90deg, var(--id-green-700), var(--id-green-500) 64%, var(--id-gold-400));
+    transition: width var(--id-slow) var(--id-ease);
   }
 
-  .manager-activity-list {
-    display: grid;
-    gap: .45rem;
-  }
-
+  .manager-activity-list { display: grid; gap: 8px; }
   .manager-activity {
     display: flex;
     align-items: center;
-    gap: .65rem;
-    padding: .6rem;
-    border-radius: 12px;
-    background: var(--manager-soft);
+    gap: 11px;
+    padding: 10px 11px;
+    border: 1px solid transparent;
+    border-radius: var(--id-r2);
+    background: var(--mg-card);
+    color: inherit;
     text-decoration: none;
-    transition: background .18s ease, transform .18s ease;
+    transition: border-color var(--id-fast) var(--id-ease), transform var(--id-fast) var(--id-ease);
   }
-
-  .manager-activity:hover {
-    background: rgba(8, 100, 59, .08);
-    transform: translateX(-2px);
-  }
-
+  .manager-activity:hover { transform: translateX(-3px); border-color: var(--id-gold-line); }
   .manager-activity__icon {
     display: grid;
-    flex: 0 0 34px;
+    place-items: center;
+    flex: 0 0 auto;
     width: 34px;
     height: 34px;
-    place-items: center;
-    border-radius: 10px;
-    color: var(--manager-green);
-    background: #e3f2e8;
+    border-radius: var(--id-r1);
+    background: var(--id-accent-wash);
+    color: var(--mg-green);
+    font-size: .82rem;
   }
-
-  .manager-activity strong,
-  .manager-activity small {
-    display: block;
-  }
-
+  .manager-activity span:last-child { display: grid; gap: 2px; min-width: 0; }
   .manager-activity strong {
-    color: var(--manager-ink);
-    font-size: .75rem;
+    font-size: .83rem;
+    font-weight: 850;
+    line-height: 1.6;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .manager-activity small { color: var(--mg-muted); font-size: .74rem; font-weight: 700; }
+
+  /* ── الشاشات الضيّقة ────────────────────────────────────────────── */
+  @media (max-width: 1080px) {
+    .manager-analytics__grid { grid-template-columns: 1fr; }
+    .manager-setup { grid-template-columns: 1fr; }
   }
 
-  .manager-activity small {
-    margin-top: .1rem;
-    color: var(--manager-muted);
-    font-size: .68rem;
+  @media (max-width: 860px) {
+    .manager-hero { grid-template-columns: 1fr; }
+    .manager-hero__summary { justify-items: start; text-align: start; }
+    .manager-section__head { flex-direction: column; align-items: stretch; }
+    .manager-analytics__toolbar { flex-direction: column; align-items: stretch; }
+    .manager-periods { display: grid; grid-template-columns: repeat(2, 1fr); border-radius: var(--id-r2); }
+    .manager-period { border-radius: var(--id-r1); }
+    .manager-subscription-alert { flex-wrap: wrap; }
+    .manager-subscription-alert a { margin-inline-start: 0; width: 100%; text-align: center; }
   }
 
-  .manager-chart-fallback {
-    display: grid;
-    height: 100%;
-    place-items: center;
-    padding: 1rem;
-    color: var(--manager-muted);
-    text-align: center;
-    font-size: .78rem;
-  }
-
-  .manager-live-status {
-    color: var(--manager-muted);
-    font-size: .72rem;
-  }
-
-  @media (max-width: 1100px) {
-    .manager-kpis,
-    .manager-focus__items {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .manager-primary-actions {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 820px) {
-    .manager-page {
-      padding: .8rem;
-    }
-
-    .manager-hero,
-    .manager-focus,
-    .manager-setup,
-    .manager-analytics__grid {
-      grid-template-columns: 1fr;
-    }
-
-    .manager-workspaces {
-      grid-template-columns: 1fr;
-    }
-
-    .manager-hero__summary {
-      min-height: 128px;
-    }
-  }
-
-  @media (max-width: 580px) {
-    .manager-kpis,
-    .manager-focus__items,
-    .manager-primary-actions,
-    .manager-workspace__links,
-    .manager-setup__steps {
-      grid-template-columns: 1fr;
-    }
-
-    .manager-kpi,
-    .manager-primary-action {
-      min-height: 110px;
-    }
-
-    .manager-focus__item {
-      min-height: 64px;
-    }
-
-    .manager-section__head,
-    .manager-analytics__toolbar,
-    .manager-subscription-alert {
-      align-items: stretch;
-      flex-direction: column;
-    }
-
-    .manager-subscription-alert a {
-      text-align: center;
-    }
-
-    .manager-periods {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-    }
+  @media (max-width: 560px) {
+    .manager-hero__actions { display: grid; }
+    .manager-hero__button { justify-content: center; }
+    .manager-chart__canvas { height: 240px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1057,11 +921,37 @@
       transition-duration: .01ms !important;
     }
   }
+
+  /* الورق: بلا تدرّجات ولا ظلال، والنص الذهبي يعود حبراً أسود. */
+  @media print {
+    .manager-page { padding: 0; }
+    .manager-hero {
+      color: #000;
+      background: none;
+      border-color: #999;
+      box-shadow: none;
+    }
+    .manager-hero h1,
+    .manager-setup__percent strong {
+      background: none;
+      -webkit-text-fill-color: currentColor;
+      color: #000;
+    }
+    .manager-hero__actions,
+    .manager-periods,
+    .manager-refresh,
+    .manager-toggle__buttons { display: none; }
+    .manager-kpi,
+    .manager-focus,
+    .manager-workspace,
+    .manager-analytics,
+    .manager-setup { box-shadow: none; break-inside: avoid; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<main class="manager-page" id="managerDashboard">
+<main class="manager-page id-root" id="managerDashboard">
   {% if subscription_warning %}
     <div class="manager-subscription-alert {% if subscription_warning == 'critical' %}is-critical{% elif subscription_warning == 'expired' %}is-expired{% endif %}" role="status">
       <i class="fa-solid {% if subscription_warning == 'expired' %}fa-circle-xmark{% else %}fa-triangle-exclamation{% endif %}" aria-hidden="true"></i>
@@ -1503,8 +1393,16 @@
       payload = {};
     }
 
+    /* الأرقام لاتينية كما يكتبها الخادم. كانت `ar-SA` تعطي أرقاماً هندية
+       (١٢)، فيُعرض المؤشر `12` عند فتح الصفحة ثم `١٢` بعد أول تحديث —
+       رقمان لشيء واحد في بطاقةٍ واحدة، وبقيةُ اللوحة لاتينية. */
     function formatNumber(value) {
-      return Number(value || 0).toLocaleString("ar-SA");
+      const number = Number(value || 0);
+      try {
+        return number.toLocaleString("ar-SA-u-nu-latn");
+      } catch (error) {
+        return number.toLocaleString("en-US");
+      }
     }
 
     function setText(id, value) {
@@ -1522,13 +1420,17 @@
       box.appendChild(message);
     }
 
+    /* ألوان الرسوم تُقرأ من جذر الهوية لا تُكتب هنا: الرسم المرسوم بأخضرٍ
+       خاصٍّ به يفضح نفسه بجوار بطاقةٍ بأخضر الهوية، ولا يتبع الوضع الليلي. */
     function chartColors() {
+      const styles = getComputedStyle(root);
+      const token = (name, fallback) => styles.getPropertyValue(name).trim() || fallback;
       return {
-        green: "#08643b",
-        greenSoft: "rgba(8, 100, 59, .13)",
-        gold: "#b68a42",
-        grid: "rgba(100, 120, 108, .13)",
-        text: getComputedStyle(root).getPropertyValue("--manager-muted").trim() || "#607067"
+        green: token("--id-accent", "#08643b"),
+        greenSoft: token("--id-accent-wash", "rgba(8, 100, 59, .13)"),
+        gold: token("--id-gold", "#b68a42"),
+        grid: token("--id-line", "rgba(100, 120, 108, .13)"),
+        text: token("--id-muted", "#607067")
       };
     }
 

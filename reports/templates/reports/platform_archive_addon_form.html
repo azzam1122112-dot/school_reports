@@ -145,6 +145,7 @@
         <div class="field">
           <label for="{{ form.storage_limit_gb.id_for_label }}">{{ form.storage_limit_gb.label }}</label>
           {{ form.storage_limit_gb }}
+          {% if form.storage_limit_gb.help_text %}<div class="royal-note">{{ form.storage_limit_gb.help_text }}</div>{% endif %}
           {% for e in form.storage_limit_gb.errors %}<div class="error">{{ e }}</div>{% endfor %}
         </div>
         <div class="field">

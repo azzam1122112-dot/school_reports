@@ -397,7 +397,11 @@
                 {% if payment.purpose == 'archive_addon' %}
                   إضافة الأرشفة
                 {% elif payment.purpose == 'archive_storage' %}
-                  زيادة مساحة الأرشيف
+                  {# القيمة المخزّنة تراثية؛ أثرها كان دائمًا على مساحة العمل. #}
+                  زيادة مساحة عمل المدرسة
+                  <div class="subline">{{ payment.archive_storage_gb }}GB</div>
+                {% elif payment.purpose == 'archive_space' %}
+                  زيادة مساحة الأرشفة السنوية
                   <div class="subline">{{ payment.archive_storage_gb }}GB</div>
                 {% else %}
                   {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}
@@ -420,7 +424,7 @@
                 {% elif payment.status == 'approved' %}
                   <span class="badge success"><i class="fa-solid fa-circle-check"></i> مقبول</span>
                 {% elif payment.status == 'pending' and payment.payment_method == 'tamara' %}
-                  <span class="badge warning"><i class="fa-solid fa-clock"></i> بانتظار تمارا</span>
+                  <span class="badge warning"><i class="fa-solid fa-clock"></i> بانتظار{% if tamara_enabled %} تمارا{% else %} مزود الدفع{% endif %}</span>
                 {% elif payment.status == 'pending' and payment.payment_method == 'moyasar' %}
                   <span class="badge warning"><i class="fa-solid fa-clock"></i> بانتظار ميّسر</span>
                 {% elif payment.status == 'pending' %}

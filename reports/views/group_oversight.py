@@ -23,11 +23,13 @@ from django.views.decorators.http import require_http_methods
 from ..audit_labels import attach_views
 from ..model_parts.approvals import ApprovalState, PENDING_REVIEW_STATES
 from ..models import (
+    Assignment,
     AssignmentTarget,
     AuditLog,
     Document,
     Initiative,
     Meeting,
+    MeetingMinutes,
     Plan,
     Report,
     School,
@@ -35,13 +37,19 @@ from ..models import (
     SchoolYearArchive,
     TeacherAchievementFile,
 )
+from ..services_approval import available_actions
 from ..permissions import (
     executive_director_groups,
     executive_director_schools_qs,
     is_executive_director,
 )
 
-__all__ = ["group_school_detail", "group_audit_log", "group_archive"]
+__all__ = [
+    "group_school_detail",
+    "group_audit_log",
+    "group_archive",
+    "group_approval_inbox",
+]
 
 
 def _director_groups(request):
@@ -272,5 +280,130 @@ def group_archive(request):
                 "missing": sum(1 for row in rows if not row["archives"]),
                 "copies": len(archives),
             },
+        },
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# صندوق اعتماد المجموعة
+# ─────────────────────────────────────────────────────────────────────────────
+_GROUP_STATE_ORDER = {
+    ApprovalState.RECOMMENDED: 0,
+    ApprovalState.SUBMITTED: 1,
+    ApprovalState.UNDER_REVIEW: 2,
+    ApprovalState.NEEDS_INFO: 3,
+    ApprovalState.RETURNED: 4,
+}
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def group_approval_inbox(request):
+    """ما ينتظر قرار المدير التنفيذي على مستوى المجموعة.
+
+    **الاستثناء الوحيد من «قراءة فقط» في هذا الملف** — وهو ليس نقضاً للقاعدة بل
+    تطبيقٌ لها: القاعدة أنه لا يتولّى الإدارة اليومية لأي **مدرسة**، وهذا صندوقٌ
+    لما **أصدره هو** على مستوى مجموعته. واعتمادُ ردٍّ على تكليفٍ أصدرتَه ليس
+    إدارةَ مدرسةٍ، بل إتمامُ عملك أنت.
+
+    وكان هذا العمل مبثوثاً: يفتح كل تكليف على حدة ليرى هل ردّت مدارسه، ويفتح كل
+    جلسة مجلس ليرى هل اعتُمد محضرها. فما لم يُفتَح لا يُعرَف أنه ينتظر — وهو
+    الفرق نفسه الذي بُني لأجله ``approval_inbox`` لمدير المدرسة.
+
+    **بندٌ واحد لا بندان لنفس الشيء:** حصص التكليف تُعرض مجمَّعةً بتكليفها لا
+    صفّاً لكل مدرسة، فتكليفٌ على عشر مدارس بندٌ واحد فيه عشرة ردود — وعرضُها
+    عشرة بنود يجعل الصندوق يبدو ممتلئاً بعملٍ واحد.
+
+    و``available_actions`` هي مصدر الأزرار كما في كل صندوق: لا يُعرض إجراء لا
+    تذكره، والإجراء نفسه يُنفَّذ من شاشة التكليف أو المحضر حيث يُسجَّل في دورة
+    القرار.
+    """
+    groups = _director_groups(request)
+    group = _selected_group(request, groups)
+
+    # ── حصص تكليفات المجموعة التي أصدرها، مجمَّعةً بتكليفها ──
+    targets = (
+        AssignmentTarget.objects.filter(
+            assignment__group=group,
+            assignment__issuer=request.user,
+            approval_state__in=PENDING_REVIEW_STATES,
+        )
+        .select_related("assignment", "assignee", "school")
+        .order_by("assignment__due_at", "assignment_id", "id")
+    )
+
+    assignment_rows: dict[int, dict] = {}
+    for target in targets[:400]:
+        row = assignment_rows.setdefault(
+            target.assignment_id,
+            {
+                "assignment": target.assignment,
+                "targets": [],
+                "actions": set(),
+                "order": 9,
+            },
+        )
+        row["targets"].append(target)
+        row["actions"] |= set(
+            available_actions(target, request.user, school=target.school)
+        )
+        row["order"] = min(
+            row["order"], _GROUP_STATE_ORDER.get(target.approval_state, 9)
+        )
+
+    assignment_list = sorted(
+        assignment_rows.values(), key=lambda row: (row["order"], -row["assignment"].pk)
+    )
+
+    # ── محاضر جلسات المجلس التي ينتظرها قرار ──
+    minutes = (
+        MeetingMinutes.objects.filter(
+            meeting__group=group,
+            meeting__scope=Meeting.Scope.GROUP,
+            approval_state__in=PENDING_REVIEW_STATES,
+        )
+        .select_related("meeting", "recorder")
+        .order_by("-submitted_at", "-id")
+    )
+    minutes_rows = [
+        {
+            "minutes": item,
+            # محضر المجلس لا مدرسة له، فتُمرَّر ``school=None`` — والخطّاف
+            # ``can_review_approval`` يقبل منظّم الاجتماع بلا صلاحية مدرسية،
+            # وهو ما يتيح لرئيس المجلس اعتماد محضره دون عضوية في أي مدرسة.
+            "actions": available_actions(item, request.user, school=None),
+            "order": _GROUP_STATE_ORDER.get(item.approval_state, 9),
+        }
+        for item in minutes[:100]
+    ]
+    minutes_rows.sort(key=lambda row: (row["order"], -row["minutes"].pk))
+
+    # ── جلسات انعقدت ولم يُكتب محضرها ──
+    minutes_missing = list(
+        Meeting.objects.filter(
+            group=group,
+            scope=Meeting.Scope.GROUP,
+            status=Meeting.Status.HELD,
+            minutes__isnull=True,
+        ).order_by("-scheduled_at", "-id")[:20]
+    )
+
+    total = len(assignment_list) + len(minutes_rows) + len(minutes_missing)
+    mine = sum(
+        1 for row in assignment_list if {"approve", "recommend"} & row["actions"]
+    ) + sum(1 for row in minutes_rows if {"approve", "issue"} & set(row["actions"]))
+
+    return render(
+        request,
+        "reports/group_approval_inbox.html",
+        {
+            "active": "group_approval_inbox",
+            "group": group,
+            "groups": groups,
+            "assignment_rows": assignment_list,
+            "minutes_rows": minutes_rows,
+            "minutes_missing": minutes_missing,
+            "total": total,
+            "mine_count": mine,
         },
     )

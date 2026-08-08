@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% load hijri_tags %}
+
+{% block title %}{{ experiment.title }} | تجارب المختبر{% endblock %}
+
+{% block head %}{% include "reports/_lab_theme.html" %}{% endblock %}
+
+{% block content %}
+<div class="lab">
+
+  <header class="lab-hero">
+    <span class="lab-hero__eyebrow">
+      <i class="fa-solid fa-vials" aria-hidden="true"></i>
+      تجربة مختبر
+    </span>
+    <h1>{{ experiment.title }}</h1>
+    <p class="lab-hero__lead">
+      <span dir="rtl">{{ experiment.experiment_date|hijri }}</span>
+      {% if experiment.subject %}· {{ experiment.subject }}{% endif %}
+      {% if experiment.class_name %}· {{ experiment.class_name }}{% endif %}
+      {% if experiment.students_count %}· {{ experiment.students_count }} طالباً{% endif %}
+    </p>
+    <div class="lab-hero__actions">
+      <a class="lab-act" href="{% url 'reports:lab_experiments' %}">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        كل التجارب
+      </a>
+      <a class="lab-act" href="{% url 'reports:lab_experiment_print' experiment.pk %}">
+        <i class="fa-solid fa-print" aria-hidden="true"></i>
+        طباعة
+      </a>
+    </div>
+  </header>
+
+  {% comment %} ═══ الحالة والإجراءات ════════════════════════════════════
+     الأزرار من ``available_actions`` وحدها — لا زرّ لا تذكره. {% endcomment %}
+  <section class="lab-section">
+    <div class="lab-card">
+      <div class="lab-section__head" style="margin-bottom:.6rem">
+        <h2>
+          <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>
+          الحالة: {{ experiment.get_approval_state_display }}
+        </h2>
+        {% if experiment.recorder %}
+          <span class="lab-chip">وثّقها {{ experiment.recorder.name }}</span>
+        {% endif %}
+      </div>
+
+      {% if experiment.review_note %}
+        <p style="color:var(--lab-warn);line-height:1.9;margin:.2rem 0 .8rem">
+          <b>ملاحظة المراجعة:</b> {{ experiment.review_note }}
+        </p>
+      {% endif %}
+
+      {% if actions %}
+        <form method="post" action="{% url 'reports:lab_experiment_action' experiment.pk %}" class="lab-form">
+          {% csrf_token %}
+          <div class="lab-field">
+            <label for="note">ملاحظة (تُلزم عند الإعادة أو طلب الاستكمال)</label>
+            <input class="form-control" type="text" id="note" name="note" maxlength="500">
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+            {% for action in actions %}
+              <button type="submit" name="approval_action" value="{{ action }}"
+                      class="lab-btn {% if action == 'return' or action == 'request_info' %}lab-btn--danger{% elif action != 'approve' %}lab-btn--ghost{% endif %}">
+                {% if action == 'submit' %}أرسِل للاعتماد
+                {% elif action == 'withdraw' %}اسحب للتعديل
+                {% elif action == 'start_review' %}ابدأ المراجعة
+                {% elif action == 'request_info' %}اطلب استكمالاً
+                {% elif action == 'return' %}أعِدها بملاحظة
+                {% elif action == 'recommend' %}أوصِ باعتمادها
+                {% elif action == 'approve' %}اعتمِد
+                {% elif action == 'issue' %}أصدِر
+                {% else %}{{ action }}{% endif %}
+              </button>
+            {% endfor %}
+          </div>
+        </form>
+      {% else %}
+        <p style="color:var(--lab-muted);margin:0">
+          {% if experiment.is_final %}
+            التجربة معتمدة — والمعتمد نهائي لا يُعدَّل ولا يعود.
+          {% else %}
+            لا إجراء متاحٌ لك على هذه التجربة الآن.
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+  </section>
+
+  {# ═══ التفصيل ══════════════════════════════════════════════ #}
+  <section class="lab-section">
+    <div class="lab-section__head">
+      <h2><i class="fa-solid fa-file-lines" aria-hidden="true"></i> تفصيل التجربة</h2>
+    </div>
+    <div class="lab-card">
+      <dl style="display:grid;gap:.9rem;margin:0">
+        {% if experiment.requested_by %}
+          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">طلبها</dt>
+          <dd style="margin:.2rem 0 0">{{ experiment.requested_by.name }}</dd></div>
+        {% endif %}
+        {% if experiment.objectives %}
+          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">الأهداف</dt>
+          <dd style="margin:.2rem 0 0;line-height:1.9">{{ experiment.objectives|linebreaksbr }}</dd></div>
+        {% endif %}
+        {% if experiment.procedure %}
+          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">خطوات التنفيذ</dt>
+          <dd style="margin:.2rem 0 0;line-height:1.9">{{ experiment.procedure|linebreaksbr }}</dd></div>
+        {% endif %}
+        {% if experiment.materials_note %}
+          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">المواد والأدوات</dt>
+          <dd style="margin:.2rem 0 0;line-height:1.9">{{ experiment.materials_note|linebreaksbr }}</dd></div>
+        {% endif %}
+        {% if experiment.assets.all %}
+          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">أصناف العهدة المستخدمة</dt>
+          <dd style="margin:.35rem 0 0;display:flex;flex-wrap:wrap;gap:.4rem">
+            {% for asset in experiment.assets.all %}
+              <a class="lab-chip" href="{% url 'reports:lab_asset_detail' asset.pk %}">{{ asset.name }}</a>
+            {% endfor %}
+          </dd></div>
+        {% endif %}
+        {% if experiment.safety_notes %}
+          <div><dt style="font-weight:800;color:var(--lab-warn);font-size:12.5px">إجراءات السلامة</dt>
+          <dd style="margin:.2rem 0 0;line-height:1.9">{{ experiment.safety_notes|linebreaksbr }}</dd></div>
+        {% endif %}
+        {% if experiment.report %}
+          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">التقرير المرتبط</dt>
+          <dd style="margin:.2rem 0 0">
+            <a class="lab-link" href="{% url 'reports:report_print' experiment.report.pk %}">{{ experiment.report.title }}</a>
+          </dd></div>
+        {% endif %}
+      </dl>
+    </div>
+  </section>
+
+  {# ═══ التعديل ══════════════════════════════════════════════ #}
+  {% if editable %}
+    <section class="lab-section">
+      <div class="lab-section__head">
+        <h2><i class="fa-solid fa-pen" aria-hidden="true"></i> تعديل</h2>
+      </div>
+      <div class="lab-card">
+        <form method="post" class="lab-form" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <ul class="errorlist">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+          {% endif %}
+          <div class="lab-grid-2">
+            {% for field in form %}
+              {% if field.name != 'objectives' and field.name != 'procedure' and field.name != 'materials_note' and field.name != 'safety_notes' %}
+                <div class="lab-field">
+                  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}{{ field.errors }}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+          {% for field in form %}
+            {% if field.name == 'objectives' or field.name == 'procedure' or field.name == 'materials_note' or field.name == 'safety_notes' %}
+              <div class="lab-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}{{ field.errors }}
+              </div>
+            {% endif %}
+          {% endfor %}
+          <div><button type="submit" class="lab-btn">احفظ التعديل</button></div>
+        </form>
+      </div>
+    </section>
+  {% endif %}
+
+  {# ═══ تدرّج القرار ═════════════════════════════════════════ #}
+  {% if timeline %}
+    <section class="lab-section">
+      <div class="lab-section__head">
+        <h2><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> تدرّج القرار</h2>
+      </div>
+      <ul class="lab-timeline">
+        {% for step in timeline %}
+          <li>
+            <b>{{ step.get_action_display }}</b>
+            {% if step.actor_display %}— {{ step.actor_display }}{% endif %}
+            {% if step.actor_role %} · {{ step.actor_role }}{% endif %}
+            {% if step.note %}<div style="color:var(--lab-muted)">{{ step.note }}</div>{% endif %}
+            <time dir="rtl">{{ step.created_at|hijri }} هـ — {{ step.created_at|time:"H:i" }}</time>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

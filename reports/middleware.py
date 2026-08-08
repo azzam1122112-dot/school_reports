@@ -27,7 +27,7 @@ def get_current_request():
 
 def set_audit_logging_suppressed(value: bool) -> None:
     """Suppress AuditLog signal writes for the current request/thread."""
-    setattr(_thread_locals, "suppress_audit_logging", bool(value))
+    _thread_locals.suppress_audit_logging = bool(value)
 
 
 def is_audit_logging_suppressed() -> bool:
@@ -55,7 +55,7 @@ def is_force_password_change_required(request) -> bool:
     """
     user = getattr(request, "user", None)
     if not getattr(user, "is_authenticated", False):
-        setattr(request, "force_password_change_required", False)
+        request.force_password_change_required = False
         return False
 
     try:
@@ -65,14 +65,14 @@ def is_force_password_change_required(request) -> bool:
 
     if session_required:
         # Already flagged — skip the expensive bcrypt check.
-        setattr(request, "force_password_change_required", True)
+        request.force_password_change_required = True
         return True
 
     # Fast path: if we already verified password is NOT default in this session,
     # skip the bcrypt call.
     try:
         if request.session.get(_PASSWORD_VERIFIED_OK_SESSION_KEY):
-            setattr(request, "force_password_change_required", False)
+            request.force_password_change_required = False
             return False
     except Exception:
         pass
@@ -88,7 +88,7 @@ def is_force_password_change_required(request) -> bool:
     except Exception:
         pass
 
-    setattr(request, "force_password_change_required", required)
+    request.force_password_change_required = required
     return required
 
 
@@ -99,7 +99,7 @@ def clear_force_password_change_flag(request) -> None:
         request.session.pop(_PASSWORD_VERIFIED_OK_SESSION_KEY, None)
     except Exception:
         pass
-    setattr(request, "force_password_change_required", False)
+    request.force_password_change_required = False
 
 
 def _log_denial(request, *, reason: str) -> None:
@@ -706,7 +706,7 @@ class ForcePasswordChangeMiddleware:
 
         user = getattr(request, "user", None)
         if not getattr(user, "is_authenticated", False):
-            setattr(request, "force_password_change_required", False)
+            request.force_password_change_required = False
             return self.get_response(request)
 
         if not is_force_password_change_required(request):

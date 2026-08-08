@@ -1,0 +1,220 @@
+{% comment %}
+جذر هوية المنصة — لوحة واحدة ترثها كل الشاشات.
+
+**لماذا ملف واحد.** الأخضر السعودي كان مكتوباً في القوالب بتسع قيم مختلفة
+(`#006c35` و`#0a5c33` و`#074426` و`#08643b` و`#16845b` و`#0b6238` و`#063d22`
+و`#00542a` و`#052e1a`) كلها تعني اللون نفسه، والذهبي بقيمتين، وإجمالي الألوان
+الثابتة في القوالب ٧١٦ لوناً. ولأن كل شاشة تعلن لوحتها الخاصة ببادئتها
+(`--th-` و`--apr-` و`--asg-` و`--rol-` و`--mr-`) كان الوضع الليلي يُصلَح ثماني
+مرات، وكان كل تحسين بصري جديد يضيف أخضر عاشراً.
+
+**السلّم ثابت والمعنى يتقلّب.** ``--id-green-*`` و``--id-gold-*`` قيمٌ لا
+تتغيّر بين الوضعين — سلّمٌ لونيٌّ لا حالة. وما يتقلّب هو الرموز الدلالية
+(``--id-accent`` و``--id-ink`` و``--id-surface`` …): هي وحدها ما يُعاد تعريفه
+تحت `data-theme="dark"`. الخلط بينهما هو ما يجعل الوضع الليلي يُصلَح لوناً لوناً.
+
+**ما يدخل هنا.** ما تشترك فيه شاشتان فأكثر فعلاً: الرموز، ونغمات حالات
+الاعتماد السبع، وشارة الحالة، والخيط الذهبي، وحلقة التركيز. وما يخصّ شاشةً
+واحدة يبقى في قالبها — وإلا صار هذا الملف مكبّاً باسم «مشترك».
+{% endcomment %}
+<style nonce="{{ CSP_NONCE }}">
+  :root {
+    /* ── السلّم اللوني: قيمٌ لا تتغيّر بين الوضعين ──────────────────── */
+    --id-green-950: #032014;
+    --id-green-900: #05331f;
+    --id-green-800: #064a2b;
+    --id-green-700: #006c35;  /* الأخضر السعودي — أصل الهوية */
+    --id-green-600: #0a8046;
+    --id-green-500: #16955a;
+    --id-green-300: #7fd0a8;
+    --id-green-100: #d7f0e2;
+    --id-green-050: #eef8f2;
+
+    /* الذهبي لا يُستعمل كلوناً للنص إلا نادراً: هو خيطٌ وحدٌّ ووسام،
+       وإسرافه يحوّل «الفخم» إلى «مزركش». */
+    --id-gold-700: #8a6a2f;
+    --id-gold-600: #a8843f;
+    --id-gold-500: #b9975b;
+    --id-gold-400: #d4b16d;
+    --id-gold-300: #e6cf9a;
+    --id-gold-100: #f6ecd6;
+
+    /* ── الرموز الدلالية: هذه وحدها تتقلّب ──────────────────────────── */
+    --id-ink: #10231a;
+    --id-ink-soft: #354a3e;
+    --id-muted: #61756a;
+    --id-line: #dce7e0;
+    --id-line-soft: #edf3ef;
+    --id-surface: #ffffff;
+    --id-surface-2: #f6faf7;
+    --id-canvas: #f2f7f4;
+
+    --id-accent: var(--id-green-700);
+    --id-accent-strong: var(--id-green-800);
+    --id-accent-ink: #ffffff;
+    --id-accent-wash: var(--id-green-050);
+    --id-gold: var(--id-gold-500);
+    --id-gold-line: rgba(185, 151, 91, .42);
+
+    /* ترويسة الشاشات: ثلاث محطات لا واحدة — التدرّج المسطّح يقرأ لوناً
+       لا عمقاً، وهو الفرق بين «ملوَّن» و«فخم». */
+    --id-hero-from: #064a2b;
+    --id-hero-via: #006c35;
+    --id-hero-to: #05331f;
+    --id-hero-ink: #ffffff;
+    --id-hero-ink-soft: rgba(255, 255, 255, .82);
+
+    /* ── الارتفاع: ظلٌّ أخضرُ الميل لا رماديّ ───────────────────────── */
+    --id-e1: 0 1px 2px rgba(6, 40, 24, .06);
+    --id-e2: 0 6px 18px -8px rgba(6, 40, 24, .18);
+    --id-e3: 0 16px 40px -20px rgba(6, 40, 24, .28);
+    --id-e4: 0 28px 70px -34px rgba(6, 40, 24, .42);
+
+    /* ── الأنصاف والحركة ────────────────────────────────────────────── */
+    --id-r1: 10px;
+    --id-r2: 14px;
+    --id-r3: 18px;
+    --id-r4: 24px;
+    --id-r5: 30px;
+    --id-pill: 999px;
+
+    --id-ease: cubic-bezier(.22, .61, .36, 1);
+    --id-fast: .16s;
+    --id-slow: .34s;
+
+    /* ── نغمات حالات الاعتماد السبع ─────────────────────────────────
+       الحالة الواحدة تحمل اللون نفسه في كل شاشة، وإلا صار «مُعاد
+       للملاحظة» إنذاراً في صندوق المراجعة وخبراً على اللوحة. */
+    --id-tone-draft: #61756a;
+    --id-tone-draft-wash: #eef1ef;
+    --id-tone-pending: #1f6feb;
+    --id-tone-pending-wash: #e6effd;
+    --id-tone-attention: #a8843f;
+    --id-tone-attention-wash: #fbf1dd;
+    --id-tone-recommended: #6d4aff;
+    --id-tone-recommended-wash: #eeeaff;
+    --id-tone-approved: #076c3c;
+    --id-tone-approved-wash: #dff2e7;
+    --id-tone-danger: #b42318;
+    --id-tone-danger-wash: #fdeceb;
+  }
+
+  html[data-theme="dark"] {
+    --id-ink: #eff8f2;
+    --id-ink-soft: #c6d8cd;
+    --id-muted: #a2b5a9;
+    --id-line: #2b4535;
+    --id-line-soft: #1d3327;
+    --id-surface: #14251c;
+    --id-surface-2: #0f1e17;
+    --id-canvas: #0b1712;
+
+    /* الأخضر المرجعي يفقد تباينه على خلفية داكنة، فالدلالة تنتقل إلى
+       درجة أفتح — والسلّم نفسه لم يتغيّر. */
+    --id-accent: var(--id-green-300);
+    --id-accent-strong: #9ce0bd;
+    --id-accent-ink: #052e1a;
+    --id-accent-wash: rgba(22, 149, 90, .16);
+    --id-gold: var(--id-gold-300);
+    --id-gold-line: rgba(230, 207, 154, .30);
+
+    --id-hero-from: #05331f;
+    --id-hero-via: #074a2b;
+    --id-hero-to: #032014;
+    --id-hero-ink: #f3fbf6;
+    --id-hero-ink-soft: rgba(243, 251, 246, .78);
+
+    --id-e1: 0 1px 2px rgba(0, 0, 0, .35);
+    --id-e2: 0 6px 18px -8px rgba(0, 0, 0, .55);
+    --id-e3: 0 16px 40px -20px rgba(0, 0, 0, .65);
+    --id-e4: 0 28px 70px -34px rgba(0, 0, 0, .75);
+
+    --id-tone-draft: #a2b5a9;
+    --id-tone-draft-wash: rgba(162, 181, 169, .16);
+    --id-tone-pending: #7cb2ff;
+    --id-tone-pending-wash: rgba(124, 178, 255, .16);
+    --id-tone-attention: #eabf58;
+    --id-tone-attention-wash: rgba(234, 191, 88, .16);
+    --id-tone-recommended: #b5a0ff;
+    --id-tone-recommended-wash: rgba(181, 160, 255, .16);
+    --id-tone-approved: #6ed3a0;
+    --id-tone-approved-wash: rgba(110, 211, 160, .16);
+    --id-tone-danger: #ff9d96;
+    --id-tone-danger-wash: rgba(255, 157, 150, .16);
+  }
+
+  /* ── الخيط الذهبي ──────────────────────────────────────────────────
+     توقيع الهوية: شعرةٌ ذهبية أعلى السطح الداكن. تُستدعى كعنصر زائف
+     فلا تحتاج وسماً، ولا تظهر على الورق. */
+  .id-hairline::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0;
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--id-gold-500) 18%,
+      var(--id-gold-300) 50%,
+      var(--id-gold-500) 82%,
+      transparent
+    );
+    pointer-events: none;
+  }
+
+  /* ── شارة الحالة ──────────────────────────────────────────────────── */
+  .id-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px;
+    border: 1px solid currentColor;
+    border-radius: var(--id-pill);
+    font-size: .7rem;
+    font-weight: 950;
+    white-space: nowrap;
+  }
+  .id-chip[data-tone="draft"] { color: var(--id-tone-draft); background: var(--id-tone-draft-wash); }
+  .id-chip[data-tone="pending"] { color: var(--id-tone-pending); background: var(--id-tone-pending-wash); }
+  .id-chip[data-tone="attention"] { color: var(--id-tone-attention); background: var(--id-tone-attention-wash); }
+  .id-chip[data-tone="recommended"] { color: var(--id-tone-recommended); background: var(--id-tone-recommended-wash); }
+  .id-chip[data-tone="approved"] { color: var(--id-tone-approved); background: var(--id-tone-approved-wash); }
+  .id-chip[data-tone="danger"] { color: var(--id-tone-danger); background: var(--id-tone-danger-wash); }
+
+  /* ── حلقة التركيز ─────────────────────────────────────────────────
+     واحدة للمنصة كلها. الحلقة المختلفة في كل شاشة تُقرأ عطلاً لا هوية،
+     ومن يتنقّل بلوحة المفاتيح يفقد أثره عند أول اختلاف. */
+  .id-focusable:focus-visible,
+  .id-root a:focus-visible,
+  .id-root button:focus-visible {
+    outline: 2px solid var(--id-accent);
+    outline-offset: 3px;
+    border-radius: var(--id-r1);
+  }
+
+  /* الحركة تُطفأ لمن طلب ذلك — لا تُخفَّف. */
+  @media (prefers-reduced-motion: reduce) {
+    .id-root *,
+    .id-root *::before,
+    .id-root *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+    }
+  }
+
+  /* الورق أبيض: التدرّجات والظلال تستهلك الحبر ولا تنقل معنى. */
+  @media print {
+    .id-root {
+      --id-e1: none;
+      --id-e2: none;
+      --id-e3: none;
+      --id-e4: none;
+      --id-surface: #fff;
+      --id-surface-2: #fff;
+      --id-canvas: #fff;
+    }
+    .id-hairline::before { display: none; }
+  }
+</style>

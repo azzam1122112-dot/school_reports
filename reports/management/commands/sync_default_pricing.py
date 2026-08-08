@@ -90,20 +90,28 @@ class Command(BaseCommand):
             ]
         )
 
-        storage_option = ArchiveStorageOption.objects.filter(
-            storage_gb=archive["storage_block_gb"],
-        ).order_by("id").first()
-        if storage_option is None:
-            ArchiveStorageOption.objects.create(
+        # باقة افتراضية لكل مساحة على حدة. المساحتان تُفرضان بحدّين منفصلين،
+        # فبقاء إحداهما بلا منتج يعني مدرسةً تُمنع من العمل ولا تجد ما تشتريه.
+        for bucket in (
+            ArchiveStorageOption.Bucket.WORK,
+            ArchiveStorageOption.Bucket.ARCHIVE,
+        ):
+            storage_option = ArchiveStorageOption.objects.filter(
+                bucket=bucket,
                 storage_gb=archive["storage_block_gb"],
-                price=archive["storage_block_price"],
-                sort_order=10,
-                is_active=True,
-            )
-        else:
-            storage_option.price = archive["storage_block_price"]
-            storage_option.is_active = True
-            storage_option.save(update_fields=["price", "is_active", "updated_at"])
+            ).order_by("id").first()
+            if storage_option is None:
+                ArchiveStorageOption.objects.create(
+                    bucket=bucket,
+                    storage_gb=archive["storage_block_gb"],
+                    price=archive["storage_block_price"],
+                    sort_order=10,
+                    is_active=True,
+                )
+            else:
+                storage_option.price = archive["storage_block_price"]
+                storage_option.is_active = True
+                storage_option.save(update_fields=["price", "is_active", "updated_at"])
 
         included_archive_count = 0
         today = timezone.localdate()

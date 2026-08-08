@@ -193,28 +193,37 @@
 
   {% if storage_overview %}
     {% with pct=storage_overview.usage_percent %}
-      <section class="ar-storage" aria-label="استهلاك مساحة الأرشيف">
+      <section class="ar-storage" aria-label="استهلاك مساحة عمل المدرسة">
         <div class="ar-storage-top">
-          <strong><i class="fa-solid fa-database" aria-hidden="true"></i> مساحة المدرسة والأرشيف</strong>
+          <strong><i class="fa-solid fa-database" aria-hidden="true"></i> مساحة عمل المدرسة</strong>
           <b>{{ storage_overview.used_label }} من {{ storage_overview.limit_label }}</b>
         </div>
         {% if not storage_overview.is_unlimited %}<progress value="{{ pct }}" max="100">{{ pct }}%</progress>{% endif %}
         <div class="ar-storage-foot">
           {% if storage_overview.is_unlimited %}<span>السعة غير محدودة</span>{% else %}<span>{{ pct }}% مستخدم · المتبقي {{ storage_overview.remaining_label }}</span>{% endif %}
-          <span>يشمل التقارير والإنجاز والأداء القيادي والتذاكر والتعاميم والإشعارات والنسخ المحفوظة.</span>
-          {% if can_manage_archive and archive_enabled %}
-            <a class="ar-btn" href="{% url 'reports:my_subscription' %}#archiveOrder"><i class="fa-solid fa-plus" aria-hidden="true"></i> زيادة المساحة</a>
+          <span>يشمل التقارير والإنجاز والأداء القيادي والوثائق والتذاكر والتعاميم والإشعارات. النسخ السنوية لها مساحتها المستقلة أدناه.</span>
+          {% if can_manage_archive %}
+            {% comment %} البند الصحيح لا الصفحة فحسب: زر «زيادة المساحة» تحت بطاقة العمل
+               يجب أن يفتح توسعة العمل، لا توسعة الأرشفة. {% endcomment %}
+            <a class="ar-btn" href="{% url 'reports:my_subscription' %}#storageService"><i class="fa-solid fa-plus" aria-hidden="true"></i> زيادة مساحة العمل</a>
           {% endif %}
         </div>
-        <div class="ar-storage-breakdown" aria-label="تفصيل استهلاك المساحة">
+        <div class="ar-storage-breakdown" aria-label="تفصيل استهلاك مساحة العمل">
           <div class="ar-storage-part"><span>التقارير وصورها</span><b>{{ storage_overview.breakdown.reports.label }}</b></div>
           <div class="ar-storage-part"><span>ملفات الإنجاز وشواهدها</span><b>{{ storage_overview.breakdown.achievements.label }}</b></div>
           <div class="ar-storage-part"><span>الأداء القيادي وشواهده</span><b>{{ storage_overview.breakdown.leadership.label }}</b></div>
+          <div class="ar-storage-part"><span>أرشيف الوثائق</span><b>{{ storage_overview.breakdown.documents.label }}</b></div>
           <div class="ar-storage-part"><span>التذاكر وصورها</span><b>{{ storage_overview.breakdown.tickets.label }}</b></div>
           <div class="ar-storage-part"><span>مرفقات التعاميم</span><b>{{ storage_overview.breakdown.circulars.label }}</b></div>
           <div class="ar-storage-part"><span>مرفقات الإشعارات</span><b>{{ storage_overview.breakdown.notifications.label }}</b></div>
-          <div class="ar-storage-part"><span>نسخ الأرشيف الثابتة</span><b>{{ storage_overview.breakdown.snapshots.label }}</b></div>
         </div>
+        {% if storage_overview.snapshot_bytes %}
+          <p class="ar-storage-note">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            تحتفظ المدرسة إضافةً إلى ذلك بـ<strong>{{ storage_overview.snapshot_label }}</strong> من النسخ السنوية،
+            وهي محسوبة على مساحة الأرشفة وحدها ولا تُخصم من مساحة العمل.
+          </p>
+        {% endif %}
       </section>
       {% if not storage_overview.is_unlimited and pct >= 90 %}
         <div class="ar-alert ar-alert--danger"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><div><strong>مساحة عمل المدرسة قاربت الامتلاء.</strong> قد يتعذر على {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} رفع الصور والمرفقات.</div></div>
@@ -248,6 +257,9 @@
           {% else %}
             <span>{{ apct }}% مستخدم · المتبقي {{ archive_overview.remaining_label }}</span>
           {% endif %}
+          {% if can_manage_archive %}
+            <a class="ar-btn" href="{% url 'reports:my_subscription' %}#archiveSpaceService"><i class="fa-solid fa-plus" aria-hidden="true"></i> زيادة مساحة الأرشفة</a>
+          {% endif %}
         </div>
         <p class="ar-storage-note">
           <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
@@ -256,7 +268,7 @@
         </p>
       </section>
       {% if not archive_overview.is_unlimited and apct >= 90 %}
-        <div class="ar-alert ar-alert--warn"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><div><strong>مساحة النسخ السنوية قاربت الامتلاء.</strong> نزّل نسخة سنة سابقة على جهازك ثم احذفها من المنصة لتحرير المساحة، أو اطلب مساحة أرشيف إضافية.</div></div>
+        <div class="ar-alert ar-alert--warn"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><div><strong>مساحة النسخ السنوية قاربت الامتلاء.</strong> نزّل نسخة سنة سابقة على جهازك ثم احذفها من المنصة لتحرير المساحة، أو <a href="{% url 'reports:my_subscription' %}#archiveSpaceService">اطلب مساحة أرشفة إضافية</a>.</div></div>
       {% endif %}
     {% endwith %}
   {% endif %}

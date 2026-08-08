@@ -209,8 +209,11 @@ class ArchiveStorageOverviewTests(TestCase):
         self.assertFalse(overview["is_unlimited"])
 
     def test_year_snapshots_are_counted_in_their_own_bucket(self):
-        """storage_bytes is derived from the attached file by the tracking
-        signals, so the snapshot has to carry a real one."""
+        """A snapshot must never show up as work usage.
+
+        storage_bytes is derived from the attached file by the tracking signals,
+        so the snapshot has to carry a real one.
+        """
         payload = b"x" * (2 * MB)
         archive = SchoolYearArchive(
             school=self.school,
@@ -223,7 +226,12 @@ class ArchiveStorageOverviewTests(TestCase):
 
         overview = school_storage_overview(self.school)
 
-        self.assertEqual(overview["breakdown"]["snapshots"]["bytes"], len(payload))
+        # The work card charges nothing for it...
+        self.assertEqual(overview["used_bytes"], 0)
+        self.assertNotIn("snapshots", overview["breakdown"])
+        # ...but names it, so the space is not unaccounted for either.
+        self.assertEqual(overview["snapshot_bytes"], len(payload))
+        self.assertEqual(overview["total_held_bytes"], len(payload))
 
     def test_creating_a_snapshot_raises_the_school_total(self):
         archive = SchoolYearArchive(

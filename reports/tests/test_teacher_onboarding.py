@@ -181,10 +181,16 @@ class TeacherOnboardingTests(TestCase):
         self.assertTrue(teacher.check_password("0552223344"))
 
     def test_individual_add_view_creates_phone_password_and_school_membership(self):
+        """المسمّى يقرّر الدور: الموظف الإداري ``ADMIN_STAFF`` لا ``TEACHER``.
+
+        كان هذا الباب يكتب ``TEACHER`` مهما كان المسمّى، وشاشة الأدوار تكتب
+        ``ADMIN_STAFF`` لنفس المسمّى — فيخرج من البابين موظفان بصلاحيتين. وصار
+        الاثنان يسألان ``role_for_job_title``.
+        """
         response = self.client.post(
             reverse("reports:add_teacher"),
             {
-                "name": "معلم من الإضافة الفردية",
+                "name": "موظف من الإضافة الفردية",
                 "phone": "0552223355",
                 "national_id": "",
                 "job_title": SchoolMembership.JobTitle.ADMIN_STAFF,
@@ -199,12 +205,45 @@ class TeacherOnboardingTests(TestCase):
         )
         teacher = Teacher.objects.get(phone="0552223355")
         self.assertTrue(teacher.check_password(teacher.phone))
-        membership = SchoolMembership.objects.get(
-            school=self.school,
-            teacher=teacher,
-            role_type=SchoolMembership.RoleType.TEACHER,
-        )
+        membership = SchoolMembership.objects.get(school=self.school, teacher=teacher)
+        self.assertEqual(membership.role_type, SchoolMembership.RoleType.ADMIN_STAFF)
         self.assertEqual(membership.job_title, SchoolMembership.JobTitle.ADMIN_STAFF)
+
+    def test_individual_add_view_keeps_a_plain_teacher_a_teacher(self):
+        response = self.client.post(
+            reverse("reports:add_teacher"),
+            {
+                "name": "معلم من الإضافة الفردية",
+                "phone": "0552223366",
+                "national_id": "",
+                "job_title": SchoolMembership.JobTitle.TEACHER,
+                "is_active": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        membership = SchoolMembership.objects.get(
+            school=self.school, teacher__phone="0552223366"
+        )
+        self.assertEqual(membership.role_type, SchoolMembership.RoleType.TEACHER)
+
+    def test_individual_add_view_makes_a_lab_technician_admin_staff(self):
+        self.client.post(
+            reverse("reports:add_teacher"),
+            {
+                "name": "محضّر المختبر",
+                "phone": "0552223377",
+                "national_id": "",
+                "job_title": SchoolMembership.JobTitle.LAB_TECH,
+                "is_active": "on",
+            },
+        )
+
+        membership = SchoolMembership.objects.get(
+            school=self.school, teacher__phone="0552223377"
+        )
+        self.assertEqual(membership.role_type, SchoolMembership.RoleType.ADMIN_STAFF)
+        self.assertEqual(membership.job_title, SchoolMembership.JobTitle.LAB_TECH)
 
     def test_blank_ready_rows_in_quick_table_are_not_treated_as_users(self):
         self.client.post(

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load hijri_tags %}
+
+{% block title %}اعتماد المجموعة | منصة توثيق{% endblock %}
+
+{% block head %}
+<style nonce="{{ CSP_NONCE }}" data-cfasync="false">
+  /* رموز مُنطَقة على ‎.gai‎ وحدها. */
+  .gai {
+    --gai-ink: #10231a;
+    --gai-muted: #607067;
+    --gai-line: #dfe8e2;
+    --gai-soft: #f3f8f5;
+    --gai-card: #ffffff;
+    --gai-green: #08643b;
+    --gai-warn: #9a6700;
+    --gai-warn-soft: #fdf6e3;
+    color: var(--gai-ink);
+  }
+  [data-theme="dark"] .gai {
+    --gai-ink: #eff8f2;
+    --gai-muted: #afc1b5;
+    --gai-line: #2d4637;
+    --gai-soft: #13271c;
+    --gai-card: #0d241d;
+    --gai-green: #6ed3a0;
+    --gai-warn: #eabf58;
+    --gai-warn-soft: #241f10;
+  }
+
+  .gai-hero {
+    border: 1px solid var(--gai-line); border-radius: 18px;
+    background: var(--gai-soft); padding: 22px; margin-bottom: 18px;
+  }
+  .gai-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-weight: 900; font-size: 13px; color: var(--gai-green); margin-bottom: 8px;
+  }
+  .gai-hero h1 {
+    margin: 0 0 8px; font-size: clamp(20px, 3vw, 26px);
+    font-weight: 950; color: var(--gai-ink);
+  }
+  .gai-lead { margin: 0; color: var(--gai-muted); line-height: 1.9; max-width: 74ch; }
+
+  .gai-section { margin-bottom: 20px; }
+  .gai-section__head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; margin-bottom: 10px; flex-wrap: wrap;
+  }
+  .gai-section__head h2 {
+    margin: 0; font-size: 15px; font-weight: 950; color: var(--gai-ink);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .gai-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px;
+    background: var(--gai-warn-soft); color: var(--gai-warn);
+    font-size: 12px; font-weight: 900;
+  }
+
+  .gai-item {
+    display: block; border: 1px solid var(--gai-line); border-radius: 14px;
+    background: var(--gai-card); padding: 15px 16px; margin-bottom: 10px;
+    text-decoration: none; color: var(--gai-ink);
+  }
+  .gai-item:hover { border-color: var(--gai-green); }
+  .gai-item--mine { border-inline-start: 4px solid var(--gai-warn); }
+  .gai-item__t { font-weight: 900; font-size: 14.5px; margin-bottom: 5px; }
+  .gai-item__m {
+    display: flex; flex-wrap: wrap; gap: 5px 12px;
+    font-size: 12.5px; color: var(--gai-muted);
+  }
+  .gai-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid var(--gai-line); border-radius: 999px;
+    padding: 2px 9px; font-size: 11.5px; font-weight: 800; background: var(--gai-soft);
+  }
+  .gai-chip--mine { color: var(--gai-warn); background: var(--gai-warn-soft); }
+
+  .gai-empty {
+    border: 1px dashed var(--gai-line); border-radius: 14px;
+    background: var(--gai-soft); padding: 26px; text-align: center;
+    color: var(--gai-muted); line-height: 1.9;
+  }
+  .gai-empty strong { display: block; color: var(--gai-ink); margin-bottom: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gai">
+
+  <header class="gai-hero">
+    <span class="gai-eyebrow">
+      <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>
+      اعتماد المجموعة
+    </span>
+    <h1>ما ينتظر قرارك في {{ group.name }}</h1>
+    <p class="gai-lead">
+      ردودُ مدارسك على ما كلّفتَها به، ومحاضرُ جلسات مجلسك. وما يُعرض هنا هو ما
+      أصدرتَه أنت — لا أعمالُ المدارس الداخلية، فتلك يعتمدها مديروها.
+      {% if mine_count %}
+        <b>{{ mine_count }}</b> منها ينتهي عندك.
+      {% endif %}
+    </p>
+  </header>
+
+  {# ═══ ردود التكليفات ═══════════════════════════════════════ #}
+  <section class="gai-section">
+    <div class="gai-section__head">
+      <h2>
+        <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
+        ردود التكليفات
+        {% if assignment_rows %}<span class="gai-count">{{ assignment_rows|length }}</span>{% endif %}
+      </h2>
+      <a class="gai-eyebrow" href="{% url 'reports:group_assignment_board' %}" style="margin:0">لوحة التكليفات</a>
+    </div>
+
+    {% if assignment_rows %}
+      {% for row in assignment_rows %}
+        <a class="gai-item {% if 'approve' in row.actions or 'recommend' in row.actions %}gai-item--mine{% endif %}"
+           href="{% url 'reports:group_assignment_detail' row.assignment.pk %}">
+          <span class="gai-item__t">{{ row.assignment.title }}</span>
+          <span class="gai-item__m">
+            <span>{{ row.targets|length }} ردٍّ ينتظر</span>
+            {% if row.assignment.due_at %}
+              <span dir="rtl">الموعد: {{ row.assignment.due_at|hijri }} هـ</span>
+            {% endif %}
+            {% if 'approve' in row.actions or 'recommend' in row.actions %}
+              <span class="gai-chip gai-chip--mine">قرارك</span>
+            {% endif %}
+          </span>
+        </a>
+      {% endfor %}
+    {% else %}
+      <div class="gai-empty">
+        <strong>لا ردَّ ينتظر قرارك.</strong>
+        ما أصدرتَه إمّا اعتُمد أو لم يُسلَّم بعد.
+      </div>
+    {% endif %}
+  </section>
+
+  {# ═══ محاضر المجلس ═════════════════════════════════════════ #}
+  <section class="gai-section">
+    <div class="gai-section__head">
+      <h2>
+        <i class="fa-solid fa-file-signature" aria-hidden="true"></i>
+        محاضر المجلس
+        {% if minutes_rows %}<span class="gai-count">{{ minutes_rows|length }}</span>{% endif %}
+      </h2>
+      <a class="gai-eyebrow" href="{% url 'reports:council_list' %}" style="margin:0">المجلس</a>
+    </div>
+
+    {% if minutes_rows %}
+      {% for row in minutes_rows %}
+        <a class="gai-item {% if 'approve' in row.actions or 'issue' in row.actions %}gai-item--mine{% endif %}"
+           href="{% url 'reports:council_detail' row.minutes.meeting.pk %}">
+          <span class="gai-item__t">{% firstof row.minutes.meeting.title "جلسة مجلس" %}</span>
+          <span class="gai-item__m">
+            <span>{{ row.minutes.get_approval_state_display }}</span>
+            {% if row.minutes.recorder %}<span>حرّرها {{ row.minutes.recorder.name }}</span>{% endif %}
+            {% if row.minutes.submitted_at %}
+              <span dir="rtl">أُرسلت: {{ row.minutes.submitted_at|hijri }} هـ</span>
+            {% endif %}
+            {% if 'approve' in row.actions or 'issue' in row.actions %}
+              <span class="gai-chip gai-chip--mine">قرارك</span>
+            {% endif %}
+          </span>
+        </a>
+      {% endfor %}
+    {% else %}
+      <div class="gai-empty">
+        <strong>لا محضر ينتظر قراراً.</strong>
+      </div>
+    {% endif %}
+  </section>
+
+  {# ═══ جلسات بلا محضر ═══════════════════════════════════════ #}
+  {% if minutes_missing %}
+    <section class="gai-section">
+      <div class="gai-section__head">
+        <h2>
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+          جلسات انعقدت ولم يُكتب محضرها
+          <span class="gai-count">{{ minutes_missing|length }}</span>
+        </h2>
+      </div>
+      {% for meeting in minutes_missing %}
+        <a class="gai-item gai-item--mine" href="{% url 'reports:council_detail' meeting.pk %}">
+          <span class="gai-item__t">{% firstof meeting.title "جلسة مجلس" %}</span>
+          <span class="gai-item__m">
+            {% if meeting.scheduled_at %}
+              <span dir="rtl">انعقدت: {{ meeting.scheduled_at|hijri }} هـ</span>
+            {% endif %}
+            <span class="gai-chip gai-chip--mine">بلا محضر</span>
+          </span>
+        </a>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if not total %}
+    <div class="gai-empty">
+      <strong>لا شيء ينتظر قرارك.</strong>
+      كل ما أصدرتَه على مستوى المجموعة مكتمل.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

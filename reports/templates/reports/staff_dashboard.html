@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}مؤشرات نطاقي | منصة توثيق{% endblock %}
+
+{% block head %}
+<style nonce="{{ CSP_NONCE }}" data-cfasync="false">
+  /* رموز مُنطَقة على ‎.scp‎ وحدها: أي رمز عام هنا يسرّب لون هذه الشاشة إلى
+     شاشات أخرى تشترك معها في القالب الأساس. */
+  .scp {
+    --scp-ink: #10231a;
+    --scp-muted: #607067;
+    --scp-line: #dfe8e2;
+    --scp-soft: #f3f8f5;
+    --scp-card: #ffffff;
+    --scp-green: #08643b;
+    --scp-warn: #9a6700;
+    --scp-warn-soft: #fdf6e3;
+    color: var(--scp-ink);
+  }
+  [data-theme="dark"] .scp {
+    --scp-ink: #eff8f2;
+    --scp-muted: #afc1b5;
+    --scp-line: #2d4637;
+    --scp-soft: #13271c;
+    --scp-card: #0d241d;
+    --scp-green: #6ed3a0;
+    --scp-warn: #eabf58;
+    --scp-warn-soft: #241f10;
+  }
+
+  .scp-hero {
+    border: 1px solid var(--scp-line);
+    border-radius: 18px;
+    background: var(--scp-soft);
+    padding: 22px;
+    margin-bottom: 18px;
+  }
+  .scp-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 900;
+    font-size: 13px;
+    color: var(--scp-green);
+    margin-bottom: 8px;
+  }
+  .scp-hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(20px, 3vw, 26px);
+    font-weight: 950;
+    color: var(--scp-ink);
+  }
+  .scp-lead {
+    margin: 0;
+    color: var(--scp-muted);
+    line-height: 1.9;
+    max-width: 70ch;
+  }
+  .scp-depts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .scp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--scp-line);
+    border-radius: 999px;
+    background: var(--scp-card);
+    padding: 5px 12px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--scp-ink);
+  }
+
+  .scp-empty {
+    border: 1px dashed var(--scp-line);
+    border-radius: 16px;
+    background: var(--scp-warn-soft);
+    padding: 20px;
+    color: var(--scp-ink);
+    line-height: 1.9;
+  }
+  .scp-empty strong { color: var(--scp-warn); }
+
+  .scp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px;
+  }
+  .scp-card {
+    display: block;
+    border: 1px solid var(--scp-line);
+    border-radius: 16px;
+    background: var(--scp-card);
+    padding: 18px;
+    text-decoration: none;
+    color: var(--scp-ink);
+  }
+  .scp-card:hover { border-color: var(--scp-green); }
+  .scp-card__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--scp-muted);
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+  .scp-card__value {
+    font-size: 30px;
+    font-weight: 950;
+    line-height: 1;
+    color: var(--scp-ink);
+  }
+  .scp-card--warn .scp-card__value { color: var(--scp-warn); }
+  .scp-card__extra {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--scp-muted);
+  }
+  .scp-note {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--scp-muted);
+    line-height: 1.9;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scp">
+
+  <header class="scp-hero">
+    <span class="scp-eyebrow">
+      <i class="fa-solid fa-gauge" aria-hidden="true"></i>
+      الإشراف
+    </span>
+    <h1>مؤشرات نطاقي في {{ active_school.name }}</h1>
+    <p class="scp-lead">
+      ما يقع تحت إشرافك وحده — لا مدرستك كلها. والأرقام هنا للاطلاع والمتابعة،
+      والإجراء يُمارَس من شاشته: المراجعة من صندوق الاعتماد، والتكليف من لوحته.
+    </p>
+
+    {% if departments %}
+      <div class="scp-depts">
+        {% for dept in departments %}
+          <span class="scp-chip">
+            <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+            {{ dept.name }}
+          </span>
+        {% endfor %}
+        <span class="scp-chip">
+          <i class="fa-solid fa-users" aria-hidden="true"></i>
+          {{ scoped_people }} منسوباً
+        </span>
+      </div>
+    {% endif %}
+  </header>
+
+  {% if not supervised_count %}
+    {% comment %} صفرُ أقسام يُقال صريحاً: كشفٌ فارغ بلا تفسير يُقرأ «مدرستي فارغة» لا
+       «نطاقي لم يُضبط بعد»، فيبحث صاحبه عن عطلٍ لا وجود له. {% endcomment %}
+    <div class="scp-empty">
+      <strong>لم تُسنَد إليك أقسام بعد.</strong>
+      صلاحياتك مُنحت، لكن نطاقها فارغ — ولذلك لا أرقام تُعرض هنا. راجع مدير
+      المدرسة ليحدّد الأقسام التي تشرف عليها من شاشة «الأدوار والصلاحيات».
+    </div>
+  {% elif not cards %}
+    <div class="scp-empty">
+      <strong>لا مؤشرات لعرضها.</strong>
+      نطاقك مضبوط، لكن لم تُمنح بعد صلاحيةً تُنتج رقماً على هذه الشاشة.
+    </div>
+  {% else %}
+    <section class="scp-grid" aria-label="مؤشرات النطاق">
+      {% for card in cards %}
+        <a class="scp-card {% if card.tone == 'warn' %}scp-card--warn{% endif %}" href="{{ card.url }}">
+          <span class="scp-card__head">
+            <i class="fa-solid {{ card.icon }}" aria-hidden="true"></i>
+            {{ card.label }}
+          </span>
+          <span class="scp-card__value">{{ card.value }}</span>
+          {% if card.extra_label %}
+            <span class="scp-card__extra">{{ card.extra }} {{ card.extra_label }}</span>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  <p class="scp-note">
+    الاعتماد النهائي يبقى لمدير المدرسة في كل ما تعرضه هذه الشاشة.
+  </p>
+</div>
+{% endblock %}

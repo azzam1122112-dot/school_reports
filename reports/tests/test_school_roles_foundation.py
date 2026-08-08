@@ -213,11 +213,18 @@ class MembershipPrefetchTests(TestCase):
             )
             self.people.append(person)
 
-    def test_labelling_a_whole_roster_costs_a_single_query(self):
+    def test_labelling_a_whole_roster_costs_a_fixed_number_of_queries(self):
         from reports.permissions import prefetch_memberships_for_school
 
-        # الاستعلام الوحيد المسموح هو استعلام التهيئة نفسه.
-        with self.assertNumQueries(1):
+        # استعلامان اثنان مهما طال الكشف، لا استعلامٌ لكل صف:
+        #   1. عضويات المجموعة (المدير التنفيذي) — جدول مستقل.
+        #   2. عضويات المدرسة.
+        # الأول لزم منذ صارت التسمية تسأل ``is_executive_director``؛ وعضويات
+        # المجموعة ليست في ``SchoolMembership`` فلا يغطّيها استعلامها.
+        #
+        # **الثبات هو المُختبَر لا العدد.** لو صار العدد تابعاً لعدد المنسوبين
+        # فذلك ارتدادٌ إلى N+1 مهما بدا الرقم صغيراً في كشفٍ من خمسة.
+        with self.assertNumQueries(2):
             prefetch_memberships_for_school(self.people, self.school)
             for person in self.people:
                 effective_user_role_label(person, self.school)

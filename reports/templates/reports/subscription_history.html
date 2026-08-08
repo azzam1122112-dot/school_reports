@@ -60,7 +60,7 @@
                {% elif payment.payment_method == 'tamara' and payment.gateway_status == 'new' %}
                  <span class="royal-status warn"><i class="fa-solid fa-wallet" aria-hidden="true"></i> بانتظار إكمال الدفع</span>
                {% elif payment.payment_method == 'tamara' %}
-                 <span class="royal-status warn"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار تأكيد تمارا</span>
+                 <span class="royal-status warn"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار تأكيد{% if tamara_enabled %} تمارا{% else %} مزود الدفع{% endif %}</span>
                {% elif payment.payment_method == 'moyasar' %}
                  <span class="royal-status warn"><i class="fa-solid fa-wallet" aria-hidden="true"></i> بانتظار إكمال دفع ميّسر</span>
                {% else %}

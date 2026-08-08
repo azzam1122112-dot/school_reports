@@ -119,7 +119,9 @@ def user_guide_download_pdf(request: HttpRequest) -> HttpResponse:
         {
             "title": "دليل استخدام منصة توثيق",
             "logo_url": logo_src,
-            "guide_html": mark_safe(guide_html),
+            # ``guide_html`` ناتج ``render_to_string`` لقالب ثابت في المستودع،
+            # لا مدخلَ مستخدمٍ فيه. ويُصيَّر إلى PDF لا إلى صفحة تُقدَّم لمتصفّح.
+            "guide_html": mark_safe(guide_html),  # noqa: S308
         },
         request=request,
     )
@@ -278,6 +280,9 @@ from ..permissions import (
     restrict_queryset_for_user,
     effective_user_role_label,
     get_school_manager_school_ids,
+    is_admin_staff,
+    is_executive_director,
+    is_school_deputy,
     is_school_manager,
     platform_allowed_schools_qs,
 )

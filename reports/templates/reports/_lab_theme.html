@@ -1,0 +1,176 @@
+{% comment %}
+رموز تصميم شاشات المختبر.
+
+كلها مُنطَقة على ``.lab`` وحدها: رمزٌ عام هنا يسرّب لون هذا القسم إلى كل شاشة
+تشترك معه في القالب الأساس. والوضع الداكن بـ ``[data-theme="dark"]`` على الرموز
+نفسها لا بإعادة كتابة القواعد — فقاعدةٌ تُكتب مرتين تُصحَّح مرة.
+
+والأخضر هو أخضر المنصة نفسه لا أخضرَ ثانياً: المختبر قسمٌ في المدرسة لا منتَجٌ
+مستقل.
+{% endcomment %}
+<style>
+  .lab {
+    --lab-ink: #10231a;
+    --lab-muted: #607067;
+    --lab-line: #dfe8e2;
+    --lab-soft: #f3f8f5;
+    --lab-card: #ffffff;
+    --lab-green: #08643b;
+    --lab-gold: #b68a42;
+    --lab-warn: #9a6700;
+    --lab-warn-soft: #fdf6e3;
+    --lab-danger: #b42318;
+    --lab-danger-soft: #fdf2f2;
+    color: var(--lab-ink);
+  }
+  [data-theme="dark"] .lab {
+    --lab-ink: #eff8f2;
+    --lab-muted: #afc1b5;
+    --lab-line: #2d4637;
+    --lab-soft: #13271c;
+    --lab-card: #0d241d;
+    --lab-green: #6ed3a0;
+    --lab-gold: #e3c07a;
+    --lab-warn: #eabf58;
+    --lab-warn-soft: #241f10;
+    --lab-danger: #ff9d96;
+    --lab-danger-soft: #2a1516;
+  }
+
+  .lab * { box-sizing: border-box; }
+  .lab a { color: inherit; }
+
+  /* ── الترويسة ──────────────────────────────────────────────── */
+  .lab-hero {
+    position: relative; overflow: hidden; border-radius: 20px;
+    padding: 1.6rem 1.5rem; color: #fff; margin-bottom: 1.1rem;
+    background:
+      radial-gradient(120% 140% at 92% -10%, rgba(182,138,66,.38) 0%, transparent 58%),
+      linear-gradient(135deg, #064b2d 0%, #0a7a48 52%, #05412a 100%);
+    box-shadow: 0 22px 46px -30px rgba(6,60,35,.9);
+  }
+  .lab-hero__eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 900; letter-spacing: .02em;
+    color: #e3c07a; margin-bottom: .5rem;
+  }
+  .lab-hero h1 {
+    margin: 0 0 .45rem; font-size: clamp(19px, 3vw, 26px); font-weight: 950; color: #fff;
+  }
+  .lab-hero__lead {
+    margin: 0; line-height: 1.9; max-width: 74ch;
+    color: rgba(255,255,255,.9); font-size: 14px;
+  }
+  .lab-hero__actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+  .lab-act {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid rgba(255,255,255,.4); border-radius: 999px;
+    padding: .45rem .95rem; font-size: 13px; font-weight: 800;
+    color: #fff; text-decoration: none; background: rgba(255,255,255,.08);
+  }
+  .lab-act:hover { background: rgba(255,255,255,.18); }
+  .lab-act--solid { background: #fff; color: #064b2d; border-color: #fff; }
+  .lab-act--solid:hover { background: #f2fbf6; }
+
+  /* ── المؤشرات ──────────────────────────────────────────────── */
+  .lab-stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+    gap: .7rem; margin-bottom: 1.1rem;
+  }
+  .lab-stat {
+    border: 1px solid var(--lab-line); border-radius: 14px;
+    background: var(--lab-card); padding: .95rem 1rem; text-decoration: none;
+    display: block;
+  }
+  .lab-stat:hover { border-color: var(--lab-green); }
+  .lab-stat__l {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12.5px; font-weight: 800; color: var(--lab-muted); margin-bottom: .4rem;
+  }
+  .lab-stat__v { font-size: 27px; font-weight: 950; line-height: 1; color: var(--lab-ink); }
+  .lab-stat--warn .lab-stat__v { color: var(--lab-warn); }
+  .lab-stat--danger .lab-stat__v { color: var(--lab-danger); }
+
+  /* ── الأقسام والبطاقات ─────────────────────────────────────── */
+  .lab-section { margin-bottom: 1.2rem; }
+  .lab-section__head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; margin-bottom: .7rem; flex-wrap: wrap;
+  }
+  .lab-section__head h2 {
+    margin: 0; font-size: 16px; font-weight: 950; color: var(--lab-ink);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .lab-link { font-size: 13px; font-weight: 800; color: var(--lab-green); text-decoration: none; }
+  .lab-card {
+    border: 1px solid var(--lab-line); border-radius: 16px;
+    background: var(--lab-card); padding: 1.1rem;
+  }
+
+  /* ── الجدول ────────────────────────────────────────────────── */
+  .lab-table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--lab-line); }
+  .lab-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 640px; }
+  .lab-table thead th {
+    background: var(--lab-soft); color: var(--lab-muted);
+    font-weight: 800; font-size: 12.5px; text-align: start;
+    padding: .7rem .8rem; border-bottom: 1px solid var(--lab-line); white-space: nowrap;
+  }
+  .lab-table tbody td {
+    padding: .75rem .8rem; border-bottom: 1px solid var(--lab-line);
+    color: var(--lab-ink); vertical-align: middle;
+  }
+  .lab-table tbody tr:last-child td { border-bottom: 0; }
+  .lab-table tbody tr:hover td { background: var(--lab-soft); }
+  .lab-table a { font-weight: 800; text-decoration: none; color: var(--lab-green); }
+
+  /* ── الأوسمة ───────────────────────────────────────────────── */
+  .lab-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid var(--lab-line); border-radius: 999px;
+    padding: 3px 10px; font-size: 12px; font-weight: 800;
+    background: var(--lab-soft); color: var(--lab-ink); white-space: nowrap;
+  }
+  .lab-chip--good { color: var(--lab-green); }
+  .lab-chip--warn { color: var(--lab-warn); background: var(--lab-warn-soft); }
+  .lab-chip--danger { color: var(--lab-danger); background: var(--lab-danger-soft); }
+
+  /* ── الفراغ ────────────────────────────────────────────────── */
+  .lab-empty {
+    border: 1px dashed var(--lab-line); border-radius: 14px;
+    background: var(--lab-soft); padding: 1.5rem; text-align: center;
+    color: var(--lab-muted); line-height: 1.9;
+  }
+  .lab-empty strong { display: block; color: var(--lab-ink); margin-bottom: .3rem; }
+
+  /* ── النماذج ───────────────────────────────────────────────── */
+  .lab-form { display: grid; gap: .85rem; }
+  .lab-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .85rem; }
+  .lab-field { display: grid; gap: .3rem; }
+  .lab-field > label {
+    font-size: 12.5px; font-weight: 800; color: var(--lab-muted);
+  }
+  .lab-field .form-control {
+    width: 100%; padding: .55rem .7rem; border-radius: 10px;
+    border: 1px solid var(--lab-line); background: var(--lab-card);
+    color: var(--lab-ink); font: inherit;
+  }
+  .lab-field .helptext { font-size: 11.5px; color: var(--lab-muted); }
+  .lab-field .errorlist { margin: 0; padding-inline-start: 1rem; color: var(--lab-danger); font-size: 12px; }
+  .lab-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    border-radius: 10px; border: 1px solid var(--lab-green);
+    background: var(--lab-green); color: #fff;
+    padding: .55rem 1.1rem; font-size: 13.5px; font-weight: 850; cursor: pointer;
+  }
+  [data-theme="dark"] .lab-btn { color: #06251a; }
+  .lab-btn--ghost { background: transparent; color: var(--lab-green); }
+  .lab-btn--danger { border-color: var(--lab-danger); background: transparent; color: var(--lab-danger); }
+
+  /* ── الخطّ الزمني ──────────────────────────────────────────── */
+  .lab-timeline { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; }
+  .lab-timeline li {
+    border-inline-start: 3px solid var(--lab-line); padding-inline-start: .8rem;
+    font-size: 13px; color: var(--lab-ink);
+  }
+  .lab-timeline time { display: block; font-size: 11.5px; color: var(--lab-muted); }
+</style>

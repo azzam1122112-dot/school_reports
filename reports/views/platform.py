@@ -260,20 +260,34 @@ def platform_school_tickets(request: HttpRequest) -> HttpResponse:
 
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff, login_url="reports:login")
-@role_required({"manager"})
 @require_http_methods(["GET"])
 def manager_school_tickets(request: HttpRequest) -> HttpResponse:
-    """قائمة جميع طلبات المدرسة للمدير (مع فلترة وبحث)."""
+    """طلبات المدرسة — للمدير كاملةً، ولمن مُنح «متابعة الطلبات» في نطاقه.
+
+    شاشةٌ واحدة لا شاشتان: الفرق بين المدير والوكيل هنا **مدى** ما يراه لا شكل
+    ما يراه، والمدى يُحسم في الاستعلام أدناه. وشاشتان تعرضان القائمة نفسها
+    بنطاقين مختلفين تتباعدان عند أول تعديل في المرشّحات.
+    """
+    from ..capabilities import HANDLE_REQUESTS
+    from ..permissions import capability_source, supervised_department_ids
+
     active_school = _get_active_school(request)
+    is_manager = bool(
+        getattr(request.user, "is_superuser", False)
+        or (active_school is not None and active_school in _user_manager_schools(request.user))
+    )
+    may_handle = bool(
+        active_school is not None
+        and capability_source(request.user, HANDLE_REQUESTS, active_school) is not None
+    )
 
     if School.objects.filter(is_active=True).exists():
         if active_school is None:
             messages.error(request, "فضلاً اختر مدرسة أولاً.")
             return redirect("reports:select_school")
-        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
-            messages.error(request, "ليست لديك صلاحية كمدير على هذه المدرسة.")
-            return redirect("reports:select_school")
+        if not (is_manager or may_handle):
+            messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
+            return redirect("reports:home")
 
     qs = (
         Ticket.objects.select_related("creator", "assignee", "department")
@@ -281,6 +295,12 @@ def manager_school_tickets(request: HttpRequest) -> HttpResponse:
         .filter(school=active_school, is_platform=False)
         .order_by("-created_at")
     )
+
+    # النطاق قبل المرشّح: يُضيَّق الاستعلام الأساس أولاً، ثم تُبنى فوقه مرشّحات
+    # المستخدم. وأقسامٌ فارغة تعني كشفاً فارغاً — لا كشف المدرسة كاملاً.
+    if not is_manager:
+        supervised = supervised_department_ids(request.user, active_school)
+        qs = qs.filter(department_id__in=supervised) if supervised else qs.none()
 
     status = (request.GET.get("status") or "").strip()
     valid_statuses = {value for value, _label in Ticket.Status.choices}
@@ -306,8 +326,14 @@ def manager_school_tickets(request: HttpRequest) -> HttpResponse:
         "mine": mine,
         "status_choices": Ticket.Status.choices,
         "page_title": "طلبات المدرسة الداخلية",
-        "page_heading": "طلبات المدرسة الداخلية",
-        "page_subtitle": "طلبات العمل داخل المدرسة؛ راجع المسؤول والحالة والملاحظات من مكان واحد.",
+        "page_heading": "طلبات المدرسة الداخلية"
+        if is_manager
+        else "طلبات نطاق إشرافي",
+        # العنوان يقول للوكيل إن ما يراه بعضٌ لا كل: كشفٌ مُنطَق يُقرأ كاملاً
+        # يجعله يظن أن مدرسته لا طلبات فيها غير هذه.
+        "page_subtitle": "طلبات العمل داخل المدرسة؛ راجع المسؤول والحالة والملاحظات من مكان واحد."
+        if is_manager
+        else "طلبات الأقسام التي تشرف عليها وحدها — وما خرج عن نطاقك يبقى عند مدير المدرسة.",
     }
     return render(request, "reports/tickets_inbox.html", ctx)
 

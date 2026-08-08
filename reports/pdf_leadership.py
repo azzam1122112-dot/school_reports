@@ -36,7 +36,14 @@ def build_leadership_print_context(portfolio) -> dict:
     }
 
 
-def generate_leadership_portfolio_pdf(portfolio, *, request=None) -> bytes:
+def generate_leadership_portfolio_pdf(portfolio, *, request=None, base_url=None) -> bytes:
+    """يولّد ملف الأداء القيادي PDF.
+
+    ``base_url`` بديلٌ صريح عن ``request`` كي تعمل الدالة في عامل الوسائط حيث
+    لا طلبَ أصلاً. والقالب لا يعتمد على معالجات السياق: مسمّيات
+    ``SCHOOL_*_LABEL`` تأتي من ``build_leadership_print_context`` نفسه — فالناتج
+    واحدٌ سواء وُجد الطلب أم لا.
+    """
     html = render_to_string(
         "reports/pdf/leadership_portfolio.html",
         build_leadership_print_context(portfolio),
@@ -44,9 +51,10 @@ def generate_leadership_portfolio_pdf(portfolio, *, request=None) -> bytes:
     )
     from weasyprint import HTML
 
-    base_url = (
-        request.build_absolute_uri("/")
-        if request is not None
-        else str(getattr(settings, "BASE_DIR", "") or "")
-    )
+    if base_url is None:
+        base_url = (
+            request.build_absolute_uri("/")
+            if request is not None
+            else str(getattr(settings, "BASE_DIR", "") or "")
+        )
     return HTML(string=html, base_url=base_url).write_pdf()

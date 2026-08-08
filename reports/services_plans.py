@@ -27,6 +27,7 @@ __all__ = [
     "convert_task_to_assignment",
     "share_initiative",
     "plans_for_school",
+    "plans_visible_to",
     "plan_board_rows",
     "shared_practices_for_group",
 ]
@@ -145,6 +146,38 @@ def plans_for_school(school):
         .prefetch_related(Prefetch("tasks", queryset=PlanTask.objects.select_related("assignment")))
         .order_by("-created_at", "-id")
     )
+
+
+def plans_visible_to(user, school):
+    """الخطط التي يحق لهذا المستخدم رؤيتها في الكشف.
+
+    **الكشف يوافق التفصيل.** ``plan_for`` في العرض يسمح بأربعة: مُعِدّ الخطة،
+    ومدير المدرسة، ومن أُسندت إليه مهمة فيها، ومن مُنح ``track_plans``. وكان
+    الكشف يعرض **خطط المدرسة كلها لكل منسوب** — فيرى المعلّم عناوين خطط لا يملك
+    فتحها، ويقرأ من العنوان ونسبة الإنجاز ما لم يُقصد أن يقرأه.
+
+    والفرق ليس تجميلاً: خطة «معالجة تدنّي نتائج الصف الثالث» عنوانُها وحده خبر.
+
+    ومن لا خطة له يرى كشفاً فارغاً — وهو الصحيح: الخطط ليست وثيقة عامة في
+    المدرسة، ومن يحتاج الاطلاع عليها يُمنح ``track_plans``.
+    """
+    from .permissions import capability_source, is_school_manager
+
+    base = plans_for_school(school)
+
+    if getattr(user, "is_superuser", False):
+        return base
+    if is_school_manager(user, active_school=school):
+        return base
+
+    from .capabilities import TRACK_PLANS
+
+    if capability_source(user, TRACK_PLANS, school) is not None:
+        return base
+
+    # مُعِدُّها أو منفّذُ مهمةٍ فيها. و``distinct`` لازمة: خطةٌ فيها مهمتان
+    # لصاحبها نفسه تعود صفّين من الضمّ.
+    return base.filter(Q(owner=user) | Q(tasks__responsible=user)).distinct()
 
 
 def plan_board_rows(plans) -> list[dict]:

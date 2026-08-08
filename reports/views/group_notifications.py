@@ -54,7 +54,11 @@ def _recipient_ids_for(school, audience: str) -> list[int]:
     """معرّفات مستلمي مدرسة واحدة حسب الفئة المختارة."""
     roles = [SchoolMembership.RoleType.MANAGER]
     if audience == GroupNotificationBatch.Audience.ALL:
-        roles.append(SchoolMembership.RoleType.TEACHER)
+        # «جميع المنسوبين» = ``STAFF_ROLES`` لا المعلّمون وحدهم. إضافة
+        # ``TEACHER`` وحده تُسقط الوكيل والموظف الإداري ومحضّر المختبر من
+        # مستقبلي التعميم بلا خطأ واحد — وهو الفشل الصامت الذي سُمّيت
+        # ``STAFF_ROLES`` لمنعه.
+        roles.extend(SchoolMembership.STAFF_ROLES)
 
     return list(
         Teacher.objects.filter(

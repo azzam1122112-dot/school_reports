@@ -427,8 +427,13 @@ MIDDLEWARE = [
     "reports.middleware.CanonicalHostMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "reports.middleware_single_session.EnforceSingleSessionMiddleware",
+    # MessageMiddleware يسبق EnforceSingleSession عمداً: الأخير يضيف رسالة
+    # «سُجّل الخروج لأن الحساب دخل من جهاز آخر»، و``messages.add_message`` يحتاج
+    # ``request._messages`` الذي ينشئه MessageMiddleware في مرحلة الطلب. وبالترتيب
+    # المعكوس كان النداء يرمي ``MessageFailure`` فيبتلعه ``except`` ولا تصل
+    # الرسالة أبداً — يخرج المستخدم بلا تفسير ويظنه عطلاً.
     "django.contrib.messages.middleware.MessageMiddleware",
+    "reports.middleware_single_session.EnforceSingleSessionMiddleware",
     "reports.middleware.AuditLogMiddleware",
     "reports.middleware.MaintenanceModeMiddleware",
     "reports.middleware.SearchEngineIndexingMiddleware",
@@ -460,6 +465,7 @@ TEMPLATES = [
                 "reports.ai_features.ai_feature_flags",
                 "reports.context_processors.csp",
                 "reports.context_processors.seo",
+                "reports.context_processors.payment_gateways",
             ],
         },
     },
@@ -733,6 +739,8 @@ CELERY_TASK_ROUTES = {
     "reports.tasks.send_password_change_email_task": {"queue": "notifications"},
     "reports.tasks.process_report_images": {"queue": "images"},
     "reports.tasks.process_ticket_image": {"queue": "images"},
+    # توليد PDF: أثقل عملية في المنصة، ومكانها عامل الوسائط لا عامل الويب.
+    "reports.tasks.render_achievement_pdf_task": {"queue": "images"},
     "reports.tasks.send_daily_manager_summary_task": {"queue": "periodic"},
     "reports.tasks._daily_summary_for_school": {"queue": "periodic"},
     "reports.tasks.check_subscription_expiry_task": {"queue": "periodic"},

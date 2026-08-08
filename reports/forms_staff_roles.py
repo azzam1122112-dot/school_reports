@@ -29,20 +29,22 @@ __all__ = ["StaffRoleAssignForm", "StaffScopeForm", "DelegationForm", "ASSIGNMEN
 #
 # «مدير» ليس منها: نقل الإدارة قرار يخص مالك النظام، ولو أُتيح هنا لاستطاع
 # المدير أن يعزل نفسه بنقرة.
+#
+# والدور المقابل لكل مسمّى يُسأل من ``role_for_job_title`` لا يُكتب هنا: كتابته
+# في هذا الجدول جعلته إجابةً ثانية عن سؤال تُجيب عنه شاشةُ «إضافة مستخدم»
+# بغيرها، فخرج من البابين محضّران بصلاحيتين.
+def _titled(job_title: str) -> tuple[str, str]:
+    return (SchoolMembership.role_for_job_title(job_title), job_title)
+
+
 ASSIGNMENTS: dict[str, tuple[str, str | None]] = {
+    # الوكالة دورٌ بلا مسمّى وظيفي يقابله، فيبقى المسمّى على حاله.
     SchoolMembership.RoleType.DEPUTY: (SchoolMembership.RoleType.DEPUTY, None),
-    SchoolMembership.RoleType.ADMIN_STAFF: (
-        SchoolMembership.RoleType.ADMIN_STAFF,
-        SchoolMembership.JobTitle.ADMIN_STAFF,
+    SchoolMembership.RoleType.ADMIN_STAFF: _titled(
+        SchoolMembership.JobTitle.ADMIN_STAFF
     ),
-    SchoolMembership.JobTitle.LAB_TECH: (
-        SchoolMembership.RoleType.ADMIN_STAFF,
-        SchoolMembership.JobTitle.LAB_TECH,
-    ),
-    SchoolMembership.RoleType.TEACHER: (
-        SchoolMembership.RoleType.TEACHER,
-        SchoolMembership.JobTitle.TEACHER,
-    ),
+    SchoolMembership.JobTitle.LAB_TECH: _titled(SchoolMembership.JobTitle.LAB_TECH),
+    SchoolMembership.RoleType.TEACHER: _titled(SchoolMembership.JobTitle.TEACHER),
 }
 
 # الأدوار التي يجوز لمدير المدرسة إسنادها — مشتقة من الخيارات أعلاه لا مكرّرة

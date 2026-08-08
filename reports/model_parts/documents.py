@@ -154,8 +154,7 @@ class Document(ApprovalMixin):
                 self.owner_name = (getattr(self.owner, "name", "") or "")[:150]
             except Exception:
                 pass
-        try:
-            self.storage_bytes = int(getattr(self.file, "size", 0) or 0)
-        except Exception:
-            pass
+        # ``storage_bytes`` تملؤه إشارات ``storage_tracking`` كبقية النماذج ذات
+        # الملفات: تقرأ الحجم عند تغيّر الملف فقط، فلا يُستدعى التخزين شبكياً في
+        # كل حفظ اعتماد أو تعديل وصف.
         return super().save(*args, **kwargs)

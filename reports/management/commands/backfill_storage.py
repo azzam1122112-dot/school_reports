@@ -13,6 +13,8 @@ from django.core.management.base import BaseCommand
 from reports.models import (
     AchievementEvidenceImage,
     AchievementEvidenceReport,
+    Document,
+    LeadershipEvidenceImage,
     Notification,
     Report,
     School,
@@ -24,11 +26,15 @@ from reports.models import (
 from reports.services_archive import _file_size, recompute_school_storage
 
 
+# يجب أن تطابق هذه القائمة ما يسجّله ``storage_tracking.connect_all()``؛ نموذجٌ
+# ناقص هنا يُصفَّر حجمه عند كل مصالحة رغم أنه يشغل مساحة فعلية.
 _MODELS = [
     (Report, ["image1", "image2", "image3", "image4"]),
     (TeacherAchievementFile, ["pdf_file"]),
     (AchievementEvidenceImage, ["image"]),
     (AchievementEvidenceReport, ["archived_image1", "archived_image2", "archived_image3", "archived_image4"]),
+    (LeadershipEvidenceImage, ["image"]),
+    (Document, ["file"]),
     (Ticket, ["attachment"]),
     (TicketImage, ["image"]),
     (Notification, ["attachment"]),

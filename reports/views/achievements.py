@@ -101,11 +101,74 @@ def _can_manage_achievement(user, active_school: Optional[School]) -> bool:
 
 
 def _can_view_achievement(user, active_school: Optional[School]) -> bool:
+    """من يحق له الاطلاع على ملفات إنجاز غيره.
+
+    **الاطلاع ليس الاعتماد.** من مُنح ``view_achievements`` يقرأ ولا يقرّر: هذه
+    الدالة تفتح العرض، و``_can_manage_achievement`` وحدها تفتح الاعتماد والرفض
+    والملاحظات — ولا تُستدعى من هنا.
+
+    وقبل هذا كانت الصلاحية معرَّفة في مرجع الصلاحيات ولا يفحصها سطر واحد في
+    المشروع: يمنحها المدير في شاشة الأدوار فلا يحدث شيء.
+    """
     if getattr(user, "is_superuser", False):
         return True
     if _can_manage_achievement(user, active_school):
         return True
-    return False
+    if active_school is None:
+        return False
+    from ..capabilities import VIEW_ACHIEVEMENTS
+    from ..permissions import capability_source
+
+    return capability_source(user, VIEW_ACHIEVEMENTS, active_school) is not None
+
+
+def _achievement_scope_teacher_ids(user, active_school: Optional[School]) -> Optional[set[int]]:
+    """المنسوبون الذين يشملهم اطلاع هذا المستخدم — أو ``None`` إن كان يشمل الكل.
+
+    ``None`` تعني «لا حصر» وهي للمدير ومالك النظام. وما دونهما يُحصَر بأقسام
+    نطاقه: نصّ الصلاحية «يطّلع على ملفات إنجاز **من يقعون تحت إشرافه**»، ونطاقٌ
+    بلا أقسام يعني مجموعة فارغة لا مجموعة كاملة — وهي القاعدة نفسها التي تحكم
+    ``supervised_department_ids`` في كل موضع.
+    """
+    if getattr(user, "is_superuser", False):
+        return None
+    if _can_manage_achievement(user, active_school):
+        return None
+    if active_school is None:
+        return set()
+
+    from ..permissions import supervised_department_ids
+
+    supervised = supervised_department_ids(user, active_school)
+    if not supervised:
+        return set()
+
+    if DepartmentMembership is None:
+        return set()
+    return {
+        int(pk)
+        for pk in DepartmentMembership.objects.filter(
+            department_id__in=supervised
+        ).values_list("teacher_id", flat=True)
+        if pk
+    }
+
+
+def _may_read_achievement_file(user, active_school: Optional[School], ach_file) -> bool:
+    """هل يحق لهذا المستخدم قراءة هذا الملف بعينه (عرضاً أو طباعةً أو PDF)؟
+
+    الفحص على **الملف** لا على الشاشة: ``_can_view_achievement`` تجيب «يطّلع على
+    ملفات غيره» ولا تقول على ملفات مَن — فالاكتفاء بها في الطباعة كان يفتح ملفات
+    المدرسة كلها لمن نطاقه قسم واحد، بينما الكشف الذي وصل منه مقصورٌ على قسمه.
+    """
+    if getattr(user, "is_superuser", False):
+        return True
+    if ach_file.teacher_id == getattr(user, "id", None):
+        return True
+    if _can_manage_achievement(user, active_school):
+        return True
+    scoped = _achievement_scope_teacher_ids(user, active_school)
+    return bool(scoped is not None and ach_file.teacher_id in scoped)
 
 
 @login_required(login_url="reports:login")
@@ -291,7 +354,14 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
         .only("id", "name", "phone", "national_id")
         .order_by("name")
     )
-    
+
+    # النطاق قبل المرشّح: التصفية الأمنية على الاستعلام الأساس، ثم يُبنى فوقها
+    # بحثُ المستخدم ومرشّحاته. والترتيب المعاكس يجعل كل مرشّح جديد ثغرةً محتملة.
+    scoped_teacher_ids = _achievement_scope_teacher_ids(request.user, active_school)
+    if scoped_teacher_ids is not None:
+        teachers = teachers.filter(id__in=scoped_teacher_ids)
+
+
     if q:
         from ..search_utils import smart_search_q, ACHIEVEMENT_TEACHER_SEARCH_FIELDS
 
@@ -370,8 +440,16 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
     is_manager = _can_manage_achievement(user, active_school)
     is_owner = (ach_file.teacher_id == getattr(user, "id", None))
+    # المتابع المُنح ``view_achievements`` يقرأ ملفات نطاقه. و``is_manager``
+    # يبقى كما هو، فهو وحده مقياس الاعتماد والملاحظات أدناه.
+    scoped_teacher_ids = _achievement_scope_teacher_ids(user, active_school)
+    is_scoped_viewer = bool(
+        scoped_teacher_ids is not None and ach_file.teacher_id in scoped_teacher_ids
+    )
 
-    if not (getattr(user, "is_superuser", False) or is_manager or is_owner):
+    if not (
+        getattr(user, "is_superuser", False) or is_manager or is_owner or is_scoped_viewer
+    ):
         return HttpResponse(status=403)
 
     _ensure_achievement_sections(ach_file)
@@ -800,14 +878,29 @@ def achievement_file_pdf(request: HttpRequest, pk: int) -> HttpResponse:
     if not getattr(request.user, "is_superuser", False):
         if active_school is None or ach_file.school_id != getattr(active_school, "id", None):
             raise Http404
-    if not (_can_view_achievement(request.user, active_school) or ach_file.teacher_id == getattr(request.user, "id", None)):
+    if not _may_read_achievement_file(request.user, active_school, ach_file):
         return HttpResponse(status=403)
 
-    # توليد PDF عند الطلب
+    # توليد PDF عند الطلب — في عامل الوسائط متى أمكن.
+    #
+    # المحتوى واللحظة والاسم كما كانت تماماً؛ المتغيّر أن حرق المعالج انتقل من
+    # حاوية الويب إلى العامل المخصَّص للعمل الثقيل. وأي تعثّر يرتدّ إلى التوليد
+    # المحلي داخل ``render_pdf_offloaded`` نفسه، فلا مسار جديد للفشل هنا.
     try:
-        from ..pdf_achievement import generate_achievement_pdf
+        from ..pdf_achievement import achievement_pdf_filename, generate_achievement_pdf
+        from ..pdf_offload import render_pdf_offloaded
+        from ..tasks import render_achievement_pdf_task
 
-        pdf_bytes, filename = generate_achievement_pdf(request=request, ach_file=ach_file)
+        base_url = request.build_absolute_uri("/")
+        filename = achievement_pdf_filename(ach_file)
+        pdf_bytes = render_pdf_offloaded(
+            task=render_achievement_pdf_task,
+            task_args=[ach_file.pk, base_url],
+            render_locally=lambda: generate_achievement_pdf(
+                ach_file=ach_file, base_url=base_url
+            )[0],
+            label=f"achievement:{ach_file.pk}",
+        )
     except OSError as ex:
         # WeasyPrint on Windows يحتاج مكتبات نظام (GTK/Pango/Cairo) مثل libgobject.
         msg = str(ex) or ""
@@ -851,7 +944,7 @@ def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
         if active_school is None or ach_file.school_id != getattr(active_school, "id", None):
             raise Http404
 
-    if not (_can_view_achievement(request.user, active_school) or ach_file.teacher_id == getattr(request.user, "id", None)):
+    if not _may_read_achievement_file(request.user, active_school, ach_file):
         return HttpResponse(status=403)
 
     _ensure_achievement_sections(ach_file)

@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% load hijri_tags %}
 
-{% block title %}مساحة عمل {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}{% endblock %}
+{% comment %} اللوحة ليست للمعلّم وحده: المدير له لوحته، ومن سواه — وكيلاً أو موظفاً
+   إدارياً أو محضّر مختبر — يهبط هنا. فتُنادى الصفحة صاحبَها بما يُعرف به،
+   ولا تُسمّي المحضّرَ معلّماً بعد أن أصلحت الترويسةُ ذلك. {% endcomment %}
+{% block title %}مساحة عمل {{ USER_ROLE_LABEL|default:SCHOOL_TEACHER_LABEL|default:"المعلم" }}{% endblock %}
 
 {% block head %}
 <style nonce="{{ CSP_NONCE }}">
@@ -237,6 +240,74 @@
     text-decoration: none;
   }
   .th-link:hover { text-decoration: underline; }
+
+  /* عنوان مجموعة داخل بطاقة المشاركات — أصغر من عنوان البطاقة كي يقرأ
+     كفاصلٍ بين التكليفات والاجتماعات والمبادرات، لا كبطاقة ثالثة. */
+  .th-subhead {
+    margin: 16px 0 9px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--th-ink);
+    font-size: .86rem;
+    font-weight: 950;
+  }
+  .th-subhead:first-of-type { margin-top: 4px; }
+  .th-subhead i { color: var(--th-green); }
+  .th-subhead .th-count {
+    margin-inline-start: auto;
+    height: 22px;
+    min-width: 0;
+    font-size: .68rem;
+    font-weight: 900;
+  }
+  .th-flag-late {
+    padding: 1px 7px;
+    border-radius: 999px;
+    color: #b42318;
+    background: #fee4e2;
+    font-weight: 950;
+  }
+  html[data-theme="dark"] .th-flag-late { color: #ffc5c8; background: #40151a; }
+
+  /* شارة حالة الاعتماد. الألوان هي ألوان `_approval_theme` نفسها بمقاسٍ
+     أصغر: الحالة الواحدة يجب أن تحمل اللون نفسه في اللوحة وصندوق المراجعة،
+     وإلا صار «مُعاد للملاحظة» إنذاراً هنا وخبراً هناك. */
+  .th-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 8px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 950;
+    white-space: nowrap;
+  }
+  .th-state[data-tone="draft"] { color: var(--th-muted); }
+  .th-state[data-tone="pending"] { color: #1f6feb; }
+  .th-state[data-tone="attention"] { color: #b68a42; }
+  .th-state[data-tone="recommended"] { color: #6d4aff; }
+  .th-state[data-tone="approved"] {
+    color: #fff;
+    border-color: transparent;
+    background: var(--th-green);
+  }
+  html[data-theme="dark"] .th-state[data-tone="pending"] { color: #7cb2ff; }
+  html[data-theme="dark"] .th-state[data-tone="attention"] { color: #eabf58; }
+  html[data-theme="dark"] .th-state[data-tone="recommended"] { color: #b5a0ff; }
+  html[data-theme="dark"] .th-state[data-tone="approved"] { color: #06251a; }
+
+  /* سطر خافت أسفل عنوان البطاقة: عددٌ ينتظر غيرك ليس بنداً عليك، فلا يأخذ
+     وزن البطاقات ولا لون الإنذار. */
+  .th-note {
+    margin: -6px 0 14px;
+    color: var(--th-muted);
+    font-size: .78rem;
+    font-weight: 800;
+    line-height: 1.9;
+  }
+  .th-note b { color: var(--th-ink); font-weight: 950; }
 
   .th-attention {
     display: grid;
@@ -585,9 +656,9 @@
     <div class="th-hero-main">
       <div class="th-eyebrow">
         <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>
-        مساحة عمل {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}
+        مساحة عمل {{ USER_ROLE_LABEL|default:SCHOOL_TEACHER_LABEL|default:"المعلم" }}
       </div>
-      <h1 class="th-title" id="teacherHomeTitle">مرحبًا، {{ request.user.name|default:SCHOOL_TEACHER_LABEL }}</h1>
+      <h1 class="th-title" id="teacherHomeTitle">مرحبًا، {{ request.user.name|default:USER_ROLE_LABEL|default:SCHOOL_TEACHER_LABEL }}</h1>
       <p class="th-lead">وثّق عملك، تابع طلباتك، واحتفظ بإنجازاتك من مكان واحد واضح.</p>
       <div class="th-hero-actions">
         <a href="{% url 'reports:add_report' %}" class="th-btn th-btn-primary">
@@ -635,7 +706,118 @@
         <span class="th-kpi-label">طلبات تحتاج متابعة</span>
       </span>
     </a>
+    <a class="th-kpi" href="{% url 'reports:my_assignments' %}">
+      <span class="th-kpi-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
+      <span>
+        <span class="th-kpi-value">{{ open_targets_count|default:"0" }}</span>
+        <span class="th-kpi-label">تكليفات مفتوحة</span>
+      </span>
+    </a>
   </section>
+
+  {% comment %} ═══ المختبر ═════════════════════════════════════════════════
+     بطاقةٌ تُضاف إلى لوحة المحضّر لا تحلّ محلّها: هو معلّمٌ في كل ما سوى
+     المختبر — يكتب تقاريره ويرفع ملف إنجازه ويُكلَّف — فإبداله لوحته بلوحة
+     مختبر كان سيُسقط ذلك كله لأجل بطاقتين. {% endcomment %}
+  {% if lab_summary %}
+    <section class="th-card" aria-labelledby="labPanelTitle">
+      <div class="th-card-head">
+        <h2 id="labPanelTitle">
+          <i class="fa-solid fa-flask" aria-hidden="true"></i>
+          المختبر
+          {% if lab_summary.assets_attention %}<span class="th-count">{{ lab_summary.assets_attention }}</span>{% endif %}
+        </h2>
+        <a class="th-link" href="{% url 'reports:lab_dashboard' %}">لوحة المختبر</a>
+      </div>
+
+      <div class="th-report-list">
+        <a class="th-report" href="{% url 'reports:lab_assets' %}">
+          <span class="th-report-icon"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i></span>
+          <span class="th-item-body">
+            <span class="th-item-title">أصناف العهدة</span>
+            <span class="th-item-meta">
+              <span class="th-state" data-tone="draft">{{ lab_summary.assets_total }}</span>
+              {% if lab_summary.outstanding %}<span>{{ lab_summary.outstanding }} خارج المختبر</span>{% endif %}
+            </span>
+          </span>
+          <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>
+        </a>
+
+        {% if lab_summary.assets_attention %}
+          <a class="th-report" href="{% url 'reports:lab_assets' %}?condition=needs_maintenance">
+            <span class="th-report-icon"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i></span>
+            <span class="th-item-body">
+              <span class="th-item-title">أصناف تحتاج انتباهاً</span>
+              <span class="th-item-meta">
+                <span class="th-state" data-tone="attention">{{ lab_summary.assets_attention }}</span>
+                {% for asset in lab_attention %}<span>{{ asset.name }}{% if not forloop.last %} ·{% endif %}</span>{% endfor %}
+              </span>
+            </span>
+            <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>
+          </a>
+        {% endif %}
+
+        <a class="th-report" href="{% url 'reports:lab_experiments' %}">
+          <span class="th-report-icon"><i class="fa-solid fa-vials" aria-hidden="true"></i></span>
+          <span class="th-item-body">
+            <span class="th-item-title">التجارب الموثَّقة</span>
+            <span class="th-item-meta">
+              <span class="th-state" data-tone="{% if lab_summary.experiments_drafts %}attention{% else %}draft{% endif %}">{{ lab_summary.experiments_total }}</span>
+              {% if lab_summary.experiments_drafts %}<span>{{ lab_summary.experiments_drafts }} مسودة لم تُرسَل</span>{% endif %}
+              {% if lab_summary.experiments_pending %}<span>{{ lab_summary.experiments_pending }} تنتظر الاعتماد</span>{% endif %}
+            </span>
+          </span>
+          <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>
+        </a>
+      </div>
+    </section>
+  {% endif %}
+
+  {% comment %} ═══ ما ينتظر قرارك ══════════════════════════════════════════
+     أول ما يُقرأ لمن يقرّر في عمل غيره. وموضعُه قبل «تقاريري» مقصود: الوكيل
+     يبدأ يومه بما ينتظره الآخرون منه لا بما وثّقه هو. ولا يُعرض لمن لم يُمنح
+     شيئاً — و``supervision_rows`` تكون فارغة حينها. {% endcomment %}
+  {% if supervision_rows %}
+    <section class="th-card th-supervision" aria-labelledby="supervisionTitle">
+      <div class="th-card-head">
+        <h2 id="supervisionTitle">
+          <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+          ما ينتظر قرارك
+          {% if supervision_total %}<span class="th-count">{{ supervision_total }}</span>{% endif %}
+        </h2>
+        {% if CAN_VIEW_SCHOOL_DASHBOARD %}
+          <a class="th-link" href="{% url 'reports:staff_dashboard' %}">مؤشرات نطاقي</a>
+        {% endif %}
+      </div>
+
+      {% if supervision_scope_missing %}
+        {# نطاقٌ فارغ يُقال صريحاً: أصفارٌ بلا تفسير تُقرأ «لا عمل عليك». #}
+        <p class="th-note">
+          مُنحت صلاحيات إشرافية ولم تُسنَد إليك أقسام بعد، فلا يظهر لك شيء هنا.
+          راجع مدير المدرسة لضبط نطاقك.
+        </p>
+      {% endif %}
+
+      <div class="th-report-list">
+        {% for row in supervision_rows %}
+          <a class="th-report" href="{{ row.url }}">
+            <span class="th-report-icon"><i class="fa-solid {{ row.icon }}" aria-hidden="true"></i></span>
+            <span class="th-item-body">
+              <span class="th-item-title">{{ row.label }}</span>
+              <span class="th-item-meta">
+                {% comment %} نبرتان معرَّفتان في هذه الصفحة لا اسمان مبتكران: نبرةٌ بلا
+                   قاعدة لون تُصيَّر بلون النصّ العادي، فيسقط التمييز بصمت. {% endcomment %}
+                <span class="th-state" data-tone="{% if row.count %}attention{% else %}draft{% endif %}">{{ row.count }}</span>
+              </span>
+            </span>
+            <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>
+          </a>
+        {% endfor %}
+      </div>
+
+      <p class="th-note">الاعتماد النهائي يبقى لمدير المدرسة في كل ما سبق.</p>
+    </section>
+  {% endif %}
 
   <div class="th-layout">
     <div class="th-stack">
@@ -647,6 +829,52 @@
           </h2>
           <a class="th-link" href="{% url 'reports:my_reports' %}">عرض جميع التقارير</a>
         </div>
+
+        {% comment %} ما ينتظر غيرك يُذكر ولا يُنبَّه عليه. والمسودة تُذكر معه لأن دورة
+           الاعتماد تحفظ التقرير مسودةً أولاً، فمن كتب ولم يُرسل يحسبه وصل. {% endcomment %}
+        {% if awaiting_review_count or draft_reports_count %}
+          <p class="th-note">
+            {% if draft_reports_count %}<b>{{ draft_reports_count }}</b> مسودة لم تُرسل بعد.{% endif %}
+            {% if awaiting_review_count %}<b>{{ awaiting_review_count }}</b> بانتظار قرار المراجعة — لا إجراء عليك فيها.{% endif %}
+          </p>
+        {% endif %}
+
+        {% comment %} ما أُعيد إلى صاحبه يتقدّم أحدثَ ما كتبه: تقريرٌ ينتظر استكماله أَولى
+           بأول سطر من تقريرٍ اطمأنّ إليه. ويقود الرابط إلى صفحة الاعتماد لا
+           إلى الطباعة، لأن فيها الملاحظة وزرّ إعادة الإرسال معاً. {% endcomment %}
+        {% if returned_reports %}
+          <h3 class="th-subhead" id="reportsNeedingMe">
+            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+            أُعيدت إليك
+            <span class="th-count">{{ returned_reports_count }}</span>
+          </h3>
+          <div class="th-report-list">
+            {% for report in returned_reports %}
+              <a class="th-report" href="{% url 'reports:approval_detail' report.id %}">
+                <span class="th-report-icon"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></span>
+                <span class="th-item-body">
+                  <span class="th-item-title">{{ report.title }}</span>
+                  <span class="th-item-meta">
+                    <span class="th-state" data-tone="{{ report.approval_tone }}">{{ report.get_approval_state_display }}</span>
+                    {% if report.review_note %}<span>{{ report.review_note|truncatechars:70 }}</span>{% endif %}
+                  </span>
+                </span>
+                <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>
+              </a>
+            {% endfor %}
+          </div>
+          {% if returned_reports_count > returned_reports|length %}
+            <a class="th-link" href="{% url 'reports:my_reports' %}">وبقيّتها ({{ returned_reports_count }} إجمالاً)</a>
+          {% endif %}
+          {# العنوان يفصل ما بقي عمّا أُعيد، فلا يُكتب إن لم يبقَ شيء. #}
+          {% if recent_reports %}
+            <h3 class="th-subhead">
+              <i class="fa-regular fa-file-lines" aria-hidden="true"></i>
+              آخر ما وثّقت
+            </h3>
+          {% endif %}
+        {% endif %}
+
         {% if recent_reports %}
           <div class="th-report-list">
             {% for report in recent_reports %}
@@ -658,13 +886,20 @@
                     <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ report.report_date|hijri }} هـ</span>
                     {% if report.day_name %}<span>{{ report.day_name }}</span>{% endif %}
                     <span>{{ report.beneficiaries_count|default:"0" }} {{ SCHOOL_BENEFICIARY_INDEFINITE_LABEL|default:"مستفيد" }}</span>
+                    {% comment %} المدرسة التي لم تفعّل الدورة تُحفظ تقاريرها معتمدةً فوراً،
+                       فوسمُ «معتمد» على كل صفّ فيها ضجيجٌ يخبر عن لا شيء. {% endcomment %}
+                    {% if report_approval_enabled %}
+                      <span class="th-state" data-tone="{{ report.approval_tone }}">{{ report.get_approval_state_display }}</span>
+                    {% endif %}
                   </span>
                 </span>
                 <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>
               </a>
             {% endfor %}
           </div>
-        {% else %}
+        {% elif not returned_reports %}
+          {% comment %} «ابدأ أول توثيق» لمن لم يوثّق شيئاً. ومن كل تقاريره أُعيد إليه
+             وثّق وعمل، ودعوتُه إلى البداية إنكارٌ لما يراه فوقها. {% endcomment %}
           <div class="th-empty">
             <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
             <strong>ابدأ أول توثيق لك</strong>
@@ -711,6 +946,101 @@
           </div>
         {% endif %}
       </section>
+
+      {# الشاشات الثلاث تصل من القائمة، لكن ما لا يظهر على اللوحة لا يُعرف #}
+      {# أنه ينتظر. والبطاقة تختفي كاملةً حين لا يكون صاحبها طرفاً في شيء، #}
+      {# فثلاثة عناوين فوق ثلاثة فراغات أسوأ من غيابها. #}
+      {% if open_targets_count or upcoming_meetings_count or pending_minutes_count or my_initiatives %}
+        <section class="th-card" aria-labelledby="myInvolvementTitle">
+          <div class="th-card-head">
+            <h2 class="th-card-title" id="myInvolvementTitle">
+              <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i>
+              ما أنا طرفٌ فيه
+            </h2>
+            <a class="th-link" href="{% url 'reports:my_assignments' %}">تكليفاتي</a>
+          </div>
+
+          {% if my_open_targets %}
+            <h3 class="th-subhead">
+              <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+              تكليفات مفتوحة
+              {% if overdue_targets_count %}<span class="th-count">{{ overdue_targets_count }} متأخر</span>{% endif %}
+            </h3>
+            <div class="th-report-list">
+              {% for target in my_open_targets %}
+                <a class="th-report" href="{% url 'reports:assignment_detail' target.pk %}">
+                  <span class="th-report-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
+                  <span class="th-item-body">
+                    <span class="th-item-title">{{ target.assignment.title }}</span>
+                    <span class="th-item-meta">
+                      {% if target.assignment.due_at %}
+                        <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ target.assignment.due_at|hijri }} هـ</span>
+                      {% endif %}
+                      {% if target.is_overdue %}<span class="th-flag-late">متأخر</span>{% endif %}
+                      <span class="th-state" data-tone="{{ target.approval_tone }}">{{ target.get_approval_state_display }}</span>
+                    </span>
+                  </span>
+                  <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>
+                </a>
+              {% endfor %}
+            </div>
+            {% if open_targets_count > my_open_targets|length %}
+              <a class="th-link" href="{% url 'reports:my_assignments' %}">وبقيّتها ({{ open_targets_count }} إجمالاً)</a>
+            {% endif %}
+          {% endif %}
+
+          {% if my_upcoming_meetings or pending_minutes_count %}
+            <h3 class="th-subhead">
+              <i class="fa-solid fa-users-rectangle" aria-hidden="true"></i>
+              اجتماعاتي
+              {% if pending_minutes_count %}<span class="th-count">{{ pending_minutes_count }} محضر عليك</span>{% endif %}
+            </h3>
+            {% if my_upcoming_meetings %}
+              <div class="th-report-list">
+                {% for meeting in my_upcoming_meetings %}
+                  <a class="th-report" href="{% url 'reports:meeting_detail' meeting.pk %}">
+                    <span class="th-report-icon"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i></span>
+                    <span class="th-item-body">
+                      <span class="th-item-title">{{ meeting.title }}</span>
+                      <span class="th-item-meta">
+                        {% if meeting.scheduled_at %}
+                          <span><i class="fa-regular fa-clock" aria-hidden="true"></i> {{ meeting.scheduled_at|hijri }} هـ</span>
+                        {% endif %}
+                        {% if meeting.department %}<span>{{ meeting.department.name }}</span>{% endif %}
+                      </span>
+                    </span>
+                    <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>
+                  </a>
+                {% endfor %}
+              </div>
+            {% endif %}
+            <a class="th-link" href="{% url 'reports:meeting_list' %}">كل اجتماعاتي ومحاضرها</a>
+          {% endif %}
+
+          {% if my_initiatives %}
+            <h3 class="th-subhead">
+              <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+              مبادراتي
+              {% if draft_initiatives_count %}<span class="th-count">{{ draft_initiatives_count }} مسودة</span>{% endif %}
+            </h3>
+            <div class="th-report-list">
+              {% for initiative in my_initiatives %}
+                <a class="th-report" href="{% url 'reports:initiative_list' %}">
+                  <span class="th-report-icon"><i class="fa-regular fa-lightbulb" aria-hidden="true"></i></span>
+                  <span class="th-item-body">
+                    <span class="th-item-title">{{ initiative.title }}</span>
+                    <span class="th-item-meta">
+                      <span class="th-state" data-tone="{{ initiative.approval_tone }}">{{ initiative.get_approval_state_display }}</span>
+                      {% if initiative.is_best_practice %}<span>ممارسة ناجحة</span>{% endif %}
+                    </span>
+                  </span>
+                  <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </section>
+      {% endif %}
     </div>
 
     <aside class="th-stack">
@@ -721,8 +1051,50 @@
             متابعة اليوم
           </h2>
         </div>
-        {% if NAV_NOTIFICATIONS_UNREAD or NAV_SIGNATURES_PENDING or NAV_ASSIGNED_TO_ME or active_requests_count %}
+        {% if NAV_NOTIFICATIONS_UNREAD or NAV_SIGNATURES_PENDING or NAV_ASSIGNED_TO_ME or active_requests_count or overdue_targets_count or upcoming_meetings_count or pending_minutes_count or returned_reports_count %}
           <div class="th-attention">
+            {% comment %} أُعيد إليك أولاً: عملٌ كتبتَه ووقف عندك أقربُ إلى الإنجاز من عملٍ
+               لم يبدأ، والقائمة تُقرأ من أعلاها. {% endcomment %}
+            {% if returned_reports_count %}
+              <a class="th-attention-item" href="#reportsNeedingMe">
+                <span class="th-attention-icon"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></span>
+                <span class="th-attention-text">
+                  <span class="th-attention-name">تقارير أُعيدت إليك</span>
+                  <span class="th-attention-hint">اقرأ الملاحظة واستكمل ما نقص ثم أعِد إرسالها</span>
+                </span>
+                <span class="th-count">{{ returned_reports_count }}</span>
+              </a>
+            {% endif %}
+            {% if overdue_targets_count %}
+              <a class="th-attention-item" href="{% url 'reports:my_assignments' %}">
+                <span class="th-attention-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+                <span class="th-attention-text">
+                  <span class="th-attention-name">تكليفات تجاوزت موعدها</span>
+                  <span class="th-attention-hint">أنجزها أو أرفق ما يوضّح التأخير</span>
+                </span>
+                <span class="th-count">{{ overdue_targets_count }}</span>
+              </a>
+            {% endif %}
+            {% if upcoming_meetings_count %}
+              <a class="th-attention-item" href="{% url 'reports:meeting_list' %}">
+                <span class="th-attention-icon"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i></span>
+                <span class="th-attention-text">
+                  <span class="th-attention-name">اجتماعات دُعيت إليها</span>
+                  <span class="th-attention-hint">اطّلع على جدول الأعمال قبل الموعد</span>
+                </span>
+                <span class="th-count">{{ upcoming_meetings_count }}</span>
+              </a>
+            {% endif %}
+            {% if pending_minutes_count %}
+              <a class="th-attention-item" href="{% url 'reports:meeting_list' %}">
+                <span class="th-attention-icon"><i class="fa-solid fa-file-signature" aria-hidden="true"></i></span>
+                <span class="th-attention-text">
+                  <span class="th-attention-name">محاضر بانتظار تحريرها</span>
+                  <span class="th-attention-hint">اجتماعات انعقدت وأنت من يحرّر محضرها</span>
+                </span>
+                <span class="th-count">{{ pending_minutes_count }}</span>
+              </a>
+            {% endif %}
             {% if NAV_NOTIFICATIONS_UNREAD %}
               <a class="th-attention-item" href="{% url 'reports:my_notifications' %}">
                 <span class="th-attention-icon"><i class="fa-regular fa-bell" aria-hidden="true"></i></span>
@@ -796,6 +1168,22 @@
           <a class="th-action" href="{% url 'reports:my_circulars' %}">
             <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
             <strong>التعاميم الواردة</strong>
+          </a>
+          <a class="th-action" href="{% url 'reports:my_assignments' %}">
+            <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+            <strong>تكليفاتي</strong>
+          </a>
+          <a class="th-action" href="{% url 'reports:meeting_list' %}">
+            <i class="fa-solid fa-users-rectangle" aria-hidden="true"></i>
+            <strong>الاجتماعات والمحاضر</strong>
+          </a>
+          <a class="th-action" href="{% url 'reports:initiative_list' %}">
+            <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+            <strong>المبادرات</strong>
+          </a>
+          <a class="th-action" href="{% url 'reports:plan_list' %}">
+            <i class="fa-solid fa-compass-drafting" aria-hidden="true"></i>
+            <strong>الخطط</strong>
           </a>
         </div>
       </section>

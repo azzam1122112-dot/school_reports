@@ -45,6 +45,22 @@ urlpatterns = [
     # الصفحة الرئيسية
     # =========================
     path("home/", views.home, name="home"),
+    # مؤشرات نطاق الوكيل والموظف الإداري — ليست لوحة المدير مصغَّرةً بل ما
+    # يقع تحت إشرافهما وحده.
+    path("scope/", views.staff_dashboard, name="staff_dashboard"),
+
+    # =========================
+    # المختبر (محضّر المختبر)
+    # =========================
+    path("lab/", views.lab_dashboard, name="lab_dashboard"),
+    path("lab/assets/", views.lab_assets, name="lab_assets"),
+    path("lab/assets/print/", views.lab_assets_print, name="lab_assets_print"),
+    path("lab/assets/<int:pk>/", views.lab_asset_detail, name="lab_asset_detail"),
+    path("lab/assets/<int:pk>/action/", views.lab_asset_action, name="lab_asset_action"),
+    path("lab/experiments/", views.lab_experiments, name="lab_experiments"),
+    path("lab/experiments/<int:pk>/", views.lab_experiment_detail, name="lab_experiment_detail"),
+    path("lab/experiments/<int:pk>/action/", views.lab_experiment_action, name="lab_experiment_action"),
+    path("lab/experiments/<int:pk>/print/", views.lab_experiment_print, name="lab_experiment_print"),
 
     # =========================
     # التقارير (للمعلّم)
@@ -244,6 +260,7 @@ urlpatterns = [
 
     path("group/practices/", views.group_practices, name="group_practices"),
     path("group/schools/<int:pk>/", views.group_school_detail, name="group_school_detail"),
+    path("group/approvals/", views.group_approval_inbox, name="group_approval_inbox"),
     path("group/audit/", views.group_audit_log, name="group_audit_log"),
     path("group/archive/", views.group_archive, name="group_archive"),
 

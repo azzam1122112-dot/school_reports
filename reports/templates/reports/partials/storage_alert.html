@@ -14,17 +14,18 @@ Silent until 80% — a banner that is always on is a banner nobody reads.
       <div class="storage-alert__copy">
         <strong id="storageAlertTitle">
           {% if storage_overview.warning_level == 'full' %}
-            امتلأت مساحة تخزين المدرسة
+            امتلأت مساحة عمل المدرسة
           {% elif storage_overview.warning_level == 'critical' %}
-            مساحة التخزين على وشك الامتلاء
+            مساحة العمل على وشك الامتلاء
           {% else %}
-            اقتربت مساحة التخزين من الحد
+            اقتربت مساحة العمل من الحد
           {% endif %}
         </strong>
         <span>
           استُخدم {{ storage_overview.used_label }} من {{ storage_overview.limit_label }}
           ({{ storage_overview.usage_percent }}%)
           {% if not storage_overview.warning_level == 'full' %}· المتبقي {{ storage_overview.remaining_label }}{% endif %}
+          {% if storage_overview.snapshot_bytes %}· النسخ السنوية ({{ storage_overview.snapshot_label }}) خارج هذا الحساب{% endif %}
         </span>
       </div>
     </div>

@@ -196,6 +196,11 @@ def _default_login_redirect_name(user) -> str:
         return "reports:platform_admin_dashboard"
     if _is_staff(user):
         return "reports:admin_dashboard"
+    # المدير التنفيذي يُسأل عنه بعد الإدارة المدرسية لا قبلها: من جمع الصفتين
+    # يبقى مديراً في مدرسته. وقبل هذا الشرط كان يهبط على لوحة المعلّم — صفحةٌ
+    # لا تخصّه ولا تعرض من مجموعته شيئاً.
+    if is_executive_director(user):
+        return "reports:executive_dashboard"
     return "reports:home"
 
 
@@ -426,6 +431,110 @@ def _landing_card_title(capacity: int, is_unlimited: bool) -> str:
     return "باقة تشغيل موسعة"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# خنق المحاولات على مستوى الحساب
+# ─────────────────────────────────────────────────────────────────────────────
+# حدُّ الـ IP وحده لا يحمي حساباً بعينه: حشو بيانات الاعتماد يأتي من آلاف
+# العناوين، فيصيب كل عنوانٍ عشر محاولات في الدقيقة دون أن يلمس الحدَّ، ويجرّب
+# على الحساب نفسه آلافاً في الساعة. فالعدّاد الثاني يُمسك بما يفلت من الأول:
+# مفتاحه المُعرِّف لا العنوان.
+#
+# ولا يُستعمل وحده أيضاً: عدّادٌ بالمعرِّف يمكّن مهاجماً من إقفال حساب غيره
+# عمداً (denial of service). ولذلك النافذة قصيرة والتهدئة قصيرة — تُبطئ
+# التخمين إلى ما لا يُجدي دون أن تحرم صاحب الحساب من العودة بعد دقائق.
+LOGIN_ACCOUNT_MAX_FAILURES = 8
+LOGIN_ACCOUNT_WINDOW_SECONDS = 15 * 60
+LOGIN_ACCOUNT_LOCKOUT_SECONDS = 15 * 60
+
+
+def _login_throttle_key(identifier: str) -> str:
+    """مفتاح ثابت للمعرِّف مهما اختلفت صيغته المكتوبة.
+
+    يُجزَّأ لأن المعرِّف رقم جوال أو هوية — بيانات شخصية لا توضع مفتاحاً في
+    Redis مشترك، ولأن التجزئة تحدّ طول المفتاح مهما أرسل المهاجم.
+    """
+    import hashlib
+
+    normalized = (identifier or "").strip().lower().lstrip("+")
+    return "login:fail:" + hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:32]
+
+
+def _login_account_locked(identifier: str) -> bool:
+    """هل تجاوز هذا المعرِّف حدَّ المحاولات الفاشلة؟
+
+    تعذُّر الوصول إلى الذاكرة المؤقتة يُعامل كـ«غير مقفل»: حدُّ الـ IP ما زال
+    قائماً، وإسقاط تسجيل الدخول للجميع لأن Redis متعثّر أسوأ من فقد طبقةِ
+    تشديدٍ ثانية مؤقتاً.
+    """
+    if not identifier:
+        return False
+    try:
+        return int(cache.get(_login_throttle_key(identifier)) or 0) >= LOGIN_ACCOUNT_MAX_FAILURES
+    except Exception:
+        return False
+
+
+def _register_login_failure(identifier: str) -> None:
+    if not identifier:
+        return
+    key = _login_throttle_key(identifier)
+    try:
+        if cache.add(key, 1, timeout=LOGIN_ACCOUNT_WINDOW_SECONDS):
+            return
+        count = int(cache.incr(key))
+        if count == LOGIN_ACCOUNT_MAX_FAILURES:
+            # عند بلوغ الحدّ تُمدَّد المهلة لتصير تهدئة كاملة لا بقية نافذة.
+            cache.touch(key, LOGIN_ACCOUNT_LOCKOUT_SECONDS)
+            logger.warning("Login throttle engaged for identifier hash=%s", key[-12:])
+    except Exception:
+        pass
+
+
+def _clear_login_failures(identifier: str) -> None:
+    if not identifier:
+        return
+    try:
+        cache.delete(_login_throttle_key(identifier))
+    except Exception:
+        pass
+
+
+def _resolve_login_candidate(identifier: str):
+    """يجد الحساب المقصود باستعلام واحد، دون تجربة كلمة المرور مرة لكل صيغة.
+
+    كان الدخول يستدعي ``authenticate`` مرةً لكل صيغة محتملة لرقم الجوال ثم مرةً
+    للهوية — حتى خمس عمليات تجزئة لكلمة المرور في الطلب الواحد. وتجزئة كلمة
+    المرور مكلفة عمداً، فكان كل طلب فاشل يشتري من المعالج خمسة أضعاف ما يشتريه
+    طلبٌ صحيح: تضخيمٌ يحوّل حدَّ العشر محاولات في الدقيقة إلى خمسين تجزئة.
+
+    الصيغ تُحسم بالاستعلام — وهو رخيص ومفهرس — والتجزئة تقع مرة واحدة على
+    الحساب الذي عُثر عليه.
+    """
+    identifier = (identifier or "").strip()
+    if not identifier:
+        return None
+
+    attempts: list[str] = [identifier]
+    ident_no_plus = identifier.lstrip("+")
+    if ident_no_plus != identifier:
+        attempts.append(ident_no_plus)
+    if identifier.isdigit() and len(identifier) == 9:
+        attempts.append("0" + identifier)
+    if ident_no_plus.isdigit() and ident_no_plus.startswith("966") and len(ident_no_plus) >= 12:
+        # +9665XXXXXXXX -> 05XXXXXXXX
+        attempts.append("0" + ident_no_plus[-9:])
+    attempts = list(dict.fromkeys([item for item in attempts if item]))
+
+    try:
+        candidate = Teacher.objects.filter(
+            Q(phone__in=attempts) | Q(national_id=identifier)
+        ).order_by("id").first()
+    except Exception:
+        logger.exception("Login candidate lookup failed")
+        candidate = None
+    return candidate
+
+
 @ratelimit(key="ip", rate="10/m", method="POST", block=True)
 @never_cache
 @cache_control(no_cache=True, must_revalidate=True, no_store=True, max_age=0)
@@ -445,12 +554,9 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
             return redirect("reports:platform_login")
         if is_force_password_change_required(request):
             return redirect("reports:my_profile")
-        # إن كان المستخدم موظّف لوحة (مدير/سوبر أدمن) نوجّهه للوحة المناسبة
-        if getattr(request.user, "is_superuser", False):
-            return redirect("reports:platform_admin_dashboard")
-        if _is_staff(request.user):
-            return redirect("reports:admin_dashboard")
-        return redirect("reports:home")
+        # وجهة الهبوط تُقرَّر من دالة واحدة: أربع نسخ من الاشتراط نفسها كانت
+        # تعني أن إضافة دور جديد تُنسى في ثلاث منها.
+        return redirect(_default_login_redirect_name(request.user))
 
     if request.method == "POST":
         identifier = (
@@ -461,40 +567,39 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
         ).strip()
         password = request.POST.get("password") or ""
 
-        # يدعم تسجيل الدخول عبر:
-        # - رقم الجوال (المعرف الافتراضي USERNAME_FIELD)
-        # - رقم الهوية (نبحث عنه ثم نستخدم phone)
-        # مع بعض التطبيع الخفيف لأشكال رقم الجوال الشائعة.
-        attempts: list[str] = []
-        if identifier:
-            attempts.append(identifier)
-            ident_no_plus = identifier.lstrip("+")
-            if ident_no_plus != identifier:
-                attempts.append(ident_no_plus)
-            if identifier.isdigit() and len(identifier) == 9:
-                attempts.append("0" + identifier)
-            if ident_no_plus.isdigit() and ident_no_plus.startswith("966") and len(ident_no_plus) >= 12:
-                # +9665XXXXXXXX -> 05XXXXXXXX
-                attempts.append("0" + ident_no_plus[-9:])
+        # يدعم تسجيل الدخول عبر رقم الجوال (USERNAME_FIELD) أو رقم الهوية، مع
+        # تطبيع صيغ الجوال الشائعة. الحساب يُحسم باستعلام واحد ثم تُجرَّب كلمة
+        # المرور مرة واحدة — راجع ``_resolve_login_candidate``.
+        if _login_account_locked(identifier):
+            logger.warning(
+                "Login blocked by account throttle identifier=%s trace_id=%s",
+                identifier,
+                getattr(request, "trace_id", None),
+            )
+            opmetrics.increment("auth.login.throttled")
+            messages.error(
+                request,
+                "تم إيقاف محاولات الدخول لهذا الحساب مؤقتاً بعد عدة محاولات فاشلة. "
+                "حاول بعد ربع ساعة أو استعد كلمة المرور.",
+            )
+            return redirect("reports:platform_login" if admin_only else "reports:login")
 
-        # إزالة التكرارات مع الحفاظ على الترتيب
-        seen: set[str] = set()
-        attempts = [a for a in attempts if a and not (a in seen or seen.add(a))]
+        potential_user = _resolve_login_candidate(identifier)
 
         user = None
-        for phone_candidate in attempts:
-            user = authenticate(request, username=phone_candidate, password=password)
-            if user is not None:
-                break
+        if potential_user is not None and getattr(potential_user, "phone", None):
+            user = authenticate(request, username=potential_user.phone, password=password)
+        elif identifier:
+            # لا حساب مطابق: نستدعي المصادقة بمعرِّف لا وجود له عمداً كي يبقى
+            # زمن الرد مشابهاً لزمن كلمة مرور خاطئة (ModelBackend يجزّئ تجزئة
+            # وهمية في هذه الحالة). بدونها يصير فرق التوقيت كاشفاً للحسابات.
+            authenticate(request, username=identifier, password=password)
 
-        if user is None and identifier:
-            try:
-                potential_by_national = Teacher.objects.filter(national_id=identifier).only("phone").first()
-                if potential_by_national is not None and getattr(potential_by_national, "phone", None):
-                    user = authenticate(request, username=potential_by_national.phone, password=password)
-            except Exception:
-                user = None
         if user is not None:
+            # كلمة المرور صحيحة: يسقط عدّاد الإخفاق كي لا يُقفل صاحب الحساب
+            # نفسه بمحاولاته الخاطئة قبل أن يتذكّرها.
+            _clear_login_failures(identifier)
+
             if admin_only and not getattr(user, "is_superuser", False):
                 logger.warning(
                     "Admin login rejected non-superuser user_id=%s identifier=%s trace_id=%s",
@@ -525,18 +630,19 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                     if not memberships.exists():
                         login(request, user)
                         force_password_change = is_force_password_change_required(request)
-                        messages.warning(request, "تنبيه: حسابك غير مرتبط بمدرسة فعّالة. تواصل مع إدارة النظام لربط الحساب بالمدرسة.")
+                        # المدير التنفيذي **لا يملك عضوية مدرسة بحكم تصميمه** —
+                        # عضويته على المجموعة، وبقاؤه خارج ``SchoolMembership``
+                        # هو ما يجعله لا يستهلك مقعداً مدفوعاً. فتحذير «حسابك غير
+                        # مرتبط بمدرسة» كان يستقبله عند كل دخول برسالة عطلٍ عن
+                        # حالةٍ صحيحة، ويدفعه إلى مراسلة الدعم بلا سبب.
+                        if not is_executive_director(user):
+                            messages.warning(request, "تنبيه: حسابك غير مرتبط بمدرسة فعّالة. تواصل مع إدارة النظام لربط الحساب بالمدرسة.")
                         if force_password_change:
                             messages.warning(request, _force_password_change_notice())
                             return redirect("reports:my_profile")
                         _offer_passkey_enrollment(request, user)
                         next_url = next_value
-                        if getattr(user, "is_superuser", False):
-                            default_name = "reports:platform_admin_dashboard"
-                        elif _is_staff(user):
-                            default_name = "reports:admin_dashboard"
-                        else:
-                            default_name = "reports:home"
+                        default_name = _default_login_redirect_name(user)
                         return redirect(next_url or default_name)
 
                     active_school = None
@@ -623,12 +729,7 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
             _offer_passkey_enrollment(request, user)
             next_url = next_value
             # الوجهة الافتراضية حسب الدور
-            if getattr(user, "is_superuser", False):
-                default_name = "reports:platform_admin_dashboard"
-            elif _is_staff(user):
-                default_name = "reports:admin_dashboard"
-            else:
-                default_name = "reports:home"
+            default_name = _default_login_redirect_name(user)
             logger.info(
                 "Login success user_id=%s is_superuser=%s active_school_id=%s redirect=%s trace_id=%s",
                 getattr(user, "id", None),
@@ -640,17 +741,15 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
             opmetrics.increment("auth.login.success")
             return redirect(next_url or default_name)
 
-        # فشل المصادقة: نتحقق هل السبب هو أن الحساب موقوف (is_active=False)
+        # فشل المصادقة: نُحصي المحاولة على الحساب قبل أي شيء آخر.
+        _register_login_failure(identifier)
+
+        # ثم نتحقق هل السبب أن الحساب موقوف (is_active=False).
+        #
+        # الكشف عن الإيقاف مشروطٌ بصحة كلمة المرور عمداً: من يعرف كلمة المرور
+        # يستحق أن يُقال له لِمَ رُفض، ومن لا يعرفها لا يستفيد من الرسالة شيئاً
+        # في تعداد الحسابات. وهي التجزئة الثانية والأخيرة في هذا المسار.
         try:
-            from django.db.models import Q
-
-            q = Q()
-            if attempts:
-                q |= Q(phone__in=attempts)
-            if identifier:
-                q |= Q(national_id=identifier)
-
-            potential_user = Teacher.objects.filter(q).first() if q else None
             if potential_user is not None and (not potential_user.is_active) and potential_user.check_password(password):
                 logger.warning("Login failed inactive-user user_id=%s identifier=%s trace_id=%s", getattr(potential_user, "id", None), identifier, getattr(request, "trace_id", None))
                 opmetrics.increment("auth.login.failure")
@@ -936,13 +1035,22 @@ def passkey_login_verify(request: HttpRequest) -> JsonResponse:
     if not challenge:
         return _passkey_response(False, status=400, error="challenge_missing", message="انتهت صلاحية محاولة الدخول.")
 
+    allowed_hashes = request.session.get(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY) or []
+    discoverable = bool(request.session.get(WEBAUTHN_AUTH_DISCOVERABLE_SESSION_KEY))
+
+    # التحدّي يُستهلك هنا لا عند النجاح: كان يُمسح في مسار النجاح وحده، فتبقى
+    # المحاولة الفاشلة تاركةً تحدياً حياً في الجلسة يُعاد التوقيع عليه مراراً.
+    # ومعيار WebAuthn يشترط أن يكون التحدي **لمرة واحدة**، والواجهة تطلب
+    # ``options`` جديدة قبل كل محاولة أصلاً، فلا يخسر المستخدم شيئاً.
+    request.session.pop(WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY, None)
+    request.session.pop(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY, None)
+    request.session.pop(WEBAUTHN_AUTH_DISCOVERABLE_SESSION_KEY, None)
+
     try:
         payload = json_body(request)
         response = payload.get("response") or {}
         raw_id = b64url_decode(payload.get("rawId") or payload.get("id") or "")
         raw_id_hash = credential_hash(raw_id)
-        allowed_hashes = request.session.get(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY) or []
-        discoverable = bool(request.session.get(WEBAUTHN_AUTH_DISCOVERABLE_SESSION_KEY))
         # A discoverable ceremony never claimed an identity up front, so there is
         # no allow-list to match against; the signature below is what proves it.
         if not discoverable and raw_id_hash not in allowed_hashes:
@@ -998,9 +1106,6 @@ def passkey_login_verify(request: HttpRequest) -> JsonResponse:
             credential.sign_count = new_count
         credential.last_used_at = timezone.now()
         credential.save(update_fields=["sign_count", "last_used_at"])
-        request.session.pop(WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY, None)
-        request.session.pop(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY, None)
-        request.session.pop(WEBAUTHN_AUTH_DISCOVERABLE_SESSION_KEY, None)
 
         return _complete_passkey_login(
             request,
@@ -1444,11 +1549,7 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
     """
 
     if getattr(request.user, "is_authenticated", False):
-        if getattr(request.user, "is_superuser", False):
-            return redirect("reports:platform_admin_dashboard")
-        if _is_staff(request.user):
-            return redirect("reports:admin_dashboard")
-        return redirect("reports:home")
+        return redirect(_default_login_redirect_name(request.user))
 
     capture_marketing_attribution(request)
 

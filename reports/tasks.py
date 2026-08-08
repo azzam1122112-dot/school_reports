@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, time as dt_time, timedelta
 from urllib import error as urlerror
 from urllib import request as urlrequest
+from urllib.parse import urlsplit
 from celery import shared_task
 from django.apps import apps
 from django.conf import settings
@@ -621,14 +622,28 @@ def _post_json(url: str, payload: dict, timeout_seconds: float = 10.0, token: st
     if not url:
         return False
 
+    # ``urlopen`` يفتح ``file://`` و``ftp://`` كما يفتح http، وهذا العنوان يأتي
+    # من متغيّر بيئة يضبطه المشغّل. عنوانٌ أُخطئ في كتابته — أو غُيّر بيد من بلغ
+    # ملف البيئة — يصير قراءةً لملف من القرص تُرسَل إليه ترويسة ``Authorization``
+    # بالتوكن. فالمخطط يُقيَّد صراحةً قبل الفتح، ولا يُترك لصياغة الرابط.
+    #
+    # وhttps وحدها لا http: الحمولة تحمل توكناً وبيانات مدرسة، فإرسالها بنص
+    # صريح ليس خياراً يُترك لمن يكتب المتغيّر.
+    scheme = (urlsplit(url).scheme or "").lower()
+    if scheme != "https":
+        logger.error(
+            "Refusing to POST webhook payload over unsupported scheme=%r", scheme
+        )
+        return False
+
     headers = {"Content-Type": "application/json; charset=utf-8"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = urlrequest.Request(url, data=data, headers=headers, method="POST")
+    req = urlrequest.Request(url, data=data, headers=headers, method="POST")  # noqa: S310 — المخطط مُقيَّد بـ https أعلاه
     try:
-        with urlrequest.urlopen(req, timeout=float(timeout_seconds)) as resp:
+        with urlrequest.urlopen(req, timeout=float(timeout_seconds)) as resp:  # noqa: S310
             status = int(getattr(resp, "status", 0) or 0)
             return 200 <= status < 300
     except (urlerror.URLError, urlerror.HTTPError, TimeoutError):
@@ -1439,7 +1454,7 @@ def check_storage_thresholds_task(self) -> dict:
 
         # One title per level, so crossing from warning to critical still gets
         # through while a steady state does not repeat every day.
-        dedup_title = f"💾 مساحة تخزين {school.name} ({level})"
+        dedup_title = f"💾 مساحة عمل {school.name} ({level})"
         if Notification.objects.filter(
             title=dedup_title, school=school, created_at__gte=dedup_cutoff
         ).exists():
@@ -1459,12 +1474,12 @@ def check_storage_thresholds_task(self) -> dict:
 
         if level == "full":
             headline = (
-                f"امتلأت مساحة تخزين {school.name} ({overview['used_label']} من "
+                f"امتلأت مساحة عمل {school.name} ({overview['used_label']} من "
                 f"{overview['limit_label']}). رفع أي ملف جديد متوقف الآن."
             )
         else:
             headline = (
-                f"مساحة تخزين {school.name} وصلت {percent}% "
+                f"مساحة عمل {school.name} وصلت {percent}% "
                 f"({overview['used_label']} من {overview['limit_label']})."
             )
 
@@ -1575,3 +1590,33 @@ def reconcile_pending_gateway_payments_task(self) -> dict:
     )
     opmetrics.increment("celery.task.success.reconcile_pending_gateway_payments_task")
     return summary
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# توليد PDF في عامل الوسائط
+# ─────────────────────────────────────────────────────────────────────────────
+# الغرض والمقايضة مشروحان في ``reports/pdf_offload.py``. المهم هنا: هذه المهام
+# **لا تُخزّن شيئاً ولا تعدّل صفاً** — تولّد البايتات وتضعها في مفتاح قصير العمر
+# يقرؤه الطلب المنتظر. فلا تستهلك حصة تخزين المدرسة، ولا تترك ملفاً قد يقادم.
+#
+# ولا إعادة محاولة: الطلب ينتظر النتيجة الآن، ومحاولةٌ ثانية بعد ثوانٍ تصل بعد
+# أن يكون قد ارتدّ إلى التوليد المحلي — فتحرق معالجاً لعملٍ لا قارئ له.
+@shared_task(bind=True, ignore_result=False, max_retries=0, soft_time_limit=90, time_limit=120)
+def render_achievement_pdf_task(self, achievement_file_id: int, base_url: str | None, cache_key: str) -> bool:
+    from .models import TeacherAchievementFile
+    from .pdf_achievement import generate_achievement_pdf
+    from .pdf_offload import store_rendered_pdf
+
+    ach_file = (
+        TeacherAchievementFile.objects.select_related("school", "teacher")
+        .filter(pk=achievement_file_id)
+        .first()
+    )
+    if ach_file is None:
+        logger.error("Achievement file %s not found for PDF rendering.", achievement_file_id)
+        return False
+
+    pdf_bytes, _filename = generate_achievement_pdf(ach_file=ach_file, base_url=base_url)
+    store_rendered_pdf(cache_key, pdf_bytes)
+    opmetrics.increment("pdf.rendered.achievement")
+    return True

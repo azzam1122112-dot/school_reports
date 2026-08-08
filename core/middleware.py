@@ -8,6 +8,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 
+from .client_ip import client_ip_for_ratelimit
 from .trace_context import reset_trace_id, set_trace_id
 from . import opmetrics
 
@@ -192,10 +193,11 @@ class BlockBadPathsMiddleware:
                 break
         if noisy_rule:
             try:
-                ip = (
-                    request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
-                    or request.META.get("REMOTE_ADDR", "-")
-                )
+                # العنوان يُحسم عبر ``client_ip_for_ratelimit``: لا يُصدَّق
+                # ``X-Forwarded-For`` إلا إذا كان النِّدُّ المباشر وسيطاً موثوقاً.
+                # قراءة الترويسة الخام كانت تجعل المفتاح قابلاً للانتحال، فيكفي
+                # المهاجمَ أن يبدّل قيمتها في كل طلب ليصير لكل طلبٍ عدّادُه.
+                ip = client_ip_for_ratelimit(request)
                 key = f"noise-limit:{prefix}:{ip}"
                 first_seen = cache.add(key, 0, timeout=int(noisy_rule["window"]))
                 count = cache.incr(key) if not first_seen else 1
@@ -228,10 +230,7 @@ class BlockBadPathsMiddleware:
 
         if blocked:
             try:
-                ip = (
-                    request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
-                    or request.META.get("REMOTE_ADDR", "-")
-                )
+                ip = client_ip_for_ratelimit(request)
                 opmetrics.increment("http.scanner.blocked")
                 key = f"scan-block:{ip}:{path[:80]}"
                 first_seen = cache.add(key, 1, timeout=300)

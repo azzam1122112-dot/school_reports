@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load hijri_tags %}
+
+{% block title %}{{ asset.name }} | عهدة المختبر{% endblock %}
+
+{% block head %}{% include "reports/_lab_theme.html" %}{% endblock %}
+
+{% block content %}
+<div class="lab">
+
+  <header class="lab-hero">
+    <span class="lab-hero__eyebrow">
+      <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>
+      صنف في العهدة
+    </span>
+    <h1>{{ asset.name }}</h1>
+    <p class="lab-hero__lead">
+      {{ asset.get_category_display }}
+      {% if asset.code %}· رقم العهدة {{ asset.code }}{% endif %}
+      {% if asset.location %}· {{ asset.location }}{% endif %}
+      {% if not asset.is_active %}· <b>مُخرَج من الجرد</b>{% endif %}
+    </p>
+    <div class="lab-hero__actions">
+      <a class="lab-act" href="{% url 'reports:lab_assets' %}">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        كل الجرد
+      </a>
+    </div>
+  </header>
+
+  <section class="lab-stats" aria-label="حال الصنف">
+    <div class="lab-stat">
+      <span class="lab-stat__l"><i class="fa-solid fa-cubes" aria-hidden="true"></i> الكمية</span>
+      <span class="lab-stat__v">{{ asset.quantity }} {{ asset.unit }}</span>
+    </div>
+    <div class="lab-stat {% if out_quantity %}lab-stat--warn{% endif %}">
+      <span class="lab-stat__l"><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> خارج المختبر</span>
+      <span class="lab-stat__v">{{ out_quantity }}</span>
+    </div>
+    <div class="lab-stat">
+      <span class="lab-stat__l"><i class="fa-solid fa-check" aria-hidden="true"></i> المتاح</span>
+      <span class="lab-stat__v">{{ available_quantity }}</span>
+    </div>
+    <div class="lab-stat">
+      <span class="lab-stat__l"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> الحالة</span>
+      <span class="lab-stat__v" style="font-size:17px">{{ asset.get_condition_display }}</span>
+    </div>
+  </section>
+
+  {% if can_record %}
+    {# ═══ الحركة ═══════════════════════════════════════════════ #}
+    <section class="lab-section">
+      <div class="lab-section__head">
+        <h2><i class="fa-solid fa-right-left" aria-hidden="true"></i> تسليم أو إرجاع</h2>
+      </div>
+      <div class="lab-card">
+        <form method="post" action="{% url 'reports:lab_asset_action' asset.pk %}" class="lab-form">
+          {% csrf_token %}
+          <input type="hidden" name="lab_action" value="handover">
+          <div class="lab-grid-2">
+            {% for field in handover_form %}
+              <div class="lab-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {{ field.errors }}
+              </div>
+            {% endfor %}
+          </div>
+          <div>
+            <button type="submit" class="lab-btn">
+              <i class="fa-solid fa-check" aria-hidden="true"></i>
+              سجّل الحركة
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    {# ═══ الحالة والإخراج ══════════════════════════════════════ #}
+    <section class="lab-section">
+      <div class="lab-section__head">
+        <h2><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i> الحالة</h2>
+      </div>
+      <div class="lab-card">
+        <form method="post" action="{% url 'reports:lab_asset_action' asset.pk %}" class="lab-grid-2">
+          {% csrf_token %}
+          <input type="hidden" name="lab_action" value="condition">
+          <div class="lab-field">
+            <label for="conditionSelect">الحالة الجديدة</label>
+            <select class="form-control" id="conditionSelect" name="condition">
+              {% for value, label in conditions %}
+                <option value="{{ value }}" {% if asset.condition == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="lab-field" style="align-self:end">
+            <button type="submit" class="lab-btn lab-btn--ghost">حدّث الحالة</button>
+          </div>
+        </form>
+
+        <hr style="border:0;border-top:1px solid var(--lab-line);margin:1rem 0">
+
+        <form method="post" action="{% url 'reports:lab_asset_action' asset.pk %}">
+          {% csrf_token %}
+          {% if asset.is_active %}
+            <input type="hidden" name="lab_action" value="retire">
+            <button type="submit" class="lab-btn lab-btn--danger">
+              <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+              أخرِجه من الجرد
+            </button>
+            <p class="helptext" style="margin:.5rem 0 0">
+              لا يُحذف الصنف: حذفُه يمحو سجلّ حركته، فيسقط أثر من تسلّمه ومتى.
+            </p>
+          {% else %}
+            <input type="hidden" name="lab_action" value="restore">
+            <button type="submit" class="lab-btn lab-btn--ghost">
+              <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+              أعِده إلى الجرد
+            </button>
+          {% endif %}
+        </form>
+      </div>
+    </section>
+
+    {# ═══ التعديل ══════════════════════════════════════════════ #}
+    <section class="lab-section">
+      <div class="lab-section__head">
+        <h2><i class="fa-solid fa-pen" aria-hidden="true"></i> بيانات الصنف</h2>
+      </div>
+      <div class="lab-card">
+        <form method="post" class="lab-form" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <ul class="errorlist">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+          {% endif %}
+          <div class="lab-grid-2">
+            {% for field in form %}
+              <div class="lab-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+                {{ field.errors }}
+              </div>
+            {% endfor %}
+          </div>
+          <div><button type="submit" class="lab-btn">احفظ التعديل</button></div>
+        </form>
+      </div>
+    </section>
+  {% else %}
+    <div class="lab-card" style="margin-bottom:1.1rem">
+      متابعةٌ للاطلاع: التسجيل في العهدة من عمل محضّر المختبر.
+    </div>
+  {% endif %}
+
+  {# ═══ سجل الحركة ═══════════════════════════════════════════ #}
+  <section class="lab-section">
+    <div class="lab-section__head">
+      <h2><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> سجل الحركة</h2>
+    </div>
+
+    {% if handovers %}
+      <div class="lab-table-wrap">
+        <table class="lab-table">
+          <thead>
+            <tr><th>الحركة</th><th>الكمية</th><th>الشخص</th><th>التاريخ</th><th>سجّلها</th><th>ملاحظة</th></tr>
+          </thead>
+          <tbody>
+            {% for handover in handovers %}
+              <tr>
+                <td>
+                  <span class="lab-chip {% if handover.direction == 'out' %}lab-chip--warn{% else %}lab-chip--good{% endif %}">
+                    {{ handover.get_direction_display }}
+                  </span>
+                </td>
+                <td>{{ handover.quantity }}</td>
+                <td>{{ handover.person_name|default:"—" }}</td>
+                <td dir="rtl">{{ handover.happened_at|hijri }}</td>
+                <td>{% firstof handover.recorded_by.name "—" %}</td>
+                <td>{{ handover.note|default:"—" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="lab-empty">
+        <strong>لم تُسجَّل حركة على هذا الصنف.</strong>
+        كامل الكمية في المختبر.
+      </div>
+    {% endif %}
+  </section>
+
+  {% if asset.notes %}
+    <section class="lab-section">
+      <div class="lab-section__head"><h2><i class="fa-solid fa-note-sticky" aria-hidden="true"></i> ملاحظات</h2></div>
+      <div class="lab-card">{{ asset.notes|linebreaksbr }}</div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

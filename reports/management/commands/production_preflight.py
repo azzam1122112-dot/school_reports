@@ -13,6 +13,7 @@ fail the run: they flag things worth a decision, not things that are broken.
 from __future__ import annotations
 
 from decimal import Decimal
+from itertools import pairwise
 
 from django.apps import apps
 from django.conf import settings
@@ -399,7 +400,7 @@ class Command(BaseCommand):
             broken = []
             for group in catalog:
                 quotes = group["quotes"]
-                for earlier, later in zip(quotes, quotes[1:]):
+                for earlier, later in pairwise(quotes):
                     if Decimal(later["price"]) <= Decimal(earlier["price"]):
                         broken.append(
                             f"{group['label']}: {later['capacity']} <= {earlier['capacity']}"

@@ -8,6 +8,7 @@ from django.utils import timezone
 from .models import (
     AchievementEvidenceImage,
     AchievementEvidenceReport,
+    Document,
     LeadershipEvidenceImage,
     Notification,
     Report,
@@ -77,7 +78,13 @@ def _incoming_size(files) -> int:
 
 
 def calculate_school_archive_storage_bytes(school: School | None) -> int:
-    """Best-effort sum of files covered by the archive add-on."""
+    """Best-effort sum of every file the school holds, both buckets together.
+
+    This is the reconciliation scan behind ``School.storage_used_bytes``. It must
+    list exactly the models registered in ``storage_tracking.connect_all()`` — a
+    model missing from either side silently drifts: gated on upload, invisible in
+    the totals, and then wiped from them by the next backfill.
+    """
     if school is None:
         return 0
 
@@ -112,6 +119,9 @@ def calculate_school_archive_storage_bytes(school: School | None) -> int:
     ).only("image"):
         total += _file_size(evidence.image)
 
+    for document in Document.objects.filter(school=school).only("file"):
+        total += _file_size(document.file)
+
     for year_archive in SchoolYearArchive.objects.filter(school=school).only("archive_file"):
         total += _file_size(year_archive.archive_file)
 
@@ -127,19 +137,28 @@ def calculate_school_archive_storage_bytes(school: School | None) -> int:
     return total
 
 
+# The work bucket, item by item. Order is the order the manager reads them in.
+WORK_BREAKDOWN_KEYS = (
+    "reports",
+    "achievements",
+    "leadership",
+    "documents",
+    "tickets",
+    "circulars",
+    "notifications",
+)
+
+
 def school_storage_breakdown(school: School | None) -> dict:
-    """Fast manager-facing breakdown from incrementally maintained byte fields."""
+    """Fast manager-facing breakdown from incrementally maintained byte fields.
+
+    ``work_total`` covers daily work; ``snapshots`` is the yearly-archive bucket
+    and is deliberately kept out of that sum. Adding the two together was what
+    made the work card charge a school for space the upload gate never counted.
+    """
+    empty = {key: 0 for key in WORK_BREAKDOWN_KEYS}
     if school is None:
-        return {
-            "reports": 0,
-            "achievements": 0,
-            "leadership": 0,
-            "tickets": 0,
-            "circulars": 0,
-            "notifications": 0,
-            "snapshots": 0,
-            "total": 0,
-        }
+        return {**empty, "snapshots": 0, "work_total": 0, "total": 0}
 
     def _sum(queryset) -> int:
         return int(queryset.aggregate(total=Sum("storage_bytes")).get("total") or 0)
@@ -156,15 +175,17 @@ def school_storage_breakdown(school: School | None) -> dict:
         "leadership": _sum(
             LeadershipEvidenceImage.objects.filter(section__portfolio__school=school)
         ),
+        "documents": _sum(Document.objects.filter(school=school)),
         "tickets": (
             _sum(Ticket.objects.filter(school=school))
             + _sum(TicketImage.objects.filter(ticket__school=school))
         ),
         "circulars": _sum(circulars_qs),
         "notifications": _sum(notifications_qs),
-        "snapshots": _sum(SchoolYearArchive.objects.filter(school=school)),
     }
-    values["total"] = sum(values.values())
+    values["work_total"] = sum(values[key] for key in WORK_BREAKDOWN_KEYS)
+    values["snapshots"] = _sum(SchoolYearArchive.objects.filter(school=school))
+    values["total"] = values["work_total"] + values["snapshots"]
     return values
 
 
@@ -279,7 +300,17 @@ def recompute_school_storage(school: School | None) -> int:
         School.objects.filter(pk=school.pk).update(storage_used_bytes=used)
     except Exception:
         pass
-    # مزامنة نسخة الإضافة إن وُجدت (للتوافق الخلفي)
+    _sync_addon_usage(school)
+    return used
+
+
+def _sync_addon_usage(school: School) -> int:
+    """يملأ ``SchoolArchiveAddon.storage_used_bytes`` بحجم النسخ السنوية وحده.
+
+    الحقل يعيش على ملحق الأرشفة وتُقاس به شاشة المنصة أمام ``storage_limit_gb``،
+    فكتابةُ إجمالي المدرسة فيه كانت تعرض مساحة العمل على أنها استهلاك الأرشيف.
+    """
+    used = school_snapshot_used_bytes(school)
     try:
         addon = SchoolArchiveAddon.objects.get(school=school)
         if addon.storage_used_bytes != used:
@@ -291,23 +322,10 @@ def recompute_school_storage(school: School | None) -> int:
 
 
 def sync_school_archive_storage_usage(school: School | None) -> int:
-    """توافق خلفي: يحدّث نسخة الإضافة من الإجمالي التزايدي المخزّن (بلا مسح شبكي)."""
+    """يحدّث عدّاد ملحق الأرشفة من النسخ السنوية المحفوظة (بلا مسح شبكي)."""
     if school is None:
         return 0
-    used = int(
-        School.objects.filter(pk=school.pk)
-        .values_list("storage_used_bytes", flat=True)
-        .first()
-        or 0
-    )
-    try:
-        addon = SchoolArchiveAddon.objects.get(school=school)
-        if addon.storage_used_bytes != used:
-            addon.storage_used_bytes = used
-            addon.save(update_fields=["storage_used_bytes", "updated_at"])
-    except SchoolArchiveAddon.DoesNotExist:
-        pass
-    return used
+    return _sync_addon_usage(school)
 
 
 STORAGE_RATE_CACHE_KEY = "platform_storage_mb_per_teacher_v1"
@@ -676,22 +694,32 @@ def school_storage_pressure(school: School | None) -> dict:
 
 
 def school_storage_overview(school: School | None) -> dict:
-    """Single source of truth for manager storage cards."""
+    """Single source of truth for the **work** storage card.
+
+    Reports what the upload gate reports: live work only. It used to read the
+    school's grand total instead, so every byte of yearly snapshot was charged
+    twice — once here and once on the archive card — and a school could be told
+    its space was full while uploads carried on working normally.
+    """
+    breakdown = school_storage_breakdown(school)
     if school is None:
-        used = 0
+        total_held = 0
     else:
-        used = int(
+        total_held = int(
             School.objects.filter(pk=school.pk)
             .values_list("storage_used_bytes", flat=True)
             .first()
             or 0
         )
+    # The same subtraction the upload gate makes, from the same stored total, so
+    # the card and the gate can never quote two different numbers. The breakdown
+    # itemises it; the running total remains the authority.
+    used = max(0, total_held - breakdown["snapshots"])
     allowance = school_storage_allowance(school)
     limit = allowance["total_bytes"]
     is_unlimited = allowance["is_unlimited"]
     percent = 0 if is_unlimited else min(100, round((used / limit) * 100, 1))
     remaining = 0 if is_unlimited else max(0, limit - used)
-    breakdown = school_storage_breakdown(school)
 
     warning_level = "ok"
     if not is_unlimited:
@@ -726,11 +754,18 @@ def school_storage_overview(school: School | None) -> dict:
         "reclaimable_years": reclaimable,
         "reclaimable_bytes": reclaimable_bytes,
         "reclaimable_label": _human_size(reclaimable_bytes),
+        # Work items only. Snapshots are reported by school_archive_overview()
+        # against their own limit; listing them here read as work usage.
         "breakdown": {
-            key: {"bytes": value, "label": _human_size(value)}
-            for key, value in breakdown.items()
-            if key != "total"
+            key: {"bytes": breakdown[key], "label": _human_size(breakdown[key])}
+            for key in WORK_BREAKDOWN_KEYS
         },
+        # Surfaced so a manager who wonders where the rest of the space went can
+        # see the archive bucket named next to the work one.
+        "snapshot_bytes": breakdown["snapshots"],
+        "snapshot_label": _human_size(breakdown["snapshots"]),
+        "total_held_bytes": total_held,
+        "total_held_label": _human_size(total_held),
     }
 
 
@@ -786,7 +821,28 @@ def reclaimable_storage_by_year(school: School | None) -> list[dict]:
             .get("total")
             or 0
         )
-        total = report_bytes + achievement_bytes + evidence_bytes
+        # Frozen report images and leadership evidence go into the yearly ZIP
+        # too, so leaving them out understated what clearing the year frees.
+        # Documents stay out on purpose: the snapshot does not carry them, so
+        # deleting them would lose them.
+        evidence_bytes += int(
+            AchievementEvidenceReport.objects.filter(
+                section__file__school=school, section__file__academic_year=year
+            )
+            .aggregate(total=Sum("storage_bytes"))
+            .get("total")
+            or 0
+        )
+        leadership_bytes = int(
+            LeadershipEvidenceImage.objects.filter(
+                section__portfolio__school=school,
+                section__portfolio__academic_year=year,
+            )
+            .aggregate(total=Sum("storage_bytes"))
+            .get("total")
+            or 0
+        )
+        total = report_bytes + achievement_bytes + evidence_bytes + leadership_bytes
         if total <= 0:
             continue
 
@@ -798,6 +854,7 @@ def reclaimable_storage_by_year(school: School | None) -> list[dict]:
                 "size_label": _human_size(total),
                 "reports_bytes": report_bytes,
                 "achievements_bytes": achievement_bytes + evidence_bytes,
+                "leadership_bytes": leadership_bytes,
             }
         )
     return rows
@@ -1069,7 +1126,13 @@ def attach_school_consumption_rows(schools) -> None:
 
         allowance = school_storage_allowance(school)
         storage_limit = int(allowance["total_bytes"] or 0)
-        storage_used = int(getattr(school, "storage_used_bytes", 0) or 0)
+        archive_used = snapshot_bytes.get(school.pk, 0)
+        # Work usage is the stored total minus the snapshots, exactly as the
+        # upload gate computes it — otherwise a school that archives a year
+        # would appear to be running out of working space it never spent.
+        storage_used = max(
+            0, int(getattr(school, "storage_used_bytes", 0) or 0) - archive_used
+        )
         storage_unlimited = bool(allowance["is_unlimited"]) or storage_limit <= 0
 
         seats_used = seat_counts.get(school.pk, 0)
@@ -1078,7 +1141,6 @@ def attach_school_consumption_rows(schools) -> None:
 
         archive = school_archive_allowance(school)
         archive_limit = int(archive["limit_bytes"] or 0)
-        archive_used = snapshot_bytes.get(school.pk, 0)
 
         school.consumption_row = {
             "storage": {

@@ -186,6 +186,7 @@ class PlatformAdminExperienceTests(TestCase):
                 "storage_options-MIN_NUM_FORMS": "0",
                 "storage_options-MAX_NUM_FORMS": "1000",
                 "storage_options-0-id": str(option.pk),
+                "storage_options-0-bucket": option.bucket,
                 "storage_options-0-storage_gb": str(option.storage_gb),
                 "storage_options-0-price": str(option.price),
                 "storage_options-0-sort_order": str(option.sort_order),

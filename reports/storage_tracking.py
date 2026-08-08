@@ -177,11 +177,44 @@ def _leadership_evidence_school_id(instance):
         return None
 
 
+def _track_addon_snapshot_usage(model):
+    """يبقي عدّاد ملحق الأرشفة مطابقًا لحجم النسخ السنوية.
+
+    العدّاد يُعرض على شاشة المنصة أمام حدّ الملحق، فمكان صيانته هو حيث تتغيّر
+    النسخ لا حيث يرفع المعلمون. كان يُحدَّث من ثمانية مواضع في مسار التقارير
+    والإنجاز — وهي مواضع لا تمسّ النسخ أصلًا — ولا يُحدَّث عند إنشاء نسخة.
+    """
+
+    def _sync(school_id):
+        if not school_id:
+            return
+        try:
+            from .services_archive import sync_school_archive_storage_usage
+            from .models import School
+
+            school = School.objects.filter(pk=school_id).first()
+            if school is not None:
+                sync_school_archive_storage_usage(school)
+        except Exception:
+            logger.exception("storage_tracking: failed to sync archive addon usage")
+
+    @receiver(post_save, sender=model, weak=False)
+    def _addon_post_save(sender, instance, **kwargs):
+        if kwargs.get("raw"):
+            return
+        _sync(getattr(instance, "school_id", None))
+
+    @receiver(post_delete, sender=model, weak=False)
+    def _addon_post_delete(sender, instance, **kwargs):
+        _sync(getattr(instance, "_st_del_school_id", None) or getattr(instance, "school_id", None))
+
+
 def connect_all():
     """يُستدعى من apps.ready() لربط جميع النماذج ذات الملفات."""
     from .models import (
         AchievementEvidenceImage,
         AchievementEvidenceReport,
+        Document,
         LeadershipEvidenceImage,
         Notification,
         Report,
@@ -202,8 +235,13 @@ def connect_all():
              school_id_getter=_evidence_section_school_id)
     register(LeadershipEvidenceImage, fields=["image"],
              school_id_getter=_leadership_evidence_school_id)
+    # أرشيف الوثائق يُفحص أمام حد مساحة العمل عند الرفع، فيجب أن يُحتسب فيها.
+    # غيابه هنا كان يعني مساحةً تُستهلك فعلاً ولا تظهر في أي عدّاد.
+    register(Document, fields=["file"],
+             school_id_getter=lambda i: getattr(i, "school_id", None))
     register(SchoolYearArchive, fields=["archive_file"],
              school_id_getter=lambda i: getattr(i, "school_id", None))
+    _track_addon_snapshot_usage(SchoolYearArchive)
     register(Ticket, fields=["attachment"],
              school_id_getter=lambda i: getattr(i, "school_id", None))
     register(TicketImage, fields=["image"],

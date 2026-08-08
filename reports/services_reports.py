@@ -204,14 +204,29 @@ def get_reporttype_choices(*, active_school: Optional[School]) -> list[tuple[str
 
 
 def get_report_for_user_or_404(*, user, pk: int, active_school: Optional[School]):
-    """جلب تقرير واحد مع احترام عزل المدارس وصلاحيات الرؤية."""
+    """جلب تقرير واحد مع احترام عزل المدارس وصلاحيات الرؤية.
+
+    **مالك النظام وحده يتجاوز حدّ المدرسة.** كان الشرط ``user.is_staff``، و
+    ``is_staff`` عَلَمٌ إداري في Django لا دورٌ مستأجِر: يُضبط تلقائياً للسوبر،
+    لكنه يُمنح يدوياً من لوحة الإدارة لمن ليس مالكاً للنظام. وباجتماعه مع غياب
+    المدرسة النشطة كان يُعيد أي تقرير في المنصة برقمه.
+
+    ومن لا مدرسة نشطة له لا يرى إلا تقاريره: توسيع النطاق عند غياب السياق هو
+    عين الخطأ الذي يجب أن يفشل مغلقاً.
+    """
     qs = Report.objects.select_related("teacher", "category", "school")
 
-    if active_school is not None and _model_has_field(Report, "school"):
-        qs = qs.filter(school=active_school)
-
-    if getattr(user, "is_staff", False):
+    if getattr(user, "is_superuser", False):
+        if active_school is not None and _model_has_field(Report, "school"):
+            qs = qs.filter(school=active_school)
         return get_object_or_404(qs, pk=pk)
+
+    # غير المالك: لا تقرير خارج مدرسة نشطة محدَّدة.
+    if active_school is None:
+        return get_object_or_404(qs, pk=pk, teacher=user)
+
+    if _model_has_field(Report, "school"):
+        qs = qs.filter(school=active_school)
 
     try:
         cats = allowed_categories_for(user, active_school) or set()

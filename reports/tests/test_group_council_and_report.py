@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -139,7 +139,8 @@ class CouncilMinutesIssuanceTests(CouncilBase):
         mark_held(meeting, self.director)
         minutes = ensure_minutes(meeting, recorder=self.director)
 
-        with self.assertRaises(Exception):
+        # ``assert_ready_for_submission`` هي التي ترفض المحضر الفارغ.
+        with self.assertRaises(ValidationError):
             issue(minutes, self.director, school=None)
 
     def test_a_report_author_cannot_issue_their_report(self):

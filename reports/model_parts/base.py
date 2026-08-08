@@ -55,8 +55,8 @@ def _validate_academic_year_hijri(value: str) -> None:
     start, end = v.split("-", 1)
     try:
         s, e = int(start), int(end)
-    except Exception:
-        raise ValidationError("صيغة السنة الدراسية غير صحيحة")
+    except Exception as exc:
+        raise ValidationError("صيغة السنة الدراسية غير صحيحة") from exc
     if e != s + 1:
         raise ValidationError("السنة الدراسية يجب أن تكون مثل 1447-1448 (فرق سنة واحدة)")
 

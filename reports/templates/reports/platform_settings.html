@@ -596,9 +596,13 @@
       <section class="section">
         <div class="storage-head">
           <div>
-            <h2>زيادة مساحة التخزين</h2>
+            <h2>باقات زيادة المساحة</h2>
             <div class="help">
-              أضف الخيارات التي تريد أن تظهر للمدرسة عند طلب زيادة المساحة. كل خيار مستقل في المساحة والسعر والترتيب.
+              أضف الباقات التي تظهر للمدرسة عند طلب زيادة المساحة. كل باقة مستقلة في المساحة والسعر والترتيب،
+              و<strong>«المساحة المستهدفة»</strong> تحدّد أين تُضاف بعد اعتماد الدفع:
+              <strong>مساحة عمل المدرسة</strong> (التقارير والإنجاز والوثائق والمرفقات) أو
+              <strong>مساحة الأرشفة السنوية</strong> (النسخ الثابتة). المساحتان منفصلتان،
+              فاحرص على نشر باقة واحدة على الأقل لكل منهما.
             </div>
           </div>
           <button type="button" class="btn btn-primary" id="addStorageOptionBtn">
@@ -614,6 +618,11 @@
           {% for storage_form in storage_options_formset %}
             <div class="storage-row" data-storage-row>
               {% for hidden in storage_form.hidden_fields %}{{ hidden }}{% endfor %}
+              <div class="field">
+                <label for="{{ storage_form.bucket.id_for_label }}">{{ storage_form.bucket.label }}</label>
+                {{ storage_form.bucket }}
+                {% for e in storage_form.bucket.errors %}<div class="error">{{ e }}</div>{% endfor %}
+              </div>
               <div class="field">
                 <label for="{{ storage_form.storage_gb.id_for_label }}">{{ storage_form.storage_gb.label }}</label>
                 {{ storage_form.storage_gb }}
@@ -652,6 +661,10 @@
         <template id="storageOptionTemplate">
           <div class="storage-row" data-storage-row>
             {% for hidden in storage_options_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="field">
+              <label for="{{ storage_options_formset.empty_form.bucket.id_for_label }}">{{ storage_options_formset.empty_form.bucket.label }}</label>
+              {{ storage_options_formset.empty_form.bucket }}
+            </div>
             <div class="field">
               <label for="{{ storage_options_formset.empty_form.storage_gb.id_for_label }}">{{ storage_options_formset.empty_form.storage_gb.label }}</label>
               {{ storage_options_formset.empty_form.storage_gb }}

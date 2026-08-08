@@ -34,6 +34,7 @@ from ..services_plans import (
     convert_task_to_assignment,
     plan_board_rows,
     plans_for_school,
+    plans_visible_to,
     share_initiative,
 )
 from ._helpers import *  # noqa: F401,F403
@@ -105,7 +106,7 @@ def plan_list(request):
     if redirect_response is not None:
         return redirect_response
 
-    rows = plan_board_rows(plans_for_school(school)[:100])
+    rows = plan_board_rows(plans_visible_to(request.user, school)[:100])
     my_tasks = list(
         PlanTask.objects.filter(plan__school=school, responsible=request.user)
         .select_related("plan", "assignment")

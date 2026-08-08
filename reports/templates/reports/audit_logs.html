@@ -415,8 +415,8 @@
 
               <td>
                 <div class="teacher">
-                  {# ``actor_display`` يقرأ اللقطة أولاً، فيبقى الاسم ظاهراً
-                     بعد حذف الحساب بدل أن يتحول الصف إلى «مستخدم غير معروف». #}
+                  {% comment %} ``actor_display`` يقرأ اللقطة أولاً، فيبقى الاسم ظاهراً
+                     بعد حذف الحساب بدل أن يتحول الصف إلى «مستخدم غير معروف». {% endcomment %}
                   <div class="avatar" aria-hidden="true">{{ log.actor_display|slice:":1"|default:"؟" }}</div>
                   <div>
                     <div class="name">{{ log.actor_display }}</div>

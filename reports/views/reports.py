@@ -397,13 +397,48 @@ def my_reports(request: HttpRequest) -> HttpResponse:
         },
     )
 
-@user_passes_test(_is_staff, login_url="reports:login")
-@role_required({"manager"})
+@login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def admin_reports(request: HttpRequest) -> HttpResponse:
+    """تقارير المدرسة — للمدير كاملةً، ولمن مُنح المراجعة في نطاقه.
+
+    كان الوصول مقصوراً على المدير، فوكيلٌ مُنح ``review_reports`` يراجع التقارير
+    **فرداً فرداً** من صندوق الاعتماد ولا يملك كشفاً يسأل منه «ما وثّقه قسمي هذا
+    الشهر؟» — والصندوق يعرض ما ينتظر قراراً لا ما أُنجز.
+
+    شاشةٌ واحدة لا شاشتان: الفرق بين المدير والوكيل **مدى** ما يراه وما يملكه
+    عليه، لا شكلُ الشاشة. والمدى يُحسم في الاستعلام أدناه، والملكية في أعلام
+    كل صف.
+    """
+    from .. import capabilities as caps
+    from ..permissions import capability_source, supervised_department_ids
+
     active_school = _get_active_school(request)
+    is_manager = bool(
+        getattr(request.user, "is_superuser", False)
+        or is_school_manager(request.user, active_school=active_school)
+    )
+    may_review = bool(
+        active_school is not None
+        and capability_source(request.user, caps.REVIEW_REPORTS, active_school) is not None
+    )
+    if not (is_manager or may_review):
+        messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
+        return redirect("reports:home")
+
     cats = allowed_categories_for(request.user, active_school)
     qs = get_admin_reports_queryset(user=request.user, active_school=active_school)
+
+    # النطاق قبل المرشّح: يُضيَّق الاستعلام الأساس أولاً ثم تُبنى فوقه مرشّحات
+    # المستخدم. وأقسامٌ فارغة تعني كشفاً فارغاً لا كشف المدرسة كاملاً — القاعدة
+    # نفسها في كل موضع يقرأ ``supervised_department_ids``.
+    if not is_manager:
+        supervised = supervised_department_ids(request.user, active_school)
+        qs = (
+            qs.filter(category__departments__id__in=supervised).distinct()
+            if supervised
+            else qs.none()
+        )
 
     start_date = _parse_date_safe(request.GET.get("start_date"))
     end_date = _parse_date_safe(request.GET.get("end_date"))
@@ -422,13 +457,16 @@ def admin_reports(request: HttpRequest) -> HttpResponse:
     allowed_choices = get_reporttype_choices(active_school=active_school) if (HAS_RTYPE and ReportType is not None) else []
     reports_page = svc_paginate(qs, per_page=20, page=request.GET.get("page", 1))
 
-    # هذه الصفحة لا يصلها إلا مدير المدرسة داخل المدرسة النشطة أو السوبر أدمن.
-    # بعد تقييد الـ queryset حسب المدرسة/الصلاحيات، تكون الإجراءات مسموحة لكل صف بدون
-    # إعادة فحص قاعدة البيانات لكل تقرير على حدة.
+    # بعد تقييد الـ queryset حسب المدرسة/النطاق، تُحسم الإجراءات مرة واحدة لكل
+    # الصفوف بلا استعلام لكل تقرير.
+    #
+    # **الوكيل يرى ولا يملك.** صلاحيته «مراجعة التقارير وإعادتها **دون اعتماد
+    # نهائي**»، فالحذف والتعديل والمشاركة تبقى للمدير — والمراجعة تُمارَس من
+    # صندوق الاعتماد حيث تُسجَّل في دورة القرار.
     for report in reports_page:
-        report.user_can_delete = True
-        report.user_can_edit = True
-        report.user_can_share = True
+        report.user_can_delete = is_manager
+        report.user_can_edit = is_manager
+        report.user_can_share = is_manager
 
     context = {
         "reports": reports_page,
@@ -437,7 +475,11 @@ def admin_reports(request: HttpRequest) -> HttpResponse:
         "teacher_name": teacher_name,
         "category": category if (not cats or "all" in cats or category in cats) else "",
         "categories": allowed_choices,
-        "can_delete": True,  # للتوافق الخلفي
+        # القالب يقرأ ``r.user_can_*|default:can_delete``، و``default`` يتراجع
+        # عند القيمة الكاذبة — فعلمُ الصف ``False`` يعود إلى هذه القيمة. ولذلك
+        # يجب أن تكون هي أيضاً ``False`` للوكيل، وإلا ظهرت أزرارٌ لا يملكها.
+        "can_delete": is_manager,
+        "is_manager": is_manager,
         "qs": _clean_query_params(request.GET),
     }
     return render(request, "reports/admin_reports.html", context)
@@ -1775,6 +1817,11 @@ def achievement_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+# مسار عام بلا حساب: التوكن ٣٢ بايتاً عشوائية فلا يُخمَّن، لكن الحدَّ يلزم
+# لسببين آخرين — رابطٌ تسرّب لا يُستنزف بلا سقف، وكل فتحة تُشغّل استعلامات
+# وتصييراً كاملاً للصفحة. السقف واسع عمداً كي لا يُعاقَب فصلٌ يفتح الرابط معاً
+# من شبكة مدرسة واحدة (عنوان NAT واحد).
+@ratelimit(key="ip", rate="120/h", method="GET", block=True)
 @require_http_methods(["GET"])
 def share_public(request: HttpRequest, token: str) -> HttpResponse:
     """عرض عام حسب توكن: تقرير كامل + الصور، أو صفحة تحميل PDF لملف الإنجاز."""
@@ -1928,6 +1975,8 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
     return render(request, "reports/share_invalid.html", status=404)
 
 
+# أربع صور لكل تقرير، فالسقف أعلى من سقف الصفحة نفسها بمقدارها.
+@ratelimit(key="ip", rate="480/h", method="GET", block=True)
 @require_http_methods(["GET"])
 def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpResponse:
     link = _valid_sharelink_or_404(token, kind=ShareLink.Kind.REPORT)

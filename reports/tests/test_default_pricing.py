@@ -57,9 +57,17 @@ class DefaultPricingCommandTests(TestCase):
         self.assertEqual(settings_obj.archive_storage_block_price, Decimal("149"))
         self.assertEqual(settings_obj.free_storage_mb, 1024)
 
-        storage_option = ArchiveStorageOption.objects.get(storage_gb=50)
-        self.assertEqual(storage_option.price, Decimal("149"))
-        self.assertTrue(storage_option.is_active)
+        # باقة لكل مساحة: مساحة العمل والأرشفة تُفرضان بحدّين منفصلين، فترك
+        # إحداهما بلا منتج يعني مدرسةً ممنوعةً ولا تجد ما تشتريه.
+        for bucket in (
+            ArchiveStorageOption.Bucket.WORK,
+            ArchiveStorageOption.Bucket.ARCHIVE,
+        ):
+            storage_option = ArchiveStorageOption.objects.get(
+                bucket=bucket, storage_gb=50
+            )
+            self.assertEqual(storage_option.price, Decimal("149"))
+            self.assertTrue(storage_option.is_active)
 
     def test_sync_is_idempotent_and_can_deactivate_legacy_plans(self):
         legacy = SubscriptionPlan.objects.create(

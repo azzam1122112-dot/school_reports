@@ -28,6 +28,9 @@ __all__ = [
     "is_school_manager",
     "is_school_deputy",
     "is_admin_staff",
+    "is_lab_technician",
+    "can_record_lab",
+    "can_view_lab",
     "is_school_staff",
     "school_roles_for",
     "scope_capabilities",
@@ -99,7 +102,7 @@ def _school_membership_cache(user) -> dict:
     cache = getattr(user, "_school_membership_cache", None)
     if not isinstance(cache, dict):
         cache = {}
-        setattr(user, "_school_membership_cache", cache)
+        user._school_membership_cache = cache
     return cache
 
 
@@ -123,11 +126,31 @@ def prefetch_memberships_for_school(teachers, school) -> None:
     تُهيَّأ **كل** المفاتيح التي تسألها ``effective_user_role_label``: الفارغ،
     وكل دور منفرداً، ومجموعة المنسوبين. النسخة السابقة كانت تهيّئ مفتاحين
     فقط (الفارغ و``teacher``)، فكان فحص المدير يستعلم لكل صف في الكشف.
+
+    ويُهيَّأ معها كاش **المدير التنفيذي**: منذ أن صارت ``effective_user_role_label``
+    تسأل ``is_executive_director`` صار كل صفٍّ في الكشف يستعلم عضويات المجموعة
+    لصاحبه. والعضويات هذه ليست في ``SchoolMembership`` فلا يغطّيها الاستعلام
+    أعلاه — فتُجلب دفعةً واحدة هنا، وإلا عاد الكشفُ إلى N+1 من حيث لا يُحتسب.
     """
     if not teachers or not school:
         return
     school_id = int(school.id)
     teacher_ids = [t.id for t in teachers]
+
+    director_group_ids: dict = {}
+    try:
+        rows = SchoolGroupMembership.objects.filter(
+            user_id__in=teacher_ids,
+            is_active=True,
+            role_type=SchoolGroupMembership.RoleType.EXECUTIVE_DIRECTOR,
+            group__is_active=True,
+        ).values_list("user_id", "group_id")
+        for user_id, group_id in rows:
+            if group_id:
+                director_group_ids.setdefault(user_id, set()).add(int(group_id))
+    except Exception:
+        director_group_ids = {}
+
     all_mems = list(
         SchoolMembership.objects
         .select_related("school")
@@ -141,6 +164,14 @@ def prefetch_memberships_for_school(teachers, school) -> None:
     role_values = [str(value).strip().lower() for value in SchoolMembership.RoleType.values]
 
     for teacher in teachers:
+        # الكاش يُملأ بالمفتاح نفسه الذي تقرؤه ``get_executive_director_group_ids``
+        # — ومن لا مجموعة له يُخزَّن له الفراغ صراحةً، وإلا ظنّته الدالة «لم
+        # يُسأل بعد» فاستعلمت له.
+        if getattr(teacher, "_executive_director_group_ids_cache", None) is None:
+            teacher._executive_director_group_ids_cache = tuple(
+                sorted(director_group_ids.get(teacher.id, ()))
+            )
+
         cache = _school_membership_cache(teacher)
         mems = by_teacher.get(teacher.id, [])
         cache.setdefault(_membership_cache_key(school_id), mems[0] if mems else None)
@@ -222,7 +253,7 @@ def get_school_manager_school_ids(user) -> Set[int]:
     except Exception:
         ids = set()
 
-    setattr(user, "_school_manager_ids_cache", tuple(sorted(ids)))
+    user._school_manager_ids_cache = tuple(sorted(ids))
     return ids
 
 
@@ -317,6 +348,94 @@ def is_admin_staff(
     )
 
 
+def is_lab_technician(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> bool:
+    """محضّر المختبر في المدرسة النشطة.
+
+    **يُحسم بالمسمّى الوظيفي لا بالدور**، وهو الموضع الوحيد في المشروع الذي
+    يفعل ذلك — ولذلك تفسيرٌ: ``role_type`` وصفُ صلاحية، والمحضّر صلاحيتُه
+    صلاحيةُ الموظف الإداري بنصّ التوصيف. أما ``job_title`` فهو **عملُه**: من
+    يُسأل عن عهدة المختبر وتجاربه هو من عملُه المختبر، لا كل موظف إداري.
+
+    والعضوية شرطٌ في الحالتين، فالمسمّى محفوظ على العضوية لا على الحساب — ومن
+    كان محضّراً في مدرسة لا يصير محضّراً في أخرى بتبديل المدرسة النشطة.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+
+    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
+    if not school_id:
+        return False
+
+    membership = _get_school_membership(
+        user,
+        active_school=active_school,
+        active_school_id=school_id,
+        role_types=[SchoolMembership.RoleType.ADMIN_STAFF],
+    )
+    if membership is None:
+        # دَينٌ معروف: من أُضيف قبل توحيد بابَي الإسناد يحمل
+        # ``job_title=lab_tech`` مع ``role_type=teacher``. فلا يُحجب عن مختبره
+        # لأجل صفٍّ قديم — والمسمّى هو الفاصل هنا لا الدور.
+        membership = _get_school_membership(
+            user,
+            active_school=active_school,
+            active_school_id=school_id,
+            role_types=[SchoolMembership.RoleType.TEACHER],
+        )
+    if membership is None:
+        return False
+
+    return (
+        str(getattr(membership, "job_title", "") or "").strip()
+        == SchoolMembership.JobTitle.LAB_TECH
+    )
+
+
+def can_record_lab(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> bool:
+    """من يسجّل في المختبر: يضيف صنفاً، ويوثّق تجربة، ويقيّد حركة عهدة.
+
+    المحضّر بحكم عمله، ومدير المدرسة بحكم دوره، ومالك النظام دائماً.
+    **ولا يدخل هنا حاملُ ``manage_lab``**: تلك صلاحية *متابعة* — يقرأ ويراجع
+    ويوصي. ومن يشرف على عمل غيره لا يكتبه نيابةً عنه، وإلا صار الجردُ الذي
+    يُراجعه جردَ نفسه.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False):
+        return True
+    if is_school_manager(user, active_school=active_school, active_school_id=active_school_id):
+        return True
+    return is_lab_technician(
+        user, active_school, active_school_id=active_school_id
+    )
+
+
+def can_view_lab(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> bool:
+    """من يرى شاشات المختبر: من يسجّل فيه، ومن مُنح متابعته."""
+    if can_record_lab(user, active_school, active_school_id=active_school_id):
+        return True
+    from .capabilities import MANAGE_LAB
+
+    return capability_source(
+        user, MANAGE_LAB, active_school, active_school_id=active_school_id
+    ) is not None
+
+
 def is_school_staff(
     user,
     active_school: Optional[School] = None,
@@ -385,7 +504,7 @@ def _staff_scope_for(user, school_id: int):
     cache = getattr(user, "_staff_scope_cache", None)
     if not isinstance(cache, dict):
         cache = {}
-        setattr(user, "_staff_scope_cache", cache)
+        user._staff_scope_cache = cache
     if school_id in cache:
         return cache[school_id]
 
@@ -611,7 +730,7 @@ def get_executive_director_group_ids(user) -> Set[int]:
     except Exception:
         ids = set()
 
-    setattr(user, "_executive_director_group_ids_cache", tuple(sorted(ids)))
+    user._executive_director_group_ids_cache = tuple(sorted(ids))
     return ids
 
 
@@ -704,7 +823,7 @@ def effective_user_role_label(
     cache = getattr(user, "_effective_role_label_cache", None)
     if not isinstance(cache, dict):
         cache = {}
-        setattr(user, "_effective_role_label_cache", cache)
+        user._effective_role_label_cache = cache
 
     cache_key = int(school_id or 0)
     if cache_key in cache:
@@ -721,6 +840,15 @@ def effective_user_role_label(
             active_school_id=school_id,
         ):
             label = labels["manager"]
+        elif is_executive_director(user):
+            # يُسأل عنه قبل ``is_staff`` وقبل الأدوار المدرسية: المدير التنفيذي
+            # لا يملك عضوية في أي مدرسة بحكم تصميمه، فكانت ترويسته تناديه
+            # «مستخدم» — وهو أدنى ما يُقال لمن يقود مجموعة مدارس.
+            #
+            # ومسمّاه لا يُشتق من جنس مدرسة: مجموعته قد تجمع بنين وبنات، ولا
+            # مدرسة نشطة له أصلاً — فتسميته ثابتة عن قصد، خلافاً لبقية
+            # المسمّيات التي تقرأ من ``school_gender_labels``.
+            label = "مدير تنفيذي"
         elif getattr(user, "is_staff", False):
             label = "مدير النظام"
         elif is_school_deputy(user, active_school=school, active_school_id=school_id):
@@ -908,7 +1036,7 @@ def _get_report_permission_scope(user, *, active_school: Optional[School] = None
     cache_obj = getattr(user, "_report_perm_scope_cache", None)
     if not isinstance(cache_obj, dict):
         cache_obj = {}
-        setattr(user, "_report_perm_scope_cache", cache_obj)
+        user._report_perm_scope_cache = cache_obj
 
     key = sid if sid is not None else "all"
     if key not in cache_obj:
@@ -1092,8 +1220,17 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
             - مدير المدرسة (SchoolMembership.role_type=manager) داخل active_school: {"all"}.
             - رئيس قسم (OFFICER): أكواد reporttypes للأقسام التي هو مسؤول عنها.
             - عضو قسم (TEACHER): أكواد reporttypes للأقسام التي هو عضو فيها.
+            - من مُنح ``review_reports``: أكواد reporttypes لأقسام **نطاقه**.
 
         ملاحظة: لا نستخدم Role.allowed_reporttypes هنا لأن Role عالمي وقد يخلط بين المدارس.
+
+        **ولماذا يدخل النطاق هنا؟** لأن هذه الدالة هي ما تقرأ منه
+        ``restrict_queryset_for_user``، وهي بدورها أساسُ كشف تقارير المدرسة.
+        وبلا النطاق كان الوكيل الذي مُنح المراجعة يُحصَر في **تقاريره هو** —
+        فيفتح كشف المدرسة فيراه فارغاً، والصلاحية ممنوحة والشاشة مفتوحة.
+
+        وموضع الإصلاح هنا لا في العرض: العرض الواحد يُصلَح مرة، وهذه الدالة
+        تُقرأ من كل موضع يسأل «ما يحق له الاطلاع عليه من أنواع التقارير».
     """
     try:
         # سوبر: يرى الكل (لكن عزل المدارس يُطبّق في الـ views)
@@ -1108,7 +1245,24 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
             return set()
 
         allowed_codes: Set[str] = set()
-        
+
+        # ✅ أقسام النطاق لمن مُنح مراجعة التقارير
+        try:
+            from .capabilities import REVIEW_REPORTS
+
+            if capability_source(user, REVIEW_REPORTS, active_school) is not None:
+                supervised = supervised_department_ids(user, active_school)
+                if supervised:
+                    allowed_codes |= {
+                        code
+                        for code in Department.objects.filter(
+                            id__in=supervised
+                        ).values_list("reporttypes__code", flat=True)
+                        if code
+                    }
+        except Exception:
+            pass
+
         # ✅ رؤساء الأقسام (OFFICER)
         try:
             officer_depts = get_officer_departments(user, active_school=active_school)
@@ -1133,17 +1287,39 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
 # ==============================
 # تقييد QuerySet بحسب المستخدم
 # ==============================
+def _scope_to_school(qs: QuerySet[Any], active_school: Optional[School]) -> QuerySet[Any]:
+    """حصر الاستعلام على المدرسة النشطة متى كان للموديل حقل ``school``."""
+    if active_school is None:
+        return qs
+    try:
+        if "school" in {f.name for f in qs.model._meta.get_fields()}:
+            return qs.filter(school=active_school)
+    except Exception:
+        return qs
+    return qs
+
+
 def restrict_queryset_for_user(qs: QuerySet[Any], user, active_school: Optional[School] = None) -> QuerySet[Any]:
     """
     يقيّد QuerySet للتقارير بحسب صلاحيات المستخدم:
       - السوبر/المدير/الدور الذي يرى الكل: يرى الجميع.
       - غير ذلك: يرى تقاريره + أي تقرير يقع ضمن الأنواع المسموح بها له (من الدور/الأقسام).
+
+    **حدّ المدرسة يُفرض هنا لا عند المستدعي.** الفلترة بـ ``category__code``
+    أدناه ليست معزولة بذاتها: أكواد أنواع التقارير مخصَّصة لكل مدرسة **وقد
+    تتكرر** بينها (وهو ما توثّقه ``allowed_categories_for`` صراحةً)، فقسمٌ اسمه
+    ``activities`` في مدرستين يعطي الكود نفسه. وكانت سلامةُ الدالة قائمة على أن
+    كل مستدعٍ يُتبعها بـ ``filter_by_school`` — عُرفٌ صحيحٌ اليوم في كل المواضع،
+    لكن لا شيء يفرضه على الموضع القادم. فطيُّ الفلتر إلى الداخل يجعل الدالة
+    آمنة وحدها، ولا يغيّر نتيجة أي مستدعٍ حالي لأن الفلتر نفسه يُطبَّق مرتين.
     """
-    # سوبر: لا قيود
+    qs = _scope_to_school(qs, active_school)
+
+    # سوبر: لا قيود صلاحية (وحدّ المدرسة أعلاه يبقى مطبَّقاً متى وُجدت)
     if getattr(user, "is_superuser", False):
         return qs
 
-    # ✅ مدير المدرسة داخل active_school يرى كل التقارير (مع مراعاة فلترة المدرسة في الـ View)
+    # ✅ مدير المدرسة داخل active_school يرى كل تقارير مدرسته
     if active_school is not None and SchoolMembership is not None:
         try:
             if SchoolMembership.objects.filter(

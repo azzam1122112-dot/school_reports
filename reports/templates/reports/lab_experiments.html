@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load hijri_tags %}
+
+{% block title %}تجارب المختبر | منصة توثيق{% endblock %}
+
+{% block head %}{% include "reports/_lab_theme.html" %}{% endblock %}
+
+{% block content %}
+<div class="lab">
+
+  <header class="lab-hero">
+    <span class="lab-hero__eyebrow">
+      <i class="fa-solid fa-vials" aria-hidden="true"></i>
+      التجارب
+    </span>
+    <h1>سجل تجارب مختبر {{ active_school.name }}</h1>
+    <p class="lab-hero__lead">
+      تُوثَّق التجربة مسودةً ثم تُرسَل لاعتماد المدير. والشواهد تُقرأ من التقرير
+      المرتبط بها إن رُبِط — فلا يُرفع الشيء نفسه مرتين.
+    </p>
+    <div class="lab-hero__actions">
+      <a class="lab-act" href="{% url 'reports:lab_dashboard' %}">
+        <i class="fa-solid fa-flask" aria-hidden="true"></i>
+        لوحة المختبر
+      </a>
+    </div>
+  </header>
+
+  <section class="lab-stats" aria-label="ملخص التجارب">
+    <div class="lab-stat">
+      <span class="lab-stat__l"><i class="fa-solid fa-list" aria-hidden="true"></i> الإجمالي</span>
+      <span class="lab-stat__v">{{ summary.experiments_total }}</span>
+    </div>
+    <div class="lab-stat {% if summary.experiments_drafts %}lab-stat--warn{% endif %}">
+      <span class="lab-stat__l"><i class="fa-solid fa-pen" aria-hidden="true"></i> مسودات</span>
+      <span class="lab-stat__v">{{ summary.experiments_drafts }}</span>
+    </div>
+    <div class="lab-stat {% if summary.experiments_pending %}lab-stat--warn{% endif %}">
+      <span class="lab-stat__l"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> تنتظر الاعتماد</span>
+      <span class="lab-stat__v">{{ summary.experiments_pending }}</span>
+    </div>
+    <div class="lab-stat">
+      <span class="lab-stat__l"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> معتمدة</span>
+      <span class="lab-stat__v">{{ summary.experiments_approved }}</span>
+    </div>
+  </section>
+
+  {% if can_record %}
+    <section class="lab-section">
+      <div class="lab-section__head">
+        <h2><i class="fa-solid fa-plus" aria-hidden="true"></i> توثيق تجربة</h2>
+      </div>
+      <div class="lab-card">
+        <form method="post" class="lab-form" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <ul class="errorlist">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+          {% endif %}
+          <div class="lab-grid-2">
+            {% for field in form %}
+              {% if field.name != 'objectives' and field.name != 'procedure' and field.name != 'materials_note' and field.name != 'safety_notes' %}
+                <div class="lab-field">
+                  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+                  {{ field.errors }}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+          {% for field in form %}
+            {% if field.name == 'objectives' or field.name == 'procedure' or field.name == 'materials_note' or field.name == 'safety_notes' %}
+              <div class="lab-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+                {{ field.errors }}
+              </div>
+            {% endif %}
+          {% endfor %}
+          <div>
+            <button type="submit" class="lab-btn">
+              <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+              احفظ كمسودة
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="lab-section">
+    <div class="lab-section__head">
+      <h2><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> البحث في السجل</h2>
+    </div>
+    <div class="lab-card" style="margin-bottom:.8rem">
+      <form method="get" class="lab-grid-2">
+        <div class="lab-field">
+          <label for="q">العنوان أو المادة أو الصف</label>
+          <input class="form-control" type="search" id="q" name="q" value="{{ q_term }}">
+        </div>
+        <div class="lab-field">
+          <label for="state">الحالة</label>
+          <select class="form-control" id="state" name="state">
+            <option value="">كل الحالات</option>
+            {% for value, label in states %}
+              <option value="{{ value }}" {% if q_state == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="lab-field" style="align-self:end">
+          <button type="submit" class="lab-btn lab-btn--ghost">تصفية</button>
+        </div>
+      </form>
+    </div>
+
+    {% if page_obj.object_list %}
+      <div class="lab-table-wrap">
+        <table class="lab-table">
+          <thead>
+            <tr>
+              <th>التجربة</th><th>التاريخ</th><th>المادة</th>
+              <th>الصف</th><th>الطلاب</th><th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for experiment in page_obj.object_list %}
+              <tr>
+                <td><a href="{% url 'reports:lab_experiment_detail' experiment.pk %}">{{ experiment.title }}</a></td>
+                <td dir="rtl">{{ experiment.experiment_date|hijri }}</td>
+                <td>{{ experiment.subject|default:"—" }}</td>
+                <td>{{ experiment.class_name|default:"—" }}</td>
+                <td>{{ experiment.students_count }}</td>
+                <td><span class="lab-chip" data-tone="{{ experiment.approval_tone }}">{{ experiment.get_approval_state_display }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% include "reports/_pagination.html" with page_obj=page_obj %}
+    {% else %}
+      <div class="lab-empty">
+        {% if has_filters %}
+          <strong>لا نتائج لهذه التصفية.</strong>
+        {% else %}
+          <strong>لم تُوثَّق تجربة بعد.</strong>
+          {% if can_record %}ابدأ من النموذج أعلاه.{% endif %}
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

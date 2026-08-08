@@ -935,6 +935,10 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
             messages.error(request, "اختر مسمى وظيفيًا صحيحًا.")
             return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
 
+        # الدور يُشتق من المسمّى بقاعدة النموذج الواحدة، فلا يخرج «محضر مختبر»
+        # من هذا الباب معلّماً ومن باب شاشة الأدوار موظفاً إدارياً.
+        member_role = SchoolMembership.role_for_job_title(job_title)
+
         # ✅ إذا كان رقم الجوال موجودًا مسبقًا: لا ننشئ مستخدمًا جديدًا، بل نربطه بهذه المدرسة
         try:
             phone_raw = (request.POST.get("phone") or "").strip()
@@ -948,11 +952,11 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                         "الحساب الموجود موقوف على مستوى المنصة، ولا يمكن ربطه قبل إعادة تفعيله.",
                     )
                     return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
-                # هل هو مرتبط فعلاً بهذه المدرسة كـ TEACHER؟
+                # هل يحمل فعلاً الدور المطلوب في هذه المدرسة؟
                 already = SchoolMembership.objects.filter(
                     school=active_school,
                     teacher=existing_teacher,
-                    role_type=SchoolMembership.RoleType.TEACHER,
+                    role_type=member_role,
                     is_active=True,
                 ).exists()
                 if already:
@@ -960,7 +964,8 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                     next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
                     return redirect("reports:add_teacher" if continue_adding else (next_url or "reports:manage_teachers"))
 
-                # نفس منطق حد الباقة الحالي (مع ترك الضمان النهائي للموديل)
+                # حدّ الباقة يُقاس بالمقاعد لا بصفوف المعلمين (مع ترك الضمان
+                # النهائي للموديل).
                 try:
                     sub = getattr(active_school, "subscription", None)
                     if sub is None or bool(getattr(sub, "is_expired", True)):
@@ -968,14 +973,20 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                         return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
 
                     max_teachers = int(getattr(sub, "teacher_limit", 0) or 0)
-                    if max_teachers > 0:
-                        current_count = SchoolMembership.objects.filter(
-                            school=active_school,
-                            role_type=SchoolMembership.RoleType.TEACHER,
-                        ).count()
-                        if current_count >= max_teachers:
-                            messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} من حسابات {labels['teachers_object']} لهذه المدرسة حسب الباقة.")
-                            return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
+                    # من يشغل مقعداً في المدرسة أصلاً لا يشغل ثانياً بدور ثانٍ:
+                    # الوكيل ذو النصاب التدريسي رجلٌ واحد لا رجلان.
+                    seats_new_member = not SchoolMembership.objects.filter(
+                        school=active_school,
+                        teacher=existing_teacher,
+                        role_type__in=SchoolMembership.SEAT_CONSUMING_ROLES,
+                    ).exists()
+                    if (
+                        max_teachers > 0
+                        and seats_new_member
+                        and SchoolMembership.seats_used(active_school) >= max_teachers
+                    ):
+                        messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} من حسابات {labels['teachers_object']} لهذه المدرسة حسب الباقة.")
+                        return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
                 except Exception:
                     pass
 
@@ -984,7 +995,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                         SchoolMembership.objects.update_or_create(
                             school=active_school,
                             teacher=existing_teacher,
-                            role_type=SchoolMembership.RoleType.TEACHER,
+                            role_type=member_role,
                             defaults={
                                 "is_active": True,
                                 **({"job_title": job_title} if job_title else {}),
@@ -1011,14 +1022,13 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                     return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
 
                 max_teachers = int(getattr(sub, "teacher_limit", 0) or 0)
-                if max_teachers > 0:
-                    current_count = SchoolMembership.objects.filter(
-                        school=active_school,
-                        role_type=SchoolMembership.RoleType.TEACHER,
-                    ).count()
-                    if current_count >= max_teachers:
-                        messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} من حسابات {labels['teachers_object']} لهذه المدرسة حسب الباقة.")
-                        return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
+                # حساب جديد لم يوجد بعد، فهو مقعد جديد قطعاً. والعدّ من
+                # ``seats_used`` وحده: عدّ صفوف ``TEACHER`` هنا يُبقي وكلاء
+                # المدرسة وموظفيها خارج الحساب، فتُتجاوز الباقة من هذا الباب
+                # ويظل رقم لوحة الاستهلاك مخالفاً لرقم هذه الشاشة.
+                if max_teachers > 0 and SchoolMembership.seats_used(active_school) >= max_teachers:
+                    messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} من حسابات {labels['teachers_object']} لهذه المدرسة حسب الباقة.")
+                    return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
         except Exception:
             # في حال خطأ غير متوقع، نكمل المسار الطبيعي (وسيمنعنا model validation عند الحفظ)
             pass
@@ -1027,12 +1037,12 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
             try:
                 with transaction.atomic():
                     teacher = form.save(commit=True)
-                    # ربط المعلّم بالمدرسة الحالية كـ TEACHER
+                    # ربط المستخدم بالمدرسة الحالية بالدور الذي يقتضيه مسمّاه
                     if active_school is not None:
                         SchoolMembership.objects.update_or_create(
                             school=active_school,
                             teacher=teacher,
-                            role_type=SchoolMembership.RoleType.TEACHER,
+                            role_type=member_role,
                             defaults={
                                 "is_active": True,
                                 **({"job_title": job_title} if job_title else {}),
@@ -1063,19 +1073,31 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def edit_teacher(request: HttpRequest, pk: int) -> HttpResponse:
     active_school = _get_active_school(request)
-    labels = school_gender_labels(active_school)
     teacher = get_object_or_404(Teacher, pk=pk)
 
-    # لا يُسمح للمدير بتعديل معلّم غير مرتبط بمدرسته
-    if not getattr(request.user, "is_superuser", False) and active_school is not None:
+    # لا يُسمح للمدير بتعديل من ليس من منسوبي مدرسته.
+    #
+    # **المنسوب لا المعلّم.** كان الشرط ``role_type=TEACHER`` وحده، وكشف
+    # المنسوبين يقرأ ``STAFF_ROLES`` — فمن أُسند وكيلاً أو محضّر مختبر من شاشة
+    # الأدوار (وهي تحذف عضويته التدريسية ما لم يُطلب الاحتفاظ بالنصاب) يظهر في
+    # الكشف بزرَّي التعديل والحذف، ويردّه الزرّان بأنه «غير مرتبط بمدرستك».
+    #
+    # **بلا مدرسة نشطة يُمنع لا يُسمح.** كان الشرط ``and active_school is not
+    # None``، فانعدامُها يُسقط فحص الارتباط كلَّه ويفتح أي حساب في المنصة برقمه.
+    # وانعدامها وارد: ``role_required`` لا يفرض اختيار مدرسة إلا إن وُجدت مدرسة
+    # واحدة مفعّلة على الأقل، فمدير مدرسةٍ عُطّلت يبلغ هذا الموضع بلا مدرسة.
+    if not getattr(request.user, "is_superuser", False):
+        if active_school is None:
+            messages.error(request, "فضلاً اختر مدرسة أولاً.")
+            return redirect("reports:select_school")
         has_membership = SchoolMembership.objects.filter(
             school=active_school,
             teacher=teacher,
-            role_type=SchoolMembership.RoleType.TEACHER,
+            role_type__in=SchoolMembership.STAFF_ROLES,
             is_active=True,
         ).exists()
         if not has_membership:
-            messages.error(request, f"لا يمكنك تعديل بيانات {labels['teacher']} لأنها غير مرتبطة بمدرستك.")
+            messages.error(request, "لا يمكنك تعديل بيانات هذا المستخدم لأنه ليس من منسوبي مدرستك.")
             return redirect("reports:manage_teachers")
     if request.method == "POST":
         # تعديل بيانات المعلّم فقط — التكاليف تتم من صفحة أعضاء القسم
@@ -1102,28 +1124,42 @@ def edit_teacher(request: HttpRequest, pk: int) -> HttpResponse:
 @require_http_methods(["POST"])
 def delete_teacher(request: HttpRequest, pk: int) -> HttpResponse:
     active_school = _get_active_school(request)
-    labels = school_gender_labels(active_school)
     teacher = get_object_or_404(Teacher, pk=pk)
 
-    # لا يُسمح للمدير بحذف معلّم غير مرتبط بمدرسته
-    if not getattr(request.user, "is_superuser", False) and active_school is not None:
+    # لا يُسمح للمدير بحذف من ليس من منسوبي مدرسته. والمدير نفسه خارج
+    # ``STAFF_ROLES``، فلا يبلغ هذا الشرطَ من يحاول حذف مدير.
+    #
+    # **بلا مدرسة نشطة يُمنع لا يُسمح.** الخطر هنا أشدّ منه في التعديل: الفرع
+    # الأخير أدناه ينفّذ ``teacher.delete()`` — حذفَ الحساب من المنصة كلها لا
+    # فصلَه عن مدرسة. فبقاء الشرط مشروطاً بوجود المدرسة كان يجعل غيابَها طريقاً
+    # إلى حذف أي حساب برقمه.
+    if not getattr(request.user, "is_superuser", False):
+        if active_school is None:
+            messages.error(request, "فضلاً اختر مدرسة أولاً.")
+            return redirect("reports:select_school")
         has_membership = SchoolMembership.objects.filter(
             school=active_school,
             teacher=teacher,
-            role_type=SchoolMembership.RoleType.TEACHER,
+            role_type__in=SchoolMembership.STAFF_ROLES,
             is_active=True,
         ).exists()
         if not has_membership:
-            messages.error(request, f"لا يمكنك حذف {labels['teacher']} لأنها غير مرتبطة بمدرستك.")
+            messages.error(request, "لا يمكنك حذف هذا المستخدم لأنه ليس من منسوبي مدرستك.")
             return redirect("reports:manage_teachers")
     try:
         with transaction.atomic():
+            # الحذف العالمي لمالك النظام وحده — وغيره لا يبلغ هنا إلا بمدرسة.
             if active_school is not None and not getattr(request.user, "is_superuser", False):
                 # ✅ في وضع تعدد المدارس: لا نحذف الحساب عالميًا، بل نفصل عضويته عن هذه المدرسة فقط
+                #
+                # **كل أدواره لا دوره التدريسي.** حذف صفّ ``TEACHER`` وحده يترك
+                # وكيلاً بعضوية وكالته: تقول الرسالة «أُزيل» وهو باقٍ بصلاحيته
+                # وبمقعده. والنطاقات والتفويضات تسقط مع العضوية بـ CASCADE،
+                # وهو الصحيح — نطاق من لم يعد منسوباً لا معنى له.
                 SchoolMembership.objects.filter(
                     school=active_school,
                     teacher=teacher,
-                    role_type=SchoolMembership.RoleType.TEACHER,
+                    role_type__in=SchoolMembership.STAFF_ROLES,
                 ).delete()
                 messages.success(request, "🗑️ تم إزالة المستخدم من المدرسة الحالية.")
             else:

@@ -203,10 +203,17 @@ services:
       --max-tasks-per-child=100
       -Q default,notifications'
 
+  # يحمل الآن توليد PDF إلى جانب معالجة الصور والمهام الدورية. WeasyPrint
+  # يقفز بالذاكرة أثناء التصيير، والطلب ينتظر النتيجة — فرُفع نصيبه من المعالج
+  # والذاكرة، ورُفعت التزامنية إلى اثنتين كي لا يصطفّ طلبان خلف بعضهما حيث
+  # كانا يُصيَّران متوازيين على عامل الويب من قبل.
+  #
+  # وتبقى ``--max-tasks-per-child=50`` هي الحارس: WeasyPrint معروف بتشظّي
+  # الذاكرة، وإعادة تدوير العملية دورياً أرخص من ملاحقة التسرّب.
   worker-media:
     <<: *app
-    mem_limit: 1024m
-    cpus: 0.75
+    mem_limit: 1536m
+    cpus: 1.00
     networks:
       - backend
       - edge
@@ -216,7 +223,7 @@ services:
     command: >-
       sh -c 'exec celery -A config worker
       --loglevel=info
-      --concurrency="$${CELERY_MEDIA_CONCURRENCY:-1}"
+      --concurrency="$${CELERY_MEDIA_CONCURRENCY:-2}"
       --prefetch-multiplier=1
       --max-tasks-per-child=50
       -Q images,periodic'

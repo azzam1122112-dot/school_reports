@@ -101,8 +101,8 @@
 
         <div class="det-meta">
           <div class="det-meta__item">
-            {# التاريخ هجري في كل شاشة — يحرسه اختبار في المشروع، والمعلّم
-               يجب أن يرى تاريخ تقريره نفسه هنا وفي «تقاريري». #}
+            {% comment %} التاريخ هجري في كل شاشة — يحرسه اختبار في المشروع، والمعلّم
+               يجب أن يرى تاريخ تقريره نفسه هنا وفي «تقاريري». {% endcomment %}
             <div class="det-meta__label">التاريخ</div>
             <div class="det-meta__value">{{ report.report_date|hijri }}</div>
           </div>

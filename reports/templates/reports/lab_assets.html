@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}عهدة المختبر | منصة توثيق{% endblock %}
+
+{% block head %}{% include "reports/_lab_theme.html" %}{% endblock %}
+
+{% block content %}
+<div class="lab">
+
+  <header class="lab-hero">
+    <span class="lab-hero__eyebrow">
+      <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>
+      العهدة
+    </span>
+    <h1>جرد مختبر {{ active_school.name }}</h1>
+    <p class="lab-hero__lead">
+      كل صنف بكميته وحالته وموقعه. و«المتاح» محسوبٌ من حركة التسليم لا مُدخَلاً
+      يدوياً — فما في يد معلّمٍ لا يُحسب في المختبر.
+    </p>
+    <div class="lab-hero__actions">
+      <a class="lab-act" href="{% url 'reports:lab_dashboard' %}">
+        <i class="fa-solid fa-flask" aria-hidden="true"></i>
+        لوحة المختبر
+      </a>
+      <a class="lab-act" href="{% url 'reports:lab_assets_print' %}">
+        <i class="fa-solid fa-print" aria-hidden="true"></i>
+        طباعة الكشف
+      </a>
+    </div>
+  </header>
+
+  <section class="lab-stats" aria-label="ملخص الجرد">
+    <div class="lab-stat">
+      <span class="lab-stat__l"><i class="fa-solid fa-list" aria-hidden="true"></i> الأصناف</span>
+      <span class="lab-stat__v">{{ summary.assets_total }}</span>
+    </div>
+    <div class="lab-stat {% if summary.assets_attention %}lab-stat--warn{% endif %}">
+      <span class="lab-stat__l"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i> يحتاج انتباهاً</span>
+      <span class="lab-stat__v">{{ summary.assets_attention }}</span>
+    </div>
+    <div class="lab-stat {% if summary.assets_damaged %}lab-stat--danger{% endif %}">
+      <span class="lab-stat__l"><i class="fa-solid fa-ban" aria-hidden="true"></i> تالف</span>
+      <span class="lab-stat__v">{{ summary.assets_damaged }}</span>
+    </div>
+    <div class="lab-stat {% if summary.outstanding %}lab-stat--warn{% endif %}">
+      <span class="lab-stat__l"><i class="fa-solid fa-right-left" aria-hidden="true"></i> خارج المختبر</span>
+      <span class="lab-stat__v">{{ summary.outstanding }}</span>
+    </div>
+  </section>
+
+  {# ═══ الإضافة — للمسجّل وحده ════════════════════════════════ #}
+  {% if can_record %}
+    <section class="lab-section">
+      <div class="lab-section__head">
+        <h2><i class="fa-solid fa-plus" aria-hidden="true"></i> إضافة صنف</h2>
+      </div>
+      <div class="lab-card">
+        <form method="post" class="lab-form" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <ul class="errorlist">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+          {% endif %}
+          <div class="lab-grid-2">
+            {% for field in form %}
+              <div class="lab-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+                {{ field.errors }}
+              </div>
+            {% endfor %}
+          </div>
+          <div>
+            <button type="submit" class="lab-btn">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+              أضِف إلى الجرد
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  {% endif %}
+
+  {# ═══ الكشف ════════════════════════════════════════════════ #}
+  <section class="lab-section">
+    <div class="lab-section__head">
+      <h2><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> البحث في الجرد</h2>
+    </div>
+    <div class="lab-card" style="margin-bottom:.8rem">
+      <form method="get" class="lab-grid-2">
+        <div class="lab-field">
+          <label for="q">الاسم أو الرقم أو الموقع</label>
+          <input class="form-control" type="search" id="q" name="q" value="{{ q_term }}" placeholder="ميكروسكوب">
+        </div>
+        <div class="lab-field">
+          <label for="category">النوع</label>
+          <select class="form-control" id="category" name="category">
+            <option value="">كل الأنواع</option>
+            {% for value, label in categories %}
+              <option value="{{ value }}" {% if q_category == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="lab-field">
+          <label for="condition">الحالة</label>
+          <select class="form-control" id="condition" name="condition">
+            <option value="">كل الحالات</option>
+            {% for value, label in conditions %}
+              <option value="{{ value }}" {% if q_condition == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="lab-field" style="align-self:end">
+          <button type="submit" class="lab-btn lab-btn--ghost">تصفية</button>
+        </div>
+      </form>
+    </div>
+
+    {% if page_obj.object_list %}
+      <div class="lab-table-wrap">
+        <table class="lab-table">
+          <thead>
+            <tr>
+              <th>الصنف</th><th>الرقم</th><th>النوع</th>
+              <th>الكمية</th><th>المتاح</th><th>الحالة</th><th>الموقع</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for asset in page_obj.object_list %}
+              <tr>
+                <td><a href="{% url 'reports:lab_asset_detail' asset.pk %}">{{ asset.name }}</a></td>
+                <td>{{ asset.code|default:"—" }}</td>
+                <td>{{ asset.get_category_display }}</td>
+                <td>{{ asset.quantity }} {{ asset.unit }}</td>
+                <td>{{ asset.available_quantity }}</td>
+                <td>
+                  <span class="lab-chip {% if asset.condition == 'good' %}lab-chip--good{% elif asset.condition == 'missing' or asset.condition == 'damaged' %}lab-chip--danger{% else %}lab-chip--warn{% endif %}">
+                    {{ asset.get_condition_display }}
+                  </span>
+                </td>
+                <td>{{ asset.location|default:"—" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% include "reports/_pagination.html" with page_obj=page_obj %}
+    {% else %}
+      <div class="lab-empty">
+        {% if has_filters %}
+          <strong>لا نتائج لهذه التصفية.</strong>
+          جرّب مصطلحاً أعمّ أو أزِل المرشّحات.
+        {% else %}
+          <strong>الجرد فارغ بعد.</strong>
+          {% if can_record %}أضِف أول صنف من النموذج أعلاه.{% endif %}
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

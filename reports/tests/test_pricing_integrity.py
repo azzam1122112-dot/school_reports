@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from itertools import pairwise
+
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
@@ -107,7 +109,7 @@ class PriceCurveTests(SimpleTestCase):
                 (quote["capacity"], quote["price"] / Decimal(quote["capacity"]))
                 for quote in group["quotes"]
             ]
-            for (_, earlier), (capacity, later) in zip(rates, rates[1:]):
+            for (_, earlier), (capacity, later) in pairwise(rates):
                 self.assertLess(later, earlier, f"{group['label']} at {capacity} seats")
 
     def test_longer_periods_are_cheaper_per_month(self):
@@ -148,7 +150,7 @@ class PriceCurveTests(SimpleTestCase):
         addon_price = Decimal(DEFAULT_ARCHIVE_PRICING["annual_price"])
         for group in self._catalog():
             quotes = group["quotes"]
-            for earlier, later in zip(quotes, quotes[1:]):
+            for earlier, later in pairwise(quotes):
                 step = later["price"] - earlier["price"]
                 self.assertGreater(step, 0)
                 if later["capacity"] == quotes[-1]["capacity"]:

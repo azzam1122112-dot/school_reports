@@ -28,6 +28,8 @@ from .school_additions import * # noqa: F401,F403
 from .legal import *            # noqa: F401,F403
 from .customer_care import *    # noqa: F401,F403
 from .activity import *        # noqa: F401,F403
+from .lab import *            # noqa: F401,F403
+from .staff_dashboard import * # noqa: F401,F403
 from .staff_roles import *     # noqa: F401,F403
 from .approvals import *       # noqa: F401,F403
 from .assignments import *     # noqa: F401,F403

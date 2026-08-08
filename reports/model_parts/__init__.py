@@ -10,6 +10,7 @@ from .customer_care import *
 from .assignments import *
 from .circular_drafts import *
 from .documents import *
+from .lab import *
 from .meetings import *
 from .plans import *
 from .scopes import *

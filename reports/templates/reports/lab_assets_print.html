@@ -1,0 +1,115 @@
+{% load hijri_tags %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>كشف عهدة المختبر — {{ active_school.name }}</title>
+
+  {% comment %}
+  صفحة طباعة قائمة بذاتها: لا ``theme-manager`` ولا ``dark-mode.css`` — الورق
+  أبيض دائماً، وطبقةُ الوضع الداكن على صفحة تُطبع تُنتج حبراً لا يُقرأ. وهو
+  العُرف نفسه في كل صفحات الطباعة هنا، ويحرسه اختبار.
+  {% endcomment %}
+  <style>
+    :root { --ink: #111; --muted: #444; --line: #000; --shade: #f3f3f3; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+      color: var(--ink); background: #fff; margin: 0; padding: 14mm 12mm;
+      font-size: 12pt; line-height: 1.7;
+    }
+    .doc-head { text-align: center; border-bottom: 2px solid var(--line); padding-bottom: 8px; margin-bottom: 14px; }
+    .doc-head h1 { margin: 0 0 4px; font-size: 16pt; font-weight: 900; }
+    .doc-head .sub { font-size: 10.5pt; color: var(--muted); }
+    .meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 10.5pt; margin-bottom: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 10.5pt; }
+    thead th {
+      background: var(--shade); border: 1px solid var(--line);
+      padding: 6px 7px; font-weight: 800; text-align: start;
+    }
+    tbody td { border: 1px solid var(--line); padding: 6px 7px; vertical-align: middle; }
+    tbody tr:nth-child(even) td { background: #fafafa; }
+    h2 { font-size: 12pt; margin: 16px 0 7px; }
+    .sign { display: flex; justify-content: space-between; gap: 20px; margin-top: 26px; font-size: 10.5pt; }
+    .sign > div { flex: 1; }
+    .sign .line { border-bottom: 1px dotted var(--line); height: 34px; margin-top: 6px; }
+    .empty { border: 1px dashed var(--line); padding: 12px; text-align: center; color: var(--muted); }
+    @media print {
+      body { padding: 0; }
+      thead { display: table-header-group; }
+      tr { break-inside: avoid; }
+      @page { size: A4; margin: 12mm; }
+    }
+  </style>
+</head>
+<body onload="window.print()">
+
+  <header class="doc-head">
+    <h1>كشف عهدة المختبر</h1>
+    <div class="sub">{{ active_school.name }}</div>
+  </header>
+
+  <div class="meta">
+    <span>عدد الأصناف: <b>{{ summary.assets_total }}</b></span>
+    <span>يحتاج انتباهاً: <b>{{ summary.assets_attention }}</b></span>
+    <span>خارج المختبر: <b>{{ summary.outstanding }}</b></span>
+    <span>تاريخ الطباعة: <b dir="rtl">{{ printed_at|hijri }} هـ</b></span>
+  </div>
+
+  {% if assets %}
+    <table>
+      <thead>
+        <tr>
+          <th style="width:26px">م</th>
+          <th>الصنف</th>
+          <th>الرقم</th>
+          <th>النوع</th>
+          <th>الكمية</th>
+          <th>المتاح</th>
+          <th>الحالة</th>
+          <th>الموقع</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for asset in assets %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ asset.name }}</td>
+            <td>{{ asset.code|default:"—" }}</td>
+            <td>{{ asset.get_category_display }}</td>
+            <td>{{ asset.quantity }} {{ asset.unit }}</td>
+            <td>{{ asset.available_quantity }}</td>
+            <td>{{ asset.get_condition_display }}</td>
+            <td>{{ asset.location|default:"—" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">لا أصناف مُدرَجة في الجرد.</p>
+  {% endif %}
+
+  {% if outstanding %}
+    <h2>ما زال خارج المختبر</h2>
+    <table>
+      <thead><tr><th style="width:26px">م</th><th>الصنف</th><th>عند</th><th>الكمية</th></tr></thead>
+      <tbody>
+        {% for row in outstanding %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.asset_name }}</td>
+            <td>{{ row.person_name }}</td>
+            <td>{{ row.quantity }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <div class="sign">
+    <div>محضّر المختبر<div class="line"></div></div>
+    <div>مدير المدرسة<div class="line"></div></div>
+  </div>
+</body>
+</html>
