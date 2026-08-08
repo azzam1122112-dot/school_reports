@@ -225,3 +225,21 @@ jobs:
               "DEPLOY_PATH='$DEPLOY_PATH' APP_IMAGE='$APP_IMAGE' \
                GHCR_USER='${{ github.actor }}' GHCR_TOKEN_FROM_STDIN=1 \
                bash '$DEPLOY_PATH/deploy/hetzner/remote_deploy.sh'"
+
+      # The image is what CI tests; the *configuration* is what the server holds,
+      # and nothing compared the two. A release once shipped with Tamara still
+      # advertised and Moyasar still off — every test green, the site wrong.
+      #
+      # production_preflight reads the settings of the container that is actually
+      # serving traffic, so it is the only check that can see that gap. It exits 1
+      # on any FAIL, which fails the deploy job and makes the drift impossible to
+      # miss. Warnings are printed, not fatal: they need a decision, not a rollback.
+      - name: Verify the running release
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+            "cd '$DEPLOY_PATH' && docker compose -f compose.hetzner.yaml \
+             exec -T web python manage.py production_preflight"

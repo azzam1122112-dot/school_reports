@@ -1,0 +1,132 @@
+name: Configure production runtime
+
+# Applying runtime configuration used to mean opening an SSH session and editing
+# env.production by hand — so it was done rarely, remembered wrongly, and drifted
+# from the repository until a release shipped with the wrong payment gateway.
+#
+# This makes the change a recorded, repeatable action: who ran it, when, and with
+# which values, kept in the workflow log. It reuses the deploy key that already
+# exists, so it grants no access that pushing to main does not already grant.
+#
+# Secrets are never inputs. MOYASAR_SECRET_KEY is read from repository secrets and
+# piped over stdin, so it stays out of argv, out of the log, and out of the URL.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tamara_enabled:
+        description: "TAMARA_ENABLED — keep False until Tamara approves the account"
+        type: choice
+        options: ["False", "True"]
+        default: "False"
+      moyasar_enabled:
+        description: "MOYASAR_ENABLED — the active launch gateway"
+        type: choice
+        options: ["True", "False"]
+        default: "True"
+      moyasar_environment:
+        description: "MOYASAR_ENVIRONMENT"
+        type: choice
+        options: ["live", "test"]
+        default: "live"
+      update_moyasar_key:
+        description: "Also write MOYASAR_SECRET_KEY from repository secrets"
+        type: boolean
+        default: false
+      pdf_offload_enabled:
+        description: "PDF_OFFLOAD_ENABLED — render PDFs on the media worker"
+        type: choice
+        options: ["True", "False"]
+        default: "True"
+      celery_media_concurrency:
+        description: "CELERY_MEDIA_CONCURRENCY (1-8)"
+        default: "2"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: configure-production
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+
+    steps:
+      - name: Verify deploy credentials
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+        run: |
+          missing=""
+          for name in DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS DEPLOY_SSH_USER DEPLOY_SSH_HOST; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=Missing deploy secrets::Not set:$missing"
+            exit 1
+          fi
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Apply runtime configuration
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+          MOYASAR_SECRET_KEY: ${{ secrets.MOYASAR_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+
+          FLAGS="--tamara-enabled '${{ inputs.tamara_enabled }}'"
+          FLAGS="$FLAGS --moyasar-enabled '${{ inputs.moyasar_enabled }}'"
+          FLAGS="$FLAGS --moyasar-environment '${{ inputs.moyasar_environment }}'"
+          FLAGS="$FLAGS --pdf-offload-enabled '${{ inputs.pdf_offload_enabled }}'"
+          FLAGS="$FLAGS --celery-media-concurrency '${{ inputs.celery_media_concurrency }}'"
+
+          if [ "${{ inputs.update_moyasar_key }}" = "true" ]; then
+            if [ -z "$MOYASAR_SECRET_KEY" ]; then
+              echo "::error title=Missing secret::Add MOYASAR_SECRET_KEY under Settings > Environments > production."
+              exit 1
+            fi
+            FLAGS="$FLAGS --moyasar-key-from-stdin"
+          fi
+
+          # The key travels on stdin only. An empty stdin leaves the value alone.
+          printf '%s' "$MOYASAR_SECRET_KEY" \
+          | ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+              "DEPLOY_PATH='$DEPLOY_PATH' python3 '$DEPLOY_PATH/deploy/hetzner/apply_runtime_config.py' $FLAGS"
+
+      - name: Restart the services that read the file
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+            "cd '$DEPLOY_PATH' && docker compose -f compose.hetzner.yaml -f compose.caddy.yaml up -d"
+
+      # The same gate the deploy runs. A configuration change that leaves the
+      # platform misconfigured has to fail here, not on a customer's payment.
+      - name: Verify the running release
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+            "cd '$DEPLOY_PATH' && docker compose -f compose.hetzner.yaml \
+             exec -T web python manage.py production_preflight"

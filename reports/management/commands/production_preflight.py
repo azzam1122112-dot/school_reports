@@ -343,6 +343,41 @@ class Command(BaseCommand):
                 section, Check.WARN, "Moyasar is disabled", "No electronic payment is possible."
             )
 
+        # Tamara had no line here at all, so a server left with TAMARA_ENABLED=True
+        # advertised a gateway that has not approved the merchant account — and
+        # preflight reported "READY" while the public site carried their wordmark.
+        # A gateway's brand is a commercial claim; whether it is showing has to be
+        # something this command answers out loud, not something you discover by
+        # reading the live page.
+        tamara_on = bool(getattr(settings, "TAMARA_ENABLED", False))
+        if tamara_on:
+            self._record(
+                section,
+                Check.WARN,
+                "Tamara is enabled",
+                "Its name and wordmark are public. Keep it off until Tamara approves "
+                "the account, then complete their go-live checklist.",
+            )
+        else:
+            self._record(section, Check.OK, "Tamara is off and hidden everywhere")
+
+        # The single line that would have caught this release: what the public
+        # site actually advertises, read from the same source the templates use.
+        advertised = [
+            name
+            for name, enabled in (
+                ("Moyasar", bool(getattr(settings, "MOYASAR_ENABLED", False))),
+                ("Tamara", tamara_on),
+            )
+            if enabled
+        ]
+        self._record(
+            section,
+            Check.OK if advertised else Check.WARN,
+            "Advertised gateways: " + (", ".join(advertised) or "none"),
+            "" if advertised else "The subscription page offers bank transfer only.",
+        )
+
         if getattr(settings, "PAYMENT_RECONCILIATION_ENABLED", False):
             self._record(section, Check.OK, "Payment reconciliation is on")
         else:
