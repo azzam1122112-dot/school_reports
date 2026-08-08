@@ -11,39 +11,30 @@
      Premium Officer Reports Design System - 2026
      Modern, Elegant, Fully Responsive
      ========================================================= */
-  :root {
-    --or-primary: #006c35;
-    --or-primary-dark: #00542a;
-    --or-gradient: linear-gradient(135deg, #006c35 0%, #00542a 100%);
-    --or-surface: #ffffff;
-    --or-background: #f8fafc;
-    --or-border: #e2e8f0;
-    --or-border-light: #f1f5f9;
-    --or-text: #0f172a;
-    --or-text-soft: #64748b;
-    --or-success: #16845b;
-    --or-warning: #b9975b;
-    --or-danger: #ef4444;
-    --or-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --or-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    --or-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    --or-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    --or-radius-sm: 8px;
-    --or-radius-md: 12px;
-    --or-radius-lg: 16px;
-    --or-radius-xl: 24px;
-    --or-radius-full: 9999px;
-  }
-
-  html[data-theme="dark"] {
-    --or-surface: rgba(15, 23, 42, 0.55);
-    --or-background: rgba(15, 23, 42, 0.35);
-    --or-border: #1b2744;
-    --or-border-light: #1e293b;
-    --or-text: #e5e7eb;
-    --or-text-soft: #94a3b8;
-    --or-shadow-md: 0 10px 28px rgba(0, 0, 0, 0.35);
-    --or-shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.5);
+  /* رموز هذه الشاشة — مقصورة على حاويتها ومشتقّة من جذر الهوية، فلا تحتاج
+     كتلةً ليلية خاصة: `--id-*` وحدها ما يُعاد تعريفه تحت `data-theme="dark"`. */
+  .or-scope {
+    --or-primary: var(--id-accent);
+    --or-primary-dark: var(--id-accent-strong);
+    --or-gradient: linear-gradient(135deg, var(--id-hero-via) 0%, var(--id-hero-from) 100%);
+    --or-surface: var(--id-surface);
+    --or-background: var(--id-canvas);
+    --or-border: var(--id-line);
+    --or-border-light: var(--id-line-soft);
+    --or-text: var(--id-ink);
+    --or-text-soft: var(--id-muted);
+    --or-success: var(--id-tone-approved);
+    --or-warning: var(--id-gold);
+    --or-danger: var(--id-tone-danger);
+    --or-shadow-sm: var(--id-e1);
+    --or-shadow-md: var(--id-e2);
+    --or-shadow-lg: var(--id-e3);
+    --or-shadow-xl: var(--id-e4);
+    --or-radius-sm: var(--id-r1);
+    --or-radius-md: var(--id-r2);
+    --or-radius-lg: var(--id-r3);
+    --or-radius-xl: var(--id-r4);
+    --or-radius-full: var(--id-pill);
   }
 
   /* Page Layout */

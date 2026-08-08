@@ -24,13 +24,16 @@
 		--accent: #f5576c;
 		--success: #00f2fe;
 
-		--bg-main: #f5f7fa;
-		--card-bg: #ffffff;
-		--text-primary: #1a202c;
-		--text-secondary: #4a5568;
-		--text-light: #718096;
-		--border-color: #e2e8f0;
-		--hover-bg: #edf2f7;
+		/* مشتقّة من جذر الهوية. إعلانها هنا بقيمٍ ثابتة كان يحجب القيم
+		   الليلية العامة: الرمز المُعاد تعريفه داخل النطاق يغلب تعريف
+		   `html[data-theme="dark"]` لكل ما تحت `.ns-scope`. */
+		--bg-main: var(--id-canvas);
+		--card-bg: var(--id-surface);
+		--text-primary: var(--id-ink);
+		--text-secondary: var(--id-ink-soft);
+		--text-light: var(--id-muted);
+		--border-color: var(--id-line);
+		--hover-bg: var(--id-surface-2);
 
 		--radius-xl: 24px;
 		--radius-lg: 16px;

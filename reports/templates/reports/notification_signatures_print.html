@@ -5,6 +5,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>تقرير تواقيع — {{ n.title|default:"تعميم رسمي" }}</title>
+  {% comment %}
+    ‏`app.css` صار يقرأ رموز الهوية (`--id-*`)، وهذه الصفحة لا ترث `base.html`
+    فلا تصلها. تُضمَّن هنا كي لا تسقط قواعدُه صامتةً على صفحةٍ مستقلة.
+  {% endcomment %}
+  {% include "reports/_identity.html" %}
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/circulars-official.css' %}">
 </head>

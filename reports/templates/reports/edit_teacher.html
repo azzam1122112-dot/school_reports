@@ -11,27 +11,19 @@
      ========================================================= */
 
   .teacher-edit-scope{
-    --te-ink: var(--ink, #0f172a);
-    --te-muted: var(--muted, #6b7280);
-    --te-line: var(--line, #e5e7eb);
-    --te-card: var(--card, #ffffff);
+    --te-ink: var(--id-ink);
+    --te-muted: var(--id-muted);
+    --te-line: var(--id-line);
+    --te-card: var(--id-surface);
 
     --te-brand:#006c35;
     --te-brand2:#0f8f87;
     --te-danger:#b91c1c;
 
     --te-radius: 16px;
-    --te-shadow: 0 10px 30px rgba(2,6,23,.08);
+    --te-shadow: var(--id-e3);
     --te-ring: 0 0 0 3px rgba(0,108,53,.22);
     --te-tap: 48px;
-  }
-
-  html[data-theme="dark"] .teacher-edit-scope{
-    --te-ink: var(--ink, #e5e7eb);
-    --te-muted: var(--muted, #94a3b8);
-    --te-line: var(--line, #1f2937);
-    --te-card: var(--card, #0f172a);
-    --te-shadow: 0 14px 40px rgba(0,0,0,.45);
   }
 
   .teacher-edit-scope .te-wrap{
@@ -54,7 +46,7 @@
     padding: clamp(18px, 2.2vw, 26px) clamp(18px, 3vw, 30px);
     text-align: center;
   }
-  html[data-theme="dark"] .teacher-edit-scope .te-header{ color:#0b1220; }
+  html[data-theme="dark"] .teacher-edit-scope .te-header{ color:#0b1712; }
 
   .teacher-edit-scope .te-title{
     margin: 0 0 6px;
@@ -119,7 +111,7 @@
     box-shadow: var(--te-ring);
   }
   html[data-theme="dark"] .teacher-edit-scope .te-control{
-    background: #0b1220;
+    background: #0b1712;
     color: var(--te-ink);
   }
 
@@ -164,7 +156,7 @@
     outline: 2px solid var(--te-brand);
     outline-offset: 2px;
   }
-  html[data-theme="dark"] .teacher-edit-scope .te-toggle{ background:#0b1220; }
+  html[data-theme="dark"] .teacher-edit-scope .te-toggle{ background:#0b1712; }
 
   /* Switch */
   .teacher-edit-scope .te-switch-row{
@@ -226,7 +218,7 @@
   .teacher-edit-scope .te-alert.warning{ background:#fffbeb; color:#92400e; border-color:#fde68a; }
   .teacher-edit-scope .te-alert.info{ background:#eff6ff; color:#00542a; border-color:#bfdbfe; }
 
-  html[data-theme="dark"] .teacher-edit-scope .te-alert{ background:#0b1220; }
+  html[data-theme="dark"] .teacher-edit-scope .te-alert{ background:#0b1712; }
   html[data-theme="dark"] .teacher-edit-scope .te-alert.error{ background:#2a0f14; color:#fecaca; border-color:#7f1d1d; }
 
   /* Actions */
@@ -269,7 +261,7 @@
 
   .teacher-edit-scope .te-btn-outline{ background: transparent; }
 
-  html[data-theme="dark"] .teacher-edit-scope .te-btn{ background:#0b1220; color: var(--te-ink); }
+  html[data-theme="dark"] .teacher-edit-scope .te-btn{ background:#0b1712; color: var(--te-ink); }
   html[data-theme="dark"] .teacher-edit-scope .te-btn-outline{ background: transparent; }
 
   @media (max-width: 560px){

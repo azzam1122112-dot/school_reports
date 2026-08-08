@@ -21,20 +21,13 @@
     --brand-dark: #b9975b;
     --brand-light: #eff6ff;
     --accent: #b9975b;
-    --surface: #f5f7fa;
-    --border-color: #e2e8f0;
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-    --shadow-md: 0 10px 40px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
-    --text-main: #0f172a;
-    --text-secondary: #64748b;
-  }
-
-  html[data-theme="dark"] {
-    --surface: #0f172a;
-    --border-color: #334155;
-    --text-main: #f1f5f9;
-    --text-secondary: #94a3b8;
+    --surface: var(--id-surface-2);
+    --border-color: var(--id-line);
+    --shadow-sm: var(--id-e1);
+    --shadow-md: var(--id-e2);
+    --shadow-lg: var(--id-e3);
+    --text-main: var(--id-ink);
+    --text-secondary: var(--id-muted);
   }
 
   .af-wrap { 
@@ -65,7 +58,7 @@
   }
   
   html[data-theme="dark"] .af-card {
-    background: #1e293b;
+    background: #1d3327;
   }
   
   .af-head { 
@@ -74,7 +67,7 @@
   }
   
   html[data-theme="dark"] .af-head {
-    background: #1e293b;
+    background: #1d3327;
   }
   
   .af-body { 
@@ -83,7 +76,7 @@
   }
   
   html[data-theme="dark"] .af-body {
-    background: #1e293b;
+    background: #1d3327;
   }
 
   /* ===== Hero Section ===== */
@@ -99,7 +92,7 @@
   }
   
   html[data-theme="dark"] .af-hero {
-    background: #1e293b;
+    background: #1d3327;
   }
   
   .af-hero::before {
@@ -287,7 +280,7 @@
   }
   
   html[data-theme="dark"] .af-btn {
-    background: #1e293b;
+    background: #1d3327;
   }
   
   .af-btn:hover {
@@ -390,7 +383,7 @@
   }
   
   html[data-theme="dark"] .af-grid {
-    background: #1e293b;
+    background: #1d3327;
   }
   
   @media(max-width: 800px) { 
@@ -428,7 +421,7 @@
   html[data-theme="dark"] .af-form select,
   html[data-theme="dark"] .af-form textarea,
   html[data-theme="dark"] .af-muted {
-    background: #0f172a;
+    background: #0f1e17;
   }
   
   .af-form input:focus, .af-form select:focus, .af-form textarea:focus {
@@ -441,7 +434,7 @@
   html[data-theme="dark"] .af-form input:focus,
   html[data-theme="dark"] .af-form select:focus,
   html[data-theme="dark"] .af-form textarea:focus {
-    background: #1e293b;
+    background: #1d3327;
   }
   
   textarea { 
@@ -460,7 +453,7 @@
   }
   
   html[data-theme="dark"] .af-details {
-    background: #1e293b;
+    background: #1d3327;
   }
   
   .af-details[open] { 
@@ -482,7 +475,7 @@
   }
   
   html[data-theme="dark"] .af-summary {
-    background: #1e293b;
+    background: #1d3327;
   }
   
   .af-summary:hover {
@@ -597,7 +590,7 @@
   }
   
   html[data-theme="dark"] .af-evr-item {
-    background: #1e293b;
+    background: #1d3327;
   }
   
   .af-evr-item:hover {
@@ -670,7 +663,7 @@
   }
   
   html[data-theme="dark"] .af-modal-card {
-    background: #1e293b;
+    background: #1d3327;
   }
   
   @keyframes modalSlideIn {
@@ -708,7 +701,7 @@
   }
   
   html[data-theme="dark"] .af-modal-bd {
-    background: #0f172a;
+    background: #0f1e17;
   }
   
   /* ===== Responsive Hero ===== */

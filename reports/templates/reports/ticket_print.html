@@ -223,6 +223,11 @@
       gap: 10px;
     }
   </style>
+  {% comment %}
+    ‏`app.css` صار يقرأ رموز الهوية (`--id-*`)، وهذه الصفحة لا ترث `base.html`
+    فلا تصلها. تُضمَّن هنا كي لا تسقط قواعدُه صامتةً على صفحةٍ مستقلة.
+  {% endcomment %}
+  {% include "reports/_identity.html" %}
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
   <style>

@@ -955,6 +955,344 @@ html[data-theme="dark"] .decision-grid .decision-card--gold {
   background: #2b2719 !important;
   border-color: rgba(212, 177, 109, .32) !important;
 }
+/* لوح اختيار الدور: خلفيته ‎rgba(255,255,255,.96)‎ — بيضاء فعلياً لا شفافية
+   زخرفية، وعناوينه تُشتق من `--guide-green-950` الذي يفتحّ ليلاً، فكان
+   العنوان نعناعياً فاتحاً على أبيض. رصدته اللقطة لا الفحص الساكن. */
+html[data-theme="dark"] .role-picker > .guide-shell {
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .16);
+}
+
+/* زرّان بقيا بخلفية بيضاء: نصّهما يأتي من رمزٍ يفتحّ في الوضع الليلي
+   (‏`--guide-green-900` و`--guide-muted`) فيصير فاتحاً على أبيض.
+   ‏`.header-link` لا يأخذ الخلفية إلا في استعلام الجوال. */
+html[data-theme="dark"] .guide-button--light,
+html[data-theme="dark"] .header-link {
+  color: #d9f4e5;
+  background: #102920;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .guide-button--light:hover,
+html[data-theme="dark"] .header-link:hover { color: #fff; background: #173a2f; }
+
+/* ── تصحيح الوضع الداكن: صفحات كانت تشحن ألوانها الفاتحة بلا مقابل داكن ──
+   كل ما يلي يأتي بعد كتل <style> الموجودة في {% block head %}، فيكفي هنا
+   وزنٌ مساوٍ دون !important إلا حيث تُخصَّص الأنماط في السطر مباشرة. */
+
+/* تهيئة العام الدراسي (تطبيق maintenance) — كانت الصفحة فاتحة بالكامل. */
+html[data-theme="dark"] .reset-title h1,
+html[data-theme="dark"] .reset-panel__head h2,
+html[data-theme="dark"] .reset-section-title,
+html[data-theme="dark"] .mode-card strong,
+html[data-theme="dark"] .data-card strong,
+html[data-theme="dark"] .school-name,
+html[data-theme="dark"] .summary-card strong { color: #edf6f1; }
+html[data-theme="dark"] .reset-title p,
+html[data-theme="dark"] .mode-card span,
+html[data-theme="dark"] .hint,
+html[data-theme="dark"] .school-meta,
+html[data-theme="dark"] .summary-card span,
+html[data-theme="dark"] .data-card-status,
+html[data-theme="dark"] .data-selection-help { color: #abc0b6; }
+html[data-theme="dark"] .reset-panel,
+html[data-theme="dark"] .school-picker,
+html[data-theme="dark"] .mode-card,
+html[data-theme="dark"] .data-card,
+html[data-theme="dark"] .school-row,
+html[data-theme="dark"] .plain-list li,
+html[data-theme="dark"] .jobs-list li {
+  color: #d9ebe3;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .reset-panel__head,
+html[data-theme="dark"] .picker-footer,
+html[data-theme="dark"] .picker-toolbar,
+html[data-theme="dark"] .selected-strip,
+html[data-theme="dark"] .summary-card,
+html[data-theme="dark"] .side-note {
+  color: #abc0b6;
+  background: #102920;
+  border-color: rgba(205, 225, 216, .16);
+}
+html[data-theme="dark"] .reset-back,
+html[data-theme="dark"] .reset-btn.muted,
+html[data-theme="dark"] .mini-btn.ghost {
+  color: #d9f4e5;
+  background: #102920;
+  border-color: rgba(212, 177, 109, .34);
+}
+html[data-theme="dark"] .reset-back:hover,
+html[data-theme="dark"] .reset-btn.muted:hover,
+html[data-theme="dark"] .mini-btn.ghost:hover { background: #173a2f; }
+html[data-theme="dark"] .mode-card:hover { background: #14382c; border-color: #55cf91; }
+html[data-theme="dark"] .school-row:hover { background: #14382c; }
+html[data-theme="dark"] .school-row.is-selected { background: rgba(66, 202, 136, .12); }
+html[data-theme="dark"] .mode-card:has(input:checked) {
+  background: rgba(66, 202, 136, .12);
+  border-color: #55cf91;
+}
+html[data-theme="dark"] .picker-search,
+html[data-theme="dark"] .confirm-input { color: #edf6f1; background: #102920; }
+html[data-theme="dark"] .data-card-check { background: #102920; border-color: #6c8479; }
+html[data-theme="dark"] .school-state.off { color: #91a99e; background: rgba(148, 163, 184, .14); }
+html[data-theme="dark"] .schools-results::-webkit-scrollbar-thumb { background: #35544a; }
+/* لون النص محسوم بقاعدة ‎.status-pill‎ ذات !important أعلاه، فيُضبط الحشو فقط. */
+html[data-theme="dark"] .status-pill { background: rgba(66, 202, 136, .16); }
+html[data-theme="dark"] .danger-band,
+html[data-theme="dark"] .data-selection-count {
+  color: #ffc5c8;
+  background: rgba(180, 35, 47, .16);
+  border-color: rgba(255, 140, 145, .30);
+}
+html[data-theme="dark"] .confirm-box,
+html[data-theme="dark"] .delete-files,
+html[data-theme="dark"] .data-card.delete-files:has(input:checked) {
+  background: #2f2113;
+  border-color: rgba(234, 88, 12, .42);
+}
+html[data-theme="dark"] .data-card:has(input:checked) {
+  background: rgba(180, 35, 47, .16);
+  border-color: #d92d4c;
+}
+
+/* طلبات إضافة مدرسة — واجهة المدرسة ولوحة المنصّة. */
+html[data-theme="dark"] .sar-card,
+html[data-theme="dark"] .psar-item {
+  color: #d9ebe3;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .sar-card h2,
+html[data-theme="dark"] .psar-head h1 { color: #edf6f1; }
+html[data-theme="dark"] .sar-field label { color: #d9ebe3; }
+html[data-theme="dark"] .sar-muted,
+html[data-theme="dark"] .sar-meta,
+html[data-theme="dark"] .psar-meta { color: #abc0b6; }
+html[data-theme="dark"] .sar-review,
+html[data-theme="dark"] .psar-tabs a {
+  color: #c8dbd1;
+  background: #102920;
+}
+html[data-theme="dark"] .psar-tabs a.active { color: #061512; background: #55cf91; }
+html[data-theme="dark"] .sar-request { border-color: rgba(205, 225, 216, .16); }
+html[data-theme="dark"] .sar-action { color: #9ce8bd; background: rgba(66, 202, 136, .14); }
+html[data-theme="dark"] .sar-status--pending,
+html[data-theme="dark"] .psar-badge { color: #f0d69d; background: rgba(212, 177, 109, .15); }
+html[data-theme="dark"] .sar-status--approved { color: #9ce8bd; background: rgba(66, 202, 136, .14); }
+html[data-theme="dark"] .sar-status--rejected,
+html[data-theme="dark"] .reject { color: #ffc5c8; background: rgba(180, 35, 47, .22); }
+
+/* تأكيد حذف مدرسة. */
+html[data-theme="dark"] .delete-card,
+html[data-theme="dark"] .delete-card__header,
+html[data-theme="dark"] .impact-item {
+  color: #edf6f1;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .school-identity {
+  color: #d9ebe3;
+  background: #102920;
+  border-color: rgba(205, 225, 216, .16);
+}
+
+/* اختيار المدرسة — لوح أبيض وأزرار ترقيم بيضاء بلا مقابل داكن.
+   ‏.cs-page.current يُستثنى كي يبقى تمييز الصفحة الحالية أخضر. */
+html[data-theme="dark"] .cs-panel {
+  color: #edf6f1;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .cs-btn.secondary,
+html[data-theme="dark"] .cs-page:not(.current) {
+  color: #d9f4e5;
+  background: #102920;
+  border-color: rgba(212, 177, 109, .34);
+}
+html[data-theme="dark"] .cs-btn.secondary:hover,
+html[data-theme="dark"] .cs-page:not(.current):hover { background: #173a2f; }
+
+/* لوحة سياسة التسعير المرن في صفحة الخطط. */
+html[data-theme="dark"] .flex-policy-board,
+html[data-theme="dark"] .flex-policy-period {
+  color: #d9ebe3;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+}
+
+/* عناصر اختيار الاشتراك والدفع. */
+html[data-theme="dark"] .archive-progress { background: #173a2f; }
+html[data-theme="dark"] .order-toggle,
+html[data-theme="dark"] .purchase-section.order-item {
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .order-item .pick-state {
+  color: #abc0b6;
+  background: #102920;
+}
+html[data-theme="dark"] .choice-check,
+html[data-theme="dark"] .service-switch-control::after { background: #d9ebe3; }
+
+/* نماذج الأقسام: خيارات أنواع التقارير والتنبيه الأخضر. */
+html[data-theme="dark"] .rt-choices label {
+  color: #d9ebe3;
+  background: #102920;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .smart-note {
+  color: #bae6fd;
+  background: rgba(56, 189, 248, .12);
+  border-color: rgba(125, 211, 252, .28);
+}
+html[data-theme="dark"] .smart-note.ok {
+  color: #9ce8bd;
+  background: rgba(66, 202, 136, .14);
+  border-color: rgba(110, 231, 168, .28);
+}
+html[data-theme="dark"] .smart-note.warn {
+  color: #f0d69d;
+  background: rgba(212, 177, 109, .15);
+  border-color: rgba(240, 214, 157, .30);
+}
+
+/* ملفات الإنجاز: زر لوحة التحكم كان أبيض على أبيض بعد قلب لون النص. */
+html[data-theme="dark"] .btn-dashboard {
+  color: #d9f4e5;
+  background: #102920;
+  border-color: rgba(212, 177, 109, .34);
+}
+html[data-theme="dark"] .btn-dashboard:hover { color: #fff; background: #173a2f; }
+html[data-theme="dark"] .af-imgbox { background: #102920; }
+
+/* صفحة الصيانة المستقلة: العنوان كان بحبر شبه أسود على خلفية داكنة. */
+html[data-theme="dark"] .maintenance-shell h1 { color: #edf6f1; }
+html[data-theme="dark"] .maintenance-shell {
+  --gold-soft: #2b2719;
+  --brand-soft: #102f25;
+}
+
+/* أسماء قادة المدارس وشارات سجل التدقيق. */
+html[data-theme="dark"] .sm-name { color: #edf6f1; }
+html[data-theme="dark"] .b-other { color: #c8dbd1; background: rgba(148, 163, 184, .16); }
+
+/* توحيد اللوحات التي بقيت على تدرّج رصاصي بدل الأخضر الداكن.
+   ‏.te-header يبقى بحبر داكن لأن خلفيته تدرّج ذهبي لا يتغيّر بين الوضعين. */
+html[data-theme="dark"] .teacher-edit-scope .te-toggle,
+html[data-theme="dark"] .teacher-edit-scope .te-alert,
+html[data-theme="dark"] .teacher-edit-scope .te-btn,
+html[data-theme="dark"] .teacher-edit-scope .te-control { background: #102920; }
+html[data-theme="dark"] {
+  --notif-surface: #0d241d;
+  --notif-background: #061512;
+  --notif-border: rgba(205, 225, 216, .18);
+  --notif-border-light: rgba(205, 225, 216, .13);
+  --notif-text: #edf6f1;
+  --notif-text-soft: #abc0b6;
+  --or-surface: #0d241d;
+  --or-background: #061512;
+  --or-border: rgba(205, 225, 216, .18);
+  --or-border-light: rgba(205, 225, 216, .13);
+  --or-text: #edf6f1;
+  --or-text-soft: #abc0b6;
+}
+
+/* ══ ما رصده الفحص في المتصفح لا القراءة الساكنة ══════════════════════
+   ‏كل ما يلي التقطه مسحٌ للصفحات وهي تعمل: أسطح تُحسب فاتحة فعلياً، ونصوص
+   تباينها دون 4.5:1. القراءة الساكنة لا تراها لأن اللون ينتج عن تعاقب
+   قواعد ومتغيّرات لا عن قيمة مكتوبة في مكان واحد. */
+
+/* ── أسطح بقيت فاتحة ─────────────────────────────────────────────── */
+html[data-theme="dark"] .ob-login-note,
+html[data-theme="dark"] .hintbar,
+html[data-theme="dark"] .plans-empty,
+html[data-theme="dark"] .service-notice,
+html[data-theme="dark"] .service-notice--locked,
+html[data-theme="dark"] .service-empty-state,
+html[data-theme="dark"] .service-switch,
+html[data-theme="dark"] .summary-empty,
+html[data-theme="dark"] .teacher-list,
+html[data-theme="dark"] .department-list,
+html[data-theme="dark"] .nt-body {
+  color: var(--id-ink-soft) !important;
+  background: var(--id-surface-2) !important;
+  border-color: var(--id-line) !important;
+}
+html[data-theme="dark"] .ns-scope { background: var(--id-canvas) !important; }
+/* صفحات استعادة كلمة المرور قائمة بذاتها ولا تُحمّل جذر الهوية. */
+html[data-theme="dark"] .recovery-note {
+  color: #d6c59d !important;
+  background: #2b2719 !important;
+}
+html[data-theme="dark"] .danger-zone,
+html[data-theme="dark"] .danger-zone summary,
+html[data-theme="dark"] .danger-zone-body,
+html[data-theme="dark"] .danger-zone-body p { color: var(--id-tone-danger) !important; }
+html[data-theme="dark"] .stat-chip {
+  color: var(--id-ink) !important;
+  background: rgba(205, 225, 216, .10) !important;
+}
+html[data-theme="dark"] .service-notice strong,
+html[data-theme="dark"] .nt-body .help,
+html[data-theme="dark"] .service-switch small { color: var(--id-muted) !important; }
+
+/* ── الأخضر المرجعي كلونِ نصّ فوق سطح داكن: الدلالة تنتقل لدرجة أفتح ── */
+html[data-theme="dark"] .view-all-link,
+html[data-theme="dark"] .btn-action.btn-view,
+html[data-theme="dark"] .payment-method-step,
+html[data-theme="dark"] .storage-option-help,
+html[data-theme="dark"] .status-badge.badge-active,
+html[data-theme="dark"] .status-badge--success,
+html[data-theme="dark"] .cell-sub.price,
+html[data-theme="dark"] .stxt,
+html[data-theme="dark"] .cs-current-mark,
+html[data-theme="dark"] .ss-section-note.ok,
+html[data-theme="dark"] .sm-title,
+html[data-theme="dark"] .school-state,
+html[data-theme="dark"] .status-badge.s-open,
+html[data-theme="dark"] .lab-btn--ghost,
+html[data-theme="dark"] .ob-step.is-active,
+html[data-theme="dark"] .inbox-wrap .title,
+html[data-theme="dark"] .mini-btn,
+html[data-theme="dark"] .ar-section-option .option-copy strong,
+html[data-theme="dark"] .ob-paste summary { color: var(--id-accent) !important; }
+html[data-theme="dark"] .status-badge.s-done { color: var(--id-tone-pending) !important; }
+
+/* ── الذهبي كلونِ نصّ يحتاج الدرجة الفاتحة كذلك ──────────────────── */
+html[data-theme="dark"] .count-pill,
+html[data-theme="dark"] .ay-btn.gold,
+html[data-theme="dark"] .decision-label,
+html[data-theme="dark"] .purchase-kicker { color: var(--id-gold-300) !important; }
+
+/* ── الرمادي الأردوازي الموروث كنصٍّ خافت ────────────────────────── */
+html[data-theme="dark"] .payment-method-hint,
+html[data-theme="dark"] .dir-usage__label,
+html[data-theme="dark"] .smart-table td { color: var(--id-muted) !important; }
+
+/* ── أزرار نصّها أبيض فوق أخضرَ فاتح: الحبر يعود داكناً ──────────── */
+html[data-theme="dark"] .complaint-action,
+html[data-theme="dark"] .ps-btn:not(.secondary) { color: var(--id-accent-ink) !important; }
+
+/* ── الزر المصمت: أبيضُ النصّ على أبيضِ الخلفية حين تغيب الترويسة ─ */
+html[data-theme="dark"] .lab-act--solid,
+html[data-theme="dark"] .pln-act--solid {
+  color: var(--id-accent-ink) !important;
+  background: var(--id-accent) !important;
+  border-color: var(--id-accent) !important;
+}
+
+/* ── معاينة التعميم ورقةٌ بيضاء عمداً، فيلزم أن يبقى حبرها داكناً ── */
+html[data-theme="dark"] .doc-preview,
+html[data-theme="dark"] .doc-preview * {
+  color: #10231a !important;
+  border-color: rgba(16, 35, 26, .18) !important;
+}
+html[data-theme="dark"] .doc-preview .doc-title { color: #05331f !important; }
+html[data-theme="dark"] .doc-preview .doc-tag {
+  color: #354a3e !important;
+  background: #eef3ef !important;
+}
 
 .theme-toggle--floating {
   position: fixed;

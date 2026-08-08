@@ -10,44 +10,32 @@
      Notification Detail — Premium 2026 Design
      ========================================================= */
 
+  /* رموز هذه الشاشة مشتقّة من جذر الهوية، فلا تحتاج كتلةً ليلية خاصة:
+     ‏`--id-*` وحدها ما يُعاد تعريفه تحت `data-theme="dark"`. الكتلة التي
+     كانت هنا أعادت رسم اللوحة بدرجات رصاصية تخالف أخضر المنصّة. */
   .nd-scope {
-    --nd-ink:        #0f172a;
-    --nd-ink-soft:   #334155;
-    --nd-muted:      #64748b;
-    --nd-line:       #e2e8f0;
-    --nd-line-soft:  #f1f5f9;
-    --nd-card:       #ffffff;
-    --nd-bg:         #f8fafc;
-    --nd-brand:      #006c35;
-    --nd-brand-2:    #00542a;
+    --nd-ink:        var(--id-ink);
+    --nd-ink-soft:   var(--id-ink-soft);
+    --nd-muted:      var(--id-muted);
+    --nd-line:       var(--id-line);
+    --nd-line-soft:  var(--id-line-soft);
+    --nd-card:       var(--id-surface);
+    --nd-bg:         var(--id-canvas);
+    --nd-brand:      var(--id-accent);
+    --nd-brand-2:    var(--id-accent-strong);
     --nd-brand-mid:  #0f8f87;
-    --nd-brand-soft: rgba(0,108,53,.09);
-    --nd-success:    #16845b;
-    --nd-danger:     #dc2626;
-    --nd-warn:       #d97706;
-    --nd-radius-sm:  10px;
-    --nd-radius:     16px;
-    --nd-radius-lg:  22px;
-    --nd-shadow-xs:  0 1px 3px rgba(2,6,23,.06);
-    --nd-shadow:     0 4px 20px rgba(2,6,23,.08);
-    --nd-shadow-md:  0 8px 32px rgba(2,6,23,.11);
-    --nd-shadow-lg:  0 20px 60px rgba(2,6,23,.14);
+    --nd-brand-soft: var(--id-accent-wash);
+    --nd-success:    var(--id-tone-approved);
+    --nd-danger:     var(--id-tone-danger);
+    --nd-warn:       var(--id-tone-attention);
+    --nd-radius-sm:  var(--id-r1);
+    --nd-radius:     var(--id-r3);
+    --nd-radius-lg:  var(--id-r4);
+    --nd-shadow-xs:  var(--id-e1);
+    --nd-shadow:     var(--id-e2);
+    --nd-shadow-md:  var(--id-e3);
+    --nd-shadow-lg:  var(--id-e4);
     --nd-t:          .2s cubic-bezier(.4,0,.2,1);
-  }
-
-  html[data-theme="dark"] .nd-scope {
-    --nd-ink:        #f1f5f9;
-    --nd-ink-soft:   #cbd5e1;
-    --nd-muted:      #94a3b8;
-    --nd-line:       #1e293b;
-    --nd-line-soft:  #0f172a;
-    --nd-card:       #1e293b;
-    --nd-bg:         #0f172a;
-    --nd-brand-soft: rgba(15,143,135,.12);
-    --nd-shadow-xs:  0 1px 3px rgba(0,0,0,.3);
-    --nd-shadow:     0 4px 20px rgba(0,0,0,.3);
-    --nd-shadow-md:  0 8px 32px rgba(0,0,0,.4);
-    --nd-shadow-lg:  0 20px 60px rgba(0,0,0,.5);
   }
 
   /* ── Layout ── */

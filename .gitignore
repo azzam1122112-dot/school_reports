@@ -110,3 +110,8 @@ creds.md
 *.key
 id_rsa*
 id_ed25519*
+
+# Dark-mode audit scratch (skill: .claude/skills/dark-mode-audit)
+tmp/darkaudit.sqlite3
+tmp/urls.json
+.claude/skills/dark-mode-audit/node_modules/

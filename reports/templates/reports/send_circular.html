@@ -755,10 +755,10 @@
 
   /* ===== الوضع الليلي ===== */
   html[data-theme="dark"] .circular-page {
-    --c-text-main: #f1f5f9;
-    --c-text-muted: #93a3b5;
-    --c-card-bg: #131c2b;
-    --c-border: #28344a;
+    --c-text-main: #edf6f1;
+    --c-text-muted: #abc0b6;
+    --c-card-bg: #0d241d;
+    --c-border: rgba(205, 225, 216, .18);
     --c-bg: transparent;
     background:
       radial-gradient(circle at 90% 0%, rgba(185, 151, 91, .10), transparent 30%),
@@ -766,7 +766,7 @@
   }
   html[data-theme="dark"] .circular-page .app-card,
   html[data-theme="dark"] .circular-page .teacher-selector {
-    border-color: #28344a;
+    border-color: rgba(205, 225, 216, .18);
     box-shadow: 0 22px 58px rgba(0, 0, 0, .45);
   }
   html[data-theme="dark"] .circular-page .app-card-header {
@@ -780,23 +780,24 @@
   html[data-theme="dark"] .circular-page input[type="search"],
   html[data-theme="dark"] .circular-page textarea,
   html[data-theme="dark"] .circular-page select {
-    background-color: #0f1827;
+    background-color: #102920;
     color: var(--c-text-main);
-    border-color: #28344a;
+    border-color: rgba(205, 225, 216, .18);
   }
-  html[data-theme="dark"] .circular-page .teacher-selector {
-    background: #0f1827;
+  html[data-theme="dark"] .circular-page .teacher-selector,
+  html[data-theme="dark"] .circular-page .department-selector {
+    background: #102920;
   }
   html[data-theme="dark"] .circular-page .teacher-list-container label,
   html[data-theme="dark"] .circular-page #id_teachers label {
-    background: #131c2b;
-    border-color: #28344a;
+    background: #0d241d;
+    border-color: rgba(205, 225, 216, .18);
     color: var(--c-text-main);
   }
   html[data-theme="dark"] .circular-page .header-actions .btn-link {
-    background: #131c2b;
+    background: #0d241d;
     color: var(--c-text-main);
-    border-color: #28344a;
+    border-color: rgba(205, 225, 216, .18);
   }
   /* معاينة المستند تبقى كورقة بيضاء واقعية حتى في الوضع الليلي */
 </style>

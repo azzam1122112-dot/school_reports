@@ -8,44 +8,31 @@
   /* =========================================================
      My Notification Detail — Premium 2026 Design
      ========================================================= */
+  /* رموز هذه الشاشة مشتقّة من جذر الهوية، فلا تحتاج كتلةً ليلية خاصة:
+     ‏`--id-*` وحدها ما يُعاد تعريفه تحت `data-theme="dark"`. */
   .mnd-scope {
-    --mnd-ink:         #0f172a;
-    --mnd-ink-soft:    #334155;
-    --mnd-muted:       #64748b;
-    --mnd-line:        #e2e8f0;
-    --mnd-line-soft:   #f1f5f9;
-    --mnd-card:        #ffffff;
-    --mnd-bg:          #f8fafc;
-    --mnd-brand:       #006c35;
-    --mnd-brand-2:     #00542a;
+    --mnd-ink:         var(--id-ink);
+    --mnd-ink-soft:    var(--id-ink-soft);
+    --mnd-muted:       var(--id-muted);
+    --mnd-line:        var(--id-line);
+    --mnd-line-soft:   var(--id-line-soft);
+    --mnd-card:        var(--id-surface);
+    --mnd-bg:          var(--id-canvas);
+    --mnd-brand:       var(--id-accent);
+    --mnd-brand-2:     var(--id-accent-strong);
     --mnd-brand-mid:   #0f8f87;
-    --mnd-brand-soft:  rgba(0,108,53,.09);
-    --mnd-success:     #16845b;
-    --mnd-danger:      #dc2626;
-    --mnd-warn:        #d97706;
-    --mnd-radius-sm:   10px;
-    --mnd-radius:      16px;
-    --mnd-radius-lg:   22px;
-    --mnd-shadow-xs:   0 1px 3px rgba(2,6,23,.06);
-    --mnd-shadow:      0 4px 20px rgba(2,6,23,.08);
-    --mnd-shadow-md:   0 8px 32px rgba(2,6,23,.11);
-    --mnd-shadow-lg:   0 20px 60px rgba(2,6,23,.14);
+    --mnd-brand-soft:  var(--id-accent-wash);
+    --mnd-success:     var(--id-tone-approved);
+    --mnd-danger:      var(--id-tone-danger);
+    --mnd-warn:        var(--id-tone-attention);
+    --mnd-radius-sm:   var(--id-r1);
+    --mnd-radius:      var(--id-r3);
+    --mnd-radius-lg:   var(--id-r4);
+    --mnd-shadow-xs:   var(--id-e1);
+    --mnd-shadow:      var(--id-e2);
+    --mnd-shadow-md:   var(--id-e3);
+    --mnd-shadow-lg:   var(--id-e4);
     --mnd-t:           .2s cubic-bezier(.4,0,.2,1);
-  }
-
-  html[data-theme="dark"] .mnd-scope {
-    --mnd-ink:         #f1f5f9;
-    --mnd-ink-soft:    #cbd5e1;
-    --mnd-muted:       #94a3b8;
-    --mnd-line:        #1e293b;
-    --mnd-line-soft:   #0f172a;
-    --mnd-card:        #1e293b;
-    --mnd-bg:          #0f172a;
-    --mnd-brand-soft:  rgba(15,143,135,.12);
-    --mnd-shadow-xs:   0 1px 3px rgba(0,0,0,.3);
-    --mnd-shadow:      0 4px 20px rgba(0,0,0,.3);
-    --mnd-shadow-md:   0 8px 32px rgba(0,0,0,.4);
-    --mnd-shadow-lg:   0 20px 60px rgba(0,0,0,.5);
   }
 
   /* ── Layout ── */
@@ -398,12 +385,11 @@
   .mnd-signed-banner {
     display: flex; align-items: center; gap: 16px;
     padding: 18px 22px;
-    background: rgba(22,132,91,.07);
+    background: var(--id-tone-approved-wash);
     border: 1px solid rgba(22,132,91,.2);
     border-radius: 14px;
-    color: #065f46;
+    color: var(--id-tone-approved);
   }
-  html[data-theme="dark"] .mnd-signed-banner { color: #6ee7b7; }
   .mnd-signed-icon {
     width: 46px; height: 46px;
     background: rgba(22,132,91,.12);

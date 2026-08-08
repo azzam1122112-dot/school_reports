@@ -430,9 +430,14 @@
       .btn-login:hover, .btn-passkey:hover { transform: none; }
     }
   </style>
+  {% comment %}
+    ‏`app.css` صار يقرأ رموز الهوية (`--id-*`)، وهذه الصفحة لا ترث `base.html`
+    فلا تصلها. تُضمَّن هنا كي لا تسقط قواعدُه صامتةً على صفحةٍ مستقلة.
+  {% endcomment %}
+  {% include "reports/_identity.html" %}
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
-  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260807.1">
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260808.1">
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 <body>

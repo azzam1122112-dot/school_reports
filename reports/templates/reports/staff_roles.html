@@ -10,26 +10,20 @@
      الرموز مُنطَقة تحت .rol-page كي لا تتسرب.
      ═══════════════════════════════════════════════════════════════════ */
   .rol-page {
-    --rol-ink: #10231a; --rol-muted: #607067; --rol-line: #dfe8e2;
-    --rol-soft: #f3f8f5; --rol-surface: #ffffff;
-    --rol-green: #08643b; --rol-gold: #b68a42; --rol-danger: #b42318;
-    --rol-info: #1f6feb; --rol-violet: #6d4aff;
+    --rol-ink: var(--id-ink); --rol-muted: var(--id-muted); --rol-line: var(--id-line);
+    --rol-soft: var(--id-surface-2); --rol-surface: var(--id-surface);
+    --rol-green: var(--id-accent); --rol-gold: var(--id-gold); --rol-danger: var(--id-tone-danger);
+    --rol-info: var(--id-tone-pending); --rol-violet: var(--id-tone-recommended);
     max-width: 1240px; margin-inline: auto; padding: 1.25rem; color: var(--rol-ink);
-  }
-  [data-theme="dark"] .rol-page {
-    --rol-ink: #eff8f2; --rol-muted: #afc1b5; --rol-line: #2d4637;
-    --rol-soft: #13271c; --rol-surface: #102019;
-    --rol-green: #6ed3a0; --rol-gold: #eabf58; --rol-danger: #ff9d96;
-    --rol-info: #7cb2ff; --rol-violet: #b5a0ff;
   }
 
   /* ── الترويسة ─────────────────────────────────────────────── */
   .rol-hero {
-    position: relative; overflow: hidden; border-radius: 22px; padding: 1.8rem 1.7rem;
-    color: #fff;
+    position: relative; overflow: hidden; border-radius: var(--id-r4); padding: 1.8rem 1.7rem;
+    color: var(--id-hero-ink);
     background:
-      radial-gradient(120% 140% at 92% -10%, rgba(182,138,66,.42) 0%, transparent 58%),
-      linear-gradient(135deg, #064b2d 0%, #0a7a48 52%, #05412a 100%);
+      radial-gradient(120% 140% at 92% -10%, rgba(212,177,109,.30) 0%, transparent 58%),
+      linear-gradient(135deg, var(--id-hero-from) 0%, var(--id-hero-via) 56%, var(--id-hero-to) 100%);
     box-shadow: 0 26px 54px -30px rgba(6,60,35,.92);
   }
   .rol-hero::before {
@@ -39,7 +33,7 @@
   }
   .rol-hero::after {
     content: ""; position: absolute; inset-block-end: 0; inset-inline: 0; height: 3px;
-    background: linear-gradient(90deg, transparent, #e3c07a, #b68a42, transparent);
+    background: linear-gradient(90deg, transparent, var(--id-gold-500) 18%, var(--id-gold-300) 50%, var(--id-gold-500) 82%, transparent);
   }
   .rol-hero__in { position: relative; z-index: 1; }
   .rol-eyebrow {
@@ -52,7 +46,7 @@
   .rol-hero__note {
     margin: 1.05rem 0 0; padding: .65rem .9rem; border-radius: 12px;
     font-size: .82rem; line-height: 1.8;
-    background: rgba(0,0,0,.18); border-inline-start: 3px solid #e3c07a;
+    background: rgba(0,0,0,.18); border-inline-start: 3px solid var(--id-gold-300);
   }
 
   /* ── مؤشرات ───────────────────────────────────────────────── */
@@ -138,8 +132,7 @@
     color: var(--rol-muted); text-decoration: none; white-space: nowrap;
   }
   .rol-filter:hover { color: var(--rol-green); border-color: var(--rol-green); }
-  .rol-filter[aria-current="true"] { background: var(--rol-green); color: #fff; border-color: transparent; }
-  [data-theme="dark"] .rol-filter[aria-current="true"] { color: #06251a; }
+  .rol-filter[aria-current="true"] { background: var(--rol-green); color: var(--id-accent-ink); border-color: transparent; }
   .rol-filter b { font-weight: 900; opacity: .85; }
 
   /* ── كشف المنسوبين ────────────────────────────────────────── */
@@ -172,8 +165,7 @@
     background: var(--rol-soft); color: var(--rol-muted); border: 1px solid var(--rol-line);
     white-space: nowrap;
   }
-  .rol-tag--deputy { color: #fff; background: var(--rol-green); border-color: transparent; }
-  [data-theme="dark"] .rol-tag--deputy { color: #06251a; }
+  .rol-tag--deputy { color: var(--id-accent-ink); background: var(--rol-green); border-color: transparent; }
   .rol-tag--clerk { color: var(--rol-info); border-color: currentColor; background: transparent; }
   .rol-tag--muted { opacity: .85; }
   .rol-tag--warn { color: var(--rol-gold); border-color: currentColor; background: transparent; }
@@ -187,11 +179,10 @@
     transition: transform .16s ease, background .16s ease, color .16s ease;
   }
   .rol-btn:hover { transform: translateY(-1px); }
-  .rol-btn--primary { background: var(--rol-green); color: #fff; }
-  [data-theme="dark"] .rol-btn--primary { color: #06251a; }
+  .rol-btn--primary { background: var(--rol-green); color: var(--id-accent-ink); }
   .rol-btn--ghost { background: transparent; color: var(--rol-muted); border-color: var(--rol-line); }
   .rol-btn--ghost:hover { color: var(--rol-green); border-color: var(--rol-green); }
-  .rol-btn--gold { background: linear-gradient(135deg, #e3c07a, #b68a42); color: #24170a; }
+  .rol-btn--gold { background: linear-gradient(135deg, var(--id-gold-300), var(--id-gold-600)); color: var(--id-green-950); }
   .rol-btn--danger { background: transparent; color: var(--rol-danger); border-color: currentColor; }
   .rol-btn--sm { padding: .34rem .72rem; font-size: .76rem; border-radius: 9px; }
 
@@ -246,9 +237,8 @@
     transition: all .16s ease;
   }
   .rol-chip:hover { color: var(--rol-green); border-color: var(--rol-green); }
-  .rol-chip[aria-pressed="true"] { background: var(--rol-green); color: #fff; border-color: transparent; }
-  [data-theme="dark"] .rol-chip[aria-pressed="true"] { color: #06251a; }
-  .rol-chip--gold[aria-pressed="true"] { background: linear-gradient(135deg, #e3c07a, #b68a42); color: #24170a; }
+  .rol-chip[aria-pressed="true"] { background: var(--rol-green); color: var(--id-accent-ink); border-color: transparent; }
+  .rol-chip--gold[aria-pressed="true"] { background: linear-gradient(135deg, var(--id-gold-300), var(--id-gold-600)); color: var(--id-green-950); }
 
   .rol-preset { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
   .rol-preset__b {
@@ -278,8 +268,7 @@
     display: grid; place-items: center; font-size: .6rem; color: transparent;
     border: 1px solid var(--rol-line); background: var(--rol-soft);
   }
-  .rol-cap input:checked + .rol-cap__box .rol-cap__mark { background: var(--rol-green); border-color: transparent; color: #fff; }
-  [data-theme="dark"] .rol-cap input:checked + .rol-cap__box .rol-cap__mark { color: #06251a; }
+  .rol-cap input:checked + .rol-cap__box .rol-cap__mark { background: var(--rol-green); border-color: transparent; color: var(--id-accent-ink); }
   .rol-cap__t { font-size: .82rem; font-weight: 800; }
   .rol-cap__x { font-size: .73rem; color: var(--rol-muted); line-height: 1.65; margin-top: .15rem; }
 

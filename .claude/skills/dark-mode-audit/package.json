@@ -1,0 +1,8 @@
+{
+  "name": "dark-mode-audit",
+  "private": true,
+  "description": "Runtime dark-mode sweep for the school_reports platform",
+  "dependencies": {
+    "puppeteer-core": "^23.0.0"
+  }
+}

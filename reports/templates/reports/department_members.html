@@ -17,39 +17,28 @@
     border:0;
   }
 
+  /* رموز هذه الشاشة مشتقّة من جذر الهوية، فلا تحتاج كتلةً ليلية خاصة:
+     ‏`--id-*` وحدها ما يُعاد تعريفه تحت `data-theme="dark"`. الكتلة التي
+     كانت هنا أعادت رسم اللوحة بدرجات كحلية تخالف أخضر المنصّة. */
   .dept-scope{
-    --d-ink: var(--ink, #111827);
-    --d-muted: var(--muted, #64748b);
-    --d-line: var(--line, #dbe3ef);
-    --d-line2: var(--line-2, #edf2fb);
-    --d-card: var(--card, #ffffff);
-    --d-bg: var(--bg, #f5f9ff);
+    --d-ink: var(--id-ink);
+    --d-muted: var(--id-muted);
+    --d-line: var(--id-line);
+    --d-line2: var(--id-line-soft);
+    --d-card: var(--id-surface);
+    --d-bg: var(--id-canvas);
 
-    --d-brand: #006c35;
+    --d-brand: var(--id-accent);
     --d-brand-2: #0f8f87;
-    --d-brand-soft: #dbeafe;
-    --d-danger-bg: #fff1f2;
-    --d-danger-line: #fecdd3;
+    --d-brand-soft: var(--id-accent-wash);
+    --d-danger-bg: var(--id-tone-danger-wash);
+    --d-danger-line: var(--id-tone-danger);
 
-    --d-shadow: 0 24px 54px rgba(0, 108, 53, .09);
-    --d-shadow-sm: 0 8px 22px rgba(2, 6, 23, .07);
-    --d-radius-lg: 22px;
-    --d-radius-md: 14px;
+    --d-shadow: var(--id-e4);
+    --d-shadow-sm: var(--id-e2);
+    --d-radius-lg: var(--id-r4);
+    --d-radius-md: var(--id-r2);
     --d-t: var(--t-fast, all .22s ease);
-  }
-
-  html[data-theme="dark"] .dept-scope{
-    --d-ink: #e4ecff;
-    --d-muted: #9fb0d8;
-    --d-line: #1f2d4f;
-    --d-line2: #13203f;
-    --d-card: #0f172a;
-    --d-bg: #0b1429;
-    --d-brand-soft: #162c55;
-    --d-danger-bg: #38161d;
-    --d-danger-line: #5b222d;
-    --d-shadow: 0 22px 44px rgba(0, 0, 0, .38);
-    --d-shadow-sm: 0 8px 22px rgba(0, 0, 0, .28);
   }
 
   .dept-scope .wrap{
@@ -107,7 +96,7 @@
     font-weight:900;
     font-size:.88rem;
   }
-  html[data-theme="dark"] .dept-scope .kicker{color:#c7d9ff}
+  html[data-theme="dark"] .dept-scope .kicker{color:var(--id-accent)}
 
   .dept-scope .breadcrumbs{
     margin-top:8px;
@@ -156,12 +145,6 @@
     font-weight:950;
     white-space:nowrap;
   }
-  html[data-theme="dark"] .dept-scope .badge{
-    background:linear-gradient(180deg, #132a54, #132448);
-    border-color:#27406f;
-    color:#d4e0ff;
-  }
-
   .dept-scope .bar{
     display:grid;
     grid-template-columns: repeat(3, minmax(0,1fr));
@@ -250,7 +233,7 @@
     border-color:var(--d-danger-line);
     color:#b42318;
   }
-  html[data-theme="dark"] .dept-scope .d-btn-danger{color:#fecaca}
+  html[data-theme="dark"] .dept-scope .d-btn-danger{color:var(--id-tone-danger)}
 
   .dept-scope .tools{
     display:flex;
@@ -332,9 +315,9 @@
     flex:0 0 auto;
   }
   html[data-theme="dark"] .dept-scope .avatar{
-    background: rgba(0,108,53,.16);
-    color: rgba(219,234,254,.95);
-    border-color: rgba(0,108,53,.28);
+    background: var(--id-accent-wash);
+    color: var(--id-accent);
+    border-color: var(--id-gold-line);
   }
 
   .dept-scope .name{font-weight:950;color:var(--d-ink);line-height:1.2}
@@ -362,9 +345,9 @@
     border-color: rgba(0,108,53,.18);
   }
   html[data-theme="dark"] .dept-scope .role-officer{
-    background: rgba(0,108,53,.16);
-    color: rgba(219,234,254,.95);
-    border-color: rgba(0,108,53,.28);
+    background: linear-gradient(180deg,var(--id-hero-via),var(--id-hero-from));
+    color: var(--id-gold-100);
+    border-color: var(--id-gold-line);
   }
   .dept-scope .role-member{
     background: rgba(16,185,129,.10);

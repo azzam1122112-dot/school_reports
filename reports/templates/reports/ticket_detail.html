@@ -13,27 +13,31 @@
    - Luxuriously clean, distinct, and unambiguous.
    ========================================================= */
 
-:root {
+/* رموز هذه الشاشة — مقصورة على حاويتها ومشتقّة من جذر الهوية. كانت معلنة
+   على `:root` عاماً بقيم فاتحة **بلا مقابل ليلي**، فكانت بطاقات التذكرة
+   تُعرض بيضاء وحبرها شبه أسود داخل تطبيق داكن. و`--id-*` وحدها ما يُعاد
+   تعريفه تحت `data-theme="dark"`، ونغمات الحالات تأتي من سلّم الاعتماد. */
+.ticket-wrapper {
   /* Unified Palette */
-  --c-brand: #006c35;       /* Brand Blue */
+  --c-brand: var(--id-accent);
   --c-brand-rgb: 37, 99, 235;
-  --c-text: #0f172a;        /* Slate 900 */
-  --c-text-muted: #64748b;  /* Slate 500 */
-  --c-surface: #ffffff;
-  --c-surface-alt: #f8fafc; /* Slate 50 */
-  --c-border: #e2e8f0;      /* Slate 200 */
-  
+  --c-text: var(--id-ink);
+  --c-text-muted: var(--id-muted);
+  --c-surface: var(--id-surface);
+  --c-surface-alt: var(--id-surface-2);
+  --c-border: var(--id-line);
+
   /* Type Specific Colors (Crucial for distinction) */
-  --c-platform: #b9975b;    /* Violet for Tech Support */
-  --c-platform-bg: #f5f3ff;
-  --c-request: #0072bc;     /* Sky for Requests */
-  --c-request-bg: #f0f9ff;
+  --c-platform: var(--id-gold);
+  --c-platform-bg: var(--id-tone-attention-wash);
+  --c-request: var(--id-tone-pending);
+  --c-request-bg: var(--id-tone-pending-wash);
 
   /* Status Colors */
-  --s-new: #0f8f87; --s-new-bg: #eff6ff;
-  --s-pro: #b9975b; --s-pro-bg: #f5f3ff;
-  --s-don: #16845b; --s-don-bg: #ecfdf5;
-  --s-rej: #ef4444; --s-rej-bg: #fef2f2;
+  --s-new: var(--id-tone-pending);     --s-new-bg: var(--id-tone-pending-wash);
+  --s-pro: var(--id-tone-attention);   --s-pro-bg: var(--id-tone-attention-wash);
+  --s-don: var(--id-tone-approved);    --s-don-bg: var(--id-tone-approved-wash);
+  --s-rej: var(--id-tone-danger);      --s-rej-bg: var(--id-tone-danger-wash);
 }
 
 .ticket-wrapper {
@@ -265,8 +269,8 @@
   position: relative;
 }
 .note-bubble.is-mine {
-  background: #eff6ff; /* Light Blue tint */
-  border-color: #bfdbfe;
+  background: var(--id-tone-pending-wash);
+  border-color: var(--id-tone-pending);
 }
 .note-header {
   display: flex;
@@ -335,7 +339,6 @@
 }
 
   /* A pinned light bubble under themed (light) text on the dark theme. */
-  [data-theme="dark"] .note-bubble.is-mine { background: #10263a; border-color: rgba(205, 225, 216, .16); }
 </style>
 {% endblock %}
 
@@ -412,7 +415,7 @@
                           <img src="{{ t.attachment.url }}" alt="Attachment">
                         </a>
                       {% else %}
-                        <a href="{{ t.attachment.url }}" target="_blank" class="gallery-item" style="display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#64748b;text-decoration:none;">
+                        <a href="{{ t.attachment.url }}" target="_blank" class="gallery-item" style="display:flex;align-items:center;justify-content:center;background:var(--c-surface-alt);color:var(--c-text-muted);text-decoration:none;">
                           <i class="fa-solid fa-paperclip fa-2x"></i>
                         </a>
                       {% endif %}

@@ -7,54 +7,47 @@
 <style>
   /* ========== Premium 2026 Design System - My Profile Template ========== */
   
-  :root {
+  /* رموز هذه الشاشة — مقصورة على حاويتها ومشتقّة من جذر الهوية. كانت معلنة
+     على `:root` عاماً فتسرّبت إلى كل شاشة، ثم تُصحَّح بكتلة ليلية بدرجات
+     رصاصية؛ و`--id-*` وحدها ما يُعاد تعريفه تحت `data-theme="dark"`. */
+  .profile-scope {
     /* Primary Colors */
-    --prof-primary: #006c35;
-    --prof-primary-dark: #00542a;
+    --prof-primary: var(--id-accent);
+    --prof-primary-dark: var(--id-accent-strong);
     --prof-primary-light: #0f8f87;
-    --prof-gradient: linear-gradient(135deg, #006c35 0%, #00542a 100%);
-    
+    --prof-gradient: linear-gradient(135deg, var(--id-hero-via) 0%, var(--id-hero-from) 100%);
+
     /* Status Colors */
-    --prof-success: #16845b;
-    --prof-success-dark: #16845b;
-    --prof-danger: #ef4444;
-    --prof-danger-dark: #dc2626;
-    --prof-warning: #b9975b;
+    --prof-success: var(--id-tone-approved);
+    --prof-success-dark: var(--id-tone-approved);
+    --prof-danger: var(--id-tone-danger);
+    --prof-danger-dark: var(--id-tone-danger);
+    --prof-warning: var(--id-gold);
     --prof-info: #06b6d4;
-    
+
     /* Neutral Colors */
-    --prof-text: #1f2937;
-    --prof-text-light: #6b7280;
-    --prof-border: #e5e7eb;
-    --prof-bg: #ffffff;
-    --prof-bg-secondary: #f9fafb;
-    --prof-bg-hover: #f3f4f6;
-    
+    --prof-text: var(--id-ink);
+    --prof-text-light: var(--id-muted);
+    --prof-border: var(--id-line);
+    --prof-bg: var(--id-surface);
+    --prof-bg-secondary: var(--id-surface-2);
+    --prof-bg-hover: var(--id-line-soft);
+
     /* Shadow System */
-    --prof-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --prof-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --prof-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --prof-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    
+    --prof-shadow-sm: var(--id-e1);
+    --prof-shadow-md: var(--id-e2);
+    --prof-shadow-lg: var(--id-e3);
+    --prof-shadow-xl: var(--id-e4);
+
     /* Border Radius */
-    --prof-radius-sm: 8px;
-    --prof-radius-md: 12px;
-    --prof-radius-lg: 16px;
-    --prof-radius-xl: 24px;
-    --prof-radius-full: 9999px;
-    
+    --prof-radius-sm: var(--id-r1);
+    --prof-radius-md: var(--id-r2);
+    --prof-radius-lg: var(--id-r3);
+    --prof-radius-xl: var(--id-r4);
+    --prof-radius-full: var(--id-pill);
+
     /* Transitions */
     --prof-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  /* Dark Mode Support */
-  html[data-theme="dark"] {
-    --prof-text: #f9fafb;
-    --prof-text-light: #d1d5db;
-    --prof-border: #374151;
-    --prof-bg: #1f2937;
-    --prof-bg-secondary: #111827;
-    --prof-bg-hover: #374151;
   }
   
   /* ========== Layout Container ========== */
@@ -425,7 +418,7 @@
     line-height: 1.7;
   }
   .profile-password-simplehint i { color: #b9975b; font-size: 1.1rem; flex: 0 0 auto; }
-  html[data-theme="dark"] .profile-password-simplehint { background: rgba(212,177,109,.08); color: #e6cf9a; }
+  html[data-theme="dark"] .profile-password-simplehint { background: rgba(212,177,109,.08); color: var(--id-gold); }
 
   .profile-password-panel {
     padding: 1.1rem 1.1rem 1rem;
@@ -923,7 +916,7 @@
   }
   .profile-scope .profile-card-title{ color:#0a5c33 !important; font-weight:950 !important; }
   .profile-scope .profile-card-title i{ color:#b9975b !important; }
-  [data-theme="dark"] .profile-scope .profile-card-title{ color:#e6cf9a !important; }
+  [data-theme="dark"] .profile-scope .profile-card-title{ color:var(--id-gold) !important; }
 
   .profile-scope .profile-school-item{
     border:1px solid #ece7da !important; border-radius:14px !important;
@@ -933,7 +926,7 @@
   .profile-scope .profile-school-badge{
     background:linear-gradient(135deg,#0b6238,#063d22) !important; color:#e6cf9a !important; border:none !important;
   }
-  [data-theme="dark"] .profile-scope .profile-school-item{ background:#0f172a !important; border-color:#1e293b !important; }
+  [data-theme="dark"] .profile-scope .profile-school-item{ background:var(--id-surface) !important; border-color:var(--id-line) !important; }
 
   /* أزرار الحفظ بلمسة ملكية */
   .profile-scope .profile-form button[type="submit"],

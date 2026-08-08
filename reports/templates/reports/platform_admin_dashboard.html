@@ -355,21 +355,21 @@
         font-weight: 800;
     }
 
-    .dashboard-status.is-error { color: #b91c1c; }
-    .dashboard-status.is-success { color: #047857; }
+    .dashboard-status.is-error { color: var(--id-tone-danger); }
+    .dashboard-status.is-success { color: var(--id-tone-approved); }
 
     .danger-zone {
         margin-top: 1rem;
         padding: 0;
         overflow: hidden;
-        border: 1px solid #fecaca;
+        border: 1px solid var(--id-tone-danger);
         border-radius: 10px;
-        background: #fffafa;
+        background: var(--id-tone-danger-wash);
     }
 
     .danger-zone summary {
         padding: 0.9rem 1rem;
-        color: #991b1b;
+        color: var(--id-tone-danger);
         cursor: pointer;
         font-weight: 900;
     }
@@ -380,7 +380,7 @@
         justify-content: space-between;
         gap: 1rem;
         padding: 0 1rem 1rem;
-        color: #7f1d1d;
+        color: var(--id-tone-danger);
     }
 
     .danger-zone-body p {
@@ -415,18 +415,18 @@
     }
 
     .alert-tile.danger {
-        background: #fff1f2;
-        border-color: #fecdd3;
+        background: var(--id-tone-danger-wash);
+        border-color: var(--id-tone-danger);
     }
 
     .alert-tile.warning {
-        background: #fffbeb;
-        border-color: #fde68a;
+        background: var(--id-tone-attention-wash);
+        border-color: var(--id-tone-attention);
     }
 
     .alert-tile.info {
-        background: #eff6ff;
-        border-color: #bfdbfe;
+        background: var(--id-tone-pending-wash);
+        border-color: var(--id-tone-pending);
     }
 
     .alert-icon,
@@ -602,13 +602,13 @@
     }
 
     .action-card.is-danger {
-        border-color: #fecdd3;
-        background: #fff1f2;
+        border-color: var(--id-tone-danger);
+        background: var(--id-tone-danger-wash);
     }
 
     .action-card.is-warning {
-        border-color: #fde68a;
-        background: #fffbeb;
+        border-color: var(--id-tone-attention);
+        background: var(--id-tone-attention-wash);
     }
 
     .action-badge {
@@ -739,10 +739,10 @@
         transform: scale(1.1) rotate(5deg);
     }
     
-    .bg-indigo-light { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #00542a; }
-    .bg-emerald-light { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46; }
-    .bg-amber-light { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
-    .bg-rose-light { background: linear-gradient(135deg, #ffe4e6, #fecdd3); color: #be123c; }
+    .bg-indigo-light { background: var(--id-tone-pending-wash); color: var(--id-tone-pending); }
+    .bg-emerald-light { background: var(--id-tone-approved-wash); color: var(--id-tone-approved); }
+    .bg-amber-light { background: var(--id-tone-attention-wash); color: var(--id-tone-attention); }
+    .bg-rose-light { background: var(--id-tone-danger-wash); color: var(--id-tone-danger); }
 
     .stat-value {
         font-size: 2rem;
@@ -816,10 +816,10 @@
         font-size: 1rem;
     }
     
-    .timeline-icon.emerald { background: #d1fae5; color: #065f46; }
-    .timeline-icon.indigo { background: #e0e7ff; color: #00542a; }
-    .timeline-icon.amber { background: #fef3c7; color: #92400e; }
-    .timeline-icon.rose { background: #ffe4e6; color: #be123c; }
+    .timeline-icon.emerald { background: var(--id-tone-approved-wash); color: var(--id-tone-approved); }
+    .timeline-icon.indigo { background: var(--id-tone-pending-wash); color: var(--id-tone-pending); }
+    .timeline-icon.amber { background: var(--id-tone-attention-wash); color: var(--id-tone-attention); }
+    .timeline-icon.rose { background: var(--id-tone-danger-wash); color: var(--id-tone-danger); }
     
     .timeline-content {
         flex: 1;
@@ -958,10 +958,10 @@
         font-weight: 600;
     }
     
-    .status-active { background: #d1fae5; color: #047857; }
+    .status-active { background: var(--id-tone-approved-wash); color: var(--id-tone-approved); }
     .status-inactive { background: var(--id-tone-draft-wash); color: var(--id-tone-draft); }
-    .status-warning { background: #fef3c7; color: #b45309; }
-    .status-danger { background: #fee2e2; color: #b91c1c; }
+    .status-warning { background: var(--id-tone-attention-wash); color: var(--id-tone-attention); }
+    .status-danger { background: var(--id-tone-danger-wash); color: var(--id-tone-danger); }
 
     /* Action Buttons */
     .btn-modern {
@@ -992,7 +992,7 @@
     }
     
     .btn-modern.outline:hover {
-        background: #eef2ff;
+        background: var(--id-accent-wash);
     }
 
     /* Notification List */

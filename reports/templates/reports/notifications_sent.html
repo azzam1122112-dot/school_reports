@@ -24,13 +24,13 @@
     --accent: #b9975b;
     --success: #16845b;
 
-    --bg-main: #f4f7f3;
-    --card-bg: #ffffff;
-    --text-primary: #10251f;
-    --text-secondary: #475c54;
-    --text-light: #68766f;
-    --border-color: #e3ebe5;
-    --hover-bg: #edf5ef;
+    --bg-main: var(--id-canvas);
+    --card-bg: var(--id-surface);
+    --text-primary: var(--id-ink);
+    --text-secondary: var(--id-ink-soft);
+    --text-light: var(--id-muted);
+    --border-color: var(--id-line);
+    --hover-bg: var(--id-surface-2);
 
     --radius-xl: 24px;
     --radius-lg: 16px;
@@ -46,17 +46,12 @@
     padding: 2rem 0;
   }
 
+  /* الأسطح والحبر تتقلّب عبر `--id-*`؛ ولا يبقى هنا إلا الظلال. */
   html[data-theme="dark"] .ns-scope {
     --bg-main: transparent;
-    --card-bg: #131c2b;
-    --text-primary: #f1f5f9;
-    --text-secondary: #c2ccd9;
-    --text-light: #93a3b5;
-    --border-color: #28344a;
-    --hover-bg: #1b2538;
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 10px 40px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
+    --shadow-sm: var(--id-e1);
+    --shadow-md: var(--id-e3);
+    --shadow-lg: var(--id-e4);
   }
 
   .ns-scope .wrap {

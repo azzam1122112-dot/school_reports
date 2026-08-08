@@ -24,14 +24,14 @@
     --accent: #b9975b;
     --success: #16845b;
 
-    --bg-main: #f5f7fa;
-    --card-bg: #ffffff;
-    --input-bg: #fafbfc;
-    --text-primary: #1a202c;
-    --text-secondary: #4a5568;
-    --text-light: #718096;
-    --border-color: #e2e8f0;
-    --hover-bg: #edf2f7;
+    --bg-main: var(--id-canvas);
+    --card-bg: var(--id-surface);
+    --input-bg: var(--id-surface-2);
+    --text-primary: var(--id-ink);
+    --text-secondary: var(--id-ink-soft);
+    --text-light: var(--id-muted);
+    --border-color: var(--id-line);
+    --hover-bg: var(--id-line-soft);
 
     --radius-xl: 24px;
     --radius-lg: 16px;
@@ -46,17 +46,6 @@
     background: var(--bg-main);
     min-height: 100vh;
     padding: 2rem 0;
-  }
-
-  html[data-theme="dark"] .notify-scope {
-    --bg-main: #0f172a;
-    --card-bg: #1e293b;
-    --input-bg: #111827;
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --text-light: #94a3b8;
-    --border-color: #334155;
-    --hover-bg: #1e293b;
   }
 
   .notify-scope .wrap {

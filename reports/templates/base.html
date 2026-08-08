@@ -24,8 +24,8 @@
   {% include "reports/partials/theme_bootstrap.html" %}
 
   <!-- Performance -->
-  <link rel="preload" href="{% static 'css/app.css' %}?v=20260731.3" as="style">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260731.3" />
+  <link rel="preload" href="{% static 'css/app.css' %}?v=20260808.1" as="style">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260808.1" />
   {% if request.user.is_authenticated %}
   {% if request.user.is_authenticated and AI_INTERNAL_HELP_ENABLED %}
     <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260801.3" />
@@ -975,7 +975,7 @@
   {% include "reports/_identity.html" %}
 
   {% block head %}{% endblock %}
-  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260807.1" />
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260808.1" />
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 
@@ -2062,9 +2062,9 @@
         #schoolModal .sm-cta{ flex:0 0 auto; font-weight:900; font-size:.82rem; border-radius:999px; padding:7px 14px;
           background:#0b6238; color:#fff; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
         #schoolModal .current-school .sm-cta{ background:rgba(10,92,51,.12); color:#0b6238; }
-        html[data-theme="dark"] #schoolModal .school-item{ background:#0f172a !important; border-color:#1e293b !important; }
-        html[data-theme="dark"] #schoolModal .sm-name{ color:#f1f5f9; }
-        html[data-theme="dark"] #schoolModal .sm-tag{ background:#1e293b; border-color:#334155; color:#cbd5e1; }
+        html[data-theme="dark"] #schoolModal .school-item{ background:#0d241d !important; border-color:rgba(205,225,216,.18) !important; }
+        html[data-theme="dark"] #schoolModal .sm-name{ color:#edf6f1; }
+        html[data-theme="dark"] #schoolModal .sm-tag{ background:#102920; border-color:rgba(205,225,216,.18); color:#c8dbd1; }
       </style>
 
       <div class="school-modal" id="schoolModal" aria-hidden="true">
@@ -2764,8 +2764,8 @@
 
     .rc-overlay[data-type="info"]    .rc-icon{ background:rgba(10,92,51,.10); color:#0a5c33; border-color:rgba(10,92,51,.18); }
 
-    html[data-theme="dark"] .rc-cancel{ background:#1e293b; color:#cbd5e1; border-color:#334155; }
-    html[data-theme="dark"] .rc-cancel:hover{ background:#334155; }
+    html[data-theme="dark"] .rc-cancel{ background:#102920; color:#c8dbd1; border-color:rgba(205,225,216,.18); }
+    html[data-theme="dark"] .rc-cancel:hover{ background:#173a2f; }
     @media (max-width:420px){ .rc-actions{ flex-direction:column-reverse; } }
     @media (prefers-reduced-motion: reduce){ .rc-dialog,.rc-backdrop{ animation:none; } .rc-btn:hover{ transform:none; } }
   </style>

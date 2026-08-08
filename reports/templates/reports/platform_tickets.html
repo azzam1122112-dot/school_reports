@@ -8,34 +8,24 @@
      PLATFORM TICKETS 2026 — NEO-PROFESSIONAL
      Theme: Corporate Blue & Clean White
   */
+  /* رموز هذه الشاشة مشتقّة من جذر الهوية، فلا تحتاج كتلةً ليلية خاصة:
+     ‏`--id-*` وحدها ما يُعاد تعريفه تحت `data-theme="dark"`. */
   .plat-tickets-scope{
-    --c-brand: #006c35;
-    --c-brand-light: rgba(0,108,53,.08);
-    --c-ink: #10251f;
-    --c-muted: #68766f;
-    --c-border: #e3ebe5;
-    --c-bg: #f4f7f3;
-    --c-card: #ffffff;
+    --c-brand: var(--id-accent);
+    --c-brand-light: var(--id-accent-wash);
+    --c-ink: var(--id-ink);
+    --c-muted: var(--id-muted);
+    --c-border: var(--id-line);
+    --c-bg: var(--id-canvas);
+    --c-card: var(--id-surface);
 
-    --shadow-soft: 0 4px 6px -1px rgba(16,37,31,0.06);
-    --shadow-hard: 0 10px 24px -6px rgba(16,37,31,0.12);
+    --shadow-soft: var(--id-e1);
+    --shadow-hard: var(--id-e3);
 
-    --radius-xl: 16px;
-    --radius-lg: 12px;
+    --radius-xl: var(--id-r3);
+    --radius-lg: var(--id-r2);
 
     --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  html[data-theme="dark"] .plat-tickets-scope{
-    --c-brand: #34d399;
-    --c-brand-light: rgba(52,211,153,.12);
-    --c-ink: #f1f5f9;
-    --c-muted: #93a3b5;
-    --c-border: #28344a;
-    --c-bg: #0f1827;
-    --c-card: #131c2b;
-    --shadow-soft: 0 4px 6px -1px rgba(0,0,0,0.4);
-    --shadow-hard: 0 10px 24px -6px rgba(0,0,0,0.55);
   }
 
   .plat-tickets-scope .wrap {
