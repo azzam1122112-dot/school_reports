@@ -30,7 +30,11 @@ from reports.models import (
 from reports.views.subscriptions import reconcile_pending_gateway_payments
 
 
-@override_settings(ALLOWED_HOSTS=["testserver"], MOYASAR_ENABLED=True)
+@override_settings(
+    ALLOWED_HOSTS=["testserver"],
+    MOYASAR_ENABLED=True,
+    MOYASAR_SECRET_KEY="sk_test_example",
+)
 class AbandonedMoyasarOrderTests(TestCase):
     def setUp(self):
         self.school = School.objects.create(name="مدرسة الدفع", code="abandoned-pay")
@@ -155,6 +159,21 @@ class AbandonedMoyasarOrderTests(TestCase):
         payment.refresh_from_db()
         self.assertEqual(payment.status, Payment.Status.PENDING)
         self.assertEqual(summary["abandoned"], 0)
+        self.assertEqual(summary["still_pending"], 1)
+
+    @override_settings(MOYASAR_SECRET_KEY="")
+    def test_the_sweep_does_not_flood_logs_when_credentials_are_unavailable(self):
+        payment = self._pending_payment(batch="batch-no-credentials")
+
+        with patch(
+            "reports.views.subscriptions.fetch_moyasar_invoice"
+        ) as fetch_invoice:
+            summary = reconcile_pending_gateway_payments(abandon_after_minutes=60)
+
+        fetch_invoice.assert_not_called()
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+        self.assertEqual(summary["failed"], 0)
         self.assertEqual(summary["still_pending"], 1)
 
     def test_a_paid_order_is_activated_by_the_sweep_never_abandoned(self):

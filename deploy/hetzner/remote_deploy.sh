@@ -37,6 +37,27 @@ cd "$DEPLOY_PATH" || die "DEPLOY_PATH '$DEPLOY_PATH' does not exist."
    Production secrets are never shipped from CI. Create it once on the server
    from deploy/hetzner/env.production.example, then re-run this deploy."
 
+# Derive least-privilege environment files on every deploy.  The database and
+# cache containers must never receive payment, email, AI, or object-storage
+# credentials simply because the application needs them.
+derive_env_file() {
+  local target="$1" pattern="$2" expected="$3" tmp count
+  tmp="$(mktemp "$DEPLOY_PATH/deploy/hetzner/.env-scope.XXXXXX")"
+  grep -E "$pattern" deploy/hetzner/env.production >"$tmp"
+  count="$(wc -l <"$tmp")"
+  if [ "$count" -ne "$expected" ] || grep -Eq '^[^=]+=$' "$tmp"; then
+    rm -f -- "$tmp"
+    die "Could not derive $target: expected $expected non-empty values."
+  fi
+  install -m 600 -o root -g root "$tmp" "$target"
+  rm -f -- "$tmp"
+}
+
+derive_env_file deploy/hetzner/env.postgres \
+  '^(POSTGRES_DB|POSTGRES_USER|POSTGRES_PASSWORD)=' 3
+derive_env_file deploy/hetzner/env.redis \
+  '^(REDIS_PASSWORD|REDIS_MAXMEMORY|REDIS_MAXMEMORY_POLICY)=' 3
+
 # `edge` is declared external in compose.hetzner.yaml, so compose will refuse to
 # start rather than create it. Creating it here keeps a fresh server bootable.
 docker network inspect "$EDGE_NETWORK" >/dev/null 2>&1 || {
