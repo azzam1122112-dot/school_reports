@@ -823,10 +823,27 @@ textarea:focus-visible{
   box-shadow:var(--ring);
 }
 
-/* Prevent iOS styling + nicer selects */
-button, input, textarea, select{
+/* Prevent iOS styling + nicer selects
+   خانات الاختيار والراديو مستثناة: تصفير appearance يمحو المربّع وعلامة الصح
+   معًا، فلا يعود المستخدم يرى هل اختار أم لا. القوالب التي تريد مظهرًا مخصّصًا
+   تصفّر appearance عندها بنفسها (مثل ‎#id_is_important‎ و‎.order-toggle‎). */
+button,
+input:not([type="checkbox"]):not([type="radio"]),
+textarea, select{
   -webkit-appearance:none;
   appearance:none;
+}
+/* حجم ولون افتراضيان بمواصفة صفرية (:where) حتى يتقدّم عليهما أي تنسيق في القوالب */
+:where(input[type="checkbox"], input[type="radio"]){
+  width:18px;
+  height:18px;
+  accent-color:var(--brand);
+  cursor:pointer;
+  flex:0 0 auto;
+}
+:where(input[type="checkbox"]:disabled, input[type="radio"]:disabled){
+  cursor:not-allowed;
+  opacity:.55;
 }
 select{
   background-image:
