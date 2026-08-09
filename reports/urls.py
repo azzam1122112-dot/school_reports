@@ -260,6 +260,7 @@ urlpatterns = [
 
     path("group/practices/", views.group_practices, name="group_practices"),
     path("group/schools/<int:pk>/", views.group_school_detail, name="group_school_detail"),
+    path("group/subscriptions/", views.group_subscriptions, name="group_subscriptions"),
     path("group/approvals/", views.group_approval_inbox, name="group_approval_inbox"),
     path("group/audit/", views.group_audit_log, name="group_audit_log"),
     path("group/archive/", views.group_archive, name="group_archive"),

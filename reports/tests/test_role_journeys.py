@@ -216,6 +216,20 @@ class ExecutiveDirectorJourneyTests(TestCase):
         response = self.client.get(reverse("reports:home"))
         self.assertEqual(response.status_code, 200)
 
+    def test_a_director_who_also_teaches_lands_on_their_personal_home(self):
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=self.director,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        response = self._login()
+        self.assertRedirects(
+            response,
+            reverse("reports:home"),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(self.client.session["active_school_id"], self.school.pk)
+
     def test_the_director_still_reaches_their_group_screens(self):
         self.client.force_login(self.director)
         for name in (

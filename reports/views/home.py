@@ -407,8 +407,18 @@ def switch_school(request: HttpRequest) -> HttpResponse:
     sid = request.POST.get("school_id")
     next_raw = request.POST.get("next")
 
-    default_next = "reports:admin_dashboard" if _is_staff(request.user) or getattr(request.user, "is_superuser", False) else "reports:home"
-    next_url = _safe_next_url(next_raw) or default_next
+    current_school = _get_active_school(request)
+    current_is_manager = bool(
+        current_school is not None
+        and is_school_manager(request.user, active_school=current_school)
+    )
+    default_next = (
+        "reports:admin_dashboard"
+        if getattr(request.user, "is_superuser", False) or current_is_manager
+        else "reports:home"
+    )
+    safe_next = _safe_next_url(next_raw)
+    next_url = safe_next or default_next
 
     if not sid:
         return redirect(next_url)
@@ -416,33 +426,27 @@ def switch_school(request: HttpRequest) -> HttpResponse:
     if request.user.is_superuser:
         schools_qs = School.objects.filter(is_active=True)
     else:
-        # إذا كان المستخدم مدير مدرسة، نقيّد التبديل بمدارسه كمدير فقط.
-        is_manager = SchoolMembership.objects.filter(
-            teacher=request.user,
-            role_type=SchoolMembership.RoleType.MANAGER,
-            is_active=True,
-        ).exists()
-        if is_manager:
-            schools_qs = School.objects.filter(
+        # الدور مقيد بالمدرسة لا بالحساب: من يدير مدرسة ويدرّس في أخرى يجب أن
+        # يجد المدرستين معاً، ثم تتشكل الواجهة حسب دوره في المدرسة المختارة.
+        schools_qs = (
+            School.objects.filter(
                 is_active=True,
                 memberships__teacher=request.user,
-                memberships__role_type=SchoolMembership.RoleType.MANAGER,
                 memberships__is_active=True,
-            ).distinct()
-        else:
-            # غير المدير: يبقى التبديل بين جميع المدارس ذات العضوية النشطة.
-            schools_qs = (
-                School.objects.filter(
-                    is_active=True,
-                    memberships__teacher=request.user,
-                    memberships__is_active=True,
-                )
-                .distinct()
             )
+            .distinct()
+        )
 
     try:
         school = schools_qs.get(pk=sid)
         _set_active_school(request, school)
+        if safe_next is None:
+            next_url = (
+                "reports:admin_dashboard"
+                if getattr(request.user, "is_superuser", False)
+                or is_school_manager(request.user, active_school=school)
+                else "reports:home"
+            )
         messages.success(request, f"تم اختيار المدرسة: {school.name}")
     except (School.DoesNotExist, ValueError, TypeError):
         messages.error(request, "تعذّر تبديل المدرسة. فضلاً اختر مدرسة صحيحة.")
@@ -455,10 +459,20 @@ def switch_school(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def home(request: HttpRequest) -> HttpResponse:
+    active_school = _get_active_school(request)
+
     # مدير المدرسة له رئيسية واحدة واضحة: لوحة إدارة المدرسة.
     # يحتفظ المدير بإمكانية الوصول لصفحاته الشخصية من قائمة الحساب، لكن لا
     # ينبغي أن تقوده كلمة "الرئيسية" إلى لوحة المعلم وتخلق مسارين متنافسين.
-    if is_school_manager(request.user):
+    if active_school is not None and is_school_manager(
+        request.user,
+        active_school=active_school,
+    ):
+        return redirect("reports:admin_dashboard")
+
+    # بلا سياق مدرسي لا يمكن حسم دور متعدد المدارس. المدير يُقاد إلى مسار
+    # الإدارة/اختيار المدرسة، أما وجود مدرسة نشطة أعلاه فيجعل دورها هو الحاكم.
+    if active_school is None and is_school_manager(request.user):
         return redirect("reports:admin_dashboard")
 
     # والمدير التنفيذي كذلك: رئيسيته لوحة مجموعته.
@@ -472,7 +486,6 @@ def home(request: HttpRequest) -> HttpResponse:
     ).exists():
         return redirect("reports:executive_dashboard")
 
-    active_school = _get_active_school(request)
     stats = {"today_count": 0, "total_count": 0, "last_title": "—"}
     req_stats = {"open": 0, "in_progress": 0, "done": 0, "rejected": 0, "total": 0}
 

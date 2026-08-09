@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -33,6 +34,8 @@ DASHBOARD_TEMPLATE = "reports/templates/reports/admin_dashboard.html"
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class ManagerDashboardAuditTests(TestCase):
     def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
         self.school = School.objects.create(
             name="مدرسة فحص اللوحة",
             code="dashboard-audit",
@@ -347,13 +350,17 @@ class ManagerDashboardAuditTests(TestCase):
             "لا توجد عناصر معلّقة الآن",
         )
 
-        Ticket.objects.create(
-            school=self.school,
-            creator=self.teacher,
-            title="طلب مفتوح",
-            body="نص",
-            status=Ticket.Status.OPEN,
-        )
+        # TestCase keeps the test inside an outer transaction. Execute the
+        # production on_commit invalidation now so this request observes the
+        # same cache state that a real committed write would produce.
+        with self.captureOnCommitCallbacks(execute=True):
+            Ticket.objects.create(
+                school=self.school,
+                creator=self.teacher,
+                title="طلب مفتوح",
+                body="نص",
+                status=Ticket.Status.OPEN,
+            )
         self.assertEqual(self._attention_card_count(), 1)
 
     def test_dashboard_has_no_hardcoded_light_mode_colours(self):

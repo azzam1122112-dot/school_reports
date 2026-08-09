@@ -4,576 +4,703 @@
 {% block title %}إدارة الاشتراكات{% endblock %}
 
 {% block head %}
-<style>
-  .subscriptions-page {
-    --subs-brand: #08663a;
-    --subs-brand-deep: #064526;
-    --subs-gold: #c39a52;
-    --subs-ink: var(--ink, #172033);
-    --subs-muted: var(--muted, #64748b);
-    --subs-line: var(--line-2, #e5e9e7);
-    --subs-card: var(--card, #fff);
-    --subs-soft: #f4f8f6;
-    --subs-success: #15805a;
-    --subs-warning: #b96806;
-    --subs-danger: #c93838;
-    max-width: 1320px;
-    margin: 0 auto;
-    padding: clamp(14px, 2.4vw, 28px);
+<style nonce="{{ CSP_NONCE }}">
+  /* ══════════════════════════════════════════════════════════════════
+     محفظة اشتراكات المنصة — مبنية على جذر الهوية `_identity.html`.
+     لا لون ثابتاً هنا: كل شيء مشتقٌّ من `--id-*`، فالوضع الليلي يأتي
+     مجاناً ولا يُصلَح في هذا الملف. والأسماء `--pf-*` أسماء مستعارة.
+     ══════════════════════════════════════════════════════════════════ */
+  .pfsubs {
+    --pf-ink: var(--id-ink);
+    --pf-muted: var(--id-muted);
+    --pf-line: var(--id-line);
+    --pf-line-soft: var(--id-line-soft);
+    --pf-card: var(--id-surface);
+    --pf-card-2: var(--id-surface-2);
+    --pf-accent: var(--id-accent);
+
+    max-width: 1440px;
+    margin-inline: auto;
+    padding: clamp(14px, 2.2vw, 26px) clamp(12px, 2vw, 22px) 90px;
+    color: var(--pf-ink);
   }
 
-  html[data-theme="dark"] .subscriptions-page {
-    --subs-soft: rgba(255, 255, 255, .045);
-  }
-
-  .subscriptions-page .subs-header {
+  /* ── الترويسة ─────────────────────────────────────────────────── */
+  .pfsubs-hero {
     position: relative;
-    isolation: isolate;
     overflow: hidden;
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(240px, .45fr);
     align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    min-height: 164px;
-    padding: clamp(22px, 4vw, 38px);
-    border: 1px solid rgba(195, 154, 82, .34);
-    border-radius: 24px;
-    color: #fff;
+    gap: clamp(18px, 3vw, 34px);
+    margin-bottom: 18px;
+    padding: clamp(22px, 3.2vw, 40px);
+    border: 1px solid var(--id-gold-line);
+    border-radius: var(--id-r5);
+    color: var(--id-hero-ink);
     background:
-      radial-gradient(circle at 8% 120%, rgba(195, 154, 82, .28), transparent 32%),
-      linear-gradient(125deg, #0b7042 0%, #07552f 48%, #063a22 100%);
-    box-shadow: 0 20px 48px -28px rgba(6, 69, 38, .72);
+      radial-gradient(120% 150% at 92% -22%, rgba(212, 177, 109, .26), transparent 46%),
+      radial-gradient(90% 120% at 4% 108%, rgba(22, 149, 90, .34), transparent 52%),
+      linear-gradient(135deg, var(--id-hero-from) 0%, var(--id-hero-via) 56%, var(--id-hero-to) 100%);
+    box-shadow: var(--id-e4);
   }
-
-  .subscriptions-page .subs-header::after {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    inset-inline-start: -55px;
-    top: -80px;
-    width: 240px;
-    height: 240px;
-    border: 1px solid rgba(255, 255, 255, .12);
-    border-radius: 50%;
-    box-shadow: 0 0 0 34px rgba(255, 255, 255, .035), 0 0 0 72px rgba(255, 255, 255, .025);
-  }
-
-  .subscriptions-page .subs-heading { max-width: 690px; }
-  .subscriptions-page .subs-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    color: #f0d7a7;
-    font-size: .84rem;
-    font-weight: 900;
-  }
-  .subscriptions-page .subs-header h1 {
-    margin: 0;
-    color: #fff !important;
-    font-size: clamp(1.65rem, 3vw, 2.35rem);
-    font-weight: 950;
-  }
-  .subscriptions-page .subs-header p {
-    margin: 9px 0 0;
-    color: rgba(255, 255, 255, .82) !important;
-    line-height: 1.85;
-    font-weight: 700;
-  }
-  .subscriptions-page .subs-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-  .subscriptions-page .subs-header-actions .btn {
-    min-height: 44px;
-    padding-inline: 15px;
-    border-radius: 12px;
-    white-space: nowrap;
-  }
-  .subscriptions-page .subs-header-actions .btn-primary {
-    color: var(--subs-brand-deep) !important;
-    border-color: #fff;
-    background: #fff !important;
-    box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .7);
-  }
-  .subscriptions-page .subs-header-actions .btn-outline {
-    color: #fff;
-    border-color: rgba(255, 255, 255, .28);
-    background: rgba(255, 255, 255, .09);
-  }
-  .subscriptions-page .subs-header-actions .btn-outline:hover {
-    border-color: rgba(255, 255, 255, .58);
-    background: rgba(255, 255, 255, .16);
-  }
-
-  .subscriptions-page .subs-kpis {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 14px;
-  }
-  .subscriptions-page .subs-kpi {
-    position: relative;
-    overflow: hidden;
-    display: grid;
-    grid-template-columns: 48px minmax(0, 1fr);
-    align-items: center;
-    gap: 13px;
-    min-height: 112px;
-    padding: 17px;
-    border: 1px solid var(--subs-line);
-    border-radius: 18px;
-    background: var(--subs-card);
-    box-shadow: 0 13px 34px -28px rgba(15, 23, 42, .55);
-  }
-  .subscriptions-page .subs-kpi::before {
+  .pfsubs-hero::before {
     content: "";
     position: absolute;
     inset-inline: 0;
-    top: 0;
+    inset-block-start: 0;
     height: 3px;
-    background: var(--kpi-color, var(--subs-brand));
+    background: linear-gradient(90deg, transparent, var(--id-gold-500) 18%, var(--id-gold-300) 50%, var(--id-gold-500) 82%, transparent);
   }
-  .subscriptions-page .subs-kpi--success { --kpi-color: var(--subs-success); }
-  .subscriptions-page .subs-kpi--warning { --kpi-color: var(--subs-warning); }
-  .subscriptions-page .subs-kpi--danger { --kpi-color: var(--subs-danger); }
-  .subscriptions-page .subs-kpi-icon {
-    display: grid;
-    place-items: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 15px;
-    color: var(--kpi-color, var(--subs-brand));
-    background: var(--subs-soft);
-    font-size: 1.05rem;
+  .pfsubs-hero__copy { max-width: 62ch; }
+  .pfsubs-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 15px;
+    border: 1px solid rgba(212, 177, 109, .5);
+    border-radius: var(--id-pill);
+    background: rgba(212, 177, 109, .16);
+    color: var(--id-gold-300);
+    font-size: .78rem;
+    font-weight: 900;
   }
-  .subscriptions-page .subs-kpi-label {
-    color: var(--subs-muted);
-    font-size: .82rem;
-    font-weight: 850;
-  }
-  .subscriptions-page .subs-kpi-value {
-    margin-top: 3px;
-    color: var(--subs-ink);
-    font-size: clamp(1.13rem, 2vw, 1.43rem);
+  .pfsubs-hero h1 {
+    margin: 14px 0 8px;
+    color: var(--id-hero-ink);
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
     font-weight: 950;
-    line-height: 1.35;
+    line-height: 1.28;
   }
-  .subscriptions-page .subs-kpi-hint {
-    margin-top: 3px;
-    color: var(--subs-muted);
-    font-size: .75rem;
+  .pfsubs-hero p {
+    margin: 0;
+    color: var(--id-hero-ink-soft);
+    font-size: .93rem;
     font-weight: 700;
+    line-height: 1.95;
   }
-
-  .subscriptions-page .subs-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 294px;
-    gap: 14px;
-    align-items: start;
-    margin-top: 14px;
-  }
-  .subscriptions-page .subs-panel {
-    border: 1px solid var(--subs-line);
-    border-radius: 18px;
-    background: var(--subs-card);
-    box-shadow: 0 13px 34px -30px rgba(15, 23, 42, .55);
-  }
-  .subscriptions-page .subs-filters { padding: 18px; }
-  .subscriptions-page .panel-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 15px;
-  }
-  .subscriptions-page .panel-heading h2 {
-    display: flex;
+  .pfsubs-hero__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+  .pfsubs-hero__button {
+    display: inline-flex;
     align-items: center;
     gap: 9px;
-    margin: 0;
-    color: var(--subs-ink);
-    font-size: 1rem;
-    font-weight: 950;
+    padding: 12px 20px;
+    border: 1px solid rgba(255, 255, 255, .26);
+    border-radius: var(--id-pill);
+    background: rgba(255, 255, 255, .1);
+    color: var(--id-hero-ink);
+    font-size: .87rem;
+    font-weight: 900;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform var(--id-fast) var(--id-ease), background var(--id-fast) var(--id-ease), border-color var(--id-fast) var(--id-ease);
   }
-  .subscriptions-page .panel-heading h2 i { color: var(--subs-brand); }
-  .subscriptions-page .panel-heading p {
-    margin: 5px 0 0;
-    color: var(--subs-muted);
-    font-size: .82rem;
-    font-weight: 700;
+  .pfsubs-hero__button:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, .17);
+    border-color: rgba(212, 177, 109, .55);
+    color: var(--id-hero-ink);
   }
-  .subscriptions-page .filter-form {
+  .pfsubs-hero__button--primary {
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--id-gold-400), var(--id-gold-600));
+    color: var(--id-green-950);
+    box-shadow: 0 12px 26px -14px rgba(212, 177, 109, .9);
+  }
+  .pfsubs-hero__button--primary:hover {
+    background: linear-gradient(135deg, var(--id-gold-300), var(--id-gold-500));
+    color: var(--id-green-950);
+    border-color: transparent;
+  }
+
+  /* الرقم الذي يُبدأ منه العمل، لا زينةٌ تملأ نصف الترويسة. */
+  .pfsubs-hero__summary {
     display: grid;
-    grid-template-columns: minmax(210px, 1.35fr) minmax(145px, .7fr) minmax(145px, .7fr) auto;
+    gap: 6px;
+    justify-items: center;
+    padding: clamp(18px, 2.2vw, 28px);
+    border: 1px solid rgba(212, 177, 109, .42);
+    border-radius: var(--id-r4);
+    background: rgba(3, 32, 20, .3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    text-align: center;
+  }
+  .pfsubs-hero__summary span { color: var(--id-gold-300); font-size: .8rem; font-weight: 900; }
+  .pfsubs-hero__summary strong {
+    font-size: clamp(2.4rem, 5vw, 3.4rem);
+    font-weight: 950;
+    line-height: 1;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .pfsubs-hero__summary small { color: var(--id-hero-ink-soft); font-size: .78rem; font-weight: 700; line-height: 1.8; }
+
+  /* ── مؤشرات المال ─────────────────────────────────────────────── */
+  .pfsubs-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .pfsubs-kpi {
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    align-items: center;
+    gap: 13px;
+    padding: 17px;
+    border: 1px solid var(--pf-line);
+    border-radius: var(--id-r3);
+    background: var(--pf-card);
+    box-shadow: var(--id-e2);
+  }
+  .pfsubs-kpi::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0;
+    height: 3px;
+    background: var(--kpi-tone, var(--pf-accent));
+  }
+  .pfsubs-kpi--gold { --kpi-tone: var(--id-gold-500); }
+  .pfsubs-kpi--warn { --kpi-tone: var(--id-tone-attention); }
+  .pfsubs-kpi--danger { --kpi-tone: var(--id-tone-danger); }
+  .pfsubs-kpi__icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: var(--id-r2);
+    color: var(--kpi-tone, var(--pf-accent));
+    background: var(--pf-card-2);
+    font-size: 1.02rem;
+  }
+  .pfsubs-kpi__label { color: var(--pf-muted); font-size: .8rem; font-weight: 850; }
+  .pfsubs-kpi__value {
+    margin-top: 3px;
+    font-size: clamp(1.1rem, 2vw, 1.4rem);
+    font-weight: 950;
+    line-height: 1.35;
+    font-variant-numeric: tabular-nums;
+  }
+  .pfsubs-kpi__hint { margin-top: 3px; color: var(--pf-muted); font-size: .74rem; font-weight: 700; }
+
+  /* ── اللوح العام ──────────────────────────────────────────────── */
+  .pfsubs-panel {
+    margin-bottom: 14px;
+    border: 1px solid var(--pf-line);
+    border-radius: var(--id-r4);
+    background: var(--pf-card);
+    box-shadow: var(--id-e3);
+    overflow: hidden;
+  }
+  .pfsubs-panel__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    padding: 17px clamp(16px, 2.2vw, 22px);
+    border-bottom: 1px solid var(--pf-line);
+    background: var(--pf-card-2);
+  }
+  .pfsubs-panel__icon {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--id-r2);
+    color: var(--id-accent-ink);
+    background: linear-gradient(135deg, var(--id-green-600), var(--id-green-800));
+    font-size: 1rem;
+  }
+  .pfsubs-panel__title h2 { margin: 0; font-size: 1.05rem; font-weight: 950; }
+  .pfsubs-panel__title p { margin: 4px 0 0; color: var(--pf-muted); font-size: .82rem; font-weight: 750; line-height: 1.75; }
+  .pfsubs-panel__aside { margin-inline-start: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+  .pfsubs-panel__body { padding: clamp(16px, 2.2vw, 22px); }
+
+  .pfsubs-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 13px;
+    border: 1px solid var(--pf-line);
+    border-radius: var(--id-pill);
+    background: var(--pf-card);
+    color: var(--pf-muted);
+    font-size: .78rem;
+    font-weight: 900;
+  }
+
+  /* ── التبويبات السريعة ────────────────────────────────────────── */
+  .pfsubs-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .pfsubs-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid var(--pf-line);
+    border-radius: var(--id-pill);
+    background: var(--pf-card-2);
+    color: var(--pf-ink);
+    font-size: .82rem;
+    font-weight: 900;
+    text-decoration: none;
+    transition: border-color var(--id-fast) var(--id-ease), transform var(--id-fast) var(--id-ease);
+  }
+  .pfsubs-tab:hover { transform: translateY(-1px); border-color: var(--id-green-500); color: var(--pf-ink); }
+  .pfsubs-tab b {
+    padding: 2px 8px;
+    border-radius: var(--id-pill);
+    background: var(--pf-line-soft);
+    color: var(--pf-muted);
+    font-size: .72rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .pfsubs-tab.is-active {
+    border-color: transparent;
+    color: var(--id-accent-ink);
+    background: linear-gradient(135deg, var(--id-green-600), var(--id-green-800));
+  }
+  .pfsubs-tab.is-active b { background: rgba(255, 255, 255, .2); color: #fff; }
+
+  /* ── التصفية ──────────────────────────────────────────────────── */
+  .pfsubs-filter {
+    display: grid;
+    grid-template-columns: minmax(210px, 1.4fr) minmax(150px, .7fr) auto;
     gap: 11px;
     align-items: end;
   }
-  .subscriptions-page .filter-field label {
+  .pfsubs-field label {
     display: block;
     margin-bottom: 7px;
-    color: var(--subs-ink);
-    font-size: .79rem;
+    font-size: .78rem;
     font-weight: 900;
   }
-  .subscriptions-page .filter-field .input {
+  .pfsubs-input {
     width: 100%;
-    min-height: 45px;
-    border-radius: 12px;
-  }
-  .subscriptions-page .filter-actions {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-  .subscriptions-page .filter-actions .btn {
-    min-height: 45px;
-    border-radius: 12px;
-  }
-
-  .subscriptions-page .decision-card { overflow: hidden; }
-  .subscriptions-page .decision-head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 17px;
-    color: #fff;
-    background: linear-gradient(125deg, var(--subs-brand), var(--subs-brand-deep));
-  }
-  .subscriptions-page .decision-head i {
-    display: grid;
-    place-items: center;
-    width: 37px;
-    height: 37px;
-    border-radius: 12px;
-    color: #f0d7a7;
-    background: rgba(255, 255, 255, .1);
-  }
-  .subscriptions-page .decision-head h2 { margin: 0; color: #fff; font-size: .96rem; font-weight: 950; }
-  .subscriptions-page .decision-body { padding: 4px 16px 16px; }
-  .subscriptions-page .decision-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--subs-line);
-  }
-  .subscriptions-page .decision-row span { color: var(--subs-muted); font-size: .82rem; font-weight: 800; }
-  .subscriptions-page .decision-row strong { color: var(--subs-ink); font-weight: 950; }
-  .subscriptions-page .decision-note {
-    display: flex;
-    gap: 9px;
-    margin-top: 14px;
-    padding: 12px;
-    border: 1px solid rgba(185, 104, 6, .2);
-    border-radius: 13px;
-    color: #874b09;
-    background: rgba(185, 104, 6, .07);
-    font-size: .79rem;
+    min-height: 46px;
+    padding: 10px 13px;
+    border: 1px solid var(--pf-line);
+    border-radius: var(--id-r2);
+    background: var(--pf-card-2);
+    color: var(--pf-ink);
+    font: inherit;
+    font-size: .86rem;
     font-weight: 800;
+  }
+  .pfsubs-input:focus-visible { outline: 2px solid var(--pf-accent); outline-offset: 2px; }
+  .pfsubs-filter__actions { display: flex; gap: 8px; }
+  .pfsubs-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 11px 18px;
+    border: 1px solid var(--pf-line);
+    border-radius: var(--id-r2);
+    background: var(--pf-card-2);
+    color: var(--pf-ink);
+    font: inherit;
+    font-size: .84rem;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform var(--id-fast) var(--id-ease), border-color var(--id-fast) var(--id-ease);
+  }
+  .pfsubs-btn:hover { transform: translateY(-1px); border-color: var(--id-green-500); color: var(--pf-ink); }
+  .pfsubs-btn--solid {
+    border-color: transparent;
+    color: var(--id-accent-ink);
+    background: linear-gradient(135deg, var(--id-green-600), var(--id-green-800));
+  }
+  .pfsubs-btn--solid:hover { color: var(--id-accent-ink); }
+  .pfsubs-btn--danger { color: var(--id-tone-danger); border-color: var(--id-tone-danger); background: var(--id-tone-danger-wash); }
+  .pfsubs-btn--danger:hover { color: var(--id-tone-danger); }
+  .pfsubs-btn--sm { min-height: 38px; padding: 8px 13px; font-size: .78rem; border-radius: var(--id-r1); }
+
+  /* ── لوحة الأولويات ───────────────────────────────────────────── */
+  .pfsubs-priorities {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 11px;
+  }
+  .pfsubs-priority {
+    display: grid;
+    gap: 4px;
+    padding: 15px;
+    border: 1px solid var(--pf-line);
+    border-inline-start: 4px solid var(--prio-tone, var(--pf-accent));
+    border-radius: var(--id-r2);
+    background: var(--pf-card-2);
+  }
+  .pfsubs-priority--urgent { --prio-tone: var(--id-tone-danger); }
+  .pfsubs-priority--collect { --prio-tone: var(--id-tone-attention); }
+  .pfsubs-priority--renew { --prio-tone: var(--id-tone-pending); }
+  .pfsubs-priority span { color: var(--pf-muted); font-size: .77rem; font-weight: 850; }
+  .pfsubs-priority strong { font-size: 1.35rem; font-weight: 950; font-variant-numeric: tabular-nums; }
+  .pfsubs-priority small { color: var(--pf-muted); font-size: .72rem; font-weight: 750; line-height: 1.6; }
+  .pfsubs-hintline {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 1px dashed var(--id-gold-line);
+    border-radius: var(--id-r2);
+    background: var(--id-tone-attention-wash);
+    color: var(--id-gold-700);
+    font-size: .78rem;
+    font-weight: 850;
     line-height: 1.75;
   }
-  html[data-theme="dark"] .subscriptions-page .decision-note { color: #e9bc7b; }
+  html[data-theme="dark"] .pfsubs-hintline { color: var(--id-gold-300); }
 
-  .subscriptions-page .subs-table-card { margin-top: 14px; overflow: hidden; }
-  .subscriptions-page .subs-table-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 17px 18px;
-    border-bottom: 1px solid var(--subs-line);
-  }
-  .subscriptions-page .subs-table-title { display: flex; align-items: center; gap: 10px; }
-  .subscriptions-page .subs-table-title i { color: var(--subs-brand); }
-  .subscriptions-page .subs-table-title h2 { margin: 0; color: var(--subs-ink); font-size: 1.04rem; font-weight: 950; }
-  .subscriptions-page .results-count {
-    display: inline-flex;
-    align-items: center;
-    min-height: 30px;
-    padding: 4px 10px;
-    border: 1px solid var(--subs-line);
-    border-radius: 999px;
-    color: var(--subs-muted);
-    background: var(--subs-soft);
-    font-size: .78rem;
-    font-weight: 850;
-  }
-  .subscriptions-page .rtable { min-width: 1040px; }
-  .subscriptions-page .rtable thead th {
+  /* ── الجدول ───────────────────────────────────────────────────── */
+  .pfsubs-scroll { overflow-x: auto; }
+  .pfsubs-table { width: 100%; border-collapse: collapse; min-width: 1020px; }
+  .pfsubs-table thead th {
     padding: 13px 14px;
-    border-bottom: 1px solid var(--subs-line);
-    color: #536158;
-    background: var(--subs-soft);
+    border-bottom: 1px solid var(--pf-line);
+    background: var(--pf-card-2);
+    color: var(--pf-muted);
     font-size: .76rem;
     font-weight: 950;
+    text-align: start;
     white-space: nowrap;
   }
-  html[data-theme="dark"] .subscriptions-page .rtable thead th { color: #bac6be; }
-  .subscriptions-page .rtable tbody tr { transition: background .16s ease; }
-  .subscriptions-page .rtable tbody tr:hover { background: rgba(8, 102, 58, .035); }
-  .subscriptions-page .rtable td { padding: 15px 14px; vertical-align: middle; }
-  .subscriptions-page .school-cell { display: flex; align-items: center; gap: 10px; min-width: 190px; }
-  .subscriptions-page .school-avatar {
+  .pfsubs-table td {
+    padding: 15px 14px;
+    border-bottom: 1px solid var(--pf-line-soft);
+    vertical-align: middle;
+    font-size: .84rem;
+    font-weight: 800;
+  }
+  .pfsubs-table tbody tr { transition: background var(--id-fast) var(--id-ease); }
+  .pfsubs-table tbody tr:hover { background: var(--id-accent-wash); }
+  .pfsubs-table tbody tr:last-child td { border-bottom: 0; }
+
+  .pfsubs-school { display: flex; align-items: center; gap: 11px; min-width: 190px; }
+  .pfsubs-avatar {
+    flex: 0 0 auto;
     display: grid;
     place-items: center;
-    width: 39px;
-    height: 39px;
-    flex: 0 0 auto;
-    border: 1px solid rgba(8, 102, 58, .13);
-    border-radius: 12px;
-    color: var(--subs-brand);
-    background: rgba(8, 102, 58, .07);
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--id-gold-line);
+    border-radius: var(--id-r2);
+    color: var(--pf-accent);
+    background: var(--pf-card-2);
+    font-size: .95rem;
     font-weight: 950;
   }
-  .subscriptions-page .school-name { color: var(--subs-ink); font-weight: 950; }
-  .subscriptions-page .cell-main { color: var(--subs-ink); font-weight: 900; }
-  .subscriptions-page .cell-sub {
-    margin-top: 4px;
-    color: var(--subs-muted);
-    font-size: .78rem;
-    font-weight: 750;
+  .pfsubs-school strong { display: block; font-size: .88rem; font-weight: 950; }
+  .pfsubs-sub { margin-top: 4px; color: var(--pf-muted); font-size: .74rem; font-weight: 750; }
+  .pfsubs-main { font-weight: 900; }
+  .pfsubs-price { color: var(--pf-accent); font-weight: 950; }
+
+  .pfsubs-lifebar {
+    margin-top: 7px;
+    height: 5px;
+    border-radius: var(--id-pill);
+    background: var(--pf-line-soft);
+    overflow: hidden;
   }
-  .subscriptions-page .price { color: var(--subs-brand); font-weight: 950; }
-  .subscriptions-page .status-badge {
+  .pfsubs-lifebar > span { display: block; height: 100%; border-radius: var(--id-pill); background: var(--id-green-600); }
+  .pfsubs-lifebar[data-tone="warn"] > span { background: var(--id-tone-attention); }
+  .pfsubs-lifebar[data-tone="danger"] > span { background: var(--id-tone-danger); }
+
+  .pfsubs-badge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 9px;
+    padding: 5px 11px;
     border: 1px solid currentColor;
-    border-radius: 999px;
-    font-size: .76rem;
+    border-radius: var(--id-pill);
+    font-size: .73rem;
     font-weight: 950;
     white-space: nowrap;
   }
-  .subscriptions-page .status-badge--success { color: var(--subs-success); background: rgba(21, 128, 90, .08); }
-  .subscriptions-page .status-badge--warning { color: var(--subs-warning); background: rgba(185, 104, 6, .08); }
-  .subscriptions-page .status-badge--danger { color: var(--subs-danger); background: rgba(201, 56, 56, .08); }
-  .subscriptions-page .row-actions { display: flex; align-items: flex-start; gap: 7px; min-width: 166px; }
-  .subscriptions-page .row-actions > .btn,
-  .subscriptions-page .row-actions summary {
-    min-height: 36px;
-    padding: 7px 10px;
-    border-radius: 10px;
-    font-size: .77rem;
-  }
-  .subscriptions-page .actions-menu { position: relative; }
-  .subscriptions-page .actions-menu summary {
+  .pfsubs-badge--ok { color: var(--id-tone-approved); background: var(--id-tone-approved-wash); }
+  .pfsubs-badge--warn { color: var(--id-tone-attention); background: var(--id-tone-attention-wash); }
+  .pfsubs-badge--info { color: var(--id-tone-pending); background: var(--id-tone-pending-wash); }
+  .pfsubs-badge--danger { color: var(--id-tone-danger); background: var(--id-tone-danger-wash); }
+  .pfsubs-badge--muted { color: var(--id-tone-draft); background: var(--id-tone-draft-wash); }
+
+  .pfsubs-actions { display: flex; align-items: flex-start; gap: 7px; min-width: 168px; }
+  .pfsubs-menu { position: relative; }
+  .pfsubs-menu > summary {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    border: 1px solid var(--subs-line);
-    color: var(--subs-ink);
-    background: var(--subs-card);
-    font-weight: 850;
+    gap: 7px;
+    min-height: 38px;
+    padding: 8px 13px;
+    border: 1px solid var(--pf-line);
+    border-radius: var(--id-r1);
+    background: var(--pf-card-2);
+    color: var(--pf-ink);
+    font-size: .78rem;
+    font-weight: 900;
     cursor: pointer;
     list-style: none;
+    white-space: nowrap;
   }
-  .subscriptions-page .actions-menu summary::-webkit-details-marker { display: none; }
-  .subscriptions-page .actions-menu[open] summary { border-color: rgba(8, 102, 58, .38); color: var(--subs-brand); }
-  .subscriptions-page .actions-menu-panel {
-    position: static;
+  .pfsubs-menu > summary::-webkit-details-marker { display: none; }
+  .pfsubs-menu[open] > summary { border-color: var(--id-green-500); color: var(--pf-accent); }
+  .pfsubs-menu__panel {
     display: grid;
-    gap: 6px;
-    width: 174px;
-    margin-top: 7px;
-    padding: 8px;
-    border: 1px solid var(--subs-line);
-    border-radius: 12px;
-    background: var(--subs-card);
-    box-shadow: 0 18px 40px -16px rgba(15, 23, 42, .35);
+    gap: 7px;
+    width: 190px;
+    margin-top: 8px;
+    padding: 9px;
+    border: 1px solid var(--pf-line);
+    border-radius: var(--id-r2);
+    background: var(--pf-card);
+    box-shadow: var(--id-e3);
   }
-  .subscriptions-page .actions-menu-panel .btn { width: 100%; min-height: 36px; justify-content: flex-start; border-radius: 9px; font-size: .76rem; }
-  .subscriptions-page .btn-danger { color: var(--subs-danger); border-color: rgba(201, 56, 56, .24); background: rgba(201, 56, 56, .06); }
-  .subscriptions-page .empty-state { padding: 50px 20px !important; text-align: center !important; }
-  .subscriptions-page .empty-icon {
+  .pfsubs-menu__panel .pfsubs-btn { width: 100%; justify-content: flex-start; }
+
+  .pfsubs-empty {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 52px 20px;
+    text-align: center;
+  }
+  .pfsubs-empty__icon {
     display: grid;
     place-items: center;
-    width: 54px;
-    height: 54px;
-    margin: 0 auto 12px;
-    border-radius: 17px;
-    color: var(--subs-brand);
-    background: rgba(8, 102, 58, .08);
-    font-size: 1.2rem;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--id-r3);
+    color: var(--pf-accent);
+    background: var(--id-accent-wash);
+    font-size: 1.25rem;
   }
-  .subscriptions-page .empty-state strong { display: block; color: var(--subs-ink); }
-  .subscriptions-page .empty-state span { display: block; margin-top: 5px; color: var(--subs-muted); font-size: .84rem; }
+  .pfsubs-empty strong { font-size: .95rem; font-weight: 950; }
+  .pfsubs-empty span { color: var(--pf-muted); font-size: .84rem; font-weight: 750; }
 
-  @media (max-width: 1100px) {
-    .subscriptions-page .subs-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .subscriptions-page .subs-layout { grid-template-columns: 1fr; }
-    .subscriptions-page .decision-body { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: start; }
-    .subscriptions-page .decision-row { display: grid; border-bottom: 0; }
-    .subscriptions-page .decision-note { grid-column: 1 / -1; }
+  /* ── الاستجابة ────────────────────────────────────────────────── */
+  @media (max-width: 1180px) {
+    .pfsubs-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
-  @media (max-width: 850px) {
-    .subscriptions-page .subs-header { align-items: flex-start; flex-direction: column; }
-    .subscriptions-page .subs-header-actions { justify-content: flex-start; }
-    .subscriptions-page .filter-form { grid-template-columns: 1fr 1fr; }
-    .subscriptions-page .filter-actions { align-self: end; }
-    .subscriptions-page .rtable { min-width: 0; }
-    .subscriptions-page .rtable tbody { padding: 10px; }
-    .subscriptions-page .rtable tr { margin: 0 0 10px; border-radius: 15px; box-shadow: none; }
-    .subscriptions-page .rtable td { display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; gap: 8px; text-align: right; }
-    .subscriptions-page .rtable td::before { margin: 0 !important; color: var(--subs-muted); font-size: .74rem; font-weight: 900; }
-    .subscriptions-page .row-actions { min-width: 0; }
-    .subscriptions-page .actions-menu-panel { margin-top: 6px; }
+  @media (max-width: 860px) {
+    .pfsubs-filter { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .pfsubs-filter__actions { grid-column: 1 / -1; }
+    .pfsubs-filter__actions .pfsubs-btn { flex: 1; }
   }
-  @media (max-width: 580px) {
-    .subscriptions-page { padding-inline: 10px; }
-    .subscriptions-page .subs-header { padding: 21px 18px; border-radius: 19px; }
-    .subscriptions-page .subs-header-actions,
-    .subscriptions-page .subs-header-actions .btn { width: 100%; }
-    .subscriptions-page .subs-header-actions .btn { justify-content: center; }
-    .subscriptions-page .subs-kpis { grid-template-columns: 1fr; }
-    .subscriptions-page .filter-form { grid-template-columns: 1fr; }
-    .subscriptions-page .filter-actions, .subscriptions-page .filter-actions .btn { width: 100%; }
-    .subscriptions-page .filter-actions .btn { flex: 1; justify-content: center; }
-    .subscriptions-page .decision-body { grid-template-columns: 1fr 1fr; }
-    .subscriptions-page .subs-table-head { align-items: flex-start; flex-direction: column; }
-    .subscriptions-page .rtable td { grid-template-columns: 94px minmax(0, 1fr); }
-    .subscriptions-page .row-actions { flex-wrap: wrap; }
+  @media (max-width: 960px) {
+    .pfsubs-hero { grid-template-columns: minmax(0, 1fr); }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .subscriptions-page .rtable tbody tr { transition: none; }
+  @media (max-width: 720px) {
+    .pfsubs-kpis { grid-template-columns: minmax(0, 1fr); }
+    .pfsubs-filter { grid-template-columns: minmax(0, 1fr); }
+    .pfsubs-hero__actions { width: 100%; }
+    .pfsubs-hero__actions .pfsubs-hero__button { flex: 1; justify-content: center; }
+
+    /* الجدول يتحوّل بطاقات: العنوان يأتي من `data-label` */
+    .pfsubs-table { min-width: 0; }
+    .pfsubs-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .pfsubs-table tr {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 11px;
+      padding: 14px;
+      border: 1px solid var(--pf-line);
+      border-radius: var(--id-r3);
+      background: var(--pf-card-2);
+    }
+    .pfsubs-table td { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; padding: 0; border: 0; }
+    .pfsubs-table td::before {
+      content: attr(data-label);
+      color: var(--pf-muted);
+      font-size: .73rem;
+      font-weight: 950;
+    }
+    .pfsubs-actions { min-width: 0; flex-wrap: wrap; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<main class="subscriptions-page" dir="rtl">
-  <header class="subs-header" aria-labelledby="subscriptionsTitle">
-    <div class="subs-heading">
-      <div class="subs-eyebrow"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> إدارة الإيرادات والاشتراكات</div>
+<main class="pfsubs id-root" dir="rtl">
+
+  {# ═══ الترويسة ═════════════════════════════════════════════════ #}
+  <header class="pfsubs-hero" aria-labelledby="subscriptionsTitle">
+    <div class="pfsubs-hero__copy">
+      <span class="pfsubs-eyebrow"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> إدارة الإيرادات والاشتراكات</span>
       <h1 id="subscriptionsTitle">متابعة الاشتراكات</h1>
       <p>راقب الاشتراكات والتحصيل والتجديدات من مساحة عمل واحدة، وحدد الحالات التي تحتاج إلى إجراء فوري.</p>
+
+      <nav class="pfsubs-hero__actions" aria-label="إجراءات الاشتراكات الرئيسية">
+        <a href="{% url 'reports:platform_subscription_add' %}" class="pfsubs-hero__button pfsubs-hero__button--primary">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i> اشتراك جديد
+        </a>
+        <a href="{% url 'reports:platform_payments_list' %}" class="pfsubs-hero__button">
+          <i class="fa-solid fa-receipt" aria-hidden="true"></i> المدفوعات
+        </a>
+        <a href="{% url 'reports:platform_archive_addons_list' %}" class="pfsubs-hero__button">
+          <i class="fa-solid fa-box-archive" aria-hidden="true"></i> إضافات الأرشيف
+        </a>
+        <a href="{% url 'reports:platform_admin_dashboard' %}" class="pfsubs-hero__button">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> لوحة المنصة
+        </a>
+      </nav>
     </div>
-    <nav class="subs-header-actions" aria-label="إجراءات الاشتراكات الرئيسية">
-      <a href="{% url 'reports:platform_subscription_add' %}" class="btn btn-primary">
-        <i class="fa-solid fa-plus" aria-hidden="true"></i> اشتراك جديد
-      </a>
-      <a href="{% url 'reports:platform_payments_list' %}" class="btn btn-outline">
-        <i class="fa-solid fa-receipt" aria-hidden="true"></i> المدفوعات
-      </a>
-      <a href="{% url 'reports:platform_archive_addons_list' %}" class="btn btn-outline">
-        <i class="fa-solid fa-box-archive" aria-hidden="true"></i> إضافات الأرشيف
-      </a>
-      <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline" aria-label="العودة إلى لوحة المنصة">
-        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-      </a>
-    </nav>
+
+    <div class="pfsubs-hero__summary">
+      <span>تحتاج إجراءً الآن</span>
+      <strong>{{ urgent_renewals_count|add:collection_gap_count }}</strong>
+      <small>{{ urgent_renewals_count|default:0 }} تجديد عاجل · {{ collection_gap_count|default:0 }} دفعة غير مسجلة</small>
+    </div>
   </header>
 
-  <section class="subs-kpis" aria-label="مؤشرات الاشتراكات">
-    <article class="subs-kpi subs-kpi--success">
-      <div class="subs-kpi-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div>
+  {# ═══ مؤشرات المال ═════════════════════════════════════════════ #}
+  <section class="pfsubs-kpis" aria-label="مؤشرات الاشتراكات">
+    <article class="pfsubs-kpi">
+      <div class="pfsubs-kpi__icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div>
       <div>
-        <div class="subs-kpi-label">قيمة الاشتراكات السارية</div>
-        <div class="subs-kpi-value">{{ active_value|floatformat:0|intcomma }} ريال</div>
-        <div class="subs-kpi-hint">{{ stats_active|default:0 }} اشتراك نشط</div>
+        <div class="pfsubs-kpi__label">قيمة الاشتراكات السارية</div>
+        <div class="pfsubs-kpi__value">{{ active_value|floatformat:0|intcomma }} ريال</div>
+        <div class="pfsubs-kpi__hint">{{ stats_active|default:0 }} اشتراك نشط</div>
       </div>
     </article>
-    <article class="subs-kpi">
-      <div class="subs-kpi-icon"><i class="fa-solid fa-wallet" aria-hidden="true"></i></div>
+    <article class="pfsubs-kpi pfsubs-kpi--gold">
+      <div class="pfsubs-kpi__icon"><i class="fa-solid fa-wallet" aria-hidden="true"></i></div>
       <div>
-        <div class="subs-kpi-label">المحصّل هذا الشهر</div>
-        <div class="subs-kpi-value">{{ collected_this_month|floatformat:0|intcomma }} ريال</div>
-        <div class="subs-kpi-hint">المدفوعات المقبولة فقط</div>
+        <div class="pfsubs-kpi__label">المحصّل هذا الشهر</div>
+        <div class="pfsubs-kpi__value">{{ collected_this_month|floatformat:0|intcomma }} ريال</div>
+        <div class="pfsubs-kpi__hint">المدفوعات المقبولة فقط</div>
       </div>
     </article>
-    <article class="subs-kpi subs-kpi--warning">
-      <div class="subs-kpi-icon"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></div>
+    <article class="pfsubs-kpi pfsubs-kpi--warn">
+      <div class="pfsubs-kpi__icon"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></div>
       <div>
-        <div class="subs-kpi-label">تجديدات خلال {{ soon_days }} يومًا</div>
-        <div class="subs-kpi-value">{{ expiring_soon_count|default:0 }} اشتراك</div>
-        <div class="subs-kpi-hint">بقيمة {{ expiring_value|floatformat:0|intcomma }} ريال</div>
+        <div class="pfsubs-kpi__label">تجديدات خلال {{ soon_days }} يومًا</div>
+        <div class="pfsubs-kpi__value">{{ expiring_soon_count|default:0 }} اشتراك</div>
+        <div class="pfsubs-kpi__hint">بقيمة {{ expiring_value|floatformat:0|intcomma }} ريال</div>
       </div>
     </article>
-    <article class="subs-kpi subs-kpi--danger">
-      <div class="subs-kpi-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></div>
+    <article class="pfsubs-kpi pfsubs-kpi--danger">
+      <div class="pfsubs-kpi__icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></div>
       <div>
-        <div class="subs-kpi-label">تحتاج متابعة عاجلة</div>
-        <div class="subs-kpi-value">{{ urgent_renewals_count|default:0 }} اشتراك</div>
-        <div class="subs-kpi-hint">تنتهي خلال {{ urgent_days }} أيام</div>
+        <div class="pfsubs-kpi__label">تحتاج متابعة عاجلة</div>
+        <div class="pfsubs-kpi__value">{{ urgent_renewals_count|default:0 }} اشتراك</div>
+        <div class="pfsubs-kpi__hint">تنتهي خلال {{ urgent_days }} أيام</div>
       </div>
     </article>
   </section>
 
-  <div class="subs-layout">
-    <section class="subs-panel subs-filters" aria-labelledby="filtersTitle">
-      <div class="panel-heading">
-        <div>
-          <h2 id="filtersTitle"><i class="fa-solid fa-sliders" aria-hidden="true"></i> البحث والتصفية</h2>
-          <p>استخدم اسم المدرسة أو حالة الاشتراك أو الباقة للوصول السريع.</p>
+  {# ═══ الأولويات ════════════════════════════════════════════════ #}
+  <section class="pfsubs-panel" aria-labelledby="decisionTitle">
+    <div class="pfsubs-panel__head">
+      <div class="pfsubs-panel__icon"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i></div>
+      <div class="pfsubs-panel__title">
+        <h2 id="decisionTitle">ملخص المتابعة</h2>
+        <p>ابدأ من الأعلى: العاجل أولاً، ثم ما لا يملك دفعة مسجلة للفترة الحالية.</p>
+      </div>
+    </div>
+    <div class="pfsubs-panel__body">
+      <div class="pfsubs-priorities">
+        <div class="pfsubs-priority pfsubs-priority--urgent">
+          <span>تجديد عاجل</span>
+          <strong>{{ urgent_renewals_count|default:0 }}</strong>
+          <small>تنتهي خلال {{ urgent_days }} أيام</small>
+        </div>
+        <div class="pfsubs-priority pfsubs-priority--collect">
+          <span>دفعات غير مسجلة</span>
+          <strong>{{ collection_gap_count|default:0 }}</strong>
+          <small>اشتراكات سارية بلا دفعة للفترة</small>
+        </div>
+        <div class="pfsubs-priority pfsubs-priority--renew">
+          <span>تجديد قريب</span>
+          <strong>{{ expiring_soon_count|default:0 }}</strong>
+          <small>خلال {{ soon_days }} يومًا</small>
+        </div>
+        <div class="pfsubs-priority">
+          <span>إجمالي الاشتراكات</span>
+          <strong>{{ stats_total|default:0 }}</strong>
+          <small>{{ stats_expired|default:0 }} منتهية · {{ stats_cancelled|default:0 }} ملغاة</small>
         </div>
       </div>
-      <form method="get" class="filter-form" novalidate>
-        <div class="filter-field">
+      <p class="pfsubs-hintline">
+        <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+        <span>أعمدة «الحالة» و«الدفع» في الكشف أدناه تحمل الأولوية نفسها، فيمكنك المعالجة صفاً صفاً دون مغادرة الصفحة.</span>
+      </p>
+    </div>
+  </section>
+
+  {# ═══ التصفية ══════════════════════════════════════════════════ #}
+  <section class="pfsubs-panel" aria-labelledby="filtersTitle">
+    <div class="pfsubs-panel__head">
+      <div class="pfsubs-panel__icon"><i class="fa-solid fa-sliders" aria-hidden="true"></i></div>
+      <div class="pfsubs-panel__title">
+        <h2 id="filtersTitle">البحث والتصفية</h2>
+        <p>ابدأ بحالة الاشتراك، ثم ضيّق النتيجة باسم المدرسة أو الباقة.</p>
+      </div>
+    </div>
+    <div class="pfsubs-panel__body">
+      <nav class="pfsubs-tabs" aria-label="تصفية حسب الحالة">
+        <a class="pfsubs-tab {% if status == 'all' or not status %}is-active{% endif %}" href="?status=all{% if q %}&q={{ q|urlencode }}{% endif %}{% if plan_id %}&plan={{ plan_id|urlencode }}{% endif %}">
+          <i class="fa-solid fa-layer-group" aria-hidden="true"></i> كل الحالات <b>{{ stats_total|default:0 }}</b>
+        </a>
+        <a class="pfsubs-tab {% if status == 'active' %}is-active{% endif %}" href="?status=active{% if q %}&q={{ q|urlencode }}{% endif %}{% if plan_id %}&plan={{ plan_id|urlencode }}{% endif %}">
+          <i class="fa-solid fa-circle-check" aria-hidden="true"></i> سارية <b>{{ stats_active|default:0 }}</b>
+        </a>
+        <a class="pfsubs-tab {% if status == 'expired' %}is-active{% endif %}" href="?status=expired{% if q %}&q={{ q|urlencode }}{% endif %}{% if plan_id %}&plan={{ plan_id|urlencode }}{% endif %}">
+          <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> منتهية <b>{{ stats_expired|default:0 }}</b>
+        </a>
+        <a class="pfsubs-tab {% if status == 'cancelled' %}is-active{% endif %}" href="?status=cancelled{% if q %}&q={{ q|urlencode }}{% endif %}{% if plan_id %}&plan={{ plan_id|urlencode }}{% endif %}">
+          <i class="fa-solid fa-ban" aria-hidden="true"></i> ملغاة <b>{{ stats_cancelled|default:0 }}</b>
+        </a>
+      </nav>
+
+      <form method="get" class="pfsubs-filter" novalidate>
+        <input type="hidden" name="status" value="{{ status|default:'all' }}">
+        <div class="pfsubs-field">
           <label for="subscriptionSearch">اسم المدرسة</label>
-          <input id="subscriptionSearch" type="search" name="q" class="input" placeholder="ابحث باسم المدرسة..." value="{{ q|default:'' }}">
+          <input id="subscriptionSearch" type="search" name="q" class="pfsubs-input" placeholder="ابحث باسم المدرسة..." value="{{ q|default:'' }}">
         </div>
-        <div class="filter-field">
-          <label for="subscriptionStatus">حالة الاشتراك</label>
-          <select id="subscriptionStatus" name="status" class="input">
-            <option value="all" {% if status == 'all' or not status %}selected{% endif %}>كل الحالات</option>
-            <option value="active" {% if status == 'active' %}selected{% endif %}>ساري</option>
-            <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>ملغي</option>
-            <option value="expired" {% if status == 'expired' %}selected{% endif %}>منتهي</option>
-          </select>
-        </div>
-        <div class="filter-field">
+        <div class="pfsubs-field">
           <label for="subscriptionPlan">الباقة</label>
-          <select id="subscriptionPlan" name="plan" class="input">
+          <select id="subscriptionPlan" name="plan" class="pfsubs-input">
             <option value="" {% if not plan_id %}selected{% endif %}>كل الباقات</option>
             {% for p in plans %}
               <option value="{{ p.id }}" {% if plan_id|stringformat:'s' == p.id|stringformat:'s' %}selected{% endif %}>{{ p.name }}</option>
             {% endfor %}
           </select>
         </div>
-        <div class="filter-actions">
-          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> عرض</button>
-          <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn btn-outline" aria-label="مسح عوامل التصفية"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></a>
+        <div class="pfsubs-filter__actions">
+          <button type="submit" class="pfsubs-btn pfsubs-btn--solid"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> عرض</button>
+          <a href="{% url 'reports:platform_subscriptions_list' %}" class="pfsubs-btn" aria-label="مسح عوامل التصفية"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> مسح</a>
         </div>
       </form>
-    </section>
-
-    <aside class="subs-panel decision-card" aria-labelledby="decisionTitle">
-      <div class="decision-head">
-        <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
-        <h2 id="decisionTitle">ملخص المتابعة</h2>
-      </div>
-      <div class="decision-body">
-        <div class="decision-row"><span>إجمالي الاشتراكات</span><strong>{{ stats_total|default:0 }}</strong></div>
-        <div class="decision-row"><span>منتهية أو موقوفة</span><strong>{{ stats_expired|default:0 }}</strong></div>
-        <div class="decision-row"><span>ملغاة</span><strong>{{ stats_cancelled|default:0 }}</strong></div>
-        <div class="decision-row"><span>دفعات غير مسجلة</span><strong>{{ collection_gap_count|default:0 }}</strong></div>
-        <div class="decision-note">
-          <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
-          <span>ابدأ بالاشتراكات العاجلة ثم الحالات التي لا تملك دفعة مسجلة للفترة الحالية.</span>
-        </div>
-      </div>
-    </aside>
-  </div>
-
-  <section class="subs-panel subs-table-card" aria-labelledby="subscriptionsTableTitle">
-    <div class="subs-table-head">
-      <div class="subs-table-title">
-        <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
-        <h2 id="subscriptionsTableTitle">محفظة الاشتراكات</h2>
-      </div>
-      <div class="results-count" aria-live="polite">{{ results_count|default:0 }} نتيجة</div>
     </div>
-    <div class="table-responsive">
-      <table class="rtable">
+  </section>
+
+  {# ═══ الكشف ════════════════════════════════════════════════════ #}
+  <section class="pfsubs-panel" aria-labelledby="subscriptionsTableTitle">
+    <div class="pfsubs-panel__head">
+      <div class="pfsubs-panel__icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></div>
+      <div class="pfsubs-panel__title">
+        <h2 id="subscriptionsTableTitle">محفظة الاشتراكات</h2>
+        <p>كل صف يحمل حالته وحالة تحصيله وإجراءه في مكان واحد.</p>
+      </div>
+      <div class="pfsubs-panel__aside">
+        <span class="pfsubs-count" aria-live="polite"><i class="fa-solid fa-list-ol" aria-hidden="true"></i> {{ results_count|default:0 }} نتيجة</span>
+      </div>
+    </div>
+
+    <div class="pfsubs-scroll">
+      <table class="pfsubs-table">
         <thead>
           <tr>
-            <th scope="col" style="text-align:right">المدرسة</th>
-            <th scope="col" style="text-align:right">الباقة</th>
+            <th scope="col">المدرسة</th>
+            <th scope="col">الباقة</th>
             <th scope="col">فترة الاشتراك</th>
             <th scope="col">الحالة</th>
             <th scope="col">الدفع</th>
@@ -583,69 +710,74 @@
         <tbody>
           {% for sub in subscriptions %}
             <tr>
-              <td data-label="المدرسة" style="text-align:right">
-                <div class="school-cell">
-                  <span class="school-avatar" aria-hidden="true">{{ sub.school.name|slice:":1" }}</span>
+              <td data-label="المدرسة">
+                <div class="pfsubs-school">
+                  <span class="pfsubs-avatar" aria-hidden="true">{{ sub.school.name|slice:":1" }}</span>
                   <div>
-                    <div class="school-name">{{ sub.school.name }}</div>
-                    {% if sub.school.city %}<div class="cell-sub"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ sub.school.city }}</div>{% endif %}
+                    <strong>{{ sub.school.name }}</strong>
+                    {% if sub.school.city %}<div class="pfsubs-sub"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ sub.school.city }}</div>{% endif %}
                   </div>
                 </div>
               </td>
-              <td data-label="الباقة" style="text-align:right">
-                <div class="cell-main">{{ sub.plan.name }}</div>
-                <div class="cell-sub price">سعة {{ sub.teacher_limit }} معلماً</div>
+              <td data-label="الباقة">
+                <div class="pfsubs-main">{{ sub.plan.name }}</div>
+                <div class="pfsubs-sub pfsubs-price">سعة {{ sub.teacher_limit }} معلماً · {{ sub.plan.price|floatformat:0|intcomma }} ريال</div>
               </td>
               <td data-label="فترة الاشتراك">
-                <div class="cell-main">{{ sub.start_date|hijri }} هـ</div>
-                <div class="cell-sub">حتى {{ sub.end_date|hijri }} هـ</div>
+                <div class="pfsubs-main">{{ sub.start_date|hijri }} هـ</div>
+                <div class="pfsubs-sub">حتى {{ sub.end_date|hijri }} هـ</div>
+                {% if not sub.is_cancelled and not sub.is_expired and sub.plan.days_duration %}
+                  <div class="pfsubs-lifebar" data-tone="{% if sub.days_remaining <= urgent_days %}danger{% elif sub.days_remaining <= soon_days %}warn{% else %}ok{% endif %}" aria-hidden="true">
+                    <span style="width:{% widthratio sub.days_remaining sub.plan.days_duration 100 %}%"></span>
+                  </div>
+                {% endif %}
               </td>
               <td data-label="الحالة">
                 {% if sub.is_cancelled %}
-                  <span class="status-badge status-badge--danger"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
-                  {% if sub.cancel_reason %}<div class="cell-sub">{{ sub.cancel_reason }}</div>{% endif %}
-                  <div class="cell-sub">مسترجع: {{ sub.refund_amount_for_period|default:0|floatformat:0|intcomma }} ريال</div>
+                  <span class="pfsubs-badge pfsubs-badge--danger"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
+                  {% if sub.cancel_reason %}<div class="pfsubs-sub">{{ sub.cancel_reason }}</div>{% endif %}
+                  <div class="pfsubs-sub">مسترجع: {{ sub.refund_amount_for_period|default:0|floatformat:0|intcomma }} ريال</div>
                 {% elif sub.is_expired %}
-                  <span class="status-badge status-badge--danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> منتهي</span>
+                  <span class="pfsubs-badge pfsubs-badge--danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> منتهي</span>
                 {% elif sub.commercial_priority == "collect" %}
-                  <span class="status-badge status-badge--warning"><i class="fa-solid fa-receipt" aria-hidden="true"></i> تحصيل مطلوب</span>
+                  <span class="pfsubs-badge pfsubs-badge--warn"><i class="fa-solid fa-receipt" aria-hidden="true"></i> تحصيل مطلوب</span>
                 {% elif sub.commercial_priority == "urgent" %}
-                  <span class="status-badge status-badge--warning"><i class="fa-solid fa-bell" aria-hidden="true"></i> تجديد عاجل</span>
+                  <span class="pfsubs-badge pfsubs-badge--danger"><i class="fa-solid fa-bell" aria-hidden="true"></i> تجديد عاجل</span>
                 {% elif sub.commercial_priority == "renew" %}
-                  <span class="status-badge status-badge--warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> تجديد قريب</span>
+                  <span class="pfsubs-badge pfsubs-badge--warn"><i class="fa-solid fa-clock" aria-hidden="true"></i> تجديد قريب</span>
                 {% else %}
-                  <span class="status-badge status-badge--success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ساري</span>
+                  <span class="pfsubs-badge pfsubs-badge--ok"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ساري</span>
                 {% endif %}
-                {% if not sub.is_cancelled and not sub.is_expired %}<div class="cell-sub">{{ sub.days_remaining }} يوم متبقي</div>{% endif %}
+                {% if not sub.is_cancelled and not sub.is_expired %}<div class="pfsubs-sub">{{ sub.days_remaining }} يوم متبقٍ</div>{% endif %}
               </td>
               <td data-label="الدفع">
                 {% if sub.has_payment_for_period %}
-                  <span class="status-badge status-badge--success"><i class="fa-solid fa-check" aria-hidden="true"></i> مسجل</span>
+                  <span class="pfsubs-badge pfsubs-badge--ok"><i class="fa-solid fa-check" aria-hidden="true"></i> مسجل</span>
                 {% else %}
-                  <span class="status-badge status-badge--warning"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> غير مسجل</span>
+                  <span class="pfsubs-badge pfsubs-badge--warn"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> غير مسجل</span>
                 {% endif %}
               </td>
               <td data-label="الإجراءات">
-                <div class="row-actions">
-                  <a href="{% url 'reports:platform_subscription_detail' sub.id %}" class="btn btn-primary">
+                <div class="pfsubs-actions">
+                  <a href="{% url 'reports:platform_subscription_detail' sub.id %}" class="pfsubs-btn pfsubs-btn--solid pfsubs-btn--sm">
                     <i class="fa-solid fa-eye" aria-hidden="true"></i> التفاصيل
                   </a>
                   {% if not sub.is_cancelled or sub.is_active and not sub.has_payment_for_period and sub.plan.price %}
-                    <details class="actions-menu">
+                    <details class="pfsubs-menu">
                       <summary><i class="fa-solid fa-ellipsis" aria-hidden="true"></i> إجراءات</summary>
-                      <div class="actions-menu-panel">
+                      <div class="pfsubs-menu__panel">
                         {% if not sub.is_cancelled %}
                           <form method="post" action="{% url 'reports:platform_subscription_renew' sub.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                            <button type="submit" class="btn btn-outline" data-confirm="تأكيد تجديد الاشتراك؟"><i class="fa-solid fa-rotate" aria-hidden="true"></i> تجديد الاشتراك</button>
+                            <button type="submit" class="pfsubs-btn pfsubs-btn--sm" data-confirm="تأكيد تجديد الاشتراك؟"><i class="fa-solid fa-rotate" aria-hidden="true"></i> تجديد الاشتراك</button>
                           </form>
                         {% endif %}
                         {% if sub.is_active and not sub.has_payment_for_period and sub.plan.price %}
                           <form method="post" action="{% url 'reports:platform_subscription_record_payment' sub.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                            <button type="submit" class="btn btn-outline" data-confirm="تسجيل دفعة لهذا الاشتراك؟"><i class="fa-solid fa-receipt" aria-hidden="true"></i> تسجيل دفعة</button>
+                            <button type="submit" class="pfsubs-btn pfsubs-btn--sm" data-confirm="تسجيل دفعة لهذا الاشتراك؟"><i class="fa-solid fa-receipt" aria-hidden="true"></i> تسجيل دفعة</button>
                           </form>
                         {% endif %}
                         {% if not sub.is_cancelled and not sub.is_expired %}
@@ -654,7 +786,7 @@
                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
                             <input type="hidden" name="reason" value="{{ sub.cancel_reason|default:'' }}">
                             <input type="hidden" name="refund_amount" value="">
-                            <button type="submit" class="btn btn-danger" data-reason-prompt="سبب الإلغاء (سيظهر للمدرسة):" data-refund-prompt="استرجاع مبلغ؟ اتركه فارغًا بدون استرجاع. اكتب (كامل) للاسترجاع الكامل أو اكتب رقمًا مثل 150.00 للاسترجاع الجزئي." data-confirm="سيتم إلغاء اشتراك مدرسة: {{ sub.school.name }}. هل أنت متأكد؟"><i class="fa-solid fa-ban" aria-hidden="true"></i> إلغاء الاشتراك</button>
+                            <button type="submit" class="pfsubs-btn pfsubs-btn--danger pfsubs-btn--sm" data-reason-prompt="سبب الإلغاء (سيظهر للمدرسة):" data-refund-prompt="استرجاع مبلغ؟ اتركه فارغًا بدون استرجاع. اكتب (كامل) للاسترجاع الكامل أو اكتب رقمًا مثل 150.00 للاسترجاع الجزئي." data-confirm="سيتم إلغاء اشتراك مدرسة: {{ sub.school.name }}. هل أنت متأكد؟"><i class="fa-solid fa-ban" aria-hidden="true"></i> إلغاء الاشتراك</button>
                           </form>
                         {% endif %}
                       </div>
@@ -665,10 +797,12 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" class="empty-state">
-                <div class="empty-icon"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></div>
-                <strong>لا توجد اشتراكات مطابقة</strong>
-                <span>جرّب تغيير عبارة البحث أو مسح عوامل التصفية.</span>
+              <td colspan="6">
+                <div class="pfsubs-empty">
+                  <div class="pfsubs-empty__icon"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></div>
+                  <strong>لا توجد اشتراكات مطابقة</strong>
+                  <span>جرّب تغيير عبارة البحث أو مسح عوامل التصفية.</span>
+                </div>
               </td>
             </tr>
           {% endfor %}
@@ -683,7 +817,7 @@
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function () {
-    document.querySelectorAll('.subscriptions-page [data-confirm]').forEach(function (button) {
+    document.querySelectorAll('.pfsubs [data-confirm]').forEach(function (button) {
       button.addEventListener('click', function (event) {
         var promptLabel = button.getAttribute('data-reason-prompt');
         if (promptLabel) {
@@ -720,7 +854,7 @@
     });
 
     document.addEventListener('click', function (event) {
-      document.querySelectorAll('.subscriptions-page .actions-menu[open]').forEach(function (menu) {
+      document.querySelectorAll('.pfsubs .pfsubs-menu[open]').forEach(function (menu) {
         if (!menu.contains(event.target)) menu.removeAttribute('open');
       });
     });

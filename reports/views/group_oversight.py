@@ -33,11 +33,14 @@ from ..models import (
     Plan,
     Report,
     School,
+    SchoolArchiveAddon,
     SchoolMembership,
+    SchoolSubscription,
     SchoolYearArchive,
     TeacherAchievementFile,
 )
 from ..services_approval import available_actions
+from ..services_archive import attach_school_consumption_rows
 from ..permissions import (
     executive_director_groups,
     executive_director_schools_qs,
@@ -46,6 +49,7 @@ from ..permissions import (
 
 __all__ = [
     "group_school_detail",
+    "group_subscriptions",
     "group_audit_log",
     "group_archive",
     "group_approval_inbox",
@@ -159,6 +163,180 @@ def group_school_detail(request, pk: int):
             "stats": stats,
             "group_targets": group_targets,
             "shared_practices": shared_practices,
+        },
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# اشتراكات المجموعة
+# ─────────────────────────────────────────────────────────────────────────────
+# نافذتان لا واحدة: «عاجل» ما يُتصل بشأنه اليوم، و«قريب» ما يُخطَّط له.
+# دمجهما في رقم واحد كان يجعل مدرسةً تنتهي بعد ثلاثة أيام ومدرسةً تنتهي بعد
+# ثلاثين تقرآن بالإلحاح نفسه.
+SUBSCRIPTION_URGENT_DAYS = 7
+SUBSCRIPTION_SOON_DAYS = 30
+
+_SUBSCRIPTION_PRIORITY_ORDER = {
+    "none": 0,
+    "expired": 1,
+    "cancelled": 2,
+    "urgent": 3,
+    "soon": 4,
+    "active": 5,
+}
+
+
+def _group_subscription_row(school, subscription, addon, manager) -> dict:
+    """صف اشتراك مدرسة واحدة كما يقرؤه المدير التنفيذي.
+
+    الحالة تُحسب هنا لا في القالب: القالب لا يعرف الطرح بين تاريخين، وحسابُها
+    في مكانين يجعل بطاقة العدّاد تخالف الصف الذي تحتها.
+    """
+    if subscription is None:
+        state = {"key": "none", "label": "بلا اشتراك", "days": None}
+    elif getattr(subscription, "is_cancelled", False):
+        state = {"key": "cancelled", "label": "ملغى", "days": 0}
+    elif getattr(subscription, "is_expired", False):
+        state = {"key": "expired", "label": "منتهٍ", "days": 0}
+    else:
+        try:
+            days = int(subscription.days_remaining or 0)
+        except Exception:
+            days = 0
+        if days <= SUBSCRIPTION_URGENT_DAYS:
+            state = {"key": "urgent", "label": f"ينتهي خلال {days} يوماً", "days": days}
+        elif days <= SUBSCRIPTION_SOON_DAYS:
+            state = {"key": "soon", "label": f"يتبقى {days} يوماً", "days": days}
+        else:
+            state = {"key": "active", "label": f"سارٍ · {days} يوماً", "days": days}
+
+    consumption = getattr(school, "consumption_row", None) or {
+        "storage": {"percent": 0, "is_unlimited": True, "label": "—"},
+        "seats": {"percent": 0, "is_unlimited": True, "label": "—"},
+        "archive": {"percent": 0, "is_subscribed": False, "label": "—"},
+    }
+
+    archive_active = bool(addon and getattr(addon, "is_active", False))
+    return {
+        "school": school,
+        "subscription": subscription,
+        "manager": manager,
+        "state": state,
+        "order": _SUBSCRIPTION_PRIORITY_ORDER.get(state["key"], 9),
+        "consumption": consumption,
+        "archive_addon": addon,
+        "archive_active": archive_active,
+        # ضغط السعة والمساحة يوقف العمل كما يوقفه انتهاء الاشتراك، فيُعرض معه.
+        "is_pressured": (
+            consumption["storage"]["percent"] >= 90
+            or consumption["seats"]["percent"] >= 90
+        ),
+    }
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def group_subscriptions(request):
+    """اشتراكات مدارس المجموعة في كشف واحد — اطّلاعاً لا شراءً.
+
+    **لماذا لا يوجد زر دفع هنا.** الاشتراك يُشترى على مدرسة بعينها ويُحسب على
+    سعتها ومساحتها، وشراؤه من غير مديرها يجعل المدير يُفاجأ بسعةٍ لم يخترها.
+    فما يخص المدير التنفيذي هو **أن يعرف قبل أن ينقطع العمل**: أي مدرسة اشتراكها
+    ينتهي هذا الأسبوع، وأيها تجاوزت سعتها، وبمن يتصل في كل حالة.
+
+    ولذلك يحمل كل صف اسم مدير المدرسة ورقمه: التنبيه بلا وجهةٍ للاتصال تنبيهٌ
+    ناقص.
+    """
+    groups = _director_groups(request)
+    group = _selected_group(request, groups)
+
+    schools = list(
+        executive_director_schools_qs(request.user)
+        .filter(group=group)
+        .order_by("name")
+    )
+    # أربعة استعلامات مجمّعة لكل المدارس مهما كان عددها — الدالة نفسها التي
+    # تغذّي لوحة المجموعة، فلا يفترق رقمٌ بين الشاشتين.
+    attach_school_consumption_rows(schools)
+
+    school_ids = [school.pk for school in schools]
+    subscriptions = {
+        item.school_id: item
+        for item in SchoolSubscription.objects.filter(
+            school_id__in=school_ids
+        ).select_related("plan")
+    }
+    addons = {
+        item.school_id: item
+        for item in SchoolArchiveAddon.objects.filter(school_id__in=school_ids)
+    }
+    managers = {}
+    for membership in (
+        SchoolMembership.objects.filter(
+            school_id__in=school_ids,
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True,
+        )
+        .select_related("teacher")
+        .order_by("school_id", "id")
+    ):
+        managers.setdefault(membership.school_id, membership.teacher)
+
+    rows = [
+        _group_subscription_row(
+            school,
+            subscriptions.get(school.pk),
+            addons.get(school.pk),
+            managers.get(school.pk),
+        )
+        for school in schools
+    ]
+
+    state_filter = (request.GET.get("state") or "all").strip().lower()
+    known_states = {"all", "attention", "active", "expired"}
+    if state_filter not in known_states:
+        state_filter = "all"
+
+    def _matches(row) -> bool:
+        if state_filter == "attention":
+            return row["order"] <= 4 or row["is_pressured"]
+        if state_filter == "active":
+            return row["state"]["key"] == "active"
+        if state_filter == "expired":
+            return row["state"]["key"] in {"none", "expired", "cancelled"}
+        return True
+
+    visible = [row for row in rows if _matches(row)]
+    # ما يحتاج إجراءً يُقدَّم، ثم الأقرب انتهاءً — والاسم يكسر التعادل.
+    visible.sort(key=lambda row: (row["order"], row["state"]["days"] if row["state"]["days"] is not None else 0, row["school"].name))
+
+    totals = {
+        "schools": len(rows),
+        "active": sum(1 for row in rows if row["state"]["key"] == "active"),
+        "urgent": sum(1 for row in rows if row["state"]["key"] == "urgent"),
+        "soon": sum(1 for row in rows if row["state"]["key"] == "soon"),
+        "stopped": sum(
+            1 for row in rows if row["state"]["key"] in {"none", "expired", "cancelled"}
+        ),
+        "archive_active": sum(1 for row in rows if row["archive_active"]),
+        "pressured": sum(1 for row in rows if row["is_pressured"]),
+    }
+    totals["attention"] = sum(
+        1 for row in rows if row["order"] <= 4 or row["is_pressured"]
+    )
+
+    return render(
+        request,
+        "reports/group_subscriptions.html",
+        {
+            "active": "group_subscriptions",
+            "groups": groups,
+            "group": group,
+            "rows": visible,
+            "totals": totals,
+            "state_filter": state_filter,
+            "urgent_days": SUBSCRIPTION_URGENT_DAYS,
+            "soon_days": SUBSCRIPTION_SOON_DAYS,
         },
     )
 

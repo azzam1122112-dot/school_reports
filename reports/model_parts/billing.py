@@ -181,6 +181,20 @@ class Payment(models.Model):
         REJECTED = "rejected", "مرفوض"
         CANCELLED = "cancelled", "ملغي"
 
+    class PayerKind(models.TextChoices):
+        """من دفع، لا من ضغط الزر.
+
+        ``created_by`` يقول «أي مستخدم أنشأ السجل» ولا يقول بأي صفة: مالك
+        المنصة حين يسجّل دفعة يدوياً، ومدير المدرسة حين يدفع لمدرسته، والمدير
+        التنفيذي حين يدفع نيابةً عن إحدى مدارس مجموعته — ثلاثتهم يظهرون في
+        ``created_by`` بلا فرق. والفرق يهمّ مدير المدرسة: أن يرى «دُفعت من
+        مجموعتك» بدل دفعةٍ ظهرت في سجلّه بلا مصدر.
+        """
+
+        SCHOOL = "school", "إدارة المدرسة"
+        GROUP_DIRECTOR = "group_director", "المدير التنفيذي للمجموعة"
+        PLATFORM = "platform", "إدارة المنصة"
+
     class Purpose(models.TextChoices):
         SUBSCRIPTION = "subscription", "اشتراك المدرسة"
         ARCHIVE_ADDON = "archive_addon", "إضافة الأرشفة"
@@ -305,6 +319,22 @@ class Payment(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         verbose_name="قام بالرفع"
+    )
+    payer_kind = models.CharField(
+        "صفة الدافع",
+        max_length=20,
+        choices=PayerKind.choices,
+        default=PayerKind.SCHOOL,
+        db_index=True,
+    )
+    payer_group = models.ForeignKey(
+        "SchoolGroup",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="paid_payments",
+        verbose_name="المجموعة الدافعة",
+        help_text="تُملأ حين يدفع المدير التنفيذي نيابةً عن إحدى مدارس مجموعته.",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
