@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 
 from django.conf import settings
 
+from .ai_errors import AI_SERVICE_PAUSED_MESSAGE, is_openai_spend_limit_error
 from .mansour_knowledge import (
     AUDIENCE_GENERAL,
     AUDIENCE_LABELS,
@@ -171,6 +172,10 @@ ARABIC_STOP_WORDS = frozenset(
 
 class MansourAssistantError(RuntimeError):
     """A safe, user-facing failure boundary for the assistant service."""
+
+
+class MansourAssistantUnavailable(MansourAssistantError):
+    """The assistant is temporarily unavailable for an operational reason."""
 
 
 # Backwards-compatible public name for code that imported the original collection.
@@ -1782,6 +1787,9 @@ def ask_mansour(
     try:
         response_payload = _call_openai_response(body, api_key, timeout_seconds)
     except HTTPError as exc:
+        if is_openai_spend_limit_error(exc):
+            logger.warning("Mansour OpenAI request stopped by the configured spend limit.")
+            raise MansourAssistantUnavailable(AI_SERVICE_PAUSED_MESSAGE) from exc
         logger.warning("Mansour OpenAI request failed with HTTP %s; using local fallback.", exc.code)
         fallback_answer = _offline_customer_reply(
             retrieval_question,

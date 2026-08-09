@@ -10,6 +10,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
+from .ai_errors import AI_SERVICE_PAUSED_MESSAGE, is_openai_spend_limit_error
+
 
 logger = logging.getLogger(__name__)
 
@@ -156,6 +158,9 @@ def improve_report_text(text: str) -> str:
         with urlopen(request, timeout=timeout) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
+        if is_openai_spend_limit_error(exc):
+            logger.warning("Report AI request stopped by the configured spend limit.")
+            raise ReportAIUnavailable(AI_SERVICE_PAUSED_MESSAGE) from exc
         logger.warning("Report AI request failed with HTTP %s.", exc.code)
         raise ReportAIUnavailable("تعذر تحسين الصياغة الآن. حاول مرة أخرى بعد قليل.") from exc
     except (URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
