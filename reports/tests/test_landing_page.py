@@ -12,7 +12,8 @@ from reports.models import SubscriptionPlan
 
 @override_settings(
     ALLOWED_HOSTS=["testserver"],
-    TRIAL_DAYS=21,
+    # A stale deployment setting must not override the approved policy.
+    TRIAL_DAYS=14,
     SITE_URL="https://tawtheeq.example",
 )
 class LandingPageTests(TestCase):
@@ -25,7 +26,8 @@ class LandingPageTests(TestCase):
         self.assertContains(response, "ملفات إنجاز المعلمين")
         self.assertContains(response, "التعاميم")
         self.assertContains(response, "الأرشيف")
-        self.assertContains(response, "ابدأ تجربة مجانية 21 يوم")
+        self.assertContains(response, "ابدأ تجربة مجانية 30 يوم")
+        self.assertNotContains(response, "ابدأ تجربة مجانية 14 يوم")
         self.assertContains(response, "من تسجيل المدرسة إلى أول عمل موثّق")
         self.assertContains(response, "لكل مدرسة بياناتها وتجربتها وباقتها ودفعها المستقل")
         self.assertContains(response, reverse("reports:register_school"))
@@ -338,6 +340,22 @@ class LandingPageTests(TestCase):
         self.assertNotContains(response, "اشتراك مجمع")
         self.assertNotContains(response, "اشتراك موحد")
         self.assertNotContains(response, "باقة المجموعة")
+
+    def test_legacy_trial_plan_cannot_change_the_approved_public_duration(self):
+        SubscriptionPlan.objects.create(
+            name="تجربة قديمة",
+            price=0,
+            days_duration=14,
+            max_teachers=5,
+            description="تجربة حقيقية لمدة 14 يومًا\nتشغيل كامل للتجربة",
+        )
+
+        response = self.client.get(reverse("reports:landing"))
+
+        self.assertEqual(response.context["trial_days"], 30)
+        self.assertEqual(response.context["pricing_trial_plan"]["duration_days"], 30)
+        self.assertContains(response, "لمدة 30 يوم")
+        self.assertNotContains(response, "لمدة 14 يوم")
 
     def test_inactive_plans_are_not_advertised(self):
         SubscriptionPlan.objects.create(

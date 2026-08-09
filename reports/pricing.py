@@ -3,6 +3,9 @@ from __future__ import annotations
 from decimal import Decimal
 
 
+FREE_TRIAL_DAYS = 30
+
+
 # ── Anchor pricing ──────────────────────────────────────────────────
 # Only these plans exist in the database. Customer-facing prices for the
 # capacities in between (30, 35, 40, 45, 60, 70, 80, 90) are interpolated from
@@ -24,10 +27,10 @@ DEFAULT_SUBSCRIPTION_PLANS = (
     {
         "name": "التجربة المجانية",
         "price": Decimal("0.00"),
-        "days_duration": 30,
+        "days_duration": FREE_TRIAL_DAYS,
         "max_teachers": 5,
         "description": (
-            "تجربة حقيقية لمدة 30 يومًا داخل المدرسة\n"
+            f"تجربة حقيقية لمدة {FREE_TRIAL_DAYS} يومًا داخل المدرسة\n"
             "جميع أدوات التقارير والإنجاز والطلبات\n"
             "بدء مباشر دون بطاقة ائتمانية"
         ),
