@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import json
 from datetime import date
+from io import BytesIO
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from reports.ai_errors import AI_SERVICE_PAUSED_MESSAGE
 from reports.report_ai import REPORT_AI_DAILY_LIMIT, report_ai_daily_remaining
 from reports.models import (
     Report,
@@ -49,6 +52,17 @@ class _FakeOpenAIResponse:
             },
             ensure_ascii=False,
         ).encode("utf-8")
+
+
+def _spend_limit_error(code: str = "organization_spend_limit_exceeded") -> HTTPError:
+    body = json.dumps({"error": {"code": code}}).encode("utf-8")
+    return HTTPError(
+        url="https://api.openai.com/v1/responses",
+        code=429,
+        msg="Too Many Requests",
+        hdrs=None,
+        fp=BytesIO(body),
+    )
 
 
 @override_settings(
@@ -238,6 +252,23 @@ class ReportAIImprovementTests(TestCase):
         self.assertEqual(limited.json()["remaining"], 0)
         self.assertIn("الثلاثة", limited.json()["message"])
         self.assertEqual(mocked_urlopen.call_count, 3)
+
+    @patch("reports.report_ai.urlopen", side_effect=_spend_limit_error())
+    def test_spend_limit_returns_clear_service_paused_message(self, _mocked_urlopen):
+        self._login()
+
+        response = self.client.post(
+            reverse("reports:improve_report_text"),
+            data=json.dumps(
+                {"text": "تم تنفيذ برنامج تدريبي للمعلمين بهدف تحسين الممارسات التعليمية."}
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(response.json()["ok"])
+        self.assertEqual(response.json()["message"], AI_SERVICE_PAUSED_MESSAGE)
+        self.assertEqual(report_ai_daily_remaining(self.teacher.pk), REPORT_AI_DAILY_LIMIT)
 
     @override_settings(REPORT_AI_ENABLED=False)
     @patch("reports.report_ai.urlopen")

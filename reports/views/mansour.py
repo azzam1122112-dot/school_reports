@@ -14,6 +14,7 @@ from django_ratelimit.decorators import ratelimit
 
 from ..mansour_assistant import (
     MansourAssistantError,
+    MansourAssistantUnavailable,
     ask_mansour,
     infer_public_audience,
     normalise_audience,
@@ -201,7 +202,8 @@ def mansour_assistant_reply(request: HttpRequest) -> JsonResponse:
     except MansourAssistantError as exc:
         status = (
             503
-            if not getattr(settings, "MANSOUR_ASSISTANT_ENABLED", False)
+            if isinstance(exc, MansourAssistantUnavailable)
+            or not getattr(settings, "MANSOUR_ASSISTANT_ENABLED", False)
             or not getattr(settings, "OPENAI_API_KEY", "")
             else 400
         )

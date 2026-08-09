@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import json
+from io import BytesIO
 from unittest.mock import patch
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 
 from django.conf import settings
 from django.core.cache import cache
 from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
+from reports.ai_errors import AI_SERVICE_PAUSED_MESSAGE
 from reports.mansour_assistant import (
     INTENT_GENERAL,
     _fails_customer_service_guard,
@@ -136,6 +138,17 @@ class _FakeSupportOpenAIResponse:
             },
             ensure_ascii=False,
         ).encode("utf-8")
+
+
+def _spend_limit_error(code: str = "organization_spend_limit_exceeded") -> HTTPError:
+    body = json.dumps({"error": {"code": code}}).encode("utf-8")
+    return HTTPError(
+        url="https://api.openai.com/v1/responses",
+        code=429,
+        msg="Too Many Requests",
+        hdrs=None,
+        fp=BytesIO(body),
+    )
 
 
 @override_settings(
@@ -997,6 +1010,18 @@ class MansourAssistantTests(TestCase):
         payload = response.json()
         self.assertTrue(payload["ok"])
         self.assertIn("التسجيل", payload["answer"])
+
+    @patch("reports.mansour_assistant.urlopen", side_effect=_spend_limit_error())
+    def test_spend_limit_returns_clear_service_paused_message(self, _mocked_urlopen):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "كيف أسجل في المنصة؟"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(response.json()["ok"])
+        self.assertEqual(response.json()["message"], AI_SERVICE_PAUSED_MESSAGE)
 
 
 class MansourDailyBudgetTests(TestCase):
