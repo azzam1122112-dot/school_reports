@@ -72,9 +72,12 @@ class PwaInstallExperienceTests(TestCase):
         self.assertNotIn("window.sessionStorage", script)
         self.assertIn('var SW_URL = "/sw.js?v=8"', script)
         self.assertIn('updateViaCache: "none"', script)
-        self.assertIn("AUTO_IOS_DELAY_MS = 6500", script)
+        self.assertIn("DISMISS_DAYS = 90", script)
+        self.assertIn("AUTO_NATIVE_DELAY_MS = 15000", script)
+        self.assertIn("AUTO_IOS_DELAY_MS = 20000", script)
         self.assertIn("TawtheeqPWA", script)
-        self.assertIn('event.key !== "Tab"', script)
+        self.assertNotIn('event.key !== "Tab"', script)
+        self.assertNotIn('document.body.style.overflow = "hidden"', script)
         self.assertNotIn("}, 900);", script)
 
     def test_manifest_has_mobile_install_metadata(self):
