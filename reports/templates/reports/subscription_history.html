@@ -15,7 +15,7 @@
       <p class="royal-subtitle">{{ school.name }}</p>
     </div>
     <div class="royal-actions">
-      <a href="{% url 'reports:my_subscription' %}" class="btn btn-outline">
+      <a href="{% url 'reports:my_subscription' %}{% if acting_on_behalf %}?school={{ school.pk }}{% endif %}" class="btn btn-outline">
         <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
         عودة للاشتراك
       </a>
@@ -40,7 +40,14 @@
           <tr>
             <td><span dir="ltr" style="font-weight:900">{{ payment.created_at|date:"Y-m-d" }}</span></td>
             <td>{{ payment.requested_plan.name|default:"-" }}{% if payment.requested_teacher_limit %}<small style="display:block">سعة {{ payment.requested_teacher_limit }} معلماً</small>{% endif %}</td>
-            <td>{{ payment.get_payment_method_display }}</td>
+            <td>
+              {{ payment.get_payment_method_display }}
+              {% if payment.payer_kind == 'group_director' %}
+                <small style="display:block">دفعتها {{ payment.payer_group.name|default:"مجموعة المدارس" }}</small>
+              {% elif payment.payer_kind == 'platform' %}
+                <small style="display:block">سجّلتها إدارة المنصة</small>
+              {% endif %}
+            </td>
             <td style="font-weight:950">
                 {% if payment.amount < 0 %}
                 <span class="royal-status danger" dir="ltr">{{ payment.amount }} SAR</span>

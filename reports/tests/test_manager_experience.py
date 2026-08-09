@@ -3,6 +3,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -29,6 +30,8 @@ from reports.models import (
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class ManagerExperienceTests(TestCase):
     def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
         self.school = School.objects.create(
             name="مدرسة تجربة المدير",
             code="manager-experience",

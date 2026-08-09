@@ -1282,7 +1282,7 @@
 
               {# المتابعة: ما يُقرأ ولا يُحرَّر #}
               <div class="nav-group" data-nav-group>
-                <button type="button" class="tab tab-trigger {% if active == 'executive_dashboard' or active == 'group_school_detail' or active == 'group_report' or active == 'group_practices' or active == 'group_audit_log' %}is-active{% endif %}" aria-expanded="false" aria-haspopup="true">
+                <button type="button" class="tab tab-trigger {% if active == 'executive_dashboard' or active == 'group_school_detail' or active == 'group_subscriptions' or active == 'group_report' or active == 'group_practices' or active == 'group_audit_log' %}is-active{% endif %}" aria-expanded="false" aria-haspopup="true">
                   <span>المتابعة</span>
                   <i class="fa-solid fa-chevron-down chev" aria-hidden="true"></i>
                 </button>
@@ -1290,6 +1290,10 @@
                   <a class="np-item {% if active == 'executive_dashboard' or active == 'group_school_detail' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:executive_dashboard' %}">
                     <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
                     <span><b>لوحة المجموعة</b><em>مؤشرات مدارسك وما يحتاج متابعة</em></span>
+                  </a>
+                  <a class="np-item {% if active == 'group_subscriptions' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:group_subscriptions' %}">
+                    <i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i>
+                    <span><b>اشتراكات المدارس</b><em>ما ينتهي قريباً وبمن تتصل</em></span>
                   </a>
                   <a class="np-item {% if active == 'group_report' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:group_report' %}">
                     <i class="fa-solid fa-chart-column" aria-hidden="true"></i>

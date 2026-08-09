@@ -20,6 +20,8 @@ from ._helpers import (
     _clean_query_value, _clean_query_params, _parse_date_safe,
 )
 from ..mansour_knowledge import AUDIENCE_LABELS
+from ..permissions import executive_director_schools_qs
+from ..utils import create_system_notification
 from ..flexible_pricing import (
     ANCHOR_CAPACITIES,
     PERIODS,
@@ -1327,6 +1329,7 @@ def _record_subscription_payment_if_missing(
             status=Payment.Status.APPROVED,
             notes=(note or "").strip(),
             created_by=actor,
+            payer_kind=Payment.PayerKind.PLATFORM,
         )
         return True
     except Exception:
@@ -1879,9 +1882,15 @@ def _apply_payment_effects(payment, today, pricing):
                 ).values_list("teacher_id", flat=True)
             )
             if manager_ids:
+                # من دفع جزءٌ من الخبر: «تم التجديد» وحدها تترك المدير يظن
+                # أن دفعةً من عنده اعتُمدت، فيبحث عن إيصالٍ لم يرسله.
+                detail = message
+                if payment.payer_kind == Payment.PayerKind.GROUP_DIRECTOR:
+                    payer = getattr(payment.payer_group, "name", "") or "مجموعة مدارسك"
+                    detail = f"{message}\nهذه الدفعة أنشأتها {payer} نيابةً عن مدرستك."
                 create_system_notification(
                     title="تم اعتماد طلب المدرسة",
-                    message=message,
+                    message=detail,
                     school=payment.school,
                     teacher_ids=manager_ids,
                     is_important=True,
@@ -2186,6 +2195,192 @@ def platform_tickets_list(request: HttpRequest) -> HttpResponse:
 # إدارة الاشتراكات والمالية
 # =========================
 
+
+class _PaymentActor:
+    """من يقف خلف طلب الدفع، وبأي صفة.
+
+    شاشة الاشتراك كانت تسأل سؤالاً واحداً: «هل المستخدم مديرُ هذه المدرسة؟».
+    وهو سؤالٌ يكفي ما دام الدافع واحداً. ولمّا صار للمدير التنفيذي أن يدفع
+    نيابةً عن إحدى مدارس مجموعته، صار السؤال سؤالين: **أي مدرسة** و**بأي
+    صفة** — والثاني هو ما يُكتب في ``Payment.payer_kind`` فيراه مدير المدرسة
+    في سجلّه بدل دفعةٍ بلا مصدر.
+
+    يكشف ``school`` و``school_id`` بالاسمين نفسيهما اللذين كانت ``SchoolMembership``
+    تكشفهما، فبقيّة مسار الدفع لا تعلم بالفرق ولم تتغيّر.
+    """
+
+    __slots__ = ("school", "school_id", "payer_kind", "group")
+
+    def __init__(self, school, payer_kind, group=None):
+        self.school = school
+        self.school_id = school.pk
+        self.payer_kind = payer_kind
+        self.group = group
+
+    @property
+    def is_on_behalf(self) -> bool:
+        return self.payer_kind == Payment.PayerKind.GROUP_DIRECTOR
+
+
+def _requested_school_id(request) -> str:
+    """المدرسة المقصودة: من الجسم في الإرسال، ومن المسار في العرض.
+
+    ``POST`` لا يحمل معاملات المسار عبر ``formaction``، ولذلك يحمل النموذج
+    حقلاً مخفياً باسم ``on_behalf_school``.
+    """
+    for source in (request.POST, request.GET):
+        value = (source.get("on_behalf_school") or source.get("school") or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _resolve_payment_actor(request):
+    """يحلّ الفاعل: مديرُ المدرسة لمدرسته، أو المدير التنفيذي لإحدى مدارسه.
+
+    الترتيب مقصود: عضوية الإدارة تُسأل أولاً، فمن يدير مدرسةً ويقود مجموعتها
+    معاً يدفع بصفته مديرها لا نيابةً عنها. ومعرّف مدرسةٍ خارج نطاق المستخدم
+    لا يُسقِط الطلب إلى مدرسةٍ أخرى — يُرفض الطلب، وإلا صار تمريرُ رقمٍ عشوائي
+    طريقاً لتحصيل دفعةٍ على مدرسةٍ لم يقصدها الدافع.
+    """
+    requested_id = _requested_school_id(request)
+    manager_qs = SchoolMembership.objects.filter(
+        teacher=request.user,
+        role_type=SchoolMembership.RoleType.MANAGER,
+        is_active=True,
+    ).select_related("school")
+
+    if requested_id:
+        if not requested_id.isdigit():
+            return None
+        membership = manager_qs.filter(school_id=requested_id).first()
+        if membership is not None:
+            return _PaymentActor(membership.school, Payment.PayerKind.SCHOOL)
+
+        school = (
+            executive_director_schools_qs(request.user)
+            .select_related("group")
+            .filter(pk=requested_id)
+            .first()
+        )
+        if school is not None:
+            return _PaymentActor(
+                school, Payment.PayerKind.GROUP_DIRECTOR, getattr(school, "group", None)
+            )
+        return None
+
+    active_school = _get_active_school(request)
+    if active_school:
+        membership = manager_qs.filter(school=active_school).first()
+        if membership is not None:
+            return _PaymentActor(membership.school, Payment.PayerKind.SCHOOL)
+    membership = manager_qs.first()
+    if membership is not None:
+        return _PaymentActor(membership.school, Payment.PayerKind.SCHOOL)
+    return None
+
+
+def _subscription_redirect(actor):
+    """العودة إلى الصفحة نفسها التي انطلق منها الطلب.
+
+    الرجوع المجرّد إلى ``my_subscription`` كان يُخرج المدير التنفيذي من سياق
+    المدرسة التي يدفع عنها إلى صفحةٍ تردّه، فتضيع رسالة النجاح.
+    """
+    url = reverse("reports:my_subscription")
+    if actor is not None and actor.is_on_behalf:
+        return redirect(f"{url}?school={actor.school_id}")
+    return redirect(url)
+
+
+_ACTING_SCHOOL_SESSION_KEY = "subscription_acting_school_id"
+
+
+def _remember_acting_school(request, actor) -> None:
+    """يحفظ المدرسة المقصودة قبل مغادرة الموقع إلى بوابة الدفع.
+
+    صفحات العودة من البوابة (``*_return`` و``moyasar_callback``) لا تحمل معها
+    شيئاً عن سياق الطلب، فكان المدير التنفيذي يعود من ميّسر إلى صفحةٍ تردّه
+    إلى الرئيسية — ورسالةُ نجاح الدفع تضيع معه.
+    """
+    if actor is not None and actor.is_on_behalf:
+        request.session[_ACTING_SCHOOL_SESSION_KEY] = int(actor.school_id)
+    else:
+        request.session.pop(_ACTING_SCHOOL_SESSION_KEY, None)
+
+
+def _subscription_return_redirect(request):
+    """العودة بعد البوابة إلى صفحة المدرسة التي انطلق منها الطلب.
+
+    الصلاحية تُعاد قراءتها من المصدر لا من الجلسة: مفتاح الجلسة يقول «أين
+    كان» لا «ماذا يملك»، فلو سُحبت قيادته للمجموعة بين الذهاب والعودة عاد
+    إلى صفحته هو.
+    """
+    school_id = request.session.get(_ACTING_SCHOOL_SESSION_KEY)
+    if school_id and getattr(request.user, "is_authenticated", False):
+        allowed = executive_director_schools_qs(request.user).filter(pk=school_id).exists()
+        if allowed:
+            return redirect(f"{reverse('reports:my_subscription')}?school={int(school_id)}")
+    return redirect("reports:my_subscription")
+
+
+def _stamp_payer(payment_kwargs: dict, actor) -> dict:
+    """يبصم سجل الدفع بصفة الدافع قبل حفظه."""
+    payment_kwargs["payer_kind"] = actor.payer_kind
+    payment_kwargs["payer_group"] = actor.group if actor.is_on_behalf else None
+    return payment_kwargs
+
+
+def _notify_managers_of_group_payment(actor, *, total, labels) -> None:
+    """يُعلم مديري المدرسة فور إنشاء المجموعة طلباً نيابةً عنهم.
+
+    الإشعار عند الاعتماد وحده لا يكفي: بين الطلب واعتماده قد يشتري المدير
+    نفس البند مرة ثانية، فيدفع عن شيءٍ اشترته مجموعته قبل ساعة.
+    """
+    if not actor.is_on_behalf:
+        return
+    try:
+        manager_ids = list(
+            SchoolMembership.objects.filter(
+                school=actor.school,
+                role_type=SchoolMembership.RoleType.MANAGER,
+                is_active=True,
+            ).values_list("teacher_id", flat=True)
+        )
+        if not manager_ids:
+            return
+        group_name = getattr(actor.group, "name", "") or "مجموعة المدارس"
+        create_system_notification(
+            title="طلب دفع أنشأته مجموعتك لمدرستك",
+            message=(
+                f"أنشأ المدير التنفيذي لـ{group_name} طلب دفع لمدرستك: {labels} "
+                f"— الإجمالي {total} ريال. لا حاجة لدفع هذه البنود مرة أخرى؛ "
+                "ستُفعَّل فور اعتماد الدفعة."
+            ),
+            school=actor.school,
+            teacher_ids=manager_ids,
+            is_important=True,
+        )
+    except Exception:
+        logger.exception("Failed to notify school managers about a group-paid order")
+
+
+def _group_payer_badge(school):
+    """آخر دفعة أنشأتها المجموعة لهذه المدرسة، إن وُجدت.
+
+    وجودها هو ما يُظهر الشارة الدائمة في صفحة المدير: مدرسةٌ لها مجموعة لم
+    تدفع عنها قطّ لا يصحّ أن تُخبَر أن «مجموعتك تدير اشتراكك».
+    """
+    return (
+        Payment.objects.filter(
+            school=school,
+            payer_kind=Payment.PayerKind.GROUP_DIRECTOR,
+        )
+        .select_related("payer_group", "created_by")
+        .order_by("-created_at")
+        .first()
+    )
+
+
 def subscription_expired(request):
     """صفحة تظهر عند انتهاء الاشتراك.
 
@@ -2239,26 +2434,11 @@ def subscription_expired(request):
 
 @login_required(login_url="reports:login")
 def my_subscription(request):
-    """صفحة عرض تفاصيل الاشتراك لمدير المدرسة"""
+    """صفحة الاشتراك: لمدير المدرسة، ولمدير المجموعة نيابةً عن إحدى مدارسه."""
     active_school = _get_active_school(request)
-    
-    # جلب جميع عضويات الإدارة للمستخدم
-    memberships = SchoolMembership.objects.filter(
-        teacher=request.user, 
-        role_type=SchoolMembership.RoleType.MANAGER,
-        is_active=True
-    ).select_related('school__subscription__plan')
-    
-    membership = None
-    # محاولة استخدام المدرسة النشطة إذا كان المستخدم مديراً فيها
-    if active_school:
-        membership = memberships.filter(school=active_school).first()
-    
-    # إذا لم توجد مدرسة نشطة أو المستخدم ليس مديراً فيها، نأخذ أول مدرسة يديرها
-    if not membership:
-        membership = memberships.first()
-    
-    if not membership:
+
+    membership = _resolve_payment_actor(request)
+    if membership is None:
         messages.error(request, f"عفواً، هذه الصفحة مخصصة لـ{_school_manager_label(active_school)} فقط.")
         return redirect('reports:home')
 
@@ -2320,6 +2500,11 @@ def my_subscription(request):
     context = {
         "subscription": subscription,
         "school": membership.school,
+        # الصفحة نفسها تخدم دورين، فتحمل صفة الفاعل معها: اللافتة والحقل
+        # المخفي والروابط كلها مشتقّة من هذين المفتاحين لا من تخمين القالب.
+        "acting_on_behalf": membership.is_on_behalf,
+        "acting_group": membership.group,
+        "group_payer_payment": _group_payer_badge(membership.school),
         "plans": renewal_plans,
         "renewal_catalog": renewal_catalog,
         "default_renewal_plan_id": default_renewal_plan_id,
@@ -2375,29 +2560,18 @@ def my_subscription(request):
 def subscription_history(request):
     """عرض سجل العمليات الكامل للاشتراكات"""
     active_school = _get_active_school(request)
-    
-    # جلب جميع عضويات الإدارة للمستخدم
-    memberships = SchoolMembership.objects.filter(
-        teacher=request.user, 
-        role_type=SchoolMembership.RoleType.MANAGER,
-        is_active=True
-    ).select_related('school')
-    
-    membership = None
-    # محاولة استخدام المدرسة النشطة إذا كان المستخدم مديراً فيها
-    if active_school:
-        membership = memberships.filter(school=active_school).first()
-    
-    # إذا لم توجد مدرسة نشطة أو المستخدم ليس مديراً فيها، نأخذ أول مدرسة يديرها
-    if not membership:
-        membership = memberships.first()
-    
-    if not membership:
+
+    membership = _resolve_payment_actor(request)
+    if membership is None:
         messages.error(request, f"عفواً، هذه الصفحة مخصصة لـ{_school_manager_label(active_school)} فقط.")
         return redirect('reports:home')
 
     # جلب كامل العمليات
-    payments = Payment.objects.filter(school=membership.school).order_by('-created_at')
+    payments = (
+        Payment.objects.filter(school=membership.school)
+        .select_related("payer_group", "requested_plan")
+        .order_by('-created_at')
+    )
 
     paginator = Paginator(payments, 30)
     page_obj = paginator.get_page(request.GET.get("page"))
@@ -2406,6 +2580,8 @@ def subscription_history(request):
         "school": membership.school,
         "payments": page_obj,
         "page_obj": page_obj,
+        "acting_on_behalf": membership.is_on_behalf,
+        "acting_group": membership.group,
     }
     return render(request, 'reports/subscription_history.html', context)
 
@@ -2592,18 +2768,21 @@ def _create_unified_payment(request, membership, subscription):
 
     if not receipt:
         messages.error(request, "يرجى إرفاق صورة الإيصال.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     try:
         items, warnings = _build_unified_payment_items(request, membership, subscription)
     except _PaymentSelectionError as exc:
         messages.error(request, str(exc))
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     batch = uuid.uuid4().hex[:8]
     total = sum((Decimal(str(it["amount"])) for it in items), Decimal("0"))
     labels = "، ".join(it["label"] for it in items)
     base_note = f"[طلب موحّد {batch}] {labels} — الإجمالي {total} ريال."
+    if membership.is_on_behalf:
+        group_name = getattr(membership.group, "name", "") or "مجموعة المدارس"
+        base_note = f"{base_note}\nدفعته {group_name} نيابةً عن المدرسة."
     if notes:
         base_note = f"{base_note}\nملاحظة المدير: {notes}"
 
@@ -2611,16 +2790,21 @@ def _create_unified_payment(request, membership, subscription):
         shared_name = None
         for it in items:
             payment = Payment(
-                school=school,
-                subscription=subscription,
-                requested_plan=it.get("requested_plan"),
-                requested_teacher_limit=it.get("requested_teacher_limit"),
-                purpose=it["purpose"],
-                amount=it["amount"],
-                archive_storage_gb=it.get("archive_storage_gb", 0),
-                notes=base_note,
-                batch_ref=batch if len(items) > 1 else "",
-                created_by=request.user,
+                **_stamp_payer(
+                    {
+                        "school": school,
+                        "subscription": subscription,
+                        "requested_plan": it.get("requested_plan"),
+                        "requested_teacher_limit": it.get("requested_teacher_limit"),
+                        "purpose": it["purpose"],
+                        "amount": it["amount"],
+                        "archive_storage_gb": it.get("archive_storage_gb", 0),
+                        "notes": base_note,
+                        "batch_ref": batch if len(items) > 1 else "",
+                        "created_by": request.user,
+                    },
+                    membership,
+                )
             )
             if shared_name is None:
                 # نحفظ الملف مرة واحدة ثم نعيد استخدام اسمه لبقية السجلات
@@ -2645,7 +2829,8 @@ def _create_unified_payment(request, membership, subscription):
     messages.success(request, msg)
     if warnings:
         messages.warning(request, "لم تُضف بعض العناصر: " + " ، ".join(warnings))
-    return redirect("reports:my_subscription")
+    _notify_managers_of_group_payment(membership, total=total, labels=labels)
+    return _subscription_redirect(membership)
 
 
 @login_required(login_url="reports:login")
@@ -2653,20 +2838,9 @@ def _create_unified_payment(request, membership, subscription):
 def payment_create(request):
     """صفحة رفع إيصال الدفع"""
     active_school = _get_active_school(request)
-    
-    memberships = SchoolMembership.objects.filter(
-        teacher=request.user, 
-        role_type=SchoolMembership.RoleType.MANAGER,
-        is_active=True
-    )
-    
-    membership = None
-    if active_school:
-        membership = memberships.filter(school=active_school).first()
-        
-    if not membership:
-        membership = memberships.first()
-    
+
+    membership = _resolve_payment_actor(request)
+
     if not membership:
         messages.error(request, f"عفواً، هذه الصفحة مخصصة لـ{_school_manager_label(active_school)} فقط.")
         return redirect('reports:home')
@@ -2691,7 +2865,7 @@ def payment_create(request):
 
         if not receipt:
             messages.error(request, "يرجى إرفاق صورة الإيصال.")
-            return redirect('reports:my_subscription')
+            return _subscription_redirect(membership)
 
         if payment_kind == Payment.Purpose.ARCHIVE_ADDON:
             if Payment.objects.filter(
@@ -2700,25 +2874,25 @@ def payment_create(request):
                 status=Payment.Status.PENDING,
             ).exists():
                 messages.warning(request, "لديك طلب تفعيل أرشفة قيد المراجعة بالفعل.")
-                return redirect('reports:my_subscription')
+                return _subscription_redirect(membership)
 
             amount = pricing["addon_price"]
             request_notes = "طلب تفعيل/تجديد إضافة الأرشفة السنوية."
             if notes:
                 request_notes = f"{request_notes}\n{notes}"
 
-            Payment.objects.create(
-                school=membership.school,
-                subscription=subscription,
-                requested_plan=None,
-                purpose=Payment.Purpose.ARCHIVE_ADDON,
-                amount=amount,
-                receipt_image=receipt,
-                notes=request_notes,
-                created_by=request.user,
-            )
+            Payment.objects.create(**_stamp_payer({
+                "school": membership.school,
+                "subscription": subscription,
+                "requested_plan": None,
+                "purpose": Payment.Purpose.ARCHIVE_ADDON,
+                "amount": amount,
+                "receipt_image": receipt,
+                "notes": request_notes,
+                "created_by": request.user,
+            }, membership))
             messages.success(request, "تم رفع طلب تفعيل الأرشفة، وسيظهر الأرشيف فور اعتماد مدير النظام.")
-            return redirect('reports:my_subscription')
+            return _subscription_redirect(membership)
 
         if payment_kind in (
             Payment.Purpose.WORK_STORAGE,
@@ -2740,7 +2914,7 @@ def payment_create(request):
                 messages.warning(
                     request, f"لديك طلب زيادة {space_label} قيد المراجعة بالفعل."
                 )
-                return redirect('reports:my_subscription')
+                return _subscription_redirect(membership)
 
             if is_archive_space and not school_archive_enabled(membership.school):
                 # حدّ الأرشفة يعيش على الملحق، فبيع توسعة بلا ملحق يأخذ مالاً
@@ -2749,7 +2923,7 @@ def payment_create(request):
                     request,
                     "فعّل خدمة الأرشفة السنوية أولاً، ثم يمكنك زيادة مساحتها.",
                 )
-                return redirect('reports:my_subscription')
+                return _subscription_redirect(membership)
 
             option_field = (
                 "archive_space_option_id" if is_archive_space else "archive_storage_option_id"
@@ -2766,7 +2940,7 @@ def payment_create(request):
 
             if storage_option is None:
                 messages.error(request, f"اختر خيار زيادة {space_label} صالحاً.")
-                return redirect('reports:my_subscription')
+                return _subscription_redirect(membership)
 
             storage_gb = int(storage_option.storage_gb or 0)
             amount = storage_option.price
@@ -2775,22 +2949,22 @@ def payment_create(request):
             if notes:
                 request_notes = f"{request_notes}\n{notes}"
 
-            Payment.objects.create(
-                school=membership.school,
-                subscription=subscription,
-                requested_plan=None,
-                purpose=payment_kind,
-                archive_storage_gb=storage_gb,
-                amount=amount,
-                receipt_image=receipt,
-                notes=request_notes,
-                created_by=request.user,
-            )
+            Payment.objects.create(**_stamp_payer({
+                "school": membership.school,
+                "subscription": subscription,
+                "requested_plan": None,
+                "purpose": payment_kind,
+                "archive_storage_gb": storage_gb,
+                "amount": amount,
+                "receipt_image": receipt,
+                "notes": request_notes,
+                "created_by": request.user,
+            }, membership))
             messages.success(
                 request,
                 f"تم رفع طلب زيادة {space_label}، وسيتم تحديث الحد فور الاعتماد.",
             )
-            return redirect('reports:my_subscription')
+            return _subscription_redirect(membership)
 
         # 1. محاولة أخذ الباقة من اختيار المستخدم
         if plan_id:
@@ -2801,7 +2975,7 @@ def payment_create(request):
             ).first()
             if requested_plan is None:
                 messages.error(request, "الباقة المختارة غير متاحة للتجديد.")
-                return redirect("reports:my_subscription")
+                return _subscription_redirect(membership)
         
         # 2. إذا لم يختر، نأخذ الباقة الحالية
         if (
@@ -2815,34 +2989,34 @@ def payment_create(request):
         # التحقق النهائي
         if not requested_plan:
             messages.error(request, "يرجى اختيار باقة للاشتراك/التجديد.")
-            return redirect('reports:my_subscription')
+            return _subscription_redirect(membership)
 
         try:
             quote = _subscription_quote_from_request(request, membership.school, requested_plan)
         except _PaymentSelectionError as exc:
             messages.error(request, str(exc))
-            return redirect("reports:my_subscription")
+            return _subscription_redirect(membership)
         requested_plan = quote["plan"]
         requested_teacher_limit = int(quote["capacity"] or 0)
         amount = quote["price"]
         try:
             if amount is None or float(amount) <= 0:
                 messages.error(request, "لا يمكن إنشاء طلب دفع لأن الباقة المختارة مجانية/غير صالحة.")
-                return redirect('reports:my_subscription')
+                return _subscription_redirect(membership)
         except Exception:
             pass
 
-        Payment.objects.create(
-            school=membership.school,
-            subscription=subscription,
-            requested_plan=requested_plan,
-            requested_teacher_limit=requested_teacher_limit,
-            purpose=Payment.Purpose.SUBSCRIPTION,
-            amount=amount,
-            receipt_image=receipt,
-            notes=notes,
-            created_by=request.user
-        )
+        Payment.objects.create(**_stamp_payer({
+            "school": membership.school,
+            "subscription": subscription,
+            "requested_plan": requested_plan,
+            "requested_teacher_limit": requested_teacher_limit,
+            "purpose": Payment.Purpose.SUBSCRIPTION,
+            "amount": amount,
+            "receipt_image": receipt,
+            "notes": notes,
+            "created_by": request.user,
+        }, membership))
         
         msg = format_html("""
         <div style="text-align: center; line-height: 1.6;">
@@ -2857,23 +3031,14 @@ def payment_create(request):
         </div>
         """, requested_plan.name, amount, requested_teacher_limit, requested_plan.days_duration)
         messages.success(request, msg)
-        return redirect('reports:my_subscription')
+        return _subscription_redirect(membership)
             
-    return redirect('reports:my_subscription')
+    return _subscription_redirect(membership)
 
 
 def _manager_payment_membership(request):
-    memberships = SchoolMembership.objects.filter(
-        teacher=request.user,
-        role_type=SchoolMembership.RoleType.MANAGER,
-        is_active=True,
-    ).select_related("school")
-    active_school = _get_active_school(request)
-    if active_school:
-        membership = memberships.filter(school=active_school).first()
-        if membership:
-            return membership
-    return memberships.first()
+    """اسمٌ تاريخي لِما صار «الفاعل»: مدير المدرسة أو المدير التنفيذي عنها."""
+    return _resolve_payment_actor(request)
 
 
 def _complete_moyasar_invoice(batch_ref: str, invoice: dict) -> None:
@@ -2987,7 +3152,7 @@ def _sync_moyasar_batch(batch_ref: str) -> str:
 def moyasar_checkout_create(request):
     if not moyasar_is_enabled():
         messages.error(request, "الدفع الإلكتروني غير متاح حاليًا.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     membership = _manager_payment_membership(request)
     if not membership:
@@ -3003,8 +3168,9 @@ def moyasar_checkout_create(request):
         items, warnings = _build_unified_payment_items(request, membership, subscription)
     except _PaymentSelectionError as exc:
         messages.error(request, str(exc))
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
+    _remember_acting_school(request, membership)
     batch_ref = uuid.uuid4().hex[:16]
     total = sum((Decimal(str(item["amount"])) for item in items), Decimal("0"))
     labels = "، ".join(item["label"] for item in items)
@@ -3014,7 +3180,7 @@ def moyasar_checkout_create(request):
     success_url = request.build_absolute_uri(
         reverse("reports:moyasar_return", args=[batch_ref])
     )
-    back_url = request.build_absolute_uri(reverse("reports:my_subscription"))
+    back_url = request.build_absolute_uri(_subscription_redirect(membership).url)
     try:
         invoice = create_moyasar_invoice(
             amount=total,
@@ -3030,7 +3196,7 @@ def moyasar_checkout_create(request):
     except (MoyasarGatewayError, ImproperlyConfigured):
         logger.exception("Moyasar invoice creation failed")
         messages.error(request, "تعذّر بدء الدفع الإلكتروني. حاول مجددًا أو استخدم طريقة أخرى.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     checkout_url = str(invoice.get("url") or "").strip()
     parsed_checkout_url = urlparse(checkout_url)
@@ -3038,7 +3204,7 @@ def moyasar_checkout_create(request):
     if parsed_checkout_url.scheme != "https" or checkout_host != "checkout.moyasar.com":
         logger.error("Moyasar returned an unsafe checkout URL")
         messages.error(request, "تعذّر التحقق من رابط الدفع الإلكتروني.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     checkout_query = dict(parse_qsl(parsed_checkout_url.query, keep_blank_values=True))
     checkout_query["lang"] = "ar"
@@ -3049,25 +3215,26 @@ def moyasar_checkout_create(request):
     note = f"[فاتورة دفع إلكتروني {batch_ref.upper()}] {labels} — الإجمالي {total} ريال."
     with transaction.atomic():
         for item in items:
-            Payment.objects.create(
-                school=membership.school,
-                subscription=subscription,
-                requested_plan=item.get("requested_plan"),
-                requested_teacher_limit=item.get("requested_teacher_limit"),
-                purpose=item["purpose"],
-                amount=item["amount"],
-                archive_storage_gb=item.get("archive_storage_gb", 0),
-                notes=note,
-                batch_ref=batch_ref,
-                payment_method=Payment.Method.MOYASAR,
-                gateway_order_id=invoice_id,
-                gateway_checkout_id=invoice_id,
-                gateway_status=gateway_status,
-                created_by=request.user,
-            )
+            Payment.objects.create(**_stamp_payer({
+                "school": membership.school,
+                "subscription": subscription,
+                "requested_plan": item.get("requested_plan"),
+                "requested_teacher_limit": item.get("requested_teacher_limit"),
+                "purpose": item["purpose"],
+                "amount": item["amount"],
+                "archive_storage_gb": item.get("archive_storage_gb", 0),
+                "notes": note,
+                "batch_ref": batch_ref,
+                "payment_method": Payment.Method.MOYASAR,
+                "gateway_order_id": invoice_id,
+                "gateway_checkout_id": invoice_id,
+                "gateway_status": gateway_status,
+                "created_by": request.user,
+            }, membership))
 
     if warnings:
         messages.warning(request, "لم تُضف بعض العناصر: " + " ، ".join(warnings))
+    _notify_managers_of_group_payment(membership, total=total, labels=labels)
     return redirect(checkout_url)
 
 
@@ -3075,7 +3242,7 @@ def moyasar_checkout_create(request):
 def moyasar_return(request, batch_ref: str):
     if not moyasar_is_enabled():
         messages.error(request, "الدفع الإلكتروني غير متاح حاليًا.")
-        return redirect("reports:my_subscription")
+        return _subscription_return_redirect(request)
     try:
         invoice_status = _sync_moyasar_batch(batch_ref)
     except (MoyasarGatewayError, ImproperlyConfigured, _ApprovalError):
@@ -3088,7 +3255,7 @@ def moyasar_return(request, batch_ref: str):
             messages.error(request, "لم تكتمل عملية الدفع الإلكتروني. يمكنك إنشاء طلب جديد.")
         else:
             messages.info(request, "عملية الدفع الإلكتروني ما زالت بانتظار الإكمال.")
-    return redirect("reports:my_subscription")
+    return _subscription_return_redirect(request)
 
 
 @login_required(login_url="reports:login")
@@ -3115,7 +3282,7 @@ def moyasar_checkout_cancel(request, payment_id: int):
     ).first()
     if not membership or not payment or not payment.batch_ref:
         messages.error(request, "طلب الدفع الإلكتروني غير متاح للإلغاء.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     # Never cancel on our word alone — ask Moyasar first. A paid invoice whose
     # callback has not landed yet must be completed, not thrown away.
@@ -3124,11 +3291,11 @@ def moyasar_checkout_cancel(request, payment_id: int):
     except (MoyasarGatewayError, ImproperlyConfigured, _ApprovalError):
         logger.exception("Moyasar cancel verification failed for batch %s", payment.batch_ref)
         messages.error(request, "تعذّر التحقق من حالة الطلب لدى مزود الدفع. حاول مجددًا.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     if invoice_status == "paid":
         messages.success(request, "الدفع مكتمل بالفعل، وتم تفعيل الخدمات المختارة.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     cancelled = Payment.objects.filter(
         payment_method=Payment.Method.MOYASAR,
@@ -3139,7 +3306,7 @@ def moyasar_checkout_cancel(request, payment_id: int):
         messages.success(request, "أُلغي الطلب غير المدفوع. يمكنك إنشاء طلب جديد متى شئت.")
     else:
         messages.info(request, "لم يعد الطلب معلّقًا.")
-    return redirect("reports:my_subscription")
+    return _subscription_redirect(membership)
 
 
 @csrf_exempt
@@ -3205,7 +3372,7 @@ def _tamara_risk_assessment(school, items):
 def tamara_checkout_create(request):
     if not tamara_is_enabled():
         messages.error(request, "الدفع عبر تمارا غير متاح حاليًا.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     membership = _manager_payment_membership(request)
     if not membership:
@@ -3221,13 +3388,15 @@ def tamara_checkout_create(request):
         items, warnings = _build_unified_payment_items(request, membership, subscription)
     except _PaymentSelectionError as exc:
         messages.error(request, str(exc))
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     city = (request.POST.get("tamara_city") or membership.school.city or "").strip()
     address = (request.POST.get("tamara_address") or "").strip()
 
+    _remember_acting_school(request, membership)
     batch_ref = uuid.uuid4().hex[:16]
     order_reference = f"TWQ-{batch_ref.upper()}"
+    labels = "، ".join(item["label"] for item in items)
     user_agent = (request.headers.get("User-Agent") or "").lower()
     total = sum((Decimal(str(item["amount"])) for item in items), Decimal("0"))
     if not is_customer_eligible(
@@ -3236,7 +3405,7 @@ def tamara_checkout_create(request):
         email=request.user.email,
     ):
         messages.warning(request, "تمارا غير متاحة لهذا الطلب حاليًا. يمكنك استخدام التحويل البنكي.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
     try:
         payload = build_checkout_payload(
             order_reference=order_reference,
@@ -3256,7 +3425,7 @@ def tamara_checkout_create(request):
     except (TamaraGatewayError, ImproperlyConfigured):
         logger.exception("Tamara checkout creation failed")
         messages.error(request, "تعذّر بدء الدفع عبر تمارا. حاول مجددًا أو استخدم التحويل البنكي.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     checkout_url = str(checkout.get("checkout_url") or "").strip()
     parsed_checkout_url = urlparse(checkout_url)
@@ -3268,35 +3437,35 @@ def tamara_checkout_create(request):
     ):
         logger.error("Tamara returned an unsafe checkout URL")
         messages.error(request, "تعذّر التحقق من رابط الدفع عبر تمارا.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     order_id = str(checkout["order_id"])
     checkout_id = str(checkout.get("checkout_id") or "")
     gateway_status = str(checkout.get("status") or "new")[:32]
-    labels = "، ".join(item["label"] for item in items)
     note = f"[طلب تمارا {order_reference}] {labels} — الإجمالي {total} ريال."
 
     with transaction.atomic():
         for item in items:
-            Payment.objects.create(
-                school=membership.school,
-                subscription=subscription,
-                requested_plan=item.get("requested_plan"),
-                requested_teacher_limit=item.get("requested_teacher_limit"),
-                purpose=item["purpose"],
-                amount=item["amount"],
-                archive_storage_gb=item.get("archive_storage_gb", 0),
-                notes=note,
-                batch_ref=batch_ref,
-                payment_method=Payment.Method.TAMARA,
-                gateway_order_id=order_id,
-                gateway_checkout_id=checkout_id,
-                gateway_status=gateway_status,
-                created_by=request.user,
-            )
+            Payment.objects.create(**_stamp_payer({
+                "school": membership.school,
+                "subscription": subscription,
+                "requested_plan": item.get("requested_plan"),
+                "requested_teacher_limit": item.get("requested_teacher_limit"),
+                "purpose": item["purpose"],
+                "amount": item["amount"],
+                "archive_storage_gb": item.get("archive_storage_gb", 0),
+                "notes": note,
+                "batch_ref": batch_ref,
+                "payment_method": Payment.Method.TAMARA,
+                "gateway_order_id": order_id,
+                "gateway_checkout_id": checkout_id,
+                "gateway_status": gateway_status,
+                "created_by": request.user,
+            }, membership))
 
     if warnings:
         messages.warning(request, "لم تُضف بعض العناصر: " + " ، ".join(warnings))
+    _notify_managers_of_group_payment(membership, total=total, labels=labels)
     return redirect(checkout_url)
 
 
@@ -3308,7 +3477,7 @@ def tamara_return(request, result: str):
         messages.warning(request, "أُلغيت عملية الدفع عبر تمارا ولم يتم تفعيل أي خدمة.")
     else:
         messages.error(request, "لم تكتمل عملية الدفع عبر تمارا. يمكنك المحاولة مجددًا.")
-    return redirect("reports:my_subscription")
+    return _subscription_return_redirect(request)
 
 
 @login_required(login_url="reports:login")
@@ -3323,7 +3492,7 @@ def tamara_checkout_cancel(request, payment_id: int):
     ).first()
     if not membership or not payment or not payment.gateway_order_id:
         messages.error(request, "طلب تمارا غير متاح للإلغاء.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     order_payments = Payment.objects.filter(
         school=membership.school,
@@ -3334,17 +3503,17 @@ def tamara_checkout_cancel(request, payment_id: int):
         Q(status=Payment.Status.APPROVED) | Q(effects_applied_at__isnull=False)
     ).exists():
         messages.error(request, "لا يمكن إلغاء طلب تم تحصيله أو تفعيله.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     try:
         gateway_status = str(get_order(payment.gateway_order_id).get("status") or "").lower()
     except (TamaraGatewayError, ImproperlyConfigured):
         messages.error(request, "تعذّر التحقق من حالة الطلب لدى تمارا. حاول مجددًا.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     if gateway_status not in {"new", "canceled", "cancelled", "expired", "declined"}:
         messages.warning(request, "بدأت معالجة الدفع لدى تمارا، لذلك لا يمكن إلغاء الطلب من المنصة.")
-        return redirect("reports:my_subscription")
+        return _subscription_redirect(membership)
 
     local_status = Payment.Status.REJECTED if gateway_status == "declined" else Payment.Status.CANCELLED
     order_payments.filter(status=Payment.Status.PENDING).update(
@@ -3352,7 +3521,7 @@ def tamara_checkout_cancel(request, payment_id: int):
         gateway_status="customer_cancelled" if gateway_status == "new" else gateway_status,
     )
     messages.success(request, "أُلغي الطلب غير المدفوع. يمكنك إنشاء طلب جديد متى شئت.")
-    return redirect("reports:my_subscription")
+    return _subscription_redirect(membership)
 
 
 def _complete_tamara_order(order_id: str, *, gateway_status: str, capture_id: str, captured_amount) -> None:

@@ -1182,17 +1182,9 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     user_schools: list[School] = []
     try:
         if getattr(request.user, "is_authenticated", False):
-            if any_school_manager:
-                # للمدير: أظهر فقط المدارس التي يملك فيها دور مدير مدرسة.
-                user_schools = list(
-                    School.objects.filter(
-                        id__in=list(manager_school_ids),
-                        is_active=True,
-                    )
-                    .order_by("name")
-                )
-            else:
-                # لباقي المستخدمين: المدارس المرتبطة بعضوياتهم النشطة.
+            if not getattr(request.user, "is_superuser", False):
+                # الدور مدرسي لا حسابي. لذلك تظهر كل العضويات النشطة حتى لمن
+                # يدير مدرسة ويدرّس في أخرى؛ وتقرر المدرسة المختارة شكل الشريط.
                 user_schools = list(
                     School.objects.filter(
                         memberships__teacher=request.user,

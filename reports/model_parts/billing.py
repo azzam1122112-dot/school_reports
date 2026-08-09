@@ -181,6 +181,20 @@ class Payment(models.Model):
         REJECTED = "rejected", "مرفوض"
         CANCELLED = "cancelled", "ملغي"
 
+    class PayerKind(models.TextChoices):
+        """من دفع، لا من ضغط الزر.
+
+        ``created_by`` يقول «أي مستخدم أنشأ السجل» ولا يقول بأي صفة: مالك
+        المنصة حين يسجّل دفعة يدوياً، ومدير المدرسة حين يدفع لمدرسته، والمدير
+        التنفيذي حين يدفع نيابةً عن إحدى مدارس مجموعته — ثلاثتهم يظهرون في
+        ``created_by`` بلا فرق. والفرق يهمّ مدير المدرسة: أن يرى «دُفعت من
+        مجموعتك» بدل دفعةٍ ظهرت في سجلّه بلا مصدر.
+        """
+
+        SCHOOL = "school", "إدارة المدرسة"
+        GROUP_DIRECTOR = "group_director", "المدير التنفيذي للمجموعة"
+        PLATFORM = "platform", "إدارة المنصة"
+
     class Purpose(models.TextChoices):
         SUBSCRIPTION = "subscription", "اشتراك المدرسة"
         ARCHIVE_ADDON = "archive_addon", "إضافة الأرشفة"
@@ -305,6 +319,22 @@ class Payment(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         verbose_name="قام بالرفع"
+    )
+    payer_kind = models.CharField(
+        "صفة الدافع",
+        max_length=20,
+        choices=PayerKind.choices,
+        default=PayerKind.SCHOOL,
+        db_index=True,
+    )
+    payer_group = models.ForeignKey(
+        "SchoolGroup",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="paid_payments",
+        verbose_name="المجموعة الدافعة",
+        help_text="تُملأ حين يدفع المدير التنفيذي نيابةً عن إحدى مدارس مجموعته.",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -609,3 +639,93 @@ class SchoolYearArchiveDownload(models.Model):
 
     def __str__(self) -> str:
         return f"تنزيل {self.archive_id} بواسطة {self.downloaded_by_id or '—'}"
+
+
+def generated_export_upload_to(instance, filename: str) -> str:
+    extension = os.path.splitext(filename or "")[1].lower() or ".bin"
+    school_id = int(getattr(instance, "school_id", 0) or 0)
+    return f"generated-exports/school-{school_id}/{uuid.uuid4().hex}{extension}"
+
+
+class GeneratedExportJob(models.Model):
+    """Durable state for CPU/IO-heavy ZIP generation.
+
+    Files live in the private default storage (R2 in production), never in
+    Redis and never on an ephemeral worker filesystem. Short retention keeps
+    ad-hoc downloads from silently becoming a second archive bucket.
+    """
+
+    class Kind(models.TextChoices):
+        SCHOOL_ZIP = "school_zip", "تصدير المدرسة ZIP"
+        YEAR_ZIP = "year_zip", "تصدير السنة ZIP"
+        ARCHIVE_SNAPSHOT = "archive_snapshot", "نسخة أرشيف محفوظة"
+
+    class Status(models.TextChoices):
+        QUEUED = "queued", "في قائمة الانتظار"
+        RUNNING = "running", "قيد الإنشاء"
+        READY = "ready", "جاهز"
+        FAILED = "failed", "تعذر الإنشاء"
+        EXPIRED = "expired", "انتهت الصلاحية"
+
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="generated_export_jobs",
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="generated_export_jobs",
+    )
+    kind = models.CharField(max_length=32, choices=Kind.choices, db_index=True)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.QUEUED,
+        db_index=True,
+    )
+    parameters = models.JSONField(default=dict, blank=True)
+    artifact_file = models.FileField(
+        upload_to=generated_export_upload_to,
+        max_length=500,
+        blank=True,
+    )
+    archive = models.ForeignKey(
+        SchoolYearArchive,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="generation_jobs",
+    )
+    filename = models.CharField(max_length=255, blank=True, default="")
+    content_type = models.CharField(max_length=100, blank=True, default="application/zip")
+    size_bytes = models.PositiveBigIntegerField(default=0)
+    error_message = models.CharField(max_length=500, blank=True, default="")
+    expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        indexes = [
+            models.Index(
+                fields=["requested_by", "status", "-created_at"],
+                name="reports_gej_user_status_idx",
+            ),
+            models.Index(
+                fields=["school", "kind", "status"],
+                name="reports_gej_school_kind_idx",
+            ),
+        ]
+
+    @property
+    def is_ready(self) -> bool:
+        return self.status == self.Status.READY and bool(
+            self.archive_id or getattr(self.artifact_file, "name", "")
+        )
+
+    def __str__(self) -> str:
+        return f"{self.get_kind_display()} #{self.pk} ({self.get_status_display()})"

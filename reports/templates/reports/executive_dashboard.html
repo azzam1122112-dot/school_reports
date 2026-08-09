@@ -246,7 +246,10 @@
     <section class="exec-panel" aria-labelledby="execAttentionTitle">
       <div class="exec-panel__head">
         <h2 id="execAttentionTitle"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> تحتاج متابعة</h2>
-        <p>{{ needs_attention|length }} من {{ totals.schools }} مدرسة اشتراكها يقارب الانتهاء أو سعتها تقارب الامتلاء</p>
+        <p>
+          {{ needs_attention|length }} من {{ totals.schools }} مدرسة اشتراكها يقارب الانتهاء أو سعتها تقارب الامتلاء —
+          <a href="{% url 'reports:group_subscriptions' %}?group={{ group.pk }}">افتح كشف الاشتراكات</a>
+        </p>
       </div>
       <div class="exec-scroll">
         <table class="exec-table">

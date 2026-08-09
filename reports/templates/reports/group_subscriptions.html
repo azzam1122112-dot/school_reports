@@ -1,0 +1,625 @@
+{% extends "base.html" %}
+{% load hijri_tags %}
+
+{% block title %}اشتراكات مدارس المجموعة{% endblock %}
+
+{% block head %}
+<style nonce="{{ CSP_NONCE }}">
+  /* ══════════════════════════════════════════════════════════════════
+     اشتراكات مدارس المجموعة — شاشة المدير التنفيذي.
+     مبنية على جذر الهوية `_identity.html`: لا لون ثابتاً هنا، فالوضع
+     الليلي يأتي مجاناً. والأسماء `--gs-*` أسماء مستعارة للقراءة.
+     ══════════════════════════════════════════════════════════════════ */
+  .gsubs {
+    --gs-ink: var(--id-ink);
+    --gs-muted: var(--id-muted);
+    --gs-line: var(--id-line);
+    --gs-line-soft: var(--id-line-soft);
+    --gs-card: var(--id-surface);
+    --gs-card-2: var(--id-surface-2);
+    --gs-accent: var(--id-accent);
+
+    max-width: 1400px;
+    margin-inline: auto;
+    padding: clamp(14px, 2.2vw, 26px) clamp(12px, 2vw, 22px) 90px;
+    color: var(--gs-ink);
+  }
+
+  /* ── الترويسة ─────────────────────────────────────────────────── */
+  .gsubs-hero {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(18px, 3vw, 34px);
+    margin-bottom: 18px;
+    padding: clamp(22px, 3.2vw, 40px);
+    border: 1px solid var(--id-gold-line);
+    border-radius: var(--id-r5);
+    color: var(--id-hero-ink);
+    background:
+      radial-gradient(120% 150% at 92% -22%, rgba(212, 177, 109, .26), transparent 46%),
+      radial-gradient(90% 120% at 4% 108%, rgba(22, 149, 90, .34), transparent 52%),
+      linear-gradient(135deg, var(--id-hero-from) 0%, var(--id-hero-via) 56%, var(--id-hero-to) 100%);
+    box-shadow: var(--id-e4);
+  }
+  .gsubs-hero::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--id-gold-500) 18%, var(--id-gold-300) 50%, var(--id-gold-500) 82%, transparent);
+  }
+  .gsubs-hero__copy { max-width: 64ch; }
+  .gsubs-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 15px;
+    border: 1px solid rgba(212, 177, 109, .5);
+    border-radius: var(--id-pill);
+    background: rgba(212, 177, 109, .16);
+    color: var(--id-gold-300);
+    font-size: .78rem;
+    font-weight: 900;
+  }
+  .gsubs-hero h1 {
+    margin: 14px 0 8px;
+    color: var(--id-hero-ink);
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    font-weight: 950;
+    line-height: 1.28;
+  }
+  .gsubs-hero p { margin: 0; color: var(--id-hero-ink-soft); font-size: .93rem; font-weight: 700; line-height: 1.95; }
+
+  .gsubs-groups { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+  .gsubs-groups a {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 15px;
+    border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: var(--id-pill);
+    background: rgba(255, 255, 255, .1);
+    color: var(--id-hero-ink);
+    font-size: .81rem;
+    font-weight: 850;
+    text-decoration: none;
+  }
+  .gsubs-groups a.is-active {
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--id-gold-400), var(--id-gold-600));
+    color: var(--id-green-950);
+  }
+
+  .gsubs-hero__summary {
+    display: grid;
+    gap: 6px;
+    justify-items: center;
+    min-width: 220px;
+    padding: clamp(18px, 2.2vw, 28px);
+    border: 1px solid rgba(212, 177, 109, .42);
+    border-radius: var(--id-r4);
+    background: rgba(3, 32, 20, .3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    text-align: center;
+  }
+  .gsubs-hero__summary span { color: var(--id-gold-300); font-size: .8rem; font-weight: 900; }
+  .gsubs-hero__summary strong {
+    font-size: clamp(2.4rem, 5vw, 3.4rem);
+    font-weight: 950;
+    line-height: 1;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .gsubs-hero__summary small { color: var(--id-hero-ink-soft); font-size: .78rem; font-weight: 700; line-height: 1.8; }
+
+  /* ── المؤشرات ─────────────────────────────────────────────────── */
+  .gsubs-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .gsubs-kpi {
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    align-items: center;
+    gap: 13px;
+    padding: 17px;
+    border: 1px solid var(--gs-line);
+    border-radius: var(--id-r3);
+    background: var(--gs-card);
+    box-shadow: var(--id-e2);
+  }
+  .gsubs-kpi::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0;
+    height: 3px;
+    background: var(--kpi-tone, var(--gs-accent));
+  }
+  .gsubs-kpi--danger { --kpi-tone: var(--id-tone-danger); }
+  .gsubs-kpi--warn { --kpi-tone: var(--id-tone-attention); }
+  .gsubs-kpi--gold { --kpi-tone: var(--id-gold-500); }
+  .gsubs-kpi__icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: var(--id-r2);
+    color: var(--kpi-tone, var(--gs-accent));
+    background: var(--gs-card-2);
+    font-size: 1.02rem;
+  }
+  .gsubs-kpi__label { color: var(--gs-muted); font-size: .8rem; font-weight: 850; }
+  .gsubs-kpi__value { margin-top: 3px; font-size: clamp(1.2rem, 2vw, 1.5rem); font-weight: 950; font-variant-numeric: tabular-nums; }
+  .gsubs-kpi__hint { margin-top: 3px; color: var(--gs-muted); font-size: .74rem; font-weight: 700; line-height: 1.6; }
+
+  /* ── اللوح ────────────────────────────────────────────────────── */
+  .gsubs-panel {
+    margin-bottom: 16px;
+    border: 1px solid var(--gs-line);
+    border-radius: var(--id-r4);
+    background: var(--gs-card);
+    box-shadow: var(--id-e3);
+    overflow: hidden;
+  }
+  .gsubs-panel__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    padding: 17px clamp(16px, 2.2vw, 22px);
+    border-bottom: 1px solid var(--gs-line);
+    background: var(--gs-card-2);
+  }
+  .gsubs-panel__icon {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--id-r2);
+    color: var(--id-accent-ink);
+    background: linear-gradient(135deg, var(--id-green-600), var(--id-green-800));
+    font-size: 1rem;
+  }
+  .gsubs-panel__title h2 { margin: 0; font-size: 1.05rem; font-weight: 950; }
+  .gsubs-panel__title p { margin: 4px 0 0; color: var(--gs-muted); font-size: .82rem; font-weight: 750; line-height: 1.75; }
+  .gsubs-panel__aside { margin-inline-start: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .gsubs-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 15px;
+    border: 1px solid var(--gs-line);
+    border-radius: var(--id-pill);
+    background: var(--gs-card);
+    color: var(--gs-ink);
+    font-size: .8rem;
+    font-weight: 900;
+    text-decoration: none;
+    transition: border-color var(--id-fast) var(--id-ease), transform var(--id-fast) var(--id-ease);
+  }
+  .gsubs-tab:hover { transform: translateY(-1px); border-color: var(--id-green-500); color: var(--gs-ink); }
+  .gsubs-tab b {
+    padding: 2px 8px;
+    border-radius: var(--id-pill);
+    background: var(--gs-line-soft);
+    color: var(--gs-muted);
+    font-size: .71rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .gsubs-tab.is-active {
+    border-color: transparent;
+    color: var(--id-accent-ink);
+    background: linear-gradient(135deg, var(--id-green-600), var(--id-green-800));
+  }
+  .gsubs-tab.is-active b { background: rgba(255, 255, 255, .2); color: #fff; }
+
+  .gsubs-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    padding: 14px clamp(16px, 2.2vw, 22px);
+    border-bottom: 1px solid var(--gs-line);
+    background: var(--id-tone-attention-wash);
+    color: var(--id-gold-700);
+    font-size: .8rem;
+    font-weight: 850;
+    line-height: 1.8;
+  }
+  html[data-theme="dark"] .gsubs-note { color: var(--id-gold-300); }
+
+  /* ── الجدول ───────────────────────────────────────────────────── */
+  .gsubs-scroll { overflow-x: auto; }
+  .gsubs-table { width: 100%; border-collapse: collapse; min-width: 1080px; }
+  .gsubs-table thead th {
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--gs-line);
+    background: var(--gs-card-2);
+    color: var(--gs-muted);
+    font-size: .76rem;
+    font-weight: 950;
+    text-align: start;
+    white-space: nowrap;
+  }
+  .gsubs-table td {
+    padding: 15px 14px;
+    border-bottom: 1px solid var(--gs-line-soft);
+    vertical-align: middle;
+    font-size: .84rem;
+    font-weight: 800;
+  }
+  .gsubs-table tbody tr { transition: background var(--id-fast) var(--id-ease); }
+  .gsubs-table tbody tr:hover { background: var(--id-accent-wash); }
+  .gsubs-table tbody tr:last-child td { border-bottom: 0; }
+  .gsubs-row--attention { box-shadow: inset 3px 0 0 var(--id-tone-danger); }
+
+  .gsubs-school { display: flex; align-items: center; gap: 11px; min-width: 200px; }
+  .gsubs-avatar {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--id-gold-line);
+    border-radius: var(--id-r2);
+    color: var(--gs-accent);
+    background: var(--gs-card-2);
+    font-size: .95rem;
+    font-weight: 950;
+  }
+  .gsubs-school a { color: inherit; font-size: .88rem; font-weight: 950; text-decoration: none; }
+  .gsubs-school a:hover { color: var(--gs-accent); }
+  .gsubs-sub { margin-top: 4px; color: var(--gs-muted); font-size: .74rem; font-weight: 750; }
+  .gsubs-main { font-weight: 900; }
+
+  .gsubs-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border: 1px solid currentColor;
+    border-radius: var(--id-pill);
+    font-size: .73rem;
+    font-weight: 950;
+    white-space: nowrap;
+  }
+  .gsubs-badge[data-state="active"] { color: var(--id-tone-approved); background: var(--id-tone-approved-wash); }
+  .gsubs-badge[data-state="soon"] { color: var(--id-tone-attention); background: var(--id-tone-attention-wash); }
+  .gsubs-badge[data-state="urgent"],
+  .gsubs-badge[data-state="expired"],
+  .gsubs-badge[data-state="cancelled"] { color: var(--id-tone-danger); background: var(--id-tone-danger-wash); }
+  .gsubs-badge[data-state="none"] { color: var(--id-tone-draft); background: var(--id-tone-draft-wash); }
+
+  .gsubs-meter { display: grid; gap: 5px; min-width: 150px; }
+  .gsubs-meter__row { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+  .gsubs-meter__row span { color: var(--gs-muted); font-size: .72rem; font-weight: 850; }
+  .gsubs-meter__row b { font-size: .75rem; font-weight: 950; font-variant-numeric: tabular-nums; }
+  .gsubs-bar { height: 5px; border-radius: var(--id-pill); background: var(--gs-line-soft); overflow: hidden; }
+  .gsubs-bar > span { display: block; height: 100%; border-radius: var(--id-pill); background: var(--id-green-600); }
+  .gsubs-bar[data-tone="warn"] > span { background: var(--id-tone-attention); }
+  .gsubs-bar[data-tone="danger"] > span { background: var(--id-tone-danger); }
+
+  .gsubs-contact { display: grid; gap: 3px; min-width: 150px; }
+  .gsubs-contact strong { font-size: .82rem; font-weight: 900; }
+  .gsubs-contact a { color: var(--gs-accent); font-size: .78rem; font-weight: 900; text-decoration: none; }
+  .gsubs-contact span { color: var(--gs-muted); font-size: .74rem; font-weight: 750; }
+
+  .gsubs-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 8px 14px;
+    border: 1px solid var(--gs-line);
+    border-radius: var(--id-r1);
+    background: var(--gs-card-2);
+    color: var(--gs-ink);
+    font-size: .78rem;
+    font-weight: 900;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .gsubs-link:hover { border-color: var(--id-green-500); color: var(--gs-ink); }
+  .gsubs-link--solid {
+    border-color: transparent;
+    color: var(--id-accent-ink);
+    background: linear-gradient(135deg, var(--id-green-600), var(--id-green-800));
+  }
+  .gsubs-link--solid:hover { color: var(--id-accent-ink); }
+  .gsubs-actions { display: flex; flex-wrap: wrap; gap: 7px; min-width: 190px; }
+
+  .gsubs-empty {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 52px 20px;
+    text-align: center;
+  }
+  .gsubs-empty__icon {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--id-r3);
+    color: var(--gs-accent);
+    background: var(--id-accent-wash);
+    font-size: 1.25rem;
+  }
+  .gsubs-empty strong { font-size: .95rem; font-weight: 950; }
+  .gsubs-empty span { color: var(--gs-muted); font-size: .84rem; font-weight: 750; }
+
+  /* ── الاستجابة ────────────────────────────────────────────────── */
+  @media (max-width: 1180px) {
+    .gsubs-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 720px) {
+    .gsubs-kpis { grid-template-columns: minmax(0, 1fr); }
+    .gsubs-hero__summary { width: 100%; }
+
+    .gsubs-table { min-width: 0; }
+    .gsubs-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .gsubs-table tr {
+      display: grid;
+      gap: 9px;
+      margin-bottom: 11px;
+      padding: 14px;
+      border: 1px solid var(--gs-line);
+      border-radius: var(--id-r3);
+      background: var(--gs-card-2);
+    }
+    .gsubs-table td { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 10px; padding: 0; border: 0; }
+    .gsubs-actions { min-width: 0; }
+    .gsubs-table td::before {
+      content: attr(data-label);
+      color: var(--gs-muted);
+      font-size: .73rem;
+      font-weight: 950;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="gsubs id-root" dir="rtl">
+
+  {# ═══ الترويسة ═════════════════════════════════════════════════ #}
+  <header class="gsubs-hero">
+    <div class="gsubs-hero__copy">
+      <span class="gsubs-eyebrow"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> متابعة المجموعة</span>
+      <h1>اشتراكات مدارس {{ group.name }}</h1>
+      <p>
+        كشف واحد يجمع حالة اشتراك كل مدرسة وسعتها ومساحتها وأرشيفها، مرتّباً بما يحتاج
+        إجراءً أولاً. الشراء والتجديد يبقيان بيد مدير المدرسة، ودورك هنا أن تعرف قبل
+        أن ينقطع العمل وبمن تتصل.
+      </p>
+
+      {% if groups|length > 1 %}
+        <nav class="gsubs-groups" aria-label="اختيار المجموعة">
+          {% for item in groups %}
+            <a class="{% if item.pk == group.pk %}is-active{% endif %}" href="?group={{ item.pk }}{% if state_filter != 'all' %}&state={{ state_filter }}{% endif %}">
+              <i class="fa-solid fa-sitemap" aria-hidden="true"></i> {{ item.name }}
+            </a>
+          {% endfor %}
+        </nav>
+      {% endif %}
+    </div>
+
+    <div class="gsubs-hero__summary">
+      <span>تحتاج إجراءً</span>
+      <strong>{{ totals.attention }}</strong>
+      <small>من {{ totals.schools }} مدرسة في المجموعة</small>
+    </div>
+  </header>
+
+  {# ═══ المؤشرات ═════════════════════════════════════════════════ #}
+  <section class="gsubs-kpis" aria-label="مؤشرات اشتراكات المجموعة">
+    <article class="gsubs-kpi gsubs-kpi--danger">
+      <div class="gsubs-kpi__icon"><i class="fa-solid fa-circle-stop" aria-hidden="true"></i></div>
+      <div>
+        <div class="gsubs-kpi__label">العمل متوقف أو موشك</div>
+        <div class="gsubs-kpi__value">{{ totals.stopped|add:totals.urgent }} مدرسة</div>
+        <div class="gsubs-kpi__hint">{{ totals.stopped }} بلا اشتراك سارٍ · {{ totals.urgent }} تنتهي خلال {{ urgent_days }} أيام</div>
+      </div>
+    </article>
+    <article class="gsubs-kpi gsubs-kpi--warn">
+      <div class="gsubs-kpi__icon"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></div>
+      <div>
+        <div class="gsubs-kpi__label">تجديد قريب</div>
+        <div class="gsubs-kpi__value">{{ totals.soon }} مدرسة</div>
+        <div class="gsubs-kpi__hint">تنتهي خلال {{ soon_days }} يوماً</div>
+      </div>
+    </article>
+    <article class="gsubs-kpi">
+      <div class="gsubs-kpi__icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+      <div>
+        <div class="gsubs-kpi__label">اشتراكات مستقرة</div>
+        <div class="gsubs-kpi__value">{{ totals.active }} مدرسة</div>
+        <div class="gsubs-kpi__hint">لا تحتاج إجراءً هذا الشهر</div>
+      </div>
+    </article>
+    <article class="gsubs-kpi gsubs-kpi--gold">
+      <div class="gsubs-kpi__icon"><i class="fa-solid fa-box-archive" aria-hidden="true"></i></div>
+      <div>
+        <div class="gsubs-kpi__label">الأرشيف السنوي مفعّل</div>
+        <div class="gsubs-kpi__value">{{ totals.archive_active }} من {{ totals.schools }}</div>
+        <div class="gsubs-kpi__hint">{{ totals.pressured }} مدرسة سعتها أو مساحتها تقارب الامتلاء</div>
+      </div>
+    </article>
+  </section>
+
+  {# ═══ الكشف ════════════════════════════════════════════════════ #}
+  <section class="gsubs-panel" aria-labelledby="gsubsTableTitle">
+    <div class="gsubs-panel__head">
+      <div class="gsubs-panel__icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>
+      <div class="gsubs-panel__title">
+        <h2 id="gsubsTableTitle">كشف اشتراكات المدارس</h2>
+        <p>مرتَّب بما يحتاج إجراءً أولاً، ثم الأقرب انتهاءً.</p>
+      </div>
+      <nav class="gsubs-panel__aside" aria-label="تصفية الكشف">
+        <a class="gsubs-tab {% if state_filter == 'all' %}is-active{% endif %}" href="?state=all&group={{ group.pk }}">
+          <i class="fa-solid fa-layer-group" aria-hidden="true"></i> الكل <b>{{ totals.schools }}</b>
+        </a>
+        <a class="gsubs-tab {% if state_filter == 'attention' %}is-active{% endif %}" href="?state=attention&group={{ group.pk }}">
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> تحتاج إجراءً <b>{{ totals.attention }}</b>
+        </a>
+        <a class="gsubs-tab {% if state_filter == 'expired' %}is-active{% endif %}" href="?state=expired&group={{ group.pk }}">
+          <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> متوقفة <b>{{ totals.stopped }}</b>
+        </a>
+        <a class="gsubs-tab {% if state_filter == 'active' %}is-active{% endif %}" href="?state=active&group={{ group.pk }}">
+          <i class="fa-solid fa-circle-check" aria-hidden="true"></i> مستقرة <b>{{ totals.active }}</b>
+        </a>
+      </nav>
+    </div>
+
+    <p class="gsubs-note">
+      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+      <span>
+        يمكنك الدفع نيابةً عن أي مدرسة هنا. السعة لا تنزل عن عدد منسوبي المدرسة الفعلي،
+        ويصل مديرها إشعارٌ فور إنشاء الطلب وآخر عند اعتماده — فلا يشتري بنداً دفعتَه أنت.
+      </span>
+    </p>
+
+    <div class="gsubs-scroll">
+      <table class="gsubs-table">
+        <thead>
+          <tr>
+            <th scope="col">المدرسة</th>
+            <th scope="col">الباقة</th>
+            <th scope="col">فترة الاشتراك</th>
+            <th scope="col">الحالة</th>
+            <th scope="col">السعة والمساحة</th>
+            <th scope="col">الأرشيف</th>
+            <th scope="col">للتواصل</th>
+            <th scope="col">الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr class="{% if row.order <= 3 or row.is_pressured %}gsubs-row--attention{% endif %}">
+              <td data-label="المدرسة">
+                <div class="gsubs-school">
+                  <span class="gsubs-avatar" aria-hidden="true">{{ row.school.name|slice:":1" }}</span>
+                  <div>
+                    <a href="{% url 'reports:group_school_detail' row.school.pk %}">{{ row.school.name }}</a>
+                    <div class="gsubs-sub">
+                      {{ row.school.get_stage_display }}{% if row.school.city %} · {{ row.school.city }}{% endif %}
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <td data-label="الباقة">
+                {% if row.subscription %}
+                  <div class="gsubs-main">{{ row.subscription.plan.name|default:"—" }}</div>
+                  <div class="gsubs-sub">سعة {{ row.subscription.teacher_limit }} معلماً</div>
+                {% else %}
+                  <div class="gsubs-sub">لم تشترك بعد</div>
+                {% endif %}
+              </td>
+
+              <td data-label="فترة الاشتراك">
+                {% if row.subscription %}
+                  <div class="gsubs-main">{{ row.subscription.start_date|hijri }} هـ</div>
+                  <div class="gsubs-sub">حتى {{ row.subscription.end_date|hijri }} هـ</div>
+                {% else %}
+                  <div class="gsubs-sub">—</div>
+                {% endif %}
+              </td>
+
+              <td data-label="الحالة">
+                <span class="gsubs-badge" data-state="{{ row.state.key }}">
+                  {% if row.state.key == 'active' %}<i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  {% elif row.state.key == 'soon' %}<i class="fa-solid fa-clock" aria-hidden="true"></i>
+                  {% elif row.state.key == 'urgent' %}<i class="fa-solid fa-bell" aria-hidden="true"></i>
+                  {% elif row.state.key == 'none' %}<i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                  {% else %}<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>{% endif %}
+                  {{ row.state.label }}
+                </span>
+                {% if row.is_pressured %}
+                  <div class="gsubs-sub"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> السعة أو المساحة تقارب الامتلاء</div>
+                {% endif %}
+              </td>
+
+              <td data-label="السعة والمساحة">
+                <div class="gsubs-meter">
+                  <div class="gsubs-meter__row"><span>المقاعد</span><b>{{ row.consumption.seats.label }}</b></div>
+                  {% if not row.consumption.seats.is_unlimited %}
+                    <div class="gsubs-bar" data-tone="{% if row.consumption.seats.percent >= 90 %}danger{% elif row.consumption.seats.percent >= 75 %}warn{% else %}ok{% endif %}" aria-hidden="true">
+                      <span style="width:{{ row.consumption.seats.percent }}%"></span>
+                    </div>
+                  {% endif %}
+                  <div class="gsubs-meter__row"><span>مساحة العمل</span><b>{{ row.consumption.storage.label }}</b></div>
+                  {% if not row.consumption.storage.is_unlimited %}
+                    <div class="gsubs-bar" data-tone="{% if row.consumption.storage.percent >= 90 %}danger{% elif row.consumption.storage.percent >= 75 %}warn{% else %}ok{% endif %}" aria-hidden="true">
+                      <span style="width:{{ row.consumption.storage.percent }}%"></span>
+                    </div>
+                  {% endif %}
+                </div>
+              </td>
+
+              <td data-label="الأرشيف">
+                {% if row.archive_active %}
+                  <span class="gsubs-badge" data-state="active"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> مفعّل</span>
+                  <div class="gsubs-sub">{{ row.consumption.archive.label }}</div>
+                {% else %}
+                  <span class="gsubs-badge" data-state="none"><i class="fa-solid fa-box-open" aria-hidden="true"></i> غير مفعّل</span>
+                {% endif %}
+              </td>
+
+              <td data-label="للتواصل">
+                {% if row.manager %}
+                  <div class="gsubs-contact">
+                    <strong>{{ row.manager.name }}</strong>
+                    {% if row.manager.phone %}
+                      <a href="tel:{{ row.manager.phone }}" dir="ltr">{{ row.manager.phone }}</a>
+                    {% else %}
+                      <span>لا يوجد رقم مسجَّل</span>
+                    {% endif %}
+                  </div>
+                {% else %}
+                  <span class="gsubs-sub">لا يوجد مدير نشط</span>
+                {% endif %}
+              </td>
+
+              <td data-label="الإجراءات">
+                <div class="gsubs-actions">
+                  <a class="gsubs-link gsubs-link--solid" href="{% url 'reports:my_subscription' %}?school={{ row.school.pk }}">
+                    <i class="fa-solid fa-cart-plus" aria-hidden="true"></i>
+                    {% if row.order <= 3 %}جدّد نيابةً{% else %}ادفع نيابةً{% endif %}
+                  </a>
+                  <a class="gsubs-link" href="{% url 'reports:group_school_detail' row.school.pk %}">
+                    <i class="fa-solid fa-eye" aria-hidden="true"></i> ملف المدرسة
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8">
+                <div class="gsubs-empty">
+                  <div class="gsubs-empty__icon"><i class="fa-solid fa-school-circle-check" aria-hidden="true"></i></div>
+                  <strong>لا توجد مدارس مطابقة لهذه التصفية</strong>
+                  <span>جرّب تبويب «الكل» لعرض مدارس المجموعة كاملة.</span>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+{% endblock %}

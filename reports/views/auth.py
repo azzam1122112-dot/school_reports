@@ -191,10 +191,29 @@ def _offer_passkey_enrollment(request: HttpRequest, user: Teacher) -> None:
         request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
 
 
-def _default_login_redirect_name(user) -> str:
+def _default_login_redirect_name(user, *, active_school=None) -> str:
+    """Return the landing page for the role held in the active context.
+
+    A user may manage one school and teach in another. Treating ``manager`` as
+    an account-wide flag strands that user whenever the active school is the
+    teaching school. With an active school, the role in that school is therefore
+    authoritative. The account-wide check remains only for the no-context case
+    so a manager is still guided to school selection.
+    """
     if getattr(user, "is_superuser", False):
         return "reports:platform_admin_dashboard"
-    if _is_staff(user):
+    if active_school is not None:
+        if is_school_manager(user, active_school=active_school):
+            return "reports:admin_dashboard"
+        # A school membership in the active context wins over an additional
+        # group-level role (for example, an executive director who also teaches).
+        if SchoolMembership.objects.filter(
+            school=active_school,
+            teacher=user,
+            is_active=True,
+        ).exists():
+            return "reports:home"
+    elif is_school_manager(user):
         return "reports:admin_dashboard"
     # المدير التنفيذي يُسأل عنه بعد الإدارة المدرسية لا قبلها: من جمع الصفتين
     # يبقى مديراً في مدرسته. وقبل هذا الشرط كان يهبط على لوحة المعلّم — صفحةٌ
@@ -222,6 +241,7 @@ def _complete_passkey_login(request: HttpRequest, user: Teacher, *, next_url: st
 
         if memberships.exists():
             active_school = None
+            active_manager_school = None
             any_active_subscription = False
             is_any_manager = False
             manager_school = None
@@ -245,6 +265,11 @@ def _complete_passkey_login(request: HttpRequest, user: Teacher, *, next_url: st
                     any_active_subscription = True
                     if active_school is None:
                         active_school = m.school
+                    if (
+                        m.role_type == SchoolMembership.RoleType.MANAGER
+                        and active_manager_school is None
+                    ):
+                        active_manager_school = m.school
 
             if not any_active_subscription:
                 if is_any_manager and manager_school is not None:
@@ -261,6 +286,7 @@ def _complete_passkey_login(request: HttpRequest, user: Teacher, *, next_url: st
                     message=f"عذرًا، اشتراك المدرسة{school_label} منتهي. لا يمكن الدخول حتى يتم تجديد الاشتراك.",
                 )
 
+            active_school = active_manager_school or active_school
             login(request, user)
             if active_school is not None:
                 _set_active_school(request, active_school)
@@ -295,7 +321,16 @@ def _complete_passkey_login(request: HttpRequest, user: Teacher, *, next_url: st
             error="admin_only",
             message="هذا الدخول خاص بمدير النظام فقط.",
         )
-    return _passkey_response(True, redirect=safe_next or reverse(_default_login_redirect_name(user)))
+    return _passkey_response(
+        True,
+        redirect=safe_next
+        or reverse(
+            _default_login_redirect_name(
+                user,
+                active_school=_get_active_school(request),
+            )
+        ),
+    )
 
 
 def _landing_duration_label(days: int) -> str:
@@ -556,7 +591,12 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
             return redirect("reports:my_profile")
         # وجهة الهبوط تُقرَّر من دالة واحدة: أربع نسخ من الاشتراط نفسها كانت
         # تعني أن إضافة دور جديد تُنسى في ثلاث منها.
-        return redirect(_default_login_redirect_name(request.user))
+        return redirect(
+            _default_login_redirect_name(
+                request.user,
+                active_school=_get_active_school(request),
+            )
+        )
 
     if request.method == "POST":
         identifier = (
@@ -642,10 +682,14 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                             return redirect("reports:my_profile")
                         _offer_passkey_enrollment(request, user)
                         next_url = next_value
-                        default_name = _default_login_redirect_name(user)
+                        default_name = _default_login_redirect_name(
+                            user,
+                            active_school=_get_active_school(request),
+                        )
                         return redirect(next_url or default_name)
 
                     active_school = None
+                    active_manager_school = None
                     any_active_subscription = False
                     is_any_manager = False
                     manager_school = None
@@ -670,6 +714,11 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                             any_active_subscription = True
                             if active_school is None:
                                 active_school = m.school
+                            if (
+                                m.role_type == SchoolMembership.RoleType.MANAGER
+                                and active_manager_school is None
+                            ):
+                                active_manager_school = m.school
 
                     if not any_active_subscription:
                         if is_any_manager and manager_school is not None:
@@ -695,7 +744,10 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                         messages.error(request, f"عذرًا، اشتراك المدرسة{school_label} منتهي. لا يمكن الدخول حتى يتم تجديد الاشتراك.")
                         return redirect("reports:login")
 
-                    # هناك اشتراك ساري واحد على الأقل → نكمل تسجيل الدخول ونثبت مدرسة نشطة مناسبة
+                    # الإدارة هي وجهة الدخول الافتراضية متى كانت مدرسة الإدارة
+                    # نفسها فعّالة. ويمكن للمستخدم بعد ذلك تبديل السياق إلى
+                    # مدرسة يدرّس فيها، فتتحول الواجهة إلى رحلة المعلم.
+                    active_school = active_manager_school or active_school
                     login(request, user)
                     if active_school is not None:
                         _set_active_school(request, active_school)
@@ -729,7 +781,10 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
             _offer_passkey_enrollment(request, user)
             next_url = next_value
             # الوجهة الافتراضية حسب الدور
-            default_name = _default_login_redirect_name(user)
+            default_name = _default_login_redirect_name(
+                user,
+                active_school=_get_active_school(request),
+            )
             logger.info(
                 "Login success user_id=%s is_superuser=%s active_school_id=%s redirect=%s trace_id=%s",
                 getattr(user, "id", None),
@@ -1549,7 +1604,12 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
     """
 
     if getattr(request.user, "is_authenticated", False):
-        return redirect(_default_login_redirect_name(request.user))
+        return redirect(
+            _default_login_redirect_name(
+                request.user,
+                active_school=_get_active_school(request),
+            )
+        )
 
     capture_marketing_attribution(request)
 
