@@ -1330,7 +1330,7 @@
        var w = exist || document.createElement("div");
        w.className="ar-prev-card"; w.dataset.s=s;
        w.innerHTML='<img src="'+url+'"><button type="button" class="ar-prev-remove">×</button>';
-       w.querySelector("button").onclick=function(){ inp.value=""; w.remove(); };
+       w.querySelector("button").addEventListener("click", function(){ inp.value=""; w.remove(); });
        if(!exist) c.appendChild(w);
     }
     slots.forEach(function(o){

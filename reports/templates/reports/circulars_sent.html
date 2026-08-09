@@ -596,7 +596,7 @@
 								</a>
 							{% endif %}
 
-							<form method="post" action="{% url 'reports:notification_delete' n.id %}" class="js-delete-form" style="display:inline">
+							<form method="post" action="{% url 'reports:notification_delete' n.id %}" class="js-delete-form" data-confirm="هل تريد حذف هذا التعميم نهائيًا؟" data-confirm-type="danger" style="display:inline">
 								{% csrf_token %}
 								<button class="ns-btn danger" type="submit">
 									<i class="fa-regular fa-trash-can" aria-hidden="true"></i> حذف
@@ -680,14 +680,6 @@
 			}
 		});
 
-		document.querySelectorAll('form.js-delete-form').forEach(function(f){
-			f.addEventListener('submit', function(e){
-				try{
-					var ok = window.confirm('هل تريد حذف هذا التعميم نهائيًا؟');
-					if(!ok){ e.preventDefault(); }
-				}catch(err){}
-			});
-		});
 	})();
 </script>
 {% endblock %}

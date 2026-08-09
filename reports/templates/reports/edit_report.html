@@ -924,7 +924,7 @@
             document.write(xhr.responseText); 
             document.close();
           } else {
-            alert("حدث خطأ في الحفظ");
+            window.rcAlert("حدث خطأ في الحفظ", {type:'danger'});
             if(overlay) {
               overlay.style.display = "none"; 
               overlay.setAttribute("aria-hidden", "true");
@@ -937,7 +937,7 @@
       };
       
       xhr.onerror = function(){ 
-        alert("خطأ في الاتصال بالشبكة");
+        window.rcAlert("خطأ في الاتصال بالشبكة", {type:'danger'});
         if(overlay) {
           overlay.style.display = "none"; 
           overlay.setAttribute("aria-hidden", "true");

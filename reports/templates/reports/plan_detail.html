@@ -464,15 +464,6 @@
       });
     }
 
-    // ما لا يُسترجع يُسأل عنه قبل وقوعه.
-    document.querySelectorAll('[data-confirm]').forEach(function (button) {
-      button.addEventListener('click', function (event) {
-        if (!window.confirm(button.getAttribute('data-confirm'))) {
-          event.preventDefault();
-        }
-      });
-    });
-
     function copy(value, done) {
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {

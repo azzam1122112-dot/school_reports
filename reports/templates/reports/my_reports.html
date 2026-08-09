@@ -1612,7 +1612,7 @@ html[data-theme="dark"] .mr-page{
                       <i class="fa-solid fa-eye"></i>
                     </a>
 
-                    <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form">
+                    <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form" data-confirm="حذف التقرير نهائيًا؟" data-confirm-type="danger">
                       {% csrf_token %}
                       <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
                         <i class="fa-solid fa-trash"></i>
@@ -1672,7 +1672,7 @@ html[data-theme="dark"] .mr-page{
                   <i class="fa-solid fa-eye"></i>
                 </a>
 
-                <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form" style="display:inline">
+                <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form" data-confirm="حذف التقرير نهائيًا؟" data-confirm-type="danger" style="display:inline">
                   {% csrf_token %}
                   <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
                     <i class="fa-solid fa-trash"></i>
@@ -1739,14 +1739,6 @@ html[data-theme="dark"] .mr-page{
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function(){
-    // ===== Delete confirm (بدون inline confirm في الفورم) =====
-    document.querySelectorAll('.mr-del-form').forEach(function(f){
-      f.addEventListener('submit', function(ev){
-        var ok = window.confirm('حذف التقرير؟');
-        if(!ok) ev.preventDefault();
-      });
-    });
-
     // ===== Gallery Modal =====
     var modal = document.getElementById('mrImageModal');
     var imgEl = document.getElementById('mrModalImg');

@@ -363,7 +363,7 @@
         <label style="display:block;margin-bottom:8px;font-weight:700;font-size:0.9rem;color:var(--ink)">رابط التقرير العام:</label>
         <div class="link-box">
           <input type="text" class="link-input" id="shareUrl" value="{{ public_url }}" readonly>
-          <button class="btn-copy" onclick="copyLink()">
+          <button class="btn-copy" id="copyShareLink" type="button">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="copyIcon"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             <span id="copyText">نسخ</span>
           </button>
@@ -378,7 +378,7 @@
            </a>
            
            <!-- Disable Form -->
-           <form method="post" style="display:block">
+           <form method="post" style="display:block" data-confirm="هل تريد إيقاف مشاركة التقرير؟" data-confirm-type="warning">
              {% csrf_token %}
              <input type="hidden" name="action" value="disable">
              <button type="submit" class="btn-danger-soft">
@@ -463,5 +463,7 @@
       }, 2000);
     }
   }
+  var copyButton = document.getElementById('copyShareLink');
+  if(copyButton) copyButton.addEventListener('click', copyLink);
 </script>
 {% endblock %}

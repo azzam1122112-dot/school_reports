@@ -106,6 +106,11 @@
     } else {
       dot.style.display = 'none';
     }
+    var isCircular = dot.id === 'circDot' || dot.id === 'circDotMobile';
+    dot.setAttribute(
+      'aria-label',
+      String(value) + (isCircular ? ' تعميم بانتظار التوقيع' : ' إشعار غير مقروء')
+    );
   }
 
   function applyCounts(data) {

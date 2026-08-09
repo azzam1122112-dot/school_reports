@@ -343,7 +343,7 @@
         <a href="{{ public_download_url }}" class="btn" target="_blank" rel="noopener">تنزيل PDF</a>
       {% endif %}
     {% else %}
-      <button type="button" onclick="goBackAchievement()" class="btn">عودة</button>
+      <button type="button" id="achievementBackBtn" class="btn">عودة</button>
     {% endif %}
   </div>
 
@@ -351,6 +351,8 @@
     (function(){
       var btn = document.getElementById('achievementPrintBtn');
       if(btn) btn.addEventListener('click', function(){ window.print(); });
+      var backBtn = document.getElementById('achievementBackBtn');
+      if(backBtn) backBtn.addEventListener('click', goBackAchievement);
     })();
 
     function goBackAchievement() {

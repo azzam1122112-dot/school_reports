@@ -6,9 +6,9 @@
 
   var SW_URL = "/sw.js?v=8";
   var DISMISSED_UNTIL_KEY = "tawtheeq_pwa_install_dismissed_until_v2";
-  var DISMISS_DAYS = 14;
-  var AUTO_NATIVE_DELAY_MS = 2500;
-  var AUTO_IOS_DELAY_MS = 6500;
+  var DISMISS_DAYS = 90;
+  var AUTO_NATIVE_DELAY_MS = 15000;
+  var AUTO_IOS_DELAY_MS = 20000;
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
@@ -42,8 +42,6 @@
     Boolean(window.navigator.standalone);
   var deferredPrompt = null;
   var instructionsVisible = false;
-  var previousBodyOverflow = "";
-  var previouslyFocused = null;
 
   function getDismissedUntil() {
     try {
@@ -126,27 +124,15 @@
   function showPrompt(options) {
     options = options || {};
     if (isStandalone || (!options.explicit && (!isMobile || isDismissed()))) return false;
-    if (promptRoot.hidden) {
-      previousBodyOverflow = document.body.style.overflow;
-      previouslyFocused = document.activeElement;
-    }
     promptRoot.hidden = false;
     promptRoot.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
-    window.requestAnimationFrame(function () {
-      installAction.focus();
-    });
     return true;
   }
 
   function hidePrompt(days) {
     promptRoot.hidden = true;
     promptRoot.setAttribute("aria-hidden", "true");
-    document.body.style.overflow = previousBodyOverflow;
     if (days) rememberDismissal(days);
-    if (previouslyFocused && typeof previouslyFocused.focus === "function") {
-      previouslyFocused.focus();
-    }
   }
 
   function showInstallPrompt(explicit) {
@@ -197,28 +183,10 @@
   closeButton.addEventListener("click", function () { hidePrompt(DISMISS_DAYS); });
   laterButton.addEventListener("click", function () { hidePrompt(DISMISS_DAYS); });
 
-  promptRoot.addEventListener("click", function (event) {
-    if (event.target === promptRoot) hidePrompt(DISMISS_DAYS);
-  });
-
   document.addEventListener("keydown", function (event) {
     if (promptRoot.hidden) return;
     if (event.key === "Escape") {
       hidePrompt(DISMISS_DAYS);
-      return;
-    }
-    if (event.key !== "Tab") return;
-
-    var focusable = promptRoot.querySelectorAll("button:not([disabled]), a[href]");
-    if (!focusable.length) return;
-    var first = focusable[0];
-    var last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
     }
   });
 

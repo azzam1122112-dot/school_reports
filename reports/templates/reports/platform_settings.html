@@ -790,13 +790,18 @@
   render();
 
   if (form) {
-    form.addEventListener("submit", function (e) {
-      if (input.checked && !initiallyEnabled) {
-        const ok = window.confirm(
-          "سيتم إيقاف الموقع لجميع المستخدمين فوراً وعرض شاشة الصيانة، بينما يبقى دخولك أنت متاحاً.\nهل تريد تفعيل وضع الصيانة الآن؟"
-        );
-        if (!ok) { e.preventDefault(); }
-      }
+    form.addEventListener("submit", async function (e) {
+      if (!input.checked || initiallyEnabled || form.dataset.maintenanceConfirmed === '1') return;
+      e.preventDefault();
+      const ok = await window.rcConfirm({
+        message: "سيتم إيقاف الموقع لجميع المستخدمين فوراً وعرض شاشة الصيانة، بينما يبقى دخولك أنت متاحاً. هل تريد تفعيل وضع الصيانة الآن؟",
+        type: 'warning',
+        title: 'تفعيل وضع الصيانة',
+        okText: 'نعم، فعّل الصيانة'
+      });
+      if (!ok) return;
+      form.dataset.maintenanceConfirmed = '1';
+      form.requestSubmit();
     });
   }
 })();

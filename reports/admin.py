@@ -80,6 +80,7 @@ class TeacherChangeForm(forms.ModelForm):
             "name",
             "national_id",
             "is_active",
+            "passkey_prompt_opt_out",
             "is_superuser",
             "groups",
             "user_permissions",
@@ -103,6 +104,7 @@ class TeacherAdmin(UserAdmin):
     fieldsets = (
         (None, {"fields": ("phone", "password")}),
         ("المعلومات الشخصية", {"fields": ("name", "national_id")}),
+        ("تفضيلات الأمان", {"fields": ("passkey_prompt_opt_out",)}),
         (
             "الصلاحيات",
             {

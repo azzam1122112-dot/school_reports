@@ -568,7 +568,7 @@
           
           <div style="padding:16px;">
             <div class="dl-label" style="margin-bottom:4px">رابط مباشر</div>
-            <input type="text" readonly value="{{ request.build_absolute_uri }}" onclick="this.select()" class="lux-input" style="font-size:0.8rem; color:var(--c-text-muted);">
+            <input type="text" id="ticketDirectLink" readonly value="{{ request.build_absolute_uri }}" class="lux-input" style="font-size:0.8rem; color:var(--c-text-muted);">
           </div>
         </div>
       </section>
@@ -611,6 +611,8 @@
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   document.addEventListener('DOMContentLoaded', () => {
+    const directLink = document.getElementById('ticketDirectLink');
+    if (directLink) directLink.addEventListener('click', () => directLink.select());
     const triggers = document.querySelectorAll('.lightbox-trigger');
     const lightbox = document.getElementById('lightbox');
     const lbImg = document.getElementById('lb-img');

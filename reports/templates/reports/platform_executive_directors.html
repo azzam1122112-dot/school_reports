@@ -257,7 +257,9 @@
               </button>
             </form>
             <form method="post" action="{% url 'reports:platform_executive_director_delete' row.group.pk %}"
-                  class="exec-delete-form" data-group-name="{{ row.group.name }}">
+                  class="exec-delete-form"
+                  data-confirm="حذف مجموعة «{{ row.group.name }}»؟ ستعود مدارسها إلى وضعها المستقل، ولن يُحذف حساب المدير التنفيذي."
+                  data-confirm-type="danger">
               {% csrf_token %}
               <button class="btn btn-outline-danger w-100" type="submit">
                 <i class="fa-solid fa-trash ms-1"></i> حذف المجموعة
@@ -279,16 +281,4 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
-  document.querySelectorAll(".exec-delete-form").forEach(function (form) {
-    form.addEventListener("submit", function (event) {
-      var name = form.dataset.groupName || "هذه المجموعة";
-      var message = "حذف مجموعة «" + name + "»؟\n"
-        + "ستعود مدارسها إلى وضعها المستقل، ولن يُحذف حساب المدير التنفيذي.";
-      if (!window.confirm(message)) {
-        event.preventDefault();
-      }
-    });
-  });
-</script>
 {% endblock %}

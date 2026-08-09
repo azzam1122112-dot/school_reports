@@ -597,6 +597,8 @@
     .msg-icon { font-size: 1.2rem; margin-top: 2px; }
     .msg.success .msg-icon { color: var(--success); }
     .msg.error .msg-icon { color: var(--danger); }
+    .msg.warning .msg-icon { color: var(--warning); }
+    .msg.info .msg-icon { color: var(--accent); }
     
     .msg-content { flex: 1; font-weight: 600; font-size: 0.95rem; }
     .msg-close {
@@ -604,6 +606,10 @@
       cursor: pointer; padding: 4px; border-radius: 4px;
     }
     .msg-close:hover { background: var(--bg-sub); color: var(--text-main); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .msg { animation: none; transition: none; }
+    }
     
     /* --- FOOTER (Professional Premium) --- */
     .site-footer {
@@ -1368,7 +1374,7 @@
               <a class="icon-btn" href="{{ myNotificationsUrl }}" aria-label="الإشعارات" id="notifBell">
                 <i class="fa-solid fa-bell"></i>
                 {% with unread=NAV_NOTIFICATIONS_UNREAD|default_if_none:"0"|add:"0" %}
-                  <span class="dot" id="notifDot" {% if unread == 0 %}style="display:none"{% endif %}>{{ unread }}</span>
+                  <span class="dot" id="notifDot" role="status" aria-live="polite" aria-atomic="true" aria-label="{{ unread }} إشعار غير مقروء" {% if unread == 0 %}style="display:none"{% endif %}>{{ unread }}</span>
                 {% endwith %}
               </a>
             {% endif %}
@@ -1378,7 +1384,7 @@
               <a class="icon-btn" href="{{ myCircularsUrl }}" aria-label="التعاميم" id="circBell" title="التعاميم">
                 <i class="fa-solid fa-pen-to-square"></i>
                 {% with pending=NAV_SIGNATURES_PENDING|default_if_none:"0"|add:"0" %}
-                  <span class="dot" id="circDot" {% if pending == 0 %}style="display:none"{% endif %}>{{ pending }}</span>
+                  <span class="dot" id="circDot" role="status" aria-live="polite" aria-atomic="true" aria-label="{{ pending }} تعميم بانتظار التوقيع" {% if pending == 0 %}style="display:none"{% endif %}>{{ pending }}</span>
                 {% endwith %}
               </a>
             {% endif %}
@@ -1556,7 +1562,7 @@
             <a class="icon-btn" href="{{ myNotificationsUrlMobile }}" aria-label="الإشعارات" id="notifBellMobile">
               <i class="fa-solid fa-bell"></i>
               {% with unread=NAV_NOTIFICATIONS_UNREAD|default_if_none:"0"|add:"0" %}
-                <span class="dot" id="notifDotMobile" {% if unread == 0 %}style="display:none"{% endif %}>{{ unread }}</span>
+                <span class="dot" id="notifDotMobile" role="status" aria-live="polite" aria-atomic="true" aria-label="{{ unread }} إشعار غير مقروء" {% if unread == 0 %}style="display:none"{% endif %}>{{ unread }}</span>
               {% endwith %}
             </a>
           {% endif %}
@@ -1566,7 +1572,7 @@
             <a class="icon-btn" href="{{ myCircularsUrlMobile }}" aria-label="التعاميم" id="circBellMobile" title="التعاميم">
               <i class="fa-solid fa-pen-to-square"></i>
               {% with pending=NAV_SIGNATURES_PENDING|default_if_none:"0"|add:"0" %}
-                <span class="dot" id="circDotMobile" {% if pending == 0 %}style="display:none"{% endif %}>{{ pending }}</span>
+                <span class="dot" id="circDotMobile" role="status" aria-live="polite" aria-atomic="true" aria-label="{{ pending }} تعميم بانتظار التوقيع" {% if pending == 0 %}style="display:none"{% endif %}>{{ pending }}</span>
               {% endwith %}
             </a>
           {% endif %}
@@ -1867,9 +1873,13 @@
   </aside>
 
   {% if messages %}
-    <div class="messages" id="messages-container" aria-live="polite" aria-atomic="true">
+    <div class="messages" id="messages-container" aria-live="polite" aria-atomic="false">
       {% for message in messages %}
-        <div class="msg {% if message.tags %}{{ message.tags }}{% else %}info{% endif %}" role="alert" data-autohide="true">
+        <div
+          class="msg {% if message.tags %}{{ message.tags }}{% else %}info{% endif %}"
+          role="{% if 'error' in message.tags or 'danger' in message.tags or 'warning' in message.tags %}alert{% else %}status{% endif %}"
+          data-autohide="{% if 'error' in message.tags or 'danger' in message.tags or 'warning' in message.tags %}false{% else %}true{% endif %}"
+        >
           <div class="msg-icon">
              {% if 'success' in message.tags %}
                <i class="fa-solid fa-check-circle"></i>
@@ -1886,10 +1896,6 @@
         </div>
       {% endfor %}
     </div>
-  {% endif %}
-
-  {% if request.user.is_authenticated and request.session.passkey_enroll_prompt %}
-    {% include "reports/partials/passkey_enrollment_prompt.html" %}
   {% endif %}
 
   <main class="container page-main" id="mainContent">
@@ -2225,6 +2231,12 @@
         if(closeBtn) closeBtn.addEventListener('click', remove);
         el.addEventListener('mouseenter', stop);
         el.addEventListener('mouseleave', start);
+        el.addEventListener('focusin', stop);
+        el.addEventListener('focusout', start);
+        document.addEventListener('visibilitychange', ()=>{
+          if(document.hidden) stop();
+          else start();
+        });
         start();
       });
     })();
@@ -2692,21 +2704,26 @@
   {% endif %}
 
   {% comment %}
-     👑 حوار التأكيد الموحّد (Royal Confirm) — يستبدل confirm() الأصلي
+     👑 حوار التأكيد الموحّد (Royal Confirm) — يستبدل حوار المتصفح الأصلي
      يعمل تلقائيًا على أي عنصر فيه data-confirm في كل المشروع.
      خيارات اختيارية على العنصر:
-       data-confirm-type   = danger | warning | info | confirm   (وإلا يُستنتج من النص)
+       data-confirm-type   = danger | warning | info | confirm — وإلا يُستنتج من النص
        data-confirm-title  = عنوان مخصّص
        data-confirm-ok     = نص زر التأكيد
        data-confirm-cancel = نص زر الإلغاء
   {% endcomment %}
   <div class="rc-overlay" id="rcOverlay" hidden>
     <div class="rc-backdrop" data-rc-cancel></div>
-    <div class="rc-dialog" role="alertdialog" aria-modal="true" aria-labelledby="rcTitle" aria-describedby="rcBody" dir="rtl">
+    <div class="rc-dialog" role="alertdialog" aria-modal="true" aria-labelledby="rcTitle" aria-describedby="rcBody" dir="rtl" tabindex="-1">
       <span class="rc-accent" aria-hidden="true"></span>
       <div class="rc-icon" aria-hidden="true"><i class="fa-solid fa-circle-question"></i></div>
       <h3 class="rc-title" id="rcTitle">تأكيد</h3>
       <p class="rc-body" id="rcBody"></p>
+      <div class="rc-field" id="rcField" hidden>
+        <label class="sr-only" for="rcInput">القيمة المطلوبة</label>
+        <input class="rc-input" id="rcInput" type="text" autocomplete="off">
+        <p class="rc-input-error" id="rcInputError" role="alert" hidden></p>
+      </div>
       <div class="rc-actions">
         <button type="button" class="rc-btn rc-cancel" data-rc-cancel>إلغاء الأمر</button>
         <button type="button" class="rc-btn rc-ok" id="rcOk">تأكيد</button>
@@ -2746,6 +2763,14 @@
     }
     .rc-title{ margin:0 0 8px; font-size:1.22rem; font-weight:950; color:var(--text-main,#10251f); }
     .rc-body{ margin:0 0 22px; font-size:1.02rem; font-weight:700; line-height:1.7; color:var(--text-muted,#475569); }
+    .rc-field{ margin:-8px 0 20px; text-align:start; }
+    .rc-input{
+      width:100%; min-height:48px; padding:10px 13px; border:1.5px solid var(--border,#d8e2dc);
+      border-radius:12px; color:var(--text-main,#10251f); background:var(--surface,#fff);
+      font:inherit; font-weight:750;
+    }
+    .rc-input:focus{ outline:none; border-color:#0a5c33; box-shadow:0 0 0 3px rgba(10,92,51,.15); }
+    .rc-input-error{ margin:7px 2px 0; color:#b91c1c; font-size:.82rem; font-weight:800; }
     .rc-actions{ display:flex; gap:10px; }
     .rc-btn{
       flex:1; min-height:48px; border-radius:14px; font-weight:900; font-size:1.02rem;
@@ -2782,6 +2807,9 @@
     var elIcon = overlay.querySelector('.rc-icon i');
     var elTitle = document.getElementById('rcTitle');
     var elBody  = document.getElementById('rcBody');
+    var field   = document.getElementById('rcField');
+    var input   = document.getElementById('rcInput');
+    var inputError = document.getElementById('rcInputError');
     var btnOk   = document.getElementById('rcOk');
     var btnCancel = overlay.querySelector('.rc-cancel');
 
@@ -2796,11 +2824,11 @@
       return 'confirm';
     }
 
-    var lastFocus = null, currentResolve = null;
+    var lastFocus = null, currentResolve = null, currentMode = 'confirm', previousOverflow = '';
 
     function close(result){
       overlay.setAttribute('hidden','');
-      document.body.style.overflow = '';
+      document.body.style.overflow = previousOverflow;
       if(lastFocus && lastFocus.focus){ try{ lastFocus.focus(); }catch(e){} }
       var r = currentResolve; currentResolve = null;
       if(r) r(result);
@@ -2808,6 +2836,7 @@
 
     function open(opts){
       opts = opts || {};
+      currentMode = opts.mode || 'confirm';
       var type = opts.type || inferType(opts.message);
       if(!ICONS[type]) type = 'confirm';
       overlay.setAttribute('data-type', type);
@@ -2816,25 +2845,71 @@
       elBody.textContent = opts.message || 'هل تريد متابعة هذه العملية؟';
       btnOk.textContent = opts.okText || OKTEXT[type] || 'تأكيد';
       btnCancel.textContent = opts.cancelText || 'إلغاء الأمر';
+      btnCancel.hidden = currentMode === 'alert';
+      field.hidden = currentMode !== 'prompt';
+      input.disabled = currentMode !== 'prompt';
+      input.value = currentMode === 'prompt' ? String(opts.defaultValue || '') : '';
+      input.setAttribute('type', opts.inputType || 'text');
+      input.setAttribute('inputmode', opts.inputMode || 'text');
+      input.placeholder = opts.placeholder || '';
+      input.required = currentMode === 'prompt' && opts.required !== false;
+      inputError.hidden = true;
+      inputError.textContent = '';
       lastFocus = document.activeElement;
+      previousOverflow = document.body.style.overflow;
       overlay.removeAttribute('hidden');
       document.body.style.overflow = 'hidden';
-      // أزرار الحذف نركّز فيها على "إلغاء" حمايةً من الضغط العَرَضي
-      (type === 'danger' ? btnCancel : btnOk).focus();
+      if(currentMode === 'prompt') input.focus();
+      else (type === 'danger' && currentMode !== 'alert' ? btnCancel : btnOk).focus();
       return new Promise(function(resolve){ currentResolve = resolve; });
     }
 
     // واجهة برمجية عامة لأي سكربت آخر
     window.rcConfirm = open;
+    window.rcAlert = function(message, opts){
+      opts = Object.assign({}, opts || {}, { message: message, mode: 'alert', type: (opts && opts.type) || 'info', okText: (opts && opts.okText) || 'حسنًا' });
+      return open(opts);
+    };
+    window.rcPrompt = function(message, defaultValue, opts){
+      opts = Object.assign({}, opts || {}, { message: message, defaultValue: defaultValue || '', mode: 'prompt' });
+      return open(opts);
+    };
 
-    btnOk.addEventListener('click', function(){ close(true); });
+    btnOk.addEventListener('click', function(){
+      if(currentMode === 'prompt'){
+        var value = input.value.trim();
+        if(input.required && !value){
+          inputError.textContent = 'هذا الحقل مطلوب.';
+          inputError.hidden = false;
+          input.focus();
+          return;
+        }
+        close(value);
+        return;
+      }
+      close(true);
+    });
     overlay.addEventListener('click', function(e){
-      if(e.target.closest('[data-rc-cancel]')) close(false);
+      if(e.target.closest('[data-rc-cancel]')) close(currentMode === 'prompt' ? null : false);
     });
     document.addEventListener('keydown', function(e){
       if(overlay.hasAttribute('hidden')) return;
-      if(e.key === 'Escape'){ e.preventDefault(); close(false); }
-      else if(e.key === 'Enter'){ e.preventDefault(); close(true); }
+      if(e.key === 'Escape'){
+        e.preventDefault();
+        close(currentMode === 'prompt' ? null : false);
+        return;
+      }
+      if(e.key === 'Enter' && (document.activeElement === btnOk || document.activeElement === input)){
+        e.preventDefault();
+        btnOk.click();
+        return;
+      }
+      if(e.key !== 'Tab') return;
+      var focusable = Array.prototype.slice.call(dialog.querySelectorAll('button:not([hidden]):not([disabled]), input:not([hidden]):not([disabled])'));
+      if(!focusable.length){ e.preventDefault(); dialog.focus(); return; }
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
     });
 
     function optsFrom(el){
@@ -2847,15 +2922,51 @@
       };
     }
 
-    // اعتراض إرسال النماذج التي تحمل data-confirm (مرحلة الالتقاط = يلغي أي مستمع محلّي)
+    function prepareSubmit(source, form){
+      return (async function(){
+        var reasonPrompt = source.getAttribute('data-reason-prompt');
+        var reasonInput = form.querySelector('input[name="reason"]');
+        if(reasonPrompt){
+          var reason = await window.rcPrompt(reasonPrompt, reasonInput ? reasonInput.value : '', {
+            title: 'سبب إلغاء الاشتراك',
+            required: true,
+            okText: 'متابعة'
+          });
+          if(reason === null) return false;
+          if(reasonInput) reasonInput.value = reason;
+        }
+
+        var refundPrompt = source.getAttribute('data-refund-prompt');
+        var refundInput = form.querySelector('input[name="refund_amount"]');
+        if(refundPrompt){
+          var refund = await window.rcPrompt(refundPrompt, refundInput ? refundInput.value : '', {
+            title: 'قيمة الاسترجاع',
+            required: false,
+            okText: 'متابعة'
+          });
+          if(refund === null) return false;
+          if(refundInput) refundInput.value = refund;
+        }
+        return true;
+      })();
+    }
+
+    // اعتراض إرسال النماذج أو أزرار الإرسال التي تحمل data-confirm.
     document.addEventListener('submit', function(e){
       var form = e.target;
-      if(!form || !form.matches || !form.matches('form[data-confirm]')) return;
+      if(!form || !form.matches) return;
+      var submitter = e.submitter;
+      var source = form.matches('form[data-confirm]')
+        ? form
+        : (submitter && submitter.matches && submitter.matches('[data-confirm]') ? submitter : null);
+      if(!source) return;
       if(form.__rcConfirmed){ form.__rcConfirmed = false; return; }
       e.preventDefault();
       e.stopImmediatePropagation();
-      var submitter = e.submitter;
-      open(optsFrom(form)).then(function(ok){
+      prepareSubmit(source, form).then(function(ready){
+        if(!ready) return false;
+        return open(optsFrom(source));
+      }).then(function(ok){
         if(!ok) return;
         form.__rcConfirmed = true;
         if(form.requestSubmit){ form.requestSubmit(submitter || undefined); }
