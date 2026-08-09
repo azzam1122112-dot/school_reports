@@ -230,7 +230,7 @@
       <div class="shell">
         <div class="trust-bar reveal">
           <div><strong>{{ trial_days|default:30 }}</strong><span>يومًا للتجربة</span></div>
-          <div><i class="fa-solid fa-layer-group"></i><span>13 مسار تشغيل في منصة واحدة</span></div>
+          <div><i class="fa-solid fa-layer-group"></i><span>مسارات التشغيل الأساسية في منصة واحدة</span></div>
           <div><i class="fa-solid fa-school-circle-check"></i><span>مدرسة واحدة أو مجموعة مدارس</span></div>
           <div><i class="fa-solid fa-shield-halved"></i><span>صلاحيات وسجل تدقيق وأرشيف موثّق</span></div>
         </div>
@@ -578,6 +578,7 @@
             <li><i class="fa-solid fa-fingerprint" aria-hidden="true"></i> دخول بمفتاح المرور دون كلمة سر</li>
             <li><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i> تثبيت المنصة كتطبيق على الجوال</li>
             <li><i class="fa-solid fa-bell" aria-hidden="true"></i> إشعارات داخل المنصة وبالبريد</li>
+            <li><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> إدارة عهدة المختبر وتوثيق التجارب</li>
             <li><i class="fa-solid fa-file-export" aria-hidden="true"></i> تصدير بيانات مدرستك متى شئت</li>
             <li><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> سجل نشاطك الشخصي وأعمالك السابقة</li>
             <li><i class="fa-solid fa-headset" aria-hidden="true"></i> تذاكر دعم فني من داخل الحساب</li>
@@ -852,7 +853,7 @@
               <div><h3>التجربة المجانية</h3><p>اختبر المنصة داخل مدرستك قبل الاشتراك</p></div>
             </div>
             <div class="price-value"><strong>0</strong><span>ريال</span></div>
-            <div class="price-duration">{{ pricing_trial_plan.duration_label|default:"لمدة 30 يوم" }}</div>
+            <div class="price-duration">لمدة {{ trial_days|default:30 }} يوم</div>
             {% if flexible_pricing_catalog %}
               <p class="trial-card-note">بعد التجربة تدفع حسب عدد معلميك فقط — احسب مبلغك أعلاه.</p>
             {% endif %}
@@ -942,8 +943,8 @@
           </article>
           <article>
             <i class="fa-solid fa-headset"></i>
-            <div><strong>الدعم الفني والإعداد</strong><p>الدعم الفني مشمول في الباقات، والجلسة المجانية بحسب وصف الباقة.</p></div>
-            <span>مشمول دون رسوم إضافية</span>
+            <div><strong>الدعم الفني</strong><p>دعم فني بأولوية مشمول طوال مدة الاشتراك، أما جلسات الإعداد والتدريب الإضافية فمتاحة عند الطلب كخدمة مستقلة.</p></div>
+            <span>الدعم مشمول دون رسوم إضافية</span>
           </article>
           <article>
             <i class="fa-solid fa-user-plus"></i>

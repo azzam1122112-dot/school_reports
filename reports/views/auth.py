@@ -42,6 +42,7 @@ from ..models import WebAuthnCredential
 from ..forms import AccountPasswordResetForm, AccountSetPasswordForm
 from ..pricing import (
     DEFAULT_SERVICE_PRICING,
+    FREE_TRIAL_DAYS,
     SUBSCRIPTION_ADDON_NOTES,
     SUBSCRIPTION_INCLUDED_FEATURES,
 )
@@ -1312,7 +1313,7 @@ def my_profile(request: HttpRequest) -> HttpResponse:
 
 
 
-LANDING_PRICING_CACHE_KEY = "landing:pricing-context:v1"
+LANDING_PRICING_CACHE_KEY = "landing:pricing-context:v2"
 
 
 def _build_landing_pricing_context() -> dict[str, Any]:
@@ -1324,7 +1325,7 @@ def _build_landing_pricing_context() -> dict[str, Any]:
 
     plans_qs = SubscriptionPlan.objects.filter(is_active=True).order_by("price", "max_teachers", "days_duration", "id")
     source_plans = list(plans_qs)
-    trial_days_target = int(getattr(settings, "TRIAL_DAYS", 30) or 30)
+    trial_days_target = FREE_TRIAL_DAYS
 
     def serialize_plan(plan: SubscriptionPlan, *, is_trial: bool) -> dict[str, Any]:
         raw_price = float(getattr(plan, "price", 0) or 0)
@@ -1335,6 +1336,12 @@ def _build_landing_pricing_context() -> dict[str, Any]:
         is_unlimited = (raw_capacity <= 0) and (not is_trial)
 
         description = (getattr(plan, "description", "") or "").strip()
+        if is_trial:
+            description = re.sub(
+                r"(?:لمدة\s*)?[0-9٠-٩]+\s+(?:يوم(?:اً|ًا)?|أيام)",
+                f"لمدة {FREE_TRIAL_DAYS} يومًا",
+                description,
+            )
         summary = description.split("\n", 1)[0].strip() if description else ""
         if not summary:
             summary = _landing_fit_text(capacity, is_trial, is_unlimited)
@@ -1388,6 +1395,9 @@ def _build_landing_pricing_context() -> dict[str, Any]:
 
     pricing_trial_plan = serialize_plan(trial_source, is_trial=True) if trial_source is not None else None
     if pricing_trial_plan is not None:
+        # Normalise legacy zero-price rows to the approved public duration.
+        pricing_trial_plan["duration_days"] = FREE_TRIAL_DAYS
+        pricing_trial_plan["duration_label"] = _landing_duration_label(FREE_TRIAL_DAYS)
         pricing_trial_plan["name"] = "التجربة المجانية"
         pricing_trial_plan["badge"] = f'{pricing_trial_plan["duration_label"]} تجريبية'
         pricing_trial_plan["cta_secondary_label"] = "لديك حساب بالفعل؟"

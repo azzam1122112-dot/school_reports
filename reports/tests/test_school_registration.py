@@ -18,7 +18,6 @@ from reports.models import (
 @override_settings(
     ALLOWED_HOSTS=["testserver"],
     RATELIMIT_ENABLE=False,
-    TRIAL_DAYS=30,
 )
 class SchoolRegistrationFlowTests(TestCase):
     def registration_payload(self, **overrides):

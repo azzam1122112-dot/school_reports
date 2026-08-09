@@ -37,10 +37,11 @@ from ..models import (
     SubscriptionPlan,
     Teacher,
 )
+from ..pricing import FREE_TRIAL_DAYS
 
 
-# ── Trial settings (configurable via env / settings.py) ─────────────
-TRIAL_DAYS = int(getattr(settings, "TRIAL_DAYS", 30))
+# ── Trial policy and resource settings ────────────────────────
+TRIAL_DAYS = FREE_TRIAL_DAYS
 TRIAL_PLAN_NAME = getattr(settings, "TRIAL_PLAN_NAME", "التجربة المجانية")
 TRIAL_MAX_TEACHERS = int(getattr(settings, "TRIAL_MAX_TEACHERS", 5))
 TRIAL_ARCHIVE_STORAGE_GB = int(getattr(settings, "TRIAL_ARCHIVE_STORAGE_GB", 1))
