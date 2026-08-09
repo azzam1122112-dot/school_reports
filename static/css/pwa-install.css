@@ -1,14 +1,11 @@
 .pwa-install {
   position: fixed;
-  z-index: 2147483000;
-  inset: 0;
-  display: grid;
-  align-items: end;
-  padding: 14px;
-  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 900;
+  inset-inline: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  display: block;
   direction: rtl;
-  background: rgba(3, 30, 18, .5);
-  backdrop-filter: blur(5px);
+  pointer-events: none;
   font-family: "Cairo", Tahoma, Arial, sans-serif;
 }
 
@@ -32,6 +29,7 @@
   max-height: calc(100dvh - 28px - env(safe-area-inset-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
+  pointer-events: auto;
 }
 
 .pwa-install__close {
@@ -182,16 +180,10 @@
   }
 }
 
-@media (min-width: 720px) {
-  .pwa-install {
-    align-items: center;
-  }
-}
-
 @media (max-width: 360px) {
   .pwa-install {
-    padding: 8px;
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    inset-inline: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
   }
 
   .pwa-install__card {

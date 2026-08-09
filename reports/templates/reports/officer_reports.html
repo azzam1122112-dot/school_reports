@@ -841,10 +841,10 @@
                       {% endif %}
 
                       {% if r.user_can_delete|default:can_delete %}
-                        <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">
+                        <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}" data-confirm="هل تريد حذف هذا التقرير نهائيًا؟" data-confirm-type="danger">
                           {% csrf_token %}
                           <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                          <button class="btn btn-danger" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟');" aria-label="حذف" title="حذف">
+                          <button class="btn btn-danger" type="submit" aria-label="حذف" title="حذف">
                             <i class="fa-solid fa-trash" aria-hidden="true"></i> حذف
                           </button>
                         </form>
@@ -915,10 +915,10 @@
                 {% endif %}
 
                 {% if r.user_can_delete|default:can_delete %}
-                  <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">
+                  <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}" data-confirm="هل تريد حذف هذا التقرير نهائيًا؟" data-confirm-type="danger">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <button class="btn btn-danger" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟');">🗑 حذف</button>
+                    <button class="btn btn-danger" type="submit">🗑 حذف</button>
                   </form>
                 {% endif %}
               </div>

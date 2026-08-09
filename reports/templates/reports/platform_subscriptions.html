@@ -817,42 +817,6 @@
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function () {
-    document.querySelectorAll('.pfsubs [data-confirm]').forEach(function (button) {
-      button.addEventListener('click', function (event) {
-        var promptLabel = button.getAttribute('data-reason-prompt');
-        if (promptLabel) {
-          var form = button.closest('form');
-          var reasonInput = form ? form.querySelector('input[name="reason"]') : null;
-          var refundInput = form ? form.querySelector('input[name="refund_amount"]') : null;
-          var reason = window.prompt(promptLabel, reasonInput && reasonInput.value ? reasonInput.value : '');
-          if (reason === null) {
-            event.preventDefault();
-            return;
-          }
-          reason = (reason || '').trim();
-          if (!reason) {
-            window.alert('سبب الإلغاء مطلوب.');
-            event.preventDefault();
-            return;
-          }
-          if (reasonInput) reasonInput.value = reason;
-
-          var refundPrompt = button.getAttribute('data-refund-prompt');
-          if (refundPrompt && refundInput) {
-            var refund = window.prompt(refundPrompt, refundInput.value || '');
-            if (refund === null) {
-              event.preventDefault();
-              return;
-            }
-            refundInput.value = (refund || '').trim();
-          }
-        }
-        if (!window.confirm(button.getAttribute('data-confirm') || 'هل أنت متأكد؟')) {
-          event.preventDefault();
-        }
-      });
-    });
-
     document.addEventListener('click', function (event) {
       document.querySelectorAll('.pfsubs .pfsubs-menu[open]').forEach(function (menu) {
         if (!menu.contains(event.target)) menu.removeAttribute('open');

@@ -359,7 +359,7 @@
               <div class="ar-snapshot-action">
                 <h3>حفظ إصدار جديد من الحالة الحالية</h3>
                 <p>سيُنشأ ZIP مستقل يحتوي PDF لكل سجل، و«منصة توثيق · القيادة المدرسية/ملف الأداء القيادي.pdf»، والمرفقات والشواهد الأصلية، وفهرس Excel تفصيليًا يشمل فريق المدرسة والأقسام، وبصمات التحقق. لا تُستبدل النسخ السابقة، وتُحتسب النسخة الجديدة من مساحة التخزين.</p>
-                <form method="post" action="{% url 'reports:school_archive_create' %}" class="archive-create-form">
+                <form method="post" action="{% url 'reports:school_archive_create' %}" class="archive-create-form" data-confirm="سيتم حفظ إصدار جديد مستقل ويُحتسب من مساحة التخزين. هل تريد المتابعة؟" data-confirm-type="warning">
                   {% csrf_token %}
                   <input type="hidden" name="year" value="{{ selected_year }}">
                   <div class="ar-actions">
@@ -583,12 +583,7 @@
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".archive-create-form").forEach(function (form) {
-      form.addEventListener("submit", function (event) {
-        var confirmed = window.confirm("سيتم حفظ إصدار جديد مستقل ويُحتسب من مساحة التخزين. هل تريد المتابعة؟");
-        if (!confirmed) {
-          event.preventDefault();
-          return;
-        }
+      form.addEventListener("submit", function () {
         var button = form.querySelector(".archive-create-button");
         if (button) {
           button.disabled = true;

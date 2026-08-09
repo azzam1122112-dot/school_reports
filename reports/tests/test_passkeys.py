@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -7,6 +8,9 @@ from reports.models import Teacher, WebAuthnCredential
 from reports.views.auth import (
     PASSKEY_ENROLL_PROMPT_SESSION_KEY,
     PASSKEY_PROMPT_SNOOZE_COOKIE,
+    PASSKEY_PROMPT_SNOOZE_MAX_AGE,
+    PASSKEY_UNSUPPORTED_DEVICE_COOKIE,
+    PASSKEY_UNSUPPORTED_DEVICE_MAX_AGE,
     _passkey_device_label,
 )
 from reports.webauthn import (
@@ -83,13 +87,17 @@ class PasskeyEndpointTests(TestCase):
         self.assertTrue(self.client.session[PASSKEY_ENROLL_PROMPT_SESSION_KEY])
 
         profile_response = self.client.get(reverse("reports:my_profile"))
-        self.assertContains(profile_response, 'id="passkeyEnrollmentPrompt"')
+        self.assertContains(profile_response, 'id="account-security"')
+        self.assertContains(profile_response, 'id="passkeyEnrollmentOffer"')
         self.assertContains(profile_response, "تفعيل الآن")
-        self.assertContains(profile_response, "ليس الآن")
-        self.assertContains(profile_response, "لا تُرسل إلى المنصة")
+        self.assertContains(profile_response, "ذكّرني بعد 90 يومًا")
+        self.assertContains(profile_response, "لا تعرض هذه الرسالة مجددًا")
+        self.assertContains(profile_response, "لا تصل إلى المنصة ولا تُحفظ فيها")
         self.assertContains(profile_response, "isUserVerifyingPlatformAuthenticatorAvailable")
         self.assertContains(profile_response, "InvalidStateError")
         self.assertContains(profile_response, "NotSupportedError")
+        self.assertNotContains(profile_response, "<dialog")
+        self.assertNotContains(profile_response, "showModal")
 
     def test_password_login_does_not_prompt_user_with_active_passkey(self):
         response = self.client.post(
@@ -100,7 +108,7 @@ class PasskeyEndpointTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertNotIn(PASSKEY_ENROLL_PROMPT_SESSION_KEY, self.client.session)
         profile_response = self.client.get(reverse("reports:my_profile"))
-        self.assertNotContains(profile_response, 'id="passkeyEnrollmentPrompt"')
+        self.assertNotContains(profile_response, 'id="passkeyEnrollmentOffer"')
         self.assertContains(profile_response, "الدخول بالبصمة مفعّل لحسابك")
         self.assertContains(profile_response, "إضافة مفتاح مرور لجهاز آخر")
         self.assertContains(profile_response, "البصمة مفعّلة بالفعل")
@@ -144,6 +152,92 @@ class PasskeyEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["ok"])
         self.assertNotIn(PASSKEY_ENROLL_PROMPT_SESSION_KEY, self.client.session)
+
+    def test_snooze_hides_the_offer_for_ninety_days_on_this_device(self):
+        user = Teacher.objects.create_user(
+            phone="555000667",
+            name="Snooze Passkey User",
+            password="safe-pass",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("reports:passkey_enroll_prompt_dismiss"),
+            data=json.dumps({"action": "snooze"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["action"], "snooze")
+        self.assertEqual(int(response.cookies[PASSKEY_PROMPT_SNOOZE_COOKIE]["max-age"]), PASSKEY_PROMPT_SNOOZE_MAX_AGE)
+        user.refresh_from_db()
+        self.assertFalse(user.passkey_prompt_opt_out)
+
+    def test_never_choice_is_saved_on_the_account_across_browsers(self):
+        user = Teacher.objects.create_user(
+            phone="555000668",
+            name="Never Prompt User",
+            password="safe-pass",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("reports:passkey_enroll_prompt_dismiss"),
+            data=json.dumps({"action": "never"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["action"], "never")
+        user.refresh_from_db()
+        self.assertTrue(user.passkey_prompt_opt_out)
+
+        self.client.get(reverse("reports:logout"))
+        self.client.cookies.clear()
+        login = self.client.post(
+            reverse("reports:login"),
+            {"phone": user.phone, "password": "safe-pass"},
+        )
+        self.assertEqual(login.status_code, 302)
+        self.assertNotIn(PASSKEY_ENROLL_PROMPT_SESSION_KEY, self.client.session)
+        profile = self.client.get(reverse("reports:my_profile"))
+        self.assertNotContains(profile, 'id="passkeyEnrollmentOffer"')
+        self.assertContains(profile, 'id="registerPasskeyBtn"')
+
+    def test_unsupported_device_is_suppressed_for_one_year_without_account_opt_out(self):
+        user = Teacher.objects.create_user(
+            phone="555000669",
+            name="Unsupported Device User",
+            password="safe-pass",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("reports:passkey_enroll_prompt_dismiss"),
+            data=json.dumps({"action": "unsupported"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["action"], "unsupported")
+        self.assertEqual(
+            int(response.cookies[PASSKEY_UNSUPPORTED_DEVICE_COOKIE]["max-age"]),
+            PASSKEY_UNSUPPORTED_DEVICE_MAX_AGE,
+        )
+        user.refresh_from_db()
+        self.assertFalse(user.passkey_prompt_opt_out)
+
+    def test_dismiss_rejects_unknown_choice(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("reports:passkey_enroll_prompt_dismiss"),
+            data=json.dumps({"action": "later-ish"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "action_invalid")
 
     def test_dismiss_endpoint_requires_login(self):
         response = self.client.post(reverse("reports:passkey_enroll_prompt_dismiss"))

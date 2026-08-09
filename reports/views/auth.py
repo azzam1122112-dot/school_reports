@@ -61,10 +61,12 @@ WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY = "_webauthn_auth_challenge"
 WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY = "_webauthn_auth_allowed_credentials"
 WEBAUTHN_AUTH_DISCOVERABLE_SESSION_KEY = "_webauthn_auth_discoverable"
 PASSKEY_ENROLL_PROMPT_SESSION_KEY = "passkey_enroll_prompt"
-# Declining the offer used to last one login only, so the same modal reappeared
-# on every password sign-in. The choice now survives in a cookie.
+# A temporary reminder is device-specific. A permanent decline is stored on
+# the account so it also survives a browser/device change.
 PASSKEY_PROMPT_SNOOZE_COOKIE = "pk_offer_snooze"
-PASSKEY_PROMPT_SNOOZE_MAX_AGE = 60 * 60 * 24 * 60
+PASSKEY_PROMPT_SNOOZE_MAX_AGE = 60 * 60 * 24 * 90
+PASSKEY_UNSUPPORTED_DEVICE_COOKIE = "pk_device_unsupported"
+PASSKEY_UNSUPPORTED_DEVICE_MAX_AGE = 60 * 60 * 24 * 365
 
 
 def _force_password_change_notice() -> str:
@@ -170,11 +172,14 @@ class AccountPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
 def _offer_passkey_enrollment(request: HttpRequest, user: Teacher) -> None:
     """Show the optional passkey prompt after a successful password login.
 
-    Users who declined recently are left alone: the dismiss endpoint drops a
-    snooze cookie, and an offer nobody wants is worse than no offer at all.
+    The invitation itself lives only in account security settings. Temporary
+    choices are device-specific cookies, while a permanent decline follows the
+    account across every browser and device.
     """
     try:
-        if request.COOKIES.get(PASSKEY_PROMPT_SNOOZE_COOKIE):
+        if getattr(user, "passkey_prompt_opt_out", False) or request.COOKIES.get(
+            PASSKEY_PROMPT_SNOOZE_COOKIE
+        ) or request.COOKIES.get(PASSKEY_UNSUPPORTED_DEVICE_COOKIE):
             request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
             return
 
@@ -952,12 +957,47 @@ def passkey_register_verify(request: HttpRequest) -> JsonResponse:
 @login_required(login_url="reports:login")
 @require_http_methods(["POST"])
 def passkey_enroll_prompt_dismiss(request: HttpRequest) -> JsonResponse:
+    if request.content_type == "application/json":
+        try:
+            action = str(json_body(request).get("action") or "snooze").strip().lower()
+        except ValueError:
+            return _passkey_response(False, status=400, error="json_invalid", message="تعذر قراءة الاختيار.")
+    else:
+        # Keep the previous empty form POST working for cached pages and older
+        # clients; it has always meant "remind me later".
+        action = str(request.POST.get("action") or "snooze").strip().lower()
+
+    if action not in {"snooze", "never", "unsupported"}:
+        return _passkey_response(False, status=400, error="action_invalid", message="اختيار غير صالح.")
+
     request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
-    response = _passkey_response(True)
+    if action == "never":
+        Teacher.objects.filter(pk=request.user.pk).update(passkey_prompt_opt_out=True)
+        request.user.passkey_prompt_opt_out = True
+        response = _passkey_response(
+            True,
+            action=action,
+            message="لن نعرض دعوة التفعيل مجددًا. يمكنك التفعيل في أي وقت من إعدادات الأمان.",
+        )
+        response.delete_cookie(PASSKEY_PROMPT_SNOOZE_COOKIE, samesite="Lax")
+        return response
+
+    is_unsupported = action == "unsupported"
+    cookie_name = PASSKEY_UNSUPPORTED_DEVICE_COOKIE if is_unsupported else PASSKEY_PROMPT_SNOOZE_COOKIE
+    max_age = PASSKEY_UNSUPPORTED_DEVICE_MAX_AGE if is_unsupported else PASSKEY_PROMPT_SNOOZE_MAX_AGE
+    response = _passkey_response(
+        True,
+        action=action,
+        message=(
+            "لن نعرض الدعوة على هذا الجهاز غير المدعوم."
+            if is_unsupported
+            else "حسنًا، سنذكّرك بعد 90 يومًا."
+        ),
+    )
     response.set_cookie(
-        PASSKEY_PROMPT_SNOOZE_COOKIE,
+        cookie_name,
         "1",
-        max_age=PASSKEY_PROMPT_SNOOZE_MAX_AGE,
+        max_age=max_age,
         samesite="Lax",
         secure=request.is_secure(),
         httponly=True,

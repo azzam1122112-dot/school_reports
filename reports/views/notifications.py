@@ -644,8 +644,11 @@ def unread_notifications_count(request: HttpRequest) -> HttpResponse:
 
     # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
     try:
-        if active_school is not None and Notification is not None and hasattr(Notification, "school"):
-            qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+        if Notification is not None and hasattr(Notification, "school"):
+            if active_school is not None:
+                qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+            else:
+                qs = qs.filter(notification__school__isnull=True)
     except Exception:
         pass
 
@@ -720,8 +723,11 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
 
     # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
     try:
-        if active_school is not None and Notification is not None and hasattr(Notification, "school"):
-            qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+        if Notification is not None and hasattr(Notification, "school"):
+            if active_school is not None:
+                qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+            else:
+                qs = qs.filter(notification__school__isnull=True)
     except Exception:
         pass
 
@@ -787,8 +793,11 @@ def my_circulars(request: HttpRequest) -> HttpResponse:
 
     # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
     try:
-        if active_school is not None and Notification is not None and hasattr(Notification, "school"):
-            qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+        if Notification is not None and hasattr(Notification, "school"):
+            if active_school is not None:
+                qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+            else:
+                qs = qs.filter(notification__school__isnull=True)
     except Exception:
         pass
 
@@ -818,29 +827,8 @@ def my_circulars(request: HttpRequest) -> HttpResponse:
         messages.error(request, "تعذر تحميل التعاميم حالياً. سيتم تسجيل المشكلة تلقائياً.")
         return render(request, "reports/my_circulars.html", {"page_obj": Paginator([], 12).get_page(1)})
 
-    # عند فتح تبويب "تعاميمي" غالباً يتوقع المستخدم أن تصبح العناصر المعروضة كمقروءة.
-    try:
-        items = list(page.object_list)
-        unread_ids = [x.pk for x in items if hasattr(x, "is_read") and not bool(getattr(x, "is_read", False))]
-        if unread_ids:
-            now = timezone.now()
-            fields = {f.name for f in NotificationRecipient._meta.get_fields()}
-            upd: dict = {}
-            if "is_read" in fields:
-                upd["is_read"] = True
-            if "read_at" in fields:
-                upd["read_at"] = now
-            if upd:
-                NotificationRecipient.objects.filter(pk__in=unread_ids, teacher=request.user).update(**upd)
-                for x in items:
-                    if x.pk in unread_ids:
-                        if "is_read" in upd:
-                            x.is_read = True
-                        if "read_at" in upd:
-                            x.read_at = now
-            page.object_list = items
-    except Exception:
-        pass
+    # لا نعدّ عرض المقتطف في القائمة قراءةً للتعميم الرسمي. تُسجّل القراءة
+    # فقط عند فتح الوثيقة أو عبر إجراء صريح من المستخدم.
 
     return render(request, "reports/my_circulars.html", {"page_obj": page})
 
@@ -1171,6 +1159,13 @@ def notifications_mark_all_read(request: HttpRequest) -> HttpResponse:
     if NotificationRecipient is None:
         return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_notifications")
     qs = NotificationRecipient.objects.filter(teacher=request.user)
+    active_school = _get_active_school(request)
+
+    if active_school is not None:
+        qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+    else:
+        qs = qs.filter(notification__school__isnull=True)
+    qs = qs.filter(Q(notification__expires_at__gt=timezone.now()) | Q(notification__expires_at__isnull=True))
 
     # فصل: هذا الإجراء خاص بالإشعارات فقط (يستبعد التعاميم)
     try:
@@ -1199,6 +1194,13 @@ def notifications_mark_all_read(request: HttpRequest) -> HttpResponse:
                 continue
     messages.success(request, "تم تحديد جميع الإشعارات كمقروءة.")
 
+    try:
+        from ..cache_utils import invalidate_user_notifications
+
+        invalidate_user_notifications(int(getattr(request.user, "id", 0) or 0))
+    except Exception:
+        pass
+
     # Bulk update won't trigger signals; ask clients to resync once.
     try:
         from ..realtime_notifications import push_force_resync
@@ -1217,6 +1219,13 @@ def circulars_mark_all_read(request: HttpRequest) -> HttpResponse:
         return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_circulars")
 
     qs = NotificationRecipient.objects.filter(teacher=request.user)
+    active_school = _get_active_school(request)
+
+    if active_school is not None:
+        qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+    else:
+        qs = qs.filter(notification__school__isnull=True)
+    qs = qs.filter(Q(notification__expires_at__gt=timezone.now()) | Q(notification__expires_at__isnull=True))
     try:
         if Notification is not None and hasattr(Notification, "requires_signature"):
             qs = qs.filter(notification__requires_signature=True)
@@ -1242,6 +1251,15 @@ def circulars_mark_all_read(request: HttpRequest) -> HttpResponse:
                 continue
 
     messages.success(request, "تم تحديد جميع التعاميم كمقروءة.")
+    try:
+        from ..cache_utils import invalidate_user_notifications
+        from ..realtime_notifications import push_force_resync
+
+        teacher_id = int(getattr(request.user, "id", 0) or 0)
+        invalidate_user_notifications(teacher_id)
+        push_force_resync(teacher_id=teacher_id)
+    except Exception:
+        pass
     return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_circulars")
 
 # تعليم الإشعار كمقروء (حسب رقم الإشعار نفسه لا الـRecipient)

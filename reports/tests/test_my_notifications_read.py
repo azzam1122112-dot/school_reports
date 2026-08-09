@@ -16,10 +16,10 @@ from reports.models import (
 class MyNotificationsReadBehaviorTests(TestCase):
     def setUp(self):
         self.school = School.objects.create(name="مدرسة", code="notif-read-school")
-        plan = SubscriptionPlan.objects.create(
+        self.plan = SubscriptionPlan.objects.create(
             name="Plan", price=0, days_duration=30, max_teachers=0
         )
-        SchoolSubscription.objects.create(school=self.school, plan=plan)
+        SchoolSubscription.objects.create(school=self.school, plan=self.plan)
         self.user = Teacher.objects.create_user(
             phone="500909090", name="معلم", password="pass"
         )
@@ -58,3 +58,102 @@ class MyNotificationsReadBehaviorTests(TestCase):
         )
         self.rec.refresh_from_db()
         self.assertTrue(self.rec.is_read)
+
+    def _add_second_school(self):
+        school = School.objects.create(name="مدرسة أخرى", code="notif-other-school")
+        SchoolSubscription.objects.create(school=school, plan=self.plan)
+        SchoolMembership.objects.create(
+            school=school,
+            teacher=self.user,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        return school
+
+    def _recipient(self, *, school, requires_signature=False, title="إشعار إضافي"):
+        notification = Notification.objects.create(
+            title=title,
+            message="نص",
+            requires_signature=requires_signature,
+            school=school,
+        )
+        return NotificationRecipient.objects.create(
+            notification=notification,
+            teacher=self.user,
+        )
+
+    def test_mark_all_notifications_is_scoped_to_active_school_and_globals(self):
+        other_school = self._add_second_school()
+        other_recipient = self._recipient(school=other_school)
+        global_recipient = self._recipient(school=None, title="إشعار عام")
+
+        response = self.client.post(reverse("reports:notifications_mark_all_read"))
+
+        self.assertEqual(response.status_code, 302)
+        self.rec.refresh_from_db()
+        other_recipient.refresh_from_db()
+        global_recipient.refresh_from_db()
+        self.assertTrue(self.rec.is_read)
+        self.assertTrue(global_recipient.is_read)
+        self.assertFalse(other_recipient.is_read)
+
+    def test_opening_circular_list_does_not_mark_circular_read(self):
+        circular = self._recipient(
+            school=self.school,
+            requires_signature=True,
+            title="تعميم",
+        )
+
+        response = self.client.get(reverse("reports:my_circulars"))
+
+        self.assertEqual(response.status_code, 200)
+        circular.refresh_from_db()
+        self.assertFalse(circular.is_read)
+
+    def test_mark_all_circulars_is_scoped_to_active_school_and_globals(self):
+        other_school = self._add_second_school()
+        active_circular = self._recipient(
+            school=self.school, requires_signature=True, title="تعميم المدرسة"
+        )
+        other_circular = self._recipient(
+            school=other_school, requires_signature=True, title="تعميم مدرسة أخرى"
+        )
+        global_circular = self._recipient(
+            school=None, requires_signature=True, title="تعميم عام"
+        )
+
+        response = self.client.post(reverse("reports:circulars_mark_all_read"))
+
+        self.assertEqual(response.status_code, 302)
+        active_circular.refresh_from_db()
+        other_circular.refresh_from_db()
+        global_circular.refresh_from_db()
+        self.assertTrue(active_circular.is_read)
+        self.assertTrue(global_circular.is_read)
+        self.assertFalse(other_circular.is_read)
+
+    def test_mark_all_without_selected_school_only_marks_global_items(self):
+        self._add_second_school()
+        global_recipient = self._recipient(school=None, title="إشعار عام")
+        session = self.client.session
+        session.pop("active_school_id", None)
+        session.save()
+
+        self.client.post(reverse("reports:notifications_mark_all_read"))
+
+        self.rec.refresh_from_db()
+        global_recipient.refresh_from_db()
+        self.assertFalse(self.rec.is_read)
+        self.assertTrue(global_recipient.is_read)
+
+    def test_home_uses_non_blocking_card_without_marking_read(self):
+        response = self.client.get(reverse("reports:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="homeNotification" role="region"')
+        self.assertContains(
+            response,
+            reverse("reports:my_notification_detail", args=[self.rec.pk]),
+        )
+        self.assertNotContains(response, "data-mark-url")
+        self.rec.refresh_from_db()
+        self.assertFalse(self.rec.is_read)

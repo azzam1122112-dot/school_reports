@@ -77,7 +77,11 @@
           await copy(url);
           notify('نُسخ رابط الاجتماع — يفتح لمن دُعي إليه فقط.');
         } catch (error) {
-          window.prompt('انسخ الرابط يدوياً:', url);
+          await window.rcPrompt('تعذر النسخ التلقائي. انسخ الرابط يدويًا:', url, {
+            required: false,
+            title: 'نسخ رابط الاجتماع',
+            okText: 'إغلاق'
+          });
         }
       });
     });

@@ -988,7 +988,7 @@
                       </details>
                     {% endif %}
                     {% if c.created_by_id == current_user_id or is_superuser %}
-                      <form method="post" onsubmit="return confirm('حذف التعليق نهائيًا؟');" style="display:inline">
+                      <form method="post" data-confirm="حذف التعليق نهائيًا؟" data-confirm-type="danger" style="display:inline">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="private_comment_delete" />
                         <input type="hidden" name="comment_id" value="{{ c.id }}" />

@@ -706,12 +706,22 @@
       updateState();
     });
     ackInput.addEventListener('change', updateState);
-    form.addEventListener('submit', function(e){
+    form.addEventListener('submit', async function(e){
       updateState();
       if (submitBtn.disabled){ e.preventDefault(); return; }
-      try {
-        if (!window.confirm('تأكيد: سيتم تسجيل إقرارك واعتماد توقيعك الآن.')){ e.preventDefault(); return; }
-      } catch(err) {}
+      if (form.dataset.signatureConfirmed !== '1') {
+        e.preventDefault();
+        var confirmed = await window.rcConfirm({
+          message: 'سيتم تسجيل إقرارك ووقت التوقيع رسميًا. هل تريد اعتماد التوقيع الآن؟',
+          type: 'warning',
+          title: 'اعتماد التوقيع',
+          okText: 'اعتماد التوقيع'
+        });
+        if (!confirmed) return;
+        form.dataset.signatureConfirmed = '1';
+        form.requestSubmit(submitBtn);
+        return;
+      }
       submitBtn.dataset.busy='1';
       submitBtn.disabled=true;
       submitBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جارٍ اعتماد التوقيع…';

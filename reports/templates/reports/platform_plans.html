@@ -626,7 +626,7 @@
                         <a class="btn btn-outline-primary" href="{% url 'reports:platform_plan_edit' plan.pk %}">
                             <i class="fas fa-pen ms-1"></i> تعديل
                         </a>
-                        <form method="post" action="{% url 'reports:platform_plan_delete' plan.pk %}" class="plan-delete-form" data-plan-name="{{ plan.name }}">
+                        <form method="post" action="{% url 'reports:platform_plan_delete' plan.pk %}" class="plan-delete-form" data-confirm="هل تريد حذف باقة «{{ plan.name }}»؟ لا يمكن التراجع عن الحذف." data-confirm-type="danger">
                             {% csrf_token %}
                             <button class="btn btn-outline-danger w-100" type="submit">
                                 <i class="fas fa-trash ms-1"></i> حذف
@@ -669,7 +669,7 @@
                     </ul>
                     <div class="plan-card__footer">
                         <a class="btn btn-outline-primary" href="{% url 'reports:platform_plan_edit' plan.pk %}"><i class="fas fa-pen ms-1"></i> تعديل</a>
-                        <form method="post" action="{% url 'reports:platform_plan_delete' plan.pk %}" class="plan-delete-form" data-plan-name="{{ plan.name }}">
+                        <form method="post" action="{% url 'reports:platform_plan_delete' plan.pk %}" class="plan-delete-form" data-confirm="هل تريد حذف باقة «{{ plan.name }}»؟ لا يمكن التراجع عن الحذف." data-confirm-type="danger">
                             {% csrf_token %}
                             <button class="btn btn-outline-danger w-100" type="submit"><i class="fas fa-trash ms-1"></i> حذف</button>
                         </form>
@@ -687,17 +687,4 @@
         </div>
     </aside>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
-    document.querySelectorAll(".plan-delete-form").forEach(function (form) {
-        form.addEventListener("submit", function (event) {
-            const planName = form.dataset.planName || "هذه الباقة";
-            if (!window.confirm("هل تريد حذف باقة «" + planName + "»؟ لا يمكن التراجع عن الحذف.")) {
-                event.preventDefault();
-            }
-        });
-    });
-</script>
 {% endblock %}

@@ -1033,8 +1033,6 @@ html[data-theme="dark"] .notif-scope .time-badge{
                   class="btn-sm ghost"
                   aria-label="عرض الإشعار كاملًا"
                   href="{% url 'reports:my_notification_detail' r.pk %}"
-                  target="_blank"
-                  rel="noopener"
                 >
                   <i class="fa-regular fa-eye" aria-hidden="true"></i>
                   عرض التفاصيل
@@ -1117,15 +1115,19 @@ document.addEventListener('DOMContentLoaded', function(){
   const unreadCountEl = $('#unreadCount');
   const unreadNumEl   = $('#unreadCountNum');
 
-  function countUnread(){
-    return $$('.n-card').filter(c => !c.classList.contains('read')).length;
-  }
+  let unreadTotal = Number(unreadCountEl && unreadCountEl.dataset.initial || 0);
 
   function renderUnread(){
     if(!unreadCountEl || !unreadNumEl) return;
-    const n = countUnread();
-    unreadNumEl.textContent = String(n);
-    unreadCountEl.style.display = (n > 0) ? '' : 'none';
+    unreadNumEl.textContent = String(unreadTotal);
+    unreadCountEl.style.display = (unreadTotal > 0) ? '' : 'none';
+    ['notifDot', 'notifDotMobile'].forEach(function(id){
+      const dot = document.getElementById(id);
+      if(!dot) return;
+      dot.textContent = String(unreadTotal);
+      dot.style.display = unreadTotal > 0 ? 'flex' : 'none';
+      dot.setAttribute('aria-label', unreadTotal + ' إشعار غير مقروء');
+    });
   }
 
   const onlyUnread = $('#onlyUnread');
@@ -1181,6 +1183,7 @@ document.addEventListener('DOMContentLoaded', function(){
       markAllBtn.disabled = true;
       markAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جاري المعالجة...';
       $$('.n-card').forEach(c => c.classList.add('read'));
+      unreadTotal = 0;
       renderUnread();
       applyFilters();
     });
@@ -1195,7 +1198,10 @@ document.addEventListener('DOMContentLoaded', function(){
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جاري المعالجة...';
       }
       const card = f.closest('.n-card');
-      if(card) card.classList.add('read');
+      if(card && !card.classList.contains('read')){
+        card.classList.add('read');
+        unreadTotal = Math.max(0, unreadTotal - 1);
+      }
       renderUnread();
       applyFilters();
     });

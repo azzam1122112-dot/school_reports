@@ -717,91 +717,6 @@
     border-color: var(--rd-primary);
   }
 
-  /* ===== Confirm Delete Dialog ===== */
-  .repdash-wrap dialog.rd-confirm {
-    width: min(440px, 92vw);
-    max-width: 440px;
-    padding: 32px 28px 26px;
-    text-align: center;
-    border-radius: var(--rd-radius-xl);
-  }
-
-  .rd-confirm-icon {
-    width: 72px;
-    height: 72px;
-    margin: 0 auto 18px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    font-size: 1.7rem;
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.10);
-    border: 1px solid rgba(239, 68, 68, 0.22);
-  }
-
-  .rd-confirm-title {
-    margin: 0 0 10px;
-    font-weight: 800;
-    font-size: 1.25rem;
-    color: var(--rd-text);
-  }
-
-  .rd-confirm-text {
-    margin: 0 0 24px;
-    color: var(--rd-text-light);
-    font-weight: 600;
-    font-size: 0.98rem;
-    line-height: 1.7;
-  }
-
-  .rd-confirm-actions {
-    display: flex;
-    gap: 12px;
-  }
-
-  .rd-confirm-btn {
-    flex: 1;
-    min-height: 50px;
-    border-radius: var(--rd-radius-md);
-    font-weight: 800;
-    font-size: 1rem;
-    font-family: inherit;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: var(--rd-transition);
-    border: 1.5px solid transparent;
-  }
-
-  .rd-confirm-cancel {
-    background: var(--rd-soft);
-    color: var(--rd-text);
-    border-color: var(--rd-border);
-  }
-
-  .rd-confirm-cancel:hover {
-    background: var(--rd-border);
-  }
-
-  .rd-confirm-ok {
-    background: #ef4444;
-    color: #fff;
-    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.30);
-  }
-
-  .rd-confirm-ok:hover {
-    background: #dc2626;
-    transform: translateY(-1px);
-  }
-
-  @media (max-width: 420px) {
-    .rd-confirm-actions {
-      flex-direction: column-reverse;
-    }
-  }
-
   /* ===== Lightbox ===== */
   #rdLightbox {
     background: transparent !important;
@@ -1117,7 +1032,7 @@
                     {% endif %}
 
                     {% if r.user_can_delete|default:can_delete %}
-                      <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline;" class="rd-delete-form">
+                      <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline;" class="rd-delete-form" data-confirm="سيتم حذف هذا التقرير نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
                         <button type="submit" class="rd-iconbtn rd-del" title="حذف">
@@ -1207,7 +1122,7 @@
             {% endif %}
 
             {% if r.user_can_delete|default:can_delete %}
-              <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline; width: 100%;" class="rd-delete-form">
+              <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline; width: 100%;" class="rd-delete-form" data-confirm="سيتم حذف هذا التقرير نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                 <button type="submit" class="rd-iconbtn rd-del" style="width: 100%;">
@@ -1304,22 +1219,6 @@
     </div>
   </dialog>
 
-  <!-- Confirm Delete Dialog -->
-  <dialog id="rdConfirmDialog" class="rd-confirm" aria-labelledby="rdConfirmTitle">
-    <div class="rd-confirm-icon" aria-hidden="true">
-      <i class="fa-solid fa-trash-can"></i>
-    </div>
-    <h3 id="rdConfirmTitle" class="rd-confirm-title">تأكيد حذف التقرير</h3>
-    <p class="rd-confirm-text">سيتم حذف هذا التقرير نهائيًا ولا يمكن التراجع عن العملية. هل تريد المتابعة؟</p>
-    <div class="rd-confirm-actions">
-      <button type="button" class="rd-confirm-btn rd-confirm-cancel" data-rd-action="confirm-cancel">
-        <i class="fa-solid fa-xmark"></i> إلغاء
-      </button>
-      <button type="button" class="rd-confirm-btn rd-confirm-ok" data-rd-action="confirm-ok">
-        <i class="fa-solid fa-trash-can"></i> حذف نهائيًا
-      </button>
-    </div>
-  </dialog>
 </div>
 {% endblock %}
 
@@ -1444,53 +1343,6 @@
         return;
       }
 
-      var confirmCancel = t.closest ? t.closest('[data-rd-action="confirm-cancel"]') : null;
-      if(confirmCancel){
-        ev.preventDefault();
-        rdCloseConfirm();
-        return;
-      }
-
-      var confirmOk = t.closest ? t.closest('[data-rd-action="confirm-ok"]') : null;
-      if(confirmOk){
-        ev.preventDefault();
-        var form = pendingDeleteForm;
-        rdCloseConfirm();
-        if(form) form.submit();
-        return;
-      }
-    });
-
-    // ===== نافذة تأكيد الحذف المخصّصة (بديل confirm البدائي) =====
-    var confirmDialog = byId('rdConfirmDialog');
-    var pendingDeleteForm = null;
-
-    function rdCloseConfirm(){
-      pendingDeleteForm = null;
-      if(confirmDialog && confirmDialog.open) confirmDialog.close();
-    }
-
-    if(confirmDialog){
-      // إغلاق عند النقر على الخلفية أو زر Escape
-      confirmDialog.addEventListener('click', function(ev){
-        if(ev.target === confirmDialog) rdCloseConfirm();
-      });
-      confirmDialog.addEventListener('cancel', function(){ pendingDeleteForm = null; });
-    }
-
-    document.querySelectorAll('form.rd-delete-form').forEach(function(form){
-      form.addEventListener('submit', function(ev){
-        // إن لم تتوفر النافذة المخصّصة (دعم قديم) نكتفي بـ confirm
-        if(!confirmDialog || typeof confirmDialog.showModal !== 'function'){
-          if(!confirm('هل أنت متأكد من الحذف؟')) ev.preventDefault();
-          return;
-        }
-        ev.preventDefault();
-        pendingDeleteForm = form;
-        confirmDialog.showModal();
-        var okBtn = confirmDialog.querySelector('.rd-confirm-ok');
-        if(okBtn){ try{ okBtn.focus(); }catch(e){} }
-      });
     });
   })();
 </script>

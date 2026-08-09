@@ -510,25 +510,17 @@
   }
 
   .th-notification-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    padding: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(5, 20, 11, .66);
-    backdrop-filter: blur(5px);
+    position: relative;
+    margin-bottom: 18px;
   }
-  .th-notification-overlay[hidden] { display: none; }
   .th-notification {
-    width: min(560px, 100%);
+    width: 100%;
     overflow: hidden;
     border: 1px solid rgba(185, 151, 91, .45);
-    border-radius: 22px;
+    border-radius: 18px;
     color: var(--th-ink);
     background: var(--th-card);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, .3);
+    box-shadow: var(--id-e1);
   }
   .th-notification-head {
     padding: 18px 20px;
@@ -540,16 +532,6 @@
     background: linear-gradient(120deg, var(--id-hero-from), var(--id-hero-via));
   }
   .th-notification-head h2 { margin: 0; font-size: 1.05rem; font-weight: 950; }
-  .th-notification-close {
-    width: 44px;
-    height: 44px;
-    flex: 0 0 44px;
-    border: 1px solid rgba(255, 255, 255, .28);
-    border-radius: 11px;
-    color: var(--id-hero-ink);
-    background: rgba(255, 255, 255, .1);
-    cursor: pointer;
-  }
   .th-notification-body { padding: 22px; line-height: 1.9; }
   .th-notification-title { margin-bottom: 8px; font-size: 1.08rem; font-weight: 950; }
   .th-important,
@@ -573,6 +555,11 @@
     color: var(--th-muted);
     background: var(--th-surface);
     font-size: .75rem;
+  }
+  .th-notification-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .th-notification-open {
+    min-height:40px; padding:8px 13px; border-radius:11px; display:inline-flex; align-items:center; gap:7px;
+    color:#fff; background:var(--th-green); text-decoration:none; font-weight:900;
   }
 
   @media (max-width: 960px) {
@@ -628,12 +615,7 @@
 {% block content %}
 <main class="teacher-home" dir="rtl">
   {% if home_notification %}
-    <div class="th-notification-overlay" id="homeNotification"
-         role="dialog" aria-modal="true" aria-labelledby="homeNotificationTitle"
-         {% if home_notification_recipient_id %}
-           data-storage-key="teacher_notification_{{ home_notification_recipient_id }}"
-           data-mark-url="{% url 'reports:notification_mark_read' home_notification_recipient_id %}"
-         {% endif %}>
+    <div class="th-notification-overlay" id="homeNotification" role="region" aria-labelledby="homeNotificationTitle">
       <section class="th-notification">
         <header class="th-notification-head">
           <h2 id="homeNotificationTitle">
@@ -641,16 +623,13 @@
             رسالة جديدة
             {% if home_notification.is_important %}<span class="th-important">هامة</span>{% endif %}
           </h2>
-          <button type="button" class="th-notification-close" id="homeNotificationClose" aria-label="إغلاق الرسالة">
-            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-          </button>
         </header>
         <div class="th-notification-body">
           {% csrf_token %}
           {% if home_notification.title %}
             <div class="th-notification-title">{{ home_notification.title }}</div>
           {% endif %}
-          <div>{{ home_notification.message|linebreaksbr }}</div>
+          <div>{{ home_notification.message|truncatechars:320|linebreaksbr }}</div>
           {% if home_notification.requires_signature %}
             <span class="th-signature"><i class="fa-solid fa-pen" aria-hidden="true"></i> يتطلب الاطلاع والتوقيع</span>
           {% endif %}
@@ -665,6 +644,14 @@
             {% endif %}
           </span>
           <time dir="ltr">{{ home_notification.created_at|date:"Y-m-d H:i" }}</time>
+          {% if home_notification_recipient_id %}
+            <span class="th-notification-actions">
+              <a class="th-notification-open" href="{% if home_notification.requires_signature %}{% url 'reports:my_circular_detail' home_notification_recipient_id %}{% else %}{% url 'reports:my_notification_detail' home_notification_recipient_id %}{% endif %}">
+                <i class="fa-solid {% if home_notification.requires_signature %}fa-file-signature{% else %}fa-arrow-left{% endif %}" aria-hidden="true"></i>
+                {% if home_notification.requires_signature %}فتح الوثيقة والتوقيع{% else %}عرض التفاصيل{% endif %}
+              </a>
+            </span>
+          {% endif %}
         </footer>
       </section>
     </div>
@@ -1212,60 +1199,4 @@
     <i class="fa-solid fa-plus" aria-hidden="true"></i>
   </a>
 </main>
-{% endblock %}
-
-{% block scripts %}
-<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
-  document.addEventListener('DOMContentLoaded', function () {
-    var overlay = document.getElementById('homeNotification');
-    if (!overlay) return;
-
-    var closeButton = document.getElementById('homeNotificationClose');
-    var storageKey = overlay.dataset.storageKey;
-    var markUrl = overlay.dataset.markUrl;
-
-    function csrfToken() {
-      var input = overlay.querySelector('[name="csrfmiddlewaretoken"]');
-      if (input && input.value) return input.value;
-      var cookie = document.cookie.split('; ').find(function (row) {
-        return row.indexOf('csrftoken=') === 0;
-      });
-      return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : '';
-    }
-
-    function markRead() {
-      if (!markUrl) return;
-      fetch(markUrl, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'X-CSRFToken': csrfToken(),
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      }).catch(function () {});
-    }
-
-    function closeNotification() {
-      overlay.hidden = true;
-      if (storageKey) localStorage.setItem(storageKey, '1');
-      markRead();
-    }
-
-    if (storageKey && localStorage.getItem(storageKey)) {
-      closeNotification();
-      return;
-    }
-
-    if (closeButton) {
-      closeButton.focus();
-      closeButton.addEventListener('click', closeNotification);
-    }
-    overlay.addEventListener('click', function (event) {
-      if (event.target === overlay) closeNotification();
-    });
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && !overlay.hidden) closeNotification();
-    });
-  });
-</script>
 {% endblock %}

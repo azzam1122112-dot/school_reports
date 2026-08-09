@@ -489,8 +489,8 @@ def home(request: HttpRequest) -> HttpResponse:
     stats = {"today_count": 0, "total_count": 0, "last_title": "—"}
     req_stats = {"open": 0, "in_progress": 0, "done": 0, "rejected": 0, "total": 0}
 
-    # إشعار التحفيز: اعرض أحدث إشعار غير مقروء فقط.
-    # (يُعلّم كمقروء فقط بعد إغلاق المستخدم للرسالة من الواجهة.)
+    # بطاقة هادئة لأحدث إشعار غير مقروء. لا تُسجّل القراءة إلا عند فتح التفاصيل
+    # أو باختيار إجراء القراءة صراحةً.
     home_notification = None
     home_notification_recipient_id: int | None = None
     try:
@@ -512,8 +512,11 @@ def home(request: HttpRequest) -> HttpResponse:
 
             # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
             try:
-                if active_school is not None and hasattr(Notification, "school"):
-                    nqs = nqs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+                if hasattr(Notification, "school"):
+                    if active_school is not None:
+                        nqs = nqs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+                    else:
+                        nqs = nqs.filter(notification__school__isnull=True)
             except Exception:
                 pass
 

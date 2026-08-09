@@ -215,7 +215,25 @@ def get_school_dashboard_payload(
 def invalidate_user_notifications(user_id: int) -> None:
     """Bust notification count cache for a user."""
     try:
-        cache.delete(key_unread_count(user_id))
+        uid = int(user_id)
+        keys = [
+            key_unread_count(uid),
+            f"unreadcnt:v1:u{uid}:snone",
+            f"ws:counts:{uid}:0",
+        ]
+        try:
+            from .models import SchoolMembership
+
+            school_ids = SchoolMembership.objects.filter(
+                teacher_id=uid,
+                is_active=True,
+            ).values_list("school_id", flat=True)
+            for school_id in school_ids:
+                keys.append(f"unreadcnt:v1:u{uid}:s{int(school_id)}")
+                keys.append(f"ws:counts:{uid}:{int(school_id)}")
+        except Exception:
+            pass
+        cache.delete_many(keys)
     except Exception:
         pass
 

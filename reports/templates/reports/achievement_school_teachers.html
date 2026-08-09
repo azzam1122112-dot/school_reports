@@ -348,7 +348,7 @@
         var v = ta ? (ta.value || '').trim() : '';
         if(!v){
           ev.preventDefault();
-          alert('فضلاً اكتب سبب الرفض في الملاحظات قبل الإرسال.');
+          window.rcAlert('فضلاً اكتب سبب الرفض في الملاحظات قبل الإرسال.', {type:'warning'});
           if(ta) ta.focus();
           return;
         }

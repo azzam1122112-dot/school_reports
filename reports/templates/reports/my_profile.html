@@ -1258,12 +1258,19 @@
         </form>
       </div>
 
-      <div class="profile-card">
-        <h2 class="profile-card-title">
+      <div class="profile-card" id="account-security" aria-labelledby="accountSecurityTitle">
+        <h2 class="profile-card-title" id="accountSecurityTitle">
           <i class="fa-solid fa-fingerprint" aria-hidden="true"></i>
           <span>الدخول بالبصمة</span>
         </h2>
-        <div class="profile-passkey-panel">
+        <div
+          class="profile-passkey-panel"
+          id="profilePasskeyPanel"
+          data-dismiss-url="{% url 'reports:passkey_enroll_prompt_dismiss' %}"
+        >
+          {% if request.session.passkey_enroll_prompt and not force_password_change and not passkey_credentials %}
+            {% include "reports/partials/passkey_enrollment_prompt.html" %}
+          {% endif %}
           <p class="profile-passkey-copy">
             {% if passkey_credentials %}
               الدخول بالبصمة مفعّل لحسابك. يمكنك استخدام بصمة الجهاز أو Face ID أو قفل الشاشة، أو إضافة مفتاح مرور لجهاز آخر.
@@ -1286,6 +1293,11 @@
             </button>
             <div class="profile-passkey-status" id="profilePasskeyStatus" role="status" aria-live="polite"></div>
           {% endif %}
+
+          <div class="profile-passkey-copy" style="font-size:.84rem">
+            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+            بصمتك أو صورة وجهك لا تصل إلى المنصة ولا تُحفظ فيها؛ تبقى داخل جهازك، ونحفظ المفتاح العام اللازم للتحقق فقط.
+          </div>
 
           {% if passkey_credentials %}
             <ul class="profile-passkey-list" id="passkeyDeviceList" aria-label="الأجهزة المفعلة للدخول بالبصمة">
@@ -1332,6 +1344,84 @@
 
 {% block scripts %}
   {{ block.super }}
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    (function () {
+      const root = document.getElementById('profilePasskeyPanel');
+      if (!root) return;
+
+      const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      const snoozeKey = 'tawtheeq.passkey.offerSnoozedUntil';
+      const unsupportedKey = 'tawtheeq.passkey.unsupportedUntil';
+      const day = 24 * 60 * 60 * 1000;
+
+      function readUntil(key) {
+        try {
+          const value = Number(window.localStorage.getItem(key) || 0);
+          if (value > Date.now()) return value;
+          window.localStorage.removeItem(key);
+        } catch (error) {
+          // Cookies still provide the server-side fallback when storage is blocked.
+        }
+        return 0;
+      }
+
+      function rememberUntil(key, days) {
+        try {
+          window.localStorage.setItem(key, String(Date.now() + (days * day)));
+        } catch (error) {
+          // Private browsers may reject storage; the endpoint cookie remains enough.
+        }
+      }
+
+      function hideOffer() {
+        const offer = document.getElementById('passkeyEnrollmentOffer');
+        if (offer) offer.hidden = true;
+      }
+
+      async function sendPreference(action) {
+        try {
+          const response = await fetch(root.dataset.dismissUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            keepalive: true,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfInput ? csrfInput.value : '',
+            },
+            body: JSON.stringify({ action: action }),
+          });
+          const data = await response.json();
+          if (!response.ok || !data.ok) throw new Error(data.message || 'تعذر حفظ الاختيار.');
+          return { ok: true, message: data.message || '' };
+        } catch (error) {
+          return {
+            ok: false,
+            message: error && error.message ? error.message : 'تعذر حفظ الاختيار.',
+          };
+        }
+      }
+
+      async function dismiss(action) {
+        if (action === 'snooze') rememberUntil(snoozeKey, 90);
+        if (action === 'unsupported') rememberUntil(unsupportedKey, 365);
+        return sendPreference(action);
+      }
+
+      async function markUnsupported() {
+        rememberUntil(unsupportedKey, 365);
+        hideOffer();
+        return sendPreference('unsupported');
+      }
+
+      window.tawtheeqPasskeyPreferences = {
+        dismiss: dismiss,
+        hideOffer: hideOffer,
+        isSnoozedLocally: function () { return !!readUntil(snoozeKey); },
+        isSuppressedLocally: function () { return !!(readUntil(snoozeKey) || readUntil(unsupportedKey)); },
+        markUnsupported: markUnsupported,
+      };
+    })();
+  </script>
   <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     (function () {
       const form = document.querySelector('[data-password-form]');
@@ -1494,6 +1584,7 @@
       const button = document.getElementById('registerPasskeyBtn');
       const statusBox = document.getElementById('profilePasskeyStatus');
       const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      const preferences = window.tawtheeqPasskeyPreferences;
       if (!button || !statusBox) return;
 
       if (!window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) {
@@ -1501,6 +1592,7 @@
         statusBox.textContent = 'تفعيل البصمة يحتاج اتصالًا آمنًا ومتصفحًا حديثًا. افتح المنصة مباشرة في Chrome أو Safari أو Edge.';
         statusBox.classList.add('is-error');
         statusBox.style.display = 'block';
+        if (preferences) preferences.markUnsupported();
         return;
       }
 
@@ -1617,6 +1709,12 @@
             if (buttonLabel) buttonLabel.textContent = 'البصمة مفعّلة بالفعل';
             return;
           }
+          if (
+            preferences && error &&
+            (error.name === 'NotSupportedError' || error.name === 'ConstraintError' || error.name === 'SecurityError')
+          ) {
+            await preferences.markUnsupported();
+          }
           showStatus(registrationErrorMessage(error, hasKnownCredential), true);
           button.disabled = false;
           if (buttonLabel) buttonLabel.textContent = defaultLabel;
@@ -1647,7 +1745,13 @@
         if (!trigger) return;
 
         const device = trigger.dataset.device || 'هذا الجهاز';
-        if (!window.confirm('إلغاء الدخول بالبصمة من «' + device + '»؟ لن يستطيع هذا الجهاز الدخول لحسابك بعدها.')) return;
+        const confirmed = await window.rcConfirm({
+          message: 'إلغاء الدخول بالبصمة من «' + device + '»؟ لن يستطيع هذا الجهاز الدخول لحسابك بعدها.',
+          type: 'warning',
+          title: 'إلغاء جهاز موثوق',
+          okText: 'نعم، ألغِ الجهاز'
+        });
+        if (!confirmed) return;
 
         trigger.disabled = true;
         try {

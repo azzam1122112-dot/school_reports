@@ -545,43 +545,6 @@
   }
   .ns-scope .notif-card:hover{ transform:translateY(-3px); box-shadow:0 20px 38px -22px rgba(10,92,51,.5) !important; }
 
-  /* ===== نافذة تأكيد الحذف (بديل confirm البدائي) ===== */
-  .ns-confirm {
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-xl);
-    padding: 32px 28px 26px;
-    width: min(440px, 92vw);
-    max-width: 440px;
-    text-align: center;
-    background: var(--card-bg);
-    color: var(--text-primary);
-    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.4);
-  }
-  .ns-confirm::backdrop {
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(8px);
-  }
-  .ns-confirm .ns-confirm-icon {
-    width: 72px; height: 72px; margin: 0 auto 18px;
-    border-radius: 50%; display: grid; place-items: center;
-    font-size: 1.7rem; color: #ef4444;
-    background: rgba(239, 68, 68, 0.10);
-    border: 1px solid rgba(239, 68, 68, 0.22);
-  }
-  .ns-confirm .ns-confirm-title { margin: 0 0 10px; font-weight: 800; font-size: 1.25rem; color: var(--text-primary); }
-  .ns-confirm .ns-confirm-text { margin: 0 0 24px; color: var(--text-secondary); font-weight: 500; line-height: 1.7; }
-  .ns-confirm .ns-confirm-actions { display: flex; gap: 12px; }
-  .ns-confirm .ns-confirm-btn {
-    flex: 1; min-height: 50px; border-radius: var(--radius-md);
-    font-weight: 800; font-size: 1rem; font-family: inherit; cursor: pointer;
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    transition: var(--transition); border: 1.5px solid transparent;
-  }
-  .ns-confirm .ns-confirm-cancel { background: var(--hover-bg); color: var(--text-primary); border-color: var(--border-color); }
-  .ns-confirm .ns-confirm-cancel:hover { background: var(--border-color); }
-  .ns-confirm .ns-confirm-ok { background: #ef4444; color: #fff; box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3); }
-  .ns-confirm .ns-confirm-ok:hover { background: #dc2626; transform: translateY(-1px); }
-  @media (max-width: 420px) { .ns-confirm .ns-confirm-actions { flex-direction: column-reverse; } }
 </style>
 {% endblock %}
 
@@ -664,7 +627,7 @@
                 </a>
               {% endif %}
 
-              <form method="post" action="{% url 'reports:notification_delete' n.id %}" class="js-delete-form" style="display:inline">
+              <form method="post" action="{% url 'reports:notification_delete' n.id %}" class="js-delete-form" data-confirm="سيتم حذف هذا الإشعار نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger" style="display:inline">
                 {% csrf_token %}
                 <button class="ns-btn danger" type="submit">
                   <i class="fa-regular fa-trash-can" aria-hidden="true"></i> حذف
@@ -701,20 +664,6 @@
     {% endif %}
   </div>
 
-  <!-- Confirm Delete Dialog -->
-  <dialog id="nsConfirmDialog" class="ns-confirm" aria-labelledby="nsConfirmTitle">
-    <div class="ns-confirm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></div>
-    <h3 id="nsConfirmTitle" class="ns-confirm-title">تأكيد حذف الإشعار</h3>
-    <p class="ns-confirm-text">سيتم حذف هذا الإشعار نهائيًا ولا يمكن التراجع عن العملية. هل تريد المتابعة؟</p>
-    <div class="ns-confirm-actions">
-      <button type="button" class="ns-confirm-btn ns-confirm-cancel" data-ns-action="confirm-cancel">
-        <i class="fa-solid fa-xmark"></i> إلغاء
-      </button>
-      <button type="button" class="ns-confirm-btn ns-confirm-ok" data-ns-action="confirm-ok">
-        <i class="fa-regular fa-trash-can"></i> حذف نهائيًا
-      </button>
-    </div>
-  </dialog>
 </div>
 
 {{ stats|json_script:"notif-stats-data" }}
@@ -775,47 +724,6 @@
       }
     });
 
-    // Confirm delete عبر نافذة مخصّصة (بديل confirm البدائي، CSP-safe)
-    var confirmDialog = document.getElementById('nsConfirmDialog');
-    var pendingDeleteForm = null;
-
-    function closeConfirm(){
-      pendingDeleteForm = null;
-      if(confirmDialog && confirmDialog.open) confirmDialog.close();
-    }
-
-    if(confirmDialog){
-      confirmDialog.addEventListener('click', function(ev){
-        if(ev.target === confirmDialog) closeConfirm();
-      });
-      confirmDialog.addEventListener('cancel', function(){ pendingDeleteForm = null; });
-      document.addEventListener('click', function(ev){
-        var t = ev.target;
-        if(!t || !t.closest) return;
-        if(t.closest('[data-ns-action="confirm-cancel"]')){ ev.preventDefault(); closeConfirm(); return; }
-        if(t.closest('[data-ns-action="confirm-ok"]')){
-          ev.preventDefault();
-          var form = pendingDeleteForm;
-          closeConfirm();
-          if(form) form.submit();
-        }
-      });
-    }
-
-    document.querySelectorAll('form.js-delete-form').forEach(function(f){
-      f.addEventListener('submit', function(e){
-        // إن لم تتوفر النافذة المخصّصة، نكتفي بـ confirm كحل احتياطي
-        if(!confirmDialog || typeof confirmDialog.showModal !== 'function'){
-          if(!window.confirm('هل تريد حذف هذا الإشعار نهائيًا؟')) e.preventDefault();
-          return;
-        }
-        e.preventDefault();
-        pendingDeleteForm = f;
-        confirmDialog.showModal();
-        var okBtn = confirmDialog.querySelector('.ns-confirm-ok');
-        if(okBtn){ try{ okBtn.focus(); }catch(err){} }
-      });
-    });
   })();
 </script>
 {% endblock %}

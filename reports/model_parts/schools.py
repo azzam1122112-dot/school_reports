@@ -292,6 +292,11 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField("نشط", default=True)
     is_staff = models.BooleanField("موظّف لوحة", default=False)
+    passkey_prompt_opt_out = models.BooleanField(
+        "عدم عرض دعوة تفعيل البصمة مجددًا",
+        default=False,
+        help_text="يوقف الدعوة التلقائية فقط؛ يبقى التفعيل متاحًا من إعدادات الأمان.",
+    )
     current_session_key = models.CharField(max_length=64, blank=True, default="")
     date_joined = models.DateTimeField("تاريخ الانضمام", auto_now_add=True)
 

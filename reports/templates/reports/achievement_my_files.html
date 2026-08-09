@@ -456,7 +456,7 @@
                 <i class="fa-solid fa-pen"></i>
               </button>
 
-              <form action="{% url 'reports:achievement_file_delete' f.pk %}" method="post" class="af-delete-form" style="display:inline;">
+              <form action="{% url 'reports:achievement_file_delete' f.pk %}" method="post" class="af-delete-form" data-confirm="هل تريد حذف هذا الملف نهائيًا؟ لن يمكنك استرجاعه." data-confirm-type="danger" style="display:inline;">
                 {% csrf_token %}
                 <button type="submit" class="af-btn af-btn-danger" title="حذف الملف" aria-label="حذف ملف {{ f.academic_year }}">
                    <i class="fa-solid fa-trash"></i>
@@ -514,14 +514,6 @@
         form.action = button.dataset.url;
         select.value = button.dataset.year;
         modal.showModal();
-      });
-    });
-
-    document.querySelectorAll('.af-delete-form').forEach(function (deleteForm) {
-      deleteForm.addEventListener('submit', function (event) {
-        if (!window.confirm('هل أنت متأكد من حذف هذا الملف نهائيًا؟ لن يمكنك استرجاعه.')) {
-          event.preventDefault();
-        }
       });
     });
 

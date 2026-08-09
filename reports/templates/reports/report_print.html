@@ -708,14 +708,6 @@
     var _btnBack = document.getElementById('btnBack');
     if (_btnBack) _btnBack.addEventListener('click', goBack);
 
-    // تأكيد حذف التعليق (بدل onsubmit المضمّن)
-    document.querySelectorAll('form.js-confirm-delete').forEach(function(f){
-      f.addEventListener('submit', function(e){
-        var msg = f.getAttribute('data-confirm') || 'تأكيد الحذف؟';
-        if (!window.confirm(msg)) e.preventDefault();
-      });
-    });
-
     // Auto print if ?print=true (optional)
     if(window.location.search.includes('print=true')){
       setTimeout(function(){ window.print(); }, 60);

@@ -2384,12 +2384,12 @@ function getChartImageUrl(chartId) {
 function printChart(chartId, title) {
     const url = getChartImageUrl(chartId);
     if (!url) {
-        alert('تعذر تجهيز الرسم للطباعة حالياً.');
+        window.rcAlert('تعذر تجهيز الرسم للطباعة حالياً.', {type:'warning'});
         return;
     }
     const popup = window.open('', '_blank', 'width=980,height=720');
     if (!popup) {
-        alert('يرجى السماح بالنوافذ المنبثقة لطباعة الرسم.');
+        window.rcAlert('يرجى السماح بالنوافذ المنبثقة لطباعة الرسم.', {type:'warning'});
         return;
     }
     popup.document.write(
@@ -2409,7 +2409,7 @@ function printChart(chartId, title) {
 function exportChartToImage(chartId) {
     const url = getChartImageUrl(chartId);
     if (!url) {
-        alert('تعذر تجهيز الصورة حالياً.');
+        window.rcAlert('تعذر تجهيز الصورة حالياً.', {type:'warning'});
         return;
     }
     const link = document.createElement('a');
