@@ -38,6 +38,8 @@ class PwaInstallExperienceTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, 'id="pwaInstallPrompt"')
             self.assertContains(response, 'id="pwaInstallAction"')
+            self.assertContains(response, 'id="pwaInstallAnnouncement"')
+            self.assertContains(response, 'aria-live="polite"')
             self.assertContains(response, 'data-auto-prompt="false"')
             self.assertContains(response, "css/pwa-install.css")
             self.assertContains(response, "js/pwa-install.js")
@@ -80,25 +82,39 @@ class PwaInstallExperienceTests(TestCase):
         self.assertIn("إضافة إلى الشاشة الرئيسية", script)
         self.assertIn("تثبيت التطبيق", script)
         self.assertIn("window.localStorage", script)
-        self.assertNotIn("window.sessionStorage", script)
+        self.assertIn("window.sessionStorage", script)
+        self.assertIn("INSTALLED_KEY", script)
+        self.assertIn("SESSION_DISMISSED_KEY", script)
+        self.assertIn("navigator.getInstalledRelatedApps", script)
+        self.assertIn("navigator.userAgentData", script)
+        self.assertIn("pwaInstallAnnouncement", script)
+        self.assertIn("يتوفر تثبيت منصة توثيق على هذا الجوال", script)
         self.assertIn('var SW_URL = "/sw.js?v=9"', script)
         self.assertIn('updateViaCache: "none"', script)
-        self.assertIn("DISMISS_DAYS = 90", script)
-        self.assertIn("AUTO_RESURFACE_DAYS = 7", script)
-        self.assertIn("AUTO_NATIVE_DELAY_MS = 15000", script)
-        self.assertIn("AUTO_IOS_DELAY_MS = 20000", script)
-        self.assertIn("AUTO_FALLBACK_DELAY_MS = 22000", script)
-        self.assertIn("LAST_AUTO_SHOWN_KEY", script)
-        self.assertIn("wasAutoPromptShownRecently", script)
-        self.assertIn("rememberAutoPromptShown", script)
+        self.assertIn("AUTO_NATIVE_DELAY_MS = 350", script)
+        self.assertIn("AUTO_IOS_DELAY_MS = 700", script)
+        self.assertIn("AUTO_FALLBACK_DELAY_MS = 1400", script)
         self.assertIn("autoPromptAllowed", script)
-        self.assertIn("isIOS && isMobile", script)
+        self.assertIn("isIOS ? AUTO_IOS_DELAY_MS : AUTO_FALLBACK_DELAY_MS", script)
         self.assertIn("TawtheeqPWA", script)
         self.assertIn("data-pwa-install-trigger", script)
         self.assertIn("closeMobileDrawer", script)
         self.assertNotIn('event.key !== "Tab"', script)
         self.assertNotIn('document.body.style.overflow = "hidden"', script)
         self.assertNotIn("}, 900);", script)
+
+    def test_installer_benefits_are_readable_useful_and_brand_driven(self):
+        template = self._source("reports/templates/reports/partials/pwa_install.html")
+        styles = self._source("static/css/pwa-install.css")
+
+        for benefit in ("وصول بنقرة", "بدون كتابة الرابط", "تجربة كتطبيق"):
+            self.assertIn(benefit, template)
+        self.assertIn('role="status"', template)
+        self.assertIn('aria-atomic="true"', template)
+        self.assertIn("--pwa-brand: var(--brand", styles)
+        self.assertIn("--pwa-accent: var(--accent", styles)
+        self.assertIn("font-size: .82rem", styles)
+        self.assertIn('.pwa-install__benefits span::before', styles)
 
     def test_automatic_prompt_is_scoped_to_authenticated_pages(self):
         template = self._source("reports/templates/reports/partials/pwa_install.html")
@@ -119,6 +135,10 @@ class PwaInstallExperienceTests(TestCase):
         self.assertEqual(manifest["dir"], "rtl")
         self.assertEqual(manifest["background_color"], "#F3F7F4")
         self.assertFalse(manifest["prefer_related_applications"])
+        self.assertEqual(
+            manifest["related_applications"],
+            [{"platform": "webapp", "url": "/static/manifest.json"}],
+        )
         self.assertNotEqual(manifest.get("orientation"), "portrait")
         self.assertEqual(
             {icon["sizes"] for icon in manifest["icons"]},

@@ -5,13 +5,11 @@
   window.__tawtheeqPwaInstallerLoaded = true;
 
   var SW_URL = "/sw.js?v=9";
-  var DISMISSED_UNTIL_KEY = "tawtheeq_pwa_install_dismissed_until_v2";
-  var LAST_AUTO_SHOWN_KEY = "tawtheeq_pwa_install_last_auto_shown_v1";
-  var DISMISS_DAYS = 90;
-  var AUTO_RESURFACE_DAYS = 7;
-  var AUTO_NATIVE_DELAY_MS = 15000;
-  var AUTO_IOS_DELAY_MS = 20000;
-  var AUTO_FALLBACK_DELAY_MS = 22000;
+  var INSTALLED_KEY = "tawtheeq_pwa_installed_v1";
+  var SESSION_DISMISSED_KEY = "tawtheeq_pwa_install_dismissed_session_v1";
+  var AUTO_NATIVE_DELAY_MS = 350;
+  var AUTO_IOS_DELAY_MS = 700;
+  var AUTO_FALLBACK_DELAY_MS = 1400;
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
@@ -29,6 +27,7 @@
   var closeButton = document.getElementById("pwaInstallClose");
   var laterButton = document.getElementById("pwaInstallLater");
   var description = document.getElementById("pwaInstallDescription");
+  var announcement = document.getElementById("pwaInstallAnnouncement");
   var steps = document.getElementById("pwaInstallSteps");
   var installTriggers = Array.prototype.slice.call(
     document.querySelectorAll("[data-pwa-install-trigger]")
@@ -42,56 +41,112 @@
   var isIOS = /iphone|ipad|ipod/i.test(userAgent) || isIPadOS;
   var isAndroid = /android/i.test(userAgent);
   var isSafari = isIOS && /safari/i.test(userAgent) && !/crios|fxios|edgios|opios/i.test(userAgent);
+  var userAgentReportsMobile = Boolean(
+    navigator.userAgentData && navigator.userAgentData.mobile
+  );
   var hasCoarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
   var hasMobileWidth = window.matchMedia && window.matchMedia("(max-width: 1024px)").matches;
-  var isMobile = isIOS || isAndroid || (hasCoarsePointer && hasMobileWidth);
+  var isMobile =
+    isIOS ||
+    isAndroid ||
+    userAgentReportsMobile ||
+    /mobile|phone|opera mini|iemobile/i.test(userAgent) ||
+    (hasCoarsePointer && hasMobileWidth);
   var isStandalone =
     (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
     (window.matchMedia && window.matchMedia("(display-mode: fullscreen)").matches) ||
     Boolean(window.navigator.standalone);
   var deferredPrompt = null;
-  var instructionsVisible = false;
+  var knownInstalled = isStandalone;
 
-  function getStoredNumber(key) {
+  function getLocalFlag(key) {
     try {
-      return Number(window.localStorage.getItem(key) || 0);
+      return window.localStorage.getItem(key) === "true";
     } catch (error) {
-      return 0;
+      return false;
     }
   }
 
-  function getDismissedUntil() {
-    return getStoredNumber(DISMISSED_UNTIL_KEY);
-  }
-
-  function isDismissed() {
-    return getDismissedUntil() > Date.now();
-  }
-
-  function wasAutoPromptShownRecently() {
-    var lastShown = getStoredNumber(LAST_AUTO_SHOWN_KEY);
-    return lastShown > 0 && lastShown + (AUTO_RESURFACE_DAYS * 24 * 60 * 60 * 1000) > Date.now();
-  }
-
-  function rememberAutoPromptShown() {
+  function setLocalFlag(key, value) {
     try {
-      window.localStorage.setItem(LAST_AUTO_SHOWN_KEY, String(Date.now()));
+      if (value) window.localStorage.setItem(key, "true");
+      else window.localStorage.removeItem(key);
     } catch (error) {}
   }
 
-  function rememberDismissal(days) {
+  function wasDismissedThisSession() {
     try {
-      window.localStorage.setItem(
-        DISMISSED_UNTIL_KEY,
-        String(Date.now() + (days * 24 * 60 * 60 * 1000))
-      );
+      return window.sessionStorage.getItem(SESSION_DISMISSED_KEY) === "true";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function rememberSessionDismissal() {
+    try {
+      window.sessionStorage.setItem(SESSION_DISMISSED_KEY, "true");
     } catch (error) {}
   }
 
-  if (!promptRoot || !installAction || !closeButton || !laterButton || !description || !steps) {
+  function clearSessionDismissal() {
+    try {
+      window.sessionStorage.removeItem(SESSION_DISMISSED_KEY);
+    } catch (error) {}
+  }
+
+  function markInstalled() {
+    knownInstalled = true;
+    setLocalFlag(INSTALLED_KEY, true);
+  }
+
+  function markNotInstalled() {
+    knownInstalled = false;
+    setLocalFlag(INSTALLED_KEY, false);
+  }
+
+  function isKnownInstalled() {
+    return isStandalone || knownInstalled;
+  }
+
+  knownInstalled = isStandalone || getLocalFlag(INSTALLED_KEY);
+  if (isStandalone) markInstalled();
+
+  // Visiting the login/public page starts a fresh login journey. If the user
+  // previously chose "Later", the reminder may appear again after this login.
+  if (!autoPromptAllowed) clearSessionDismissal();
+
+  if (!promptRoot || !installAction || !closeButton || !laterButton || !description || !announcement || !steps) {
     installTriggers.forEach(function (trigger) { trigger.hidden = true; });
-    window.TawtheeqPWA = { isStandalone: isStandalone, canInstall: false };
+    window.TawtheeqPWA = { isStandalone: isStandalone, isInstalled: isKnownInstalled(), canInstall: false };
     return;
+  }
+
+  function hideInstalledExperience() {
+    promptRoot.hidden = true;
+    promptRoot.setAttribute("aria-hidden", "true");
+    installTriggers.forEach(function (trigger) { trigger.hidden = true; });
+  }
+
+  function checkInstalledRelatedApps() {
+    if (isStandalone) return Promise.resolve(true);
+    if (typeof navigator.getInstalledRelatedApps !== "function") {
+      return Promise.resolve(knownInstalled);
+    }
+
+    return navigator.getInstalledRelatedApps().then(function (apps) {
+      if (apps && apps.length > 0) {
+        markInstalled();
+        hideInstalledExperience();
+        return true;
+      }
+
+      // On supported browsers an empty result is stronger evidence than an
+      // old local marker, and also recovers correctly after uninstalling.
+      markNotInstalled();
+      return false;
+    }).catch(function () {
+      return knownInstalled;
+    });
   }
 
   function closeMobileDrawer() {
@@ -112,7 +167,6 @@
   }
 
   function configureNativePrompt() {
-    instructionsVisible = false;
     steps.hidden = true;
     description.textContent = "ثبّت منصة توثيق للوصول السريع وفتحها بواجهة مستقلة من شاشتك الرئيسية.";
     installAction.textContent = "تثبيت الآن";
@@ -120,7 +174,6 @@
 
   function configureFallback() {
     deferredPrompt = null;
-    instructionsVisible = true;
     steps.hidden = false;
 
     if (isIOS && isSafari) {
@@ -157,25 +210,31 @@
   function showPrompt(options) {
     options = options || {};
     if (
-      isStandalone ||
+      isKnownInstalled() ||
       (!options.explicit && (
-        !autoPromptAllowed || !isMobile || isDismissed() || wasAutoPromptShownRecently()
+        !autoPromptAllowed || !isMobile || wasDismissedThisSession()
       ))
     ) return false;
     promptRoot.hidden = false;
     promptRoot.setAttribute("aria-hidden", "false");
-    if (!options.explicit) rememberAutoPromptShown();
+    announcement.textContent = "";
+    window.setTimeout(function () {
+      if (!promptRoot.hidden) {
+        announcement.textContent = "يتوفر تثبيت منصة توثيق على هذا الجوال. " + description.textContent;
+      }
+    }, 80);
     return true;
   }
 
-  function hidePrompt(days) {
+  function hidePrompt(dismissForSession) {
     promptRoot.hidden = true;
     promptRoot.setAttribute("aria-hidden", "true");
-    if (days) rememberDismissal(days);
+    announcement.textContent = "";
+    if (dismissForSession) rememberSessionDismissal();
   }
 
   function showInstallPrompt(explicit) {
-    if (isStandalone) return false;
+    if (isKnownInstalled()) return false;
     if (deferredPrompt) configureNativePrompt();
     else configureFallback();
     return showPrompt({ explicit: Boolean(explicit) });
@@ -183,12 +242,13 @@
 
   window.TawtheeqPWA = {
     isStandalone: isStandalone,
-    canInstall: !isStandalone && isMobile,
+    isInstalled: isKnownInstalled(),
+    canInstall: !isKnownInstalled() && isMobile,
     showInstallPrompt: function () { return showInstallPrompt(true); }
   };
 
   installTriggers.forEach(function (trigger) {
-    if (isStandalone) {
+    if (isKnownInstalled()) {
       trigger.hidden = true;
       return;
     }
@@ -201,6 +261,9 @@
   if (!isStandalone) {
     window.addEventListener("beforeinstallprompt", function (event) {
       event.preventDefault();
+      // A fresh install prompt means the browser currently considers this PWA
+      // installable, so discard any stale marker left by an earlier install.
+      markNotInstalled();
       deferredPrompt = event;
       configureNativePrompt();
       if (autoPromptAllowed) {
@@ -213,7 +276,7 @@
 
   installAction.addEventListener("click", function () {
     if (!deferredPrompt) {
-      hidePrompt(DISMISS_DAYS);
+      hidePrompt(true);
       return;
     }
 
@@ -222,9 +285,10 @@
     installEvent.prompt();
     installEvent.userChoice.then(function (choice) {
       if (choice && choice.outcome === "accepted") {
-        hidePrompt(365);
+        markInstalled();
+        hideInstalledExperience();
       } else {
-        hidePrompt(DISMISS_DAYS);
+        hidePrompt(true);
       }
     }).catch(function () {
       configureFallback();
@@ -232,40 +296,35 @@
     });
   });
 
-  closeButton.addEventListener("click", function () { hidePrompt(DISMISS_DAYS); });
-  laterButton.addEventListener("click", function () { hidePrompt(DISMISS_DAYS); });
+  closeButton.addEventListener("click", function () { hidePrompt(true); });
+  laterButton.addEventListener("click", function () { hidePrompt(true); });
 
   document.addEventListener("keydown", function (event) {
     if (promptRoot.hidden) return;
     if (event.key === "Escape") {
-      hidePrompt(DISMISS_DAYS);
+      hidePrompt(true);
     }
   });
 
   window.addEventListener("appinstalled", function () {
     deferredPrompt = null;
-    hidePrompt(365);
-    installTriggers.forEach(function (trigger) { trigger.hidden = true; });
+    markInstalled();
+    hideInstalledExperience();
   });
 
-  if (autoPromptAllowed && isIOS && isMobile && !isStandalone && !isDismissed()) {
-    window.setTimeout(function () {
-      if (promptRoot.hidden && document.visibilityState === "visible") {
-        configureFallback();
-        showPrompt();
-      }
-    }, AUTO_IOS_DELAY_MS);
-  }
+  checkInstalledRelatedApps().then(function (installed) {
+    window.TawtheeqPWA.isInstalled = installed;
+    window.TawtheeqPWA.canInstall = !installed && isMobile;
+    if (installed || !autoPromptAllowed || !isMobile || wasDismissedThisSession()) return;
 
-  // بعض متصفحات Android لا تطلق beforeinstallprompt رغم إمكانية الإضافة من
-  // القائمة. نعطي الحدث الأصلي الأولوية، ثم نعرض تعليمات يدوية إن لم يصل.
-  if (autoPromptAllowed && isMobile && !isIOS && !isStandalone && !isDismissed()) {
+    // iOS does not emit beforeinstallprompt, while some Android and alternative
+    // mobile browsers may not emit it either. Always retain a manual path.
     window.setTimeout(function () {
       if (promptRoot.hidden && document.visibilityState === "visible") {
         if (deferredPrompt) configureNativePrompt();
         else configureFallback();
         showPrompt();
       }
-    }, AUTO_FALLBACK_DELAY_MS);
-  }
+    }, isIOS ? AUTO_IOS_DELAY_MS : AUTO_FALLBACK_DELAY_MS);
+  });
 }());

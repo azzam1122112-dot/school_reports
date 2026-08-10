@@ -163,7 +163,11 @@
     if (configRequest) return configRequest;
     configRequest = window.fetch(configUrl, { credentials: "same-origin", cache: "no-store" })
       .then(function (response) {
-        if (!response.ok) throw new Error("config_failed");
+        if (!response.ok) {
+          var error = new Error("config_failed");
+          error.status = response.status;
+          throw error;
+        }
         return response.json();
       }).then(function (value) {
         config = value;
@@ -182,8 +186,12 @@
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
       body: JSON.stringify({ subscription: subscription.toJSON() })
     }).then(function (response) {
-      if (!response.ok) throw new Error("subscription_sync_failed");
-      return response.json();
+      if (response.ok) return response.json();
+      return response.json().catch(function () { return {}; }).then(function (payload) {
+        var error = new Error(payload.error || "subscription_sync_failed");
+        error.status = response.status;
+        throw error;
+      });
     });
   }
 
@@ -224,6 +232,10 @@
       rememberDismissal(180);
     } else if (error.message === "push_not_configured") {
       statusNode.textContent = "خدمة الإشعارات غير مهيأة حاليًا. تواصل مع إدارة المنصة.";
+    } else if (error.message === "config_failed") {
+      statusNode.textContent = "تعذر الوصول إلى خدمة ربط الإشعارات. أعد تحميل التطبيق ثم حاول مرة أخرى.";
+    } else if (error.message === "push_endpoint_not_allowed") {
+      statusNode.textContent = "مزود الإشعارات في هذا الجهاز غير مدعوم حاليًا. حدّث التطبيق ثم حاول مرة أخرى.";
     } else {
       statusNode.textContent = "تعذر ربط الجهاز الآن. تحقق من الاتصال ثم حاول مرة أخرى.";
     }

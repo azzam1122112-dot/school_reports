@@ -11,6 +11,12 @@
   "background_color": "#F3F7F4",
   "theme_color": "#006c35",
   "categories": ["education", "productivity"],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "/static/manifest.json"
+    }
+  ],
   "prefer_related_applications": false,
   "icons": [
     {

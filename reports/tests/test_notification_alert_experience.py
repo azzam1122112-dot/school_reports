@@ -76,4 +76,5 @@ class NotificationAlertExperienceTests(SimpleTestCase):
         pwa_script = (
             self.project_root / "static" / "js" / "pwa-install.js"
         ).read_text(encoding="utf-8")
-        self.assertIn("var DISMISS_DAYS = 90;", pwa_script)
+        self.assertIn("var SESSION_DISMISSED_KEY", pwa_script)
+        self.assertIn("rememberSessionDismissal", pwa_script)

@@ -44,6 +44,10 @@ class WebPushSubscriptionApiTests(TestCase):
         }
 
     def test_config_requires_login_and_returns_public_key(self):
+        # Avoid a literal /config/ path: Cloudflare managed WAF rules classify
+        # it as a sensitive-file probe and block the request at the edge.
+        self.assertEqual(reverse("reports:web_push_config"), "/push/status/")
+
         self.client.logout()
         response = self.client.get(reverse("reports:web_push_config"))
         self.assertEqual(response.status_code, 302)

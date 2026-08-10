@@ -381,7 +381,10 @@ urlpatterns = [
     # الإشعارات
     # =========================
     path("notifications/unread-count/", views.unread_notifications_count, name="unread_notifications_count"),
-    path("push/config/", views.web_push_config, name="web_push_config"),
+    # Cloudflare managed rules treat a public URL ending in /config/ as a
+    # sensitive-file probe and block it before the request reaches Django.
+    # Keep the route name stable for templates, but expose a WAF-safe path.
+    path("push/status/", views.web_push_config, name="web_push_config"),
     path("push/subscribe/", views.web_push_subscribe, name="web_push_subscribe"),
     path("push/unsubscribe/", views.web_push_unsubscribe, name="web_push_unsubscribe"),
     path("notifications/<int:pk>/", views.notification_detail, name="notification_detail"),
