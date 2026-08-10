@@ -12,6 +12,7 @@ from django.urls import reverse
 @override_settings(
     ALLOWED_HOSTS=["testserver"],
     SITE_URL="https://tawtheeq.example",
+    PWA_INSTALL_ENABLED=True,
 )
 class PwaInstallExperienceTests(TestCase):
     @staticmethod
@@ -44,6 +45,15 @@ class PwaInstallExperienceTests(TestCase):
             self.assertContains(response, 'rel="apple-touch-icon"')
             self.assertContains(response, 'rel="apple-touch-startup-image"', count=24)
             self.assertContains(response, "img/pwa/apple-touch-icon-180.png")
+
+    @override_settings(PWA_INSTALL_ENABLED=False)
+    def test_install_metadata_is_not_advertised_when_pwa_install_is_disabled(self):
+        response = self.client.get(reverse("reports:landing"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'rel="manifest"')
+        self.assertNotContains(response, 'id="pwaInstallPrompt"')
+        self.assertNotContains(response, "js/pwa-install.js")
 
     def test_all_interactive_standalone_templates_include_the_installer(self):
         templates = (
@@ -84,6 +94,8 @@ class PwaInstallExperienceTests(TestCase):
         self.assertIn("autoPromptAllowed", script)
         self.assertIn("isIOS && isMobile", script)
         self.assertIn("TawtheeqPWA", script)
+        self.assertIn("data-pwa-install-trigger", script)
+        self.assertIn("closeMobileDrawer", script)
         self.assertNotIn('event.key !== "Tab"', script)
         self.assertNotIn('document.body.style.overflow = "hidden"', script)
         self.assertNotIn("}, 900);", script)

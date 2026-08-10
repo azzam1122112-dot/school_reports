@@ -30,6 +30,9 @@
   var laterButton = document.getElementById("pwaInstallLater");
   var description = document.getElementById("pwaInstallDescription");
   var steps = document.getElementById("pwaInstallSteps");
+  var installTriggers = Array.prototype.slice.call(
+    document.querySelectorAll("[data-pwa-install-trigger]")
+  );
   var autoPromptAllowed = Boolean(
     promptRoot && promptRoot.getAttribute("data-auto-prompt") === "true"
   );
@@ -86,8 +89,17 @@
   }
 
   if (!promptRoot || !installAction || !closeButton || !laterButton || !description || !steps) {
+    installTriggers.forEach(function (trigger) { trigger.hidden = true; });
     window.TawtheeqPWA = { isStandalone: isStandalone, canInstall: false };
     return;
+  }
+
+  function closeMobileDrawer() {
+    var drawerClose = document.getElementById("drawerClose");
+    if (drawerClose && document.getElementById("mobileDrawer") &&
+        document.getElementById("mobileDrawer").classList.contains("open")) {
+      drawerClose.click();
+    }
   }
 
   function setSteps(items) {
@@ -175,6 +187,17 @@
     showInstallPrompt: function () { return showInstallPrompt(true); }
   };
 
+  installTriggers.forEach(function (trigger) {
+    if (isStandalone) {
+      trigger.hidden = true;
+      return;
+    }
+    trigger.addEventListener("click", function () {
+      closeMobileDrawer();
+      window.setTimeout(function () { showInstallPrompt(true); }, 120);
+    });
+  });
+
   if (!isStandalone) {
     window.addEventListener("beforeinstallprompt", function (event) {
       event.preventDefault();
@@ -222,6 +245,7 @@
   window.addEventListener("appinstalled", function () {
     deferredPrompt = null;
     hidePrompt(365);
+    installTriggers.forEach(function (trigger) { trigger.hidden = true; });
   });
 
   if (autoPromptAllowed && isIOS && isMobile && !isStandalone && !isDismissed()) {

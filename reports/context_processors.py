@@ -1360,7 +1360,13 @@ def seo(request: HttpRequest) -> Dict[str, Any]:
         and business["support_email"]
         and business["support_phone"]
     )
-    return {"SITE_URL": site_url, "BUSINESS": business}
+    return {
+        "SITE_URL": site_url,
+        "BUSINESS": business,
+        "PWA_INSTALL_ENABLED": bool(
+            getattr(settings, "PWA_INSTALL_ENABLED", False)
+        ),
+    }
 
 
 __all__.append("seo")

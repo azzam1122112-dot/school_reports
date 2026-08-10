@@ -174,6 +174,26 @@ class WebPushFrontendContractTests(TestCase):
         self.assertIn("DISMISS_DAYS = 30", script)
         self.assertIn("isStandalone()", script)
         self.assertIn("Notification.permission === \"granted\"", script)
+        self.assertIn("iosNeedsInstallation()", script)
+        self.assertIn('show({ explicit: true })', script)
+        self.assertNotIn('!isStandalone()) return', script)
+
+    def test_mobile_drawer_has_persistent_install_and_push_actions(self):
+        template = self._source("reports/templates/base.html")
+
+        self.assertIn("data-pwa-install-trigger", template)
+        self.assertIn("data-web-push-trigger", template)
+        self.assertIn("data-web-push-trigger-label", template)
+        self.assertIn("PWA_INSTALL_ENABLED", template)
+
+    def test_mobile_prompts_account_for_safe_areas_and_short_landscape_screens(self):
+        push_css = self._source("static/css/web-push.css")
+        install_css = self._source("static/css/pwa-install.css")
+
+        for source in (push_css, install_css):
+            self.assertIn("env(safe-area-inset-top, 0px)", source)
+            self.assertIn("env(safe-area-inset-bottom, 0px)", source)
+            self.assertIn("@media (max-height: 520px)", source)
 
     def test_authenticated_base_page_exposes_the_opt_in_panel(self):
         user = Teacher.objects.create_user(phone="0500000031", name="مثبت", password="pass-12345")

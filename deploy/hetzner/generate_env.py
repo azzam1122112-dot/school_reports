@@ -32,6 +32,7 @@ DEBUG=False
 SECRET_KEY={secret_key}
 SITE_URL=https://tawtheeq-ksa.com
 CANONICAL_HOST_REDIRECT=True
+PWA_INSTALL_ENABLED=True
 ALLOWED_HOSTS=app.tawtheeq-ksa.com,tawtheeq-ksa.com,www.tawtheeq-ksa.com
 CSRF_TRUSTED_ORIGINS=https://app.tawtheeq-ksa.com,https://tawtheeq-ksa.com,https://www.tawtheeq-ksa.com
 WEBAUTHN_RP_ID=tawtheeq-ksa.com

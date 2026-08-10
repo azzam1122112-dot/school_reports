@@ -6,13 +6,34 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from config.settings import _media_querystring_auth_enabled
+from config.settings import _media_querystring_auth_enabled, _validated_site_url
 from core.client_ip import client_ip_for_ratelimit
 from core.views import healthz, ops_metrics
+
+
+class SiteUrlValidationTests(SimpleTestCase):
+    def test_production_rejects_localhost_as_canonical_origin(self):
+        for value in (
+            "http://localhost:8000",
+            "https://127.0.0.1",
+            "https://preview.localhost",
+        ):
+            with self.subTest(value=value):
+                with self.assertRaises(ImproperlyConfigured):
+                    _validated_site_url(value, environment="production")
+
+    def test_production_accepts_public_https_origin(self):
+        self.assertEqual(
+            _validated_site_url(
+                "https://tawtheeq-ksa.com/", environment="production"
+            ),
+            "https://tawtheeq-ksa.com",
+        )
 
 
 class HealthzTests(TestCase):
