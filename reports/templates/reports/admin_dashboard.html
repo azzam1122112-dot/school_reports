@@ -890,8 +890,196 @@
   }
   .manager-activity small { color: var(--mg-muted); font-size: .74rem; font-weight: 700; }
 
+  /* ── مركز القرار 2026 ─────────────────────────────────────────────
+     المدرسة أولاً، ثم ما يحتاج قراراً، ثم الأدوات. تفاصيل الموارد تبقى
+     قريبة من المدير من دون أن تتصدر يومه الإداري. */
+  .manager-page { position: relative; isolation: isolate; }
+  .manager-page::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -40px -8vw auto;
+    height: 520px;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--id-accent) 10%, transparent), transparent 36%),
+      radial-gradient(circle at 14% 4%, color-mix(in srgb, var(--id-gold) 12%, transparent), transparent 31%);
+  }
+  .manager-hero { min-height: 370px; margin-bottom: 16px; }
+  .manager-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: .16;
+    background-image:
+      linear-gradient(115deg, transparent 0 42%, rgba(255, 255, 255, .12) 42.2% 42.8%, transparent 43% 100%),
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, .18) 1px, transparent 0);
+    background-size: auto, 28px 28px;
+    mask-image: linear-gradient(90deg, #000, transparent 72%);
+  }
+  .manager-hero > * { position: relative; z-index: 1; }
+  .manager-hero__welcome { margin: 20px 0 0; color: var(--id-gold-300); font-size: .9rem; font-weight: 900; }
+  .manager-hero__summary {
+    align-self: stretch;
+    justify-items: stretch;
+    align-content: space-between;
+    text-align: start;
+    min-height: 280px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, .11), rgba(2, 28, 17, .36)), rgba(3, 32, 20, .28);
+  }
+  .manager-hero__summary-head { display: flex; align-items: center; gap: 12px; }
+  .manager-hero__summary-head > span:last-child { display: grid; gap: 3px; }
+  .manager-hero__summary-head small { color: var(--id-hero-ink-soft); font-size: .75rem; font-weight: 700; }
+  .manager-hero__summary-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(212, 177, 109, .5);
+    border-radius: 14px;
+    color: var(--id-green-950);
+    background: linear-gradient(135deg, var(--id-gold-300), var(--id-gold-500));
+    box-shadow: 0 12px 24px -14px rgba(212, 177, 109, .85);
+  }
+  .manager-hero__attention { display: flex; align-items: baseline; gap: 12px; margin-block: 18px; }
+  .manager-hero__attention span { color: var(--id-hero-ink-soft); font-size: .83rem; font-weight: 800; }
+  .manager-hero__pulse { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .manager-hero__pulse a {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding: 11px 10px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: var(--id-r2);
+    color: var(--id-hero-ink);
+    background: rgba(255, 255, 255, .07);
+    text-decoration: none;
+    transition: transform var(--id-fast) var(--id-ease), background var(--id-fast) var(--id-ease);
+  }
+  .manager-hero__pulse a:hover { transform: translateY(-2px); background: rgba(255, 255, 255, .13); }
+  .manager-hero__pulse strong { color: var(--id-gold-300); font-size: 1.05rem; font-weight: 950; }
+  .manager-hero__pulse span { overflow: hidden; color: var(--id-hero-ink-soft); font-size: .68rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+
+  .manager-alert-stack { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 10px; margin-bottom: 14px; }
+  .manager-alert-stack .manager-subscription-alert { margin: 0; padding: 11px 14px; box-shadow: var(--id-e1); }
+  .manager-alert-stack .manager-subscription-alert > i { width: 36px; height: 36px; }
+  .manager-alert-stack .manager-subscription-alert a { padding: 8px 13px; }
+
+  .manager-jumpbar {
+    position: sticky;
+    z-index: 30;
+    top: 66px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    overflow-x: auto;
+    margin: 0 0 20px;
+    padding: 7px;
+    border: 1px solid color-mix(in srgb, var(--mg-line) 88%, transparent);
+    border-radius: var(--id-pill);
+    background: color-mix(in srgb, var(--mg-card) 88%, transparent);
+    box-shadow: var(--id-e2);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    scrollbar-width: none;
+  }
+  .manager-jumpbar::-webkit-scrollbar { display: none; }
+  .manager-jumpbar a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 8px 15px;
+    border-radius: var(--id-pill);
+    color: var(--mg-muted);
+    font-size: .78rem;
+    font-weight: 900;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--id-fast) var(--id-ease), background var(--id-fast) var(--id-ease), transform var(--id-fast) var(--id-ease);
+  }
+  .manager-jumpbar a:hover { color: var(--mg-green); background: var(--id-accent-wash); transform: translateY(-1px); }
+  .manager-jumpbar a.is-current { color: var(--id-accent-ink); background: var(--id-accent); box-shadow: var(--id-e1); }
+  #managerToday, #managerActions, #managerWorkspaces, #managerPerformance, #managerResources { scroll-margin-top: 132px; }
+
+  .manager-command-grid {
+    display: grid;
+    grid-template-columns: minmax(300px, .82fr) minmax(0, 1.18fr);
+    gap: 16px;
+    align-items: stretch;
+    margin-bottom: 26px;
+  }
+  .manager-command-grid > .manager-section { margin: 0; }
+  .manager-command-grid .manager-focus {
+    order: -1;
+    grid-template-columns: 1fr;
+    align-content: start;
+    min-height: 100%;
+    padding: clamp(20px, 2.3vw, 30px);
+    color: var(--id-hero-ink);
+    border-color: var(--id-gold-line);
+    background: radial-gradient(100% 120% at 100% 0, rgba(212, 177, 109, .18), transparent 48%), linear-gradient(145deg, var(--id-green-950), var(--id-green-800));
+    box-shadow: var(--id-e3);
+  }
+  .manager-command-grid .manager-focus__intro h2,
+  .manager-command-grid .manager-focus__intro p { color: inherit; }
+  .manager-command-grid .manager-focus__intro p { color: var(--id-hero-ink-soft); }
+  .manager-command-grid .manager-focus__items { align-content: start; }
+  .manager-command-grid .manager-focus__item,
+  .manager-command-grid .manager-focus__clear { border-color: rgba(255, 255, 255, .13); background: rgba(255, 255, 255, .08); }
+  .manager-command-grid .manager-focus__item:hover { background: rgba(255, 255, 255, .14); border-color: rgba(212, 177, 109, .42); }
+  .manager-command-grid .manager-focus__item small,
+  .manager-command-grid .manager-focus__clear small { color: var(--id-hero-ink-soft); }
+  .manager-command-grid .manager-focus__count { color: var(--id-green-950); background: linear-gradient(135deg, var(--id-gold-300), var(--id-gold-500)); }
+  .manager-command-grid > .manager-section:first-of-type { padding: clamp(18px, 2vw, 24px); border: 1px solid var(--mg-line); border-radius: var(--id-r4); background: var(--mg-card); box-shadow: var(--id-e2); }
+  .manager-command-grid .manager-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .manager-command-grid .manager-kpi { min-height: 154px; box-shadow: none; }
+
+  .manager-primary-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .manager-primary-action { min-height: 164px; padding: 20px; background: linear-gradient(145deg, color-mix(in srgb, var(--mg-card) 96%, var(--mg-green) 4%), var(--mg-card)); }
+  .manager-primary-action > i { width: 48px; height: 48px; font-size: 1.08rem; }
+  .manager-primary-action:nth-child(1) > i,
+  .manager-primary-action:nth-child(2) > i { color: var(--id-accent-ink); background: var(--id-accent); }
+  .manager-primary-action:nth-child(4) > i,
+  .manager-primary-action:nth-child(5) > i { color: var(--id-gold-700); background: var(--id-gold-100); }
+
+  .manager-workspaces { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .manager-workspace { padding: 22px; }
+  .manager-workspace__head { padding-bottom: 15px; border-bottom: 1px solid var(--mg-line); }
+  .manager-workspace__head > i { width: 46px; height: 46px; }
+  .manager-toggle__button.is-selected { display: none; }
+  .manager-toggle__buttons { grid-template-columns: 1fr; }
+  .manager-toggle__button:not(.is-selected)::before { content: "تغيير إلى "; font-size: .68rem; opacity: .72; }
+
+  .manager-resource-drawer { margin-bottom: 26px; border: 1px solid var(--mg-line); border-radius: var(--id-r4); background: var(--mg-card); box-shadow: var(--id-e2); overflow: clip; }
+  .manager-resource-drawer > summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 14px; align-items: center; min-height: 84px; padding: 16px 20px; cursor: pointer; list-style: none; }
+  .manager-resource-drawer > summary::-webkit-details-marker { display: none; }
+  .manager-resource-drawer > summary:hover { background: var(--mg-soft); }
+  .manager-resource-drawer__icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 15px; color: var(--mg-green); background: var(--id-accent-wash); }
+  .manager-resource-drawer__copy { display: grid; gap: 3px; }
+  .manager-resource-drawer__copy strong { font-size: .94rem; font-weight: 950; }
+  .manager-resource-drawer__copy small { color: var(--mg-muted); font-size: .77rem; font-weight: 700; }
+  .manager-resource-drawer__status { padding: 6px 10px; border-radius: var(--id-pill); color: var(--id-tone-approved); background: var(--id-tone-approved-wash); font-size: .72rem; font-weight: 900; }
+  .manager-resource-drawer__status.needs-attention { color: var(--mg-warning); background: var(--id-tone-attention-wash); }
+  .manager-resource-drawer__caret { color: var(--mg-muted); transition: transform var(--id-fast) var(--id-ease); }
+  .manager-resource-drawer[open] .manager-resource-drawer__caret { transform: rotate(180deg); }
+  .manager-resource-drawer__body { padding: 0 18px 18px; border-top: 1px solid var(--mg-line); }
+  .manager-resource-drawer__body .cons-panel { margin-block: 16px 0; }
+  .manager-resource-drawer__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .manager-resource-drawer__actions a { display: inline-flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid var(--mg-line); border-radius: var(--id-pill); color: var(--mg-ink); background: var(--mg-card); font-size: .76rem; font-weight: 900; text-decoration: none; }
+  .manager-resource-drawer__actions a:hover { color: var(--mg-green); border-color: var(--id-gold-line); }
+  .manager-analytics { background: radial-gradient(100% 120% at 100% -20%, color-mix(in srgb, var(--id-accent) 7%, transparent), transparent 55%), var(--mg-card); }
+
+  .manager-page.is-motion-ready [data-manager-reveal] { opacity: 0; transform: translateY(18px); transition: opacity .55s var(--id-ease), transform .55s var(--id-ease); }
+  .manager-page.is-motion-ready [data-manager-reveal].is-visible { opacity: 1; transform: none; }
+
   /* ── الشاشات الضيّقة ────────────────────────────────────────────── */
-  @media (max-width: 1080px) {
+  @media (max-width: 1100px) {
+    .manager-command-grid { grid-template-columns: 1fr; }
+    .manager-command-grid .manager-focus { order: 0; }
+    .manager-primary-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .manager-analytics__grid { grid-template-columns: 1fr; }
     .manager-setup { grid-template-columns: 1fr; }
   }
@@ -899,6 +1087,9 @@
   @media (max-width: 860px) {
     .manager-hero { grid-template-columns: 1fr; }
     .manager-hero__summary { justify-items: start; text-align: start; }
+    .manager-jumpbar { top: 58px; margin-inline: -4px; border-radius: var(--id-r3); }
+    .manager-command-grid .manager-kpis { grid-template-columns: 1fr 1fr; }
+    .manager-workspaces { grid-template-columns: 1fr; }
     .manager-section__head { flex-direction: column; align-items: stretch; }
     .manager-analytics__toolbar { flex-direction: column; align-items: stretch; }
     .manager-periods { display: grid; grid-template-columns: repeat(2, 1fr); border-radius: var(--id-r2); }
@@ -908,6 +1099,18 @@
   }
 
   @media (max-width: 560px) {
+    .manager-page { padding-inline: 10px; }
+    .manager-hero { min-height: 0; padding: 22px 18px; border-radius: var(--id-r4); }
+    .manager-hero h1 { font-size: clamp(1.65rem, 9vw, 2.15rem); }
+    .manager-hero__pulse { grid-template-columns: 1fr; }
+    .manager-hero__pulse a { grid-template-columns: auto 1fr; align-items: baseline; gap: 10px; }
+    .manager-hero__pulse span { white-space: normal; }
+    .manager-primary-actions { grid-template-columns: 1fr; }
+    .manager-primary-action { min-height: 138px; }
+    .manager-command-grid .manager-kpis { grid-template-columns: 1fr; }
+    .manager-resource-drawer > summary { grid-template-columns: auto minmax(0, 1fr) auto; padding: 14px; }
+    .manager-resource-drawer__status { display: none; }
+    .manager-resource-drawer__copy small { display: none; }
     .manager-hero__actions { display: grid; }
     .manager-hero__button { justify-content: center; }
     .manager-chart__canvas { height: 240px; }
@@ -920,6 +1123,7 @@
       scroll-behavior: auto !important;
       transition-duration: .01ms !important;
     }
+    .manager-page.is-motion-ready [data-manager-reveal] { opacity: 1; transform: none; }
   }
 
   /* الورق: بلا تدرّجات ولا ظلال، والنص الذهبي يعود حبراً أسود. */
@@ -938,6 +1142,7 @@
       color: #000;
     }
     .manager-hero__actions,
+    .manager-jumpbar,
     .manager-periods,
     .manager-refresh,
     .manager-toggle__buttons { display: none; }
@@ -952,56 +1157,19 @@
 
 {% block content %}
 <main class="manager-page id-root" id="managerDashboard">
-  {% if subscription_warning %}
-    <div class="manager-subscription-alert {% if subscription_warning == 'critical' %}is-critical{% elif subscription_warning == 'expired' %}is-expired{% endif %}" role="status">
-      <i class="fa-solid {% if subscription_warning == 'expired' %}fa-circle-xmark{% else %}fa-triangle-exclamation{% endif %}" aria-hidden="true"></i>
-      <div class="manager-subscription-alert__content">
-        {% if subscription_warning == "expired" %}
-          <strong>اشتراك المدرسة غير نشط</strong>
-          <span>يمكنك مراجعة الاشتراك وتجديده لاستعادة جميع مزايا المدرسة.</span>
-        {% elif subscription_warning == "critical" %}
-          <strong>متبقي {{ days_remaining }} أيام على انتهاء الاشتراك</strong>
-          <span>جدّد مبكرًا حتى يستمر عمل الفريق دون انقطاع.</span>
-        {% else %}
-          <strong>موعد التجديد يقترب</strong>
-          <span>متبقي {{ days_remaining }} يومًا على انتهاء اشتراك المدرسة.</span>
-        {% endif %}
-      </div>
-      <a href="{% url 'reports:my_subscription' %}">إدارة الاشتراك</a>
-    </div>
-  {% endif %}
-
-  {% if storage_pressure.needs_attention %}
-    <div class="manager-subscription-alert {% if storage_pressure.warning_level == 'full' %}is-expired{% elif storage_pressure.warning_level == 'critical' %}is-critical{% endif %}" role="status">
-      <i class="fa-solid {% if storage_pressure.warning_level == 'full' %}fa-circle-xmark{% else %}fa-hard-drive{% endif %}" aria-hidden="true"></i>
-      <div class="manager-subscription-alert__content">
-        {% if storage_pressure.warning_level == "full" %}
-          <strong>امتلأت مساحة عمل المدرسة</strong>
-          <span>لا يستطيع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمون" }} رفع الصور والمرفقات الآن. حرّر مساحة أو زِد السعة لاستئناف العمل.</span>
-        {% elif storage_pressure.warning_level == "critical" %}
-          <strong>مساحة العمل شارفت على الامتلاء ({{ storage_pressure.usage_percent }}%)</strong>
-          <span>المتبقي {{ storage_pressure.remaining_label }} فقط. عند الامتلاء يتوقف رفع الملفات في المدرسة كاملة.</span>
-        {% else %}
-          <strong>مساحة العمل بلغت {{ storage_pressure.usage_percent }}%</strong>
-          <span>المستخدم {{ storage_pressure.used_label }} من {{ storage_pressure.limit_label }}. راجعها قبل أن تتوقف عمليات الرفع.</span>
-        {% endif %}
-      </div>
-      <a href="{% url 'reports:school_archive' %}">مراجعة المساحة</a>
-    </div>
-  {% endif %}
-
   {% if active_school %}
-    {% include "reports/partials/consumption_panel.html" %}
-
     <section class="manager-hero" aria-labelledby="managerDashboardTitle">
       <div>
         <div class="manager-eyebrow">
           <i class="fa-solid fa-compass" aria-hidden="true"></i>
           مركز إدارة المدرسة
+          <span aria-hidden="true">•</span>
+          <span id="managerTodayLabel">اليوم</span>
         </div>
+        <p class="manager-hero__welcome">مرحبًا {{ request.user.name|default:SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</p>
         <h1 id="managerDashboardTitle">{{ active_school.name }}</h1>
         <p class="manager-hero__intro">
-          نظرة واحدة على ما يحتاج متابعتك اليوم، ثم وصول مباشر إلى مهام الفريق والتقارير والتواصل.
+          القرارات التي تنتظرك، أعمال الفريق، ومؤشرات المدرسة في مساحة واحدة مرتبة حسب الأولوية.
         </p>
         <div class="manager-school-meta" aria-label="معلومات المدرسة">
           <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ active_school.current_academic_year|default:"السنة الحالية" }}</span>
@@ -1030,17 +1198,28 @@
         </div>
       </div>
       <div class="manager-hero__summary" aria-label="ملخص المتابعة">
-        <span class="manager-hero__summary-label">عناصر تحتاج متابعة</span>
-        <strong class="manager-hero__summary-value" id="managerAttentionTotal">
-          {{ attention_total|intcomma }}
-        </strong>
-        <small>
-          {% if attention_total %}
-            مفصّلة أدناه في «متابعة اليوم»، ولكل عنصر رابط مباشر.
-          {% else %}
-            لا شيء ينتظر إجراءك الآن؛ مساحتك مرتبة.
-          {% endif %}
-        </small>
+        <div class="manager-hero__summary-head">
+          <span class="manager-hero__summary-icon"><i class="fa-solid fa-bolt" aria-hidden="true"></i></span>
+          <span>
+            <span class="manager-hero__summary-label">مركز القرار اليومي</span>
+            <small>{% if attention_total %}ابدأ بما ينتظر قرارك الآن{% else %}لا توجد أعمال معلّقة{% endif %}</small>
+          </span>
+        </div>
+        <div class="manager-hero__attention">
+          <strong class="manager-hero__summary-value" id="managerAttentionTotal">{{ attention_total|intcomma }}</strong>
+          <span>عنصر يحتاج متابعة</span>
+        </div>
+        <div class="manager-hero__pulse" aria-label="مؤشرات سريعة">
+          <a href="{% url 'reports:manager_school_tickets' %}?status=attention">
+            <strong id="heroTicketsOpen">{{ tickets_open|intcomma }}</strong><span>طلبات</span>
+          </a>
+          <a href="{% url 'reports:achievement_school_files' %}?status=submitted">
+            <strong>{{ pending_achievement_files|intcomma }}</strong><span>ملفات اعتماد</span>
+          </a>
+          <a href="{% url 'reports:admin_reports' %}">
+            <strong id="heroReportsCount">{{ reports_count|intcomma }}</strong><span>تقارير {{ selected_period_label }}</span>
+          </a>
+        </div>
       </div>
     </section>
   {% else %}
@@ -1054,7 +1233,58 @@
     </section>
   {% endif %}
 
+  {% if subscription_warning or storage_pressure.needs_attention %}
+    <div class="manager-alert-stack" aria-label="تنبيهات المدرسة">
+      {% if subscription_warning %}
+        <div class="manager-subscription-alert {% if subscription_warning == 'critical' %}is-critical{% elif subscription_warning == 'expired' %}is-expired{% endif %}" role="status">
+          <i class="fa-solid {% if subscription_warning == 'expired' %}fa-circle-xmark{% else %}fa-triangle-exclamation{% endif %}" aria-hidden="true"></i>
+          <div class="manager-subscription-alert__content">
+            {% if subscription_warning == "expired" %}
+              <strong>اشتراك المدرسة غير نشط</strong>
+              <span>راجع الاشتراك وجدّده لاستعادة جميع مزايا المدرسة.</span>
+            {% elif subscription_warning == "critical" %}
+              <strong>متبقي {{ days_remaining }} أيام على انتهاء الاشتراك</strong>
+              <span>التجديد المبكر يحفظ استمرارية عمل الفريق.</span>
+            {% else %}
+              <strong>موعد التجديد يقترب</strong>
+              <span>متبقي {{ days_remaining }} يومًا على انتهاء اشتراك المدرسة.</span>
+            {% endif %}
+          </div>
+          <a href="{% url 'reports:my_subscription' %}">إدارة الاشتراك</a>
+        </div>
+      {% endif %}
+
+      {% if storage_pressure.needs_attention %}
+        <div class="manager-subscription-alert {% if storage_pressure.warning_level == 'full' %}is-expired{% elif storage_pressure.warning_level == 'critical' %}is-critical{% endif %}" role="status">
+          <i class="fa-solid {% if storage_pressure.warning_level == 'full' %}fa-circle-xmark{% else %}fa-hard-drive{% endif %}" aria-hidden="true"></i>
+          <div class="manager-subscription-alert__content">
+            {% if storage_pressure.warning_level == "full" %}
+              <strong>امتلأت مساحة عمل المدرسة</strong>
+              <span>توقّف رفع الصور والمرفقات. حرّر مساحة أو زِد السعة لاستئناف العمل.</span>
+            {% elif storage_pressure.warning_level == "critical" %}
+              <strong>مساحة العمل شارفت على الامتلاء ({{ storage_pressure.usage_percent }}%)</strong>
+              <span>المتبقي {{ storage_pressure.remaining_label }} فقط.</span>
+            {% else %}
+              <strong>مساحة العمل بلغت {{ storage_pressure.usage_percent }}%</strong>
+              <span>المستخدم {{ storage_pressure.used_label }} من {{ storage_pressure.limit_label }}.</span>
+            {% endif %}
+          </div>
+          <a href="#managerResources">مراجعة المساحة</a>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
   {% if active_school %}
+    <nav class="manager-jumpbar" aria-label="التنقل داخل لوحة المدرسة">
+      <a href="#managerToday" data-manager-jump="managerToday" class="is-current"><i class="fa-solid fa-bolt" aria-hidden="true"></i> متابعة اليوم</a>
+      <a href="#managerActions" data-manager-jump="managerActions"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> ابدأ مهمة</a>
+      <a href="#managerWorkspaces" data-manager-jump="managerWorkspaces"><i class="fa-solid fa-table-cells-large" aria-hidden="true"></i> مساحات العمل</a>
+      <a href="#managerPerformance" data-manager-jump="managerPerformance"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> الأداء</a>
+      <a href="#managerResources" data-manager-jump="managerResources"><i class="fa-solid fa-server" aria-hidden="true"></i> الموارد</a>
+    </nav>
+
+    <div class="manager-command-grid" id="managerToday">
     <section class="manager-section" aria-labelledby="overviewTitle">
       <div class="manager-section__head">
         <div>
@@ -1097,7 +1327,7 @@
             <i class="fa-solid fa-arrow-left manager-kpi__arrow" aria-hidden="true"></i>
           </span>
           <strong class="manager-kpi__value" id="schoolTeachersCount">{{ teachers_count|intcomma }}</strong>
-          <span class="manager-kpi__label">حسابات الكادر التعليمي النشطة <em class="manager-kpi__scope">(كل الفترات)</em></span>
+          <span class="manager-kpi__label">حسابات فريق المدرسة النشطة <em class="manager-kpi__scope">(كل الفترات)</em></span>
         </a>
       </div>
     </section>
@@ -1126,6 +1356,7 @@
         {% endif %}
       </div>
     </section>
+    </div>
 
     {% if setup_percent < 100 %}
     <section class="manager-section manager-setup" aria-labelledby="setupTitle">
@@ -1156,7 +1387,7 @@
     </section>
     {% endif %}
 
-    <section class="manager-section" aria-labelledby="quickActionsTitle">
+    <section class="manager-section" id="managerActions" aria-labelledby="quickActionsTitle">
       <div class="manager-section__head">
         <div>
           <h2 id="quickActionsTitle">ابدأ مهمة</h2>
@@ -1197,7 +1428,7 @@
       </div>
     </section>
 
-    <section class="manager-section" aria-labelledby="workspacesTitle">
+    <section class="manager-section" id="managerWorkspaces" aria-labelledby="workspacesTitle">
       <div class="manager-section__head">
         <div>
           <h2 id="workspacesTitle">مساحات العمل</h2>
@@ -1254,7 +1485,7 @@
           <div class="manager-workspace__links">
             <a class="manager-workspace__link" href="{% url 'reports:notifications_sent' %}"><span>سجل الإشعارات</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:circulars_sent' %}"><span>سجل التعاميم</span><i class="fa-solid fa-arrow-left"></i></a>
-            <a class="manager-workspace__link" href="{% url 'reports:assigned_to_me' %}"><span>المهام المعيّنة لي</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:assigned_to_me' %}"><span>الطلبات المسندة إليّ</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:request_create' %}"><span>إنشاء طلب داخلي</span><i class="fa-solid fa-arrow-left"></i></a>
           </div>
         </article>
@@ -1295,7 +1526,28 @@
       </div>
     </section>
 
-    <section class="manager-section manager-analytics" aria-labelledby="analyticsTitle">
+    <details class="manager-resource-drawer" id="managerResources" {% if storage_pressure.needs_attention %}open{% endif %}>
+      <summary>
+        <span class="manager-resource-drawer__icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+        <span class="manager-resource-drawer__copy">
+          <strong>موارد المدرسة والاستهلاك</strong>
+          <small>المساحة والمقاعد والأرشفة — افتحها عند الحاجة دون أن تزاحم عملك اليومي.</small>
+        </span>
+        <span class="manager-resource-drawer__status {% if storage_pressure.needs_attention %}needs-attention{% endif %}">
+          {% if storage_pressure.needs_attention %}تحتاج مراجعة{% else %}ضمن الحدود{% endif %}
+        </span>
+        <i class="fa-solid fa-chevron-down manager-resource-drawer__caret" aria-hidden="true"></i>
+      </summary>
+      <div class="manager-resource-drawer__body">
+        {% include "reports/partials/consumption_panel.html" %}
+        <div class="manager-resource-drawer__actions">
+          <a href="{% url 'reports:my_subscription' %}"><i class="fa-solid fa-credit-card" aria-hidden="true"></i> إدارة الاشتراك والخدمات</a>
+          <a href="{% url 'reports:school_archive' %}"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> فتح أرشيف السنوات</a>
+        </div>
+      </div>
+    </details>
+
+    <section class="manager-section manager-analytics" id="managerPerformance" aria-labelledby="analyticsTitle">
       <div class="manager-analytics__toolbar">
         <div>
           <div class="manager-section__head" style="margin:0">
@@ -1510,8 +1762,10 @@
     function applyPayload(nextPayload) {
       const kpis = nextPayload.kpis || {};
       setText("schoolReportsCount", formatNumber(kpis.reports_count));
+      setText("heroReportsCount", formatNumber(kpis.reports_count));
       setText("schoolTeachersCount", formatNumber(kpis.teachers_count));
       setText("schoolTicketsOpen", formatNumber(kpis.tickets_open));
+      setText("heroTicketsOpen", formatNumber(kpis.tickets_open));
       setText("schoolTicketsDone", formatNumber(kpis.tickets_done));
       setText("schoolTicketsTotal", formatNumber(kpis.tickets_total));
       setText("managerPeriodLabel", nextPayload.period_label || "الكل");
@@ -1597,8 +1851,68 @@
       });
     }
 
+    function initialiseManagerExperience() {
+      const todayLabel = document.getElementById("managerTodayLabel");
+      if (todayLabel) {
+        try {
+          todayLabel.textContent = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", {
+            weekday: "long",
+            day: "numeric",
+            month: "long"
+          }).format(new Date());
+        } catch (error) {
+          todayLabel.textContent = "اليوم";
+        }
+      }
+
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const revealItems = root.querySelectorAll(
+        ".manager-alert-stack, .manager-command-grid, .manager-setup, #managerActions, #managerWorkspaces, #managerResources, #managerPerformance"
+      );
+      revealItems.forEach(function (item) { item.setAttribute("data-manager-reveal", ""); });
+
+      if (!reducedMotion && "IntersectionObserver" in window) {
+        root.classList.add("is-motion-ready");
+        const revealObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add("is-visible");
+            revealObserver.unobserve(entry.target);
+          });
+        }, {threshold: .08, rootMargin: "0px 0px -7% 0px"});
+        revealItems.forEach(function (item) { revealObserver.observe(item); });
+      } else {
+        revealItems.forEach(function (item) { item.classList.add("is-visible"); });
+      }
+
+      const jumpLinks = root.querySelectorAll("[data-manager-jump]");
+      jumpLinks.forEach(function (link) {
+        link.addEventListener("click", function () {
+          const section = document.getElementById(link.dataset.managerJump || "");
+          if (section && section.tagName === "DETAILS") section.open = true;
+        });
+      });
+
+      if ("IntersectionObserver" in window) {
+        const jumpObserver = new IntersectionObserver(function (entries) {
+          const visible = entries
+            .filter(function (entry) { return entry.isIntersecting; })
+            .sort(function (a, b) { return b.intersectionRatio - a.intersectionRatio; })[0];
+          if (!visible) return;
+          jumpLinks.forEach(function (link) {
+            link.classList.toggle("is-current", link.dataset.managerJump === visible.target.id);
+          });
+        }, {rootMargin: "-24% 0px -62% 0px", threshold: [0, .1, .35]});
+        ["managerToday", "managerActions", "managerWorkspaces", "managerPerformance", "managerResources"].forEach(function (id) {
+          const section = document.getElementById(id);
+          if (section) jumpObserver.observe(section);
+        });
+      }
+    }
+
     applyPayload(payload);
     markPeriod(currentPeriod);
+    initialiseManagerExperience();
   }());
 </script>
 {% endif %}

@@ -529,6 +529,36 @@ class Command(BaseCommand):
                 "Rescued payments and capacity warnings reach nobody in real time.",
             )
 
+    def _check_web_push(self):
+        section = "PWA Web Push"
+        enabled = bool(getattr(settings, "WEB_PUSH_ENABLED", False))
+        private_key = str(getattr(settings, "WEB_PUSH_VAPID_PRIVATE_KEY", "") or "").strip()
+        public_key = str(getattr(settings, "WEB_PUSH_VAPID_PUBLIC_KEY", "") or "").strip()
+        subject = str(getattr(settings, "WEB_PUSH_SUBJECT", "") or "").strip()
+        if not enabled:
+            self._record(
+                section,
+                Check.FAIL,
+                "Web Push is disabled",
+                "Installed devices will only receive updates while the app is open.",
+            )
+            return
+        if not private_key or not public_key:
+            self._record(section, Check.FAIL, "VAPID key pair is incomplete")
+        else:
+            self._record(section, Check.OK, "VAPID key pair is configured")
+        if subject.startswith(("mailto:", "https://")):
+            self._record(section, Check.OK, f"VAPID subject = {subject}")
+        else:
+            self._record(section, Check.FAIL, "VAPID subject must be mailto: or https:")
+
+        try:
+            subscription_model = apps.get_model("reports", "WebPushSubscription")
+            subscription_model.objects.exists()
+            self._record(section, Check.OK, "Web Push subscription table is ready")
+        except Exception as exc:
+            self._record(section, Check.FAIL, "Web Push migration is not applied", str(exc)[:160])
+
     # ── entry point ─────────────────────────────────────────────────
     def handle(self, *args, **options):
         self.results: list[tuple[str, str, str, str]] = []
@@ -546,6 +576,7 @@ class Command(BaseCommand):
             self._check_pricing,
             self._check_business_identity,
             self._check_observability,
+            self._check_web_push,
         ):
             try:
                 check()

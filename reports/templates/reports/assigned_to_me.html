@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
+{% load hijri_tags %}
 
-{% block title %}المهام المعيّنة لي{% endblock %}
+{% block title %}الطلبات المسندة إليّ{% endblock %}
 
 {% block content %}
 <style>
@@ -539,8 +540,8 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
   <!-- 1. Hero Section -->
   <header class="page-hero">
     <div class="hero-content">
-      <h1>المهام المعيّنة لي</h1>
-      <p>إدارة ومتابعة جميع التذاكر المسندة إليك لاتخاذ الإجراءات اللازمة.</p>
+      <h1>الطلبات المسندة إليّ</h1>
+      <p>إدارة ومتابعة جميع الطلبات المسندة إليك واتخاذ الإجراء المناسب.</p>
     </div>
     <div class="hero-icon">
       <i class="fa-solid fa-user-check"></i>
@@ -586,15 +587,16 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
       
       <!-- Search -->
       <div class="lx-search">
-        <input type="search" name="q" class="lx-input" style="width:100%"
-               aria-label="البحث في المهام المعيّنة"
+        <label class="sr-only" for="assignedSearch">البحث في الطلبات المسندة</label>
+        <input id="assignedSearch" type="search" name="q" class="lx-input" style="width:100%"
                placeholder="بحث برقم الطلب أو العنوان..."
                value="{{ request.GET.q|default:'' }}">
       </div>
 
       <!-- Status Filter -->
       <div>
-        <select name="status" class="lx-select" aria-label="تصفية المهام حسب الحالة">
+        <label class="sr-only" for="assignedStatus">تصفية الطلبات حسب الحالة</label>
+        <select id="assignedStatus" name="status" class="lx-select">
           <option value="">-- كل الحالات --</option>
           <option value="open" {% if request.GET.status == "open" %}selected{% endif %}>جديدة</option>
           <option value="in_progress" {% if request.GET.status == "in_progress" %}selected{% endif %}>قيد المعالجة</option>
@@ -605,7 +607,8 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
 
       <!-- Order Filter -->
       <div>
-        <select name="order" class="lx-select" aria-label="ترتيب المهام">
+        <label class="sr-only" for="assignedOrder">ترتيب الطلبات</label>
+        <select id="assignedOrder" name="order" class="lx-select">
           <option value="-created_at" {% if request.GET.order == "-created_at" or not request.GET.order %}selected{% endif %}>الأحدث</option>
           <option value="created_at" {% if request.GET.order == "created_at" %}selected{% endif %}>الأقدم</option>
         </select>
@@ -626,12 +629,12 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
       <div class="view-toggles">
         {% with bq=request.GET.q|urlencode bs=request.GET.status bo=request.GET.order %}
           <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=list"
-             class="view-link {% if view_mode != 'table' %}active{% endif %}" title="قائمة">
-            <i class="fa-solid fa-list"></i>
+             class="view-link {% if view_mode != 'table' %}active{% endif %}" title="عرض القائمة" aria-label="عرض الطلبات في قائمة"{% if view_mode != 'table' %} aria-current="true"{% endif %}>
+            <i class="fa-solid fa-list" aria-hidden="true"></i>
           </a>
           <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=table"
-             class="view-link {% if view_mode == 'table' %}active{% endif %}" title="جدول">
-            <i class="fa-solid fa-table"></i>
+             class="view-link {% if view_mode == 'table' %}active{% endif %}" title="عرض الجدول" aria-label="عرض الطلبات في جدول"{% if view_mode == 'table' %} aria-current="true"{% endif %}>
+            <i class="fa-solid fa-table" aria-hidden="true"></i>
           </a>
         {% endwith %}
       </div>
@@ -669,7 +672,10 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
                 </div>
               </td>
               <td>{{ t.department|default:"—" }}</td>
-              <td>{{ t.created_at|date:"Y-m-d" }}</td>
+              <td>
+                <time datetime="{{ t.created_at|date:'c' }}">{{ t.created_at|hijri }} هـ</time><br>
+                <small style="color:var(--c-text-muted)">{{ t.created_at|date:"Y-m-d" }} م</small>
+              </td>
               <td>
                 <span class="status-pill 
                   {% if t.status == 'open' %}st-new
@@ -723,7 +729,7 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
                 {{ t.department|default:"—" }}
               </span>
               <span class="t-meta-item">
-                <i class="fa-regular fa-clock"></i> {{ t.created_at|date:"Y-m-d H:i" }}
+                <i class="fa-regular fa-clock"></i> {{ t.created_at|hijri }} هـ · {{ t.created_at|date:"Y-m-d H:i" }} م
               </span>
             </div>
           </div>

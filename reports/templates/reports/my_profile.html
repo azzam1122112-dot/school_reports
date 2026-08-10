@@ -928,6 +928,60 @@
   }
   [data-theme="dark"] .profile-scope .profile-school-item{ background:var(--id-surface) !important; border-color:var(--id-line) !important; }
 
+  .profile-school-copy{ display:flex; flex:1; min-width:0; flex-direction:column; gap:3px; }
+  .profile-school-role{ color:var(--prof-text-light); font-size:.8rem; font-weight:750; }
+
+  .deputy-profile-summary{
+    position:relative; overflow:hidden; margin-bottom:2rem; padding:24px;
+    border:1px solid rgba(185,151,91,.34); border-radius:22px;
+    background:
+      radial-gradient(circle at 4% 0%, rgba(212,177,109,.2), transparent 34%),
+      linear-gradient(135deg, #f7fbf8 0%, #fffdf8 100%);
+    box-shadow:0 22px 48px -36px rgba(5,70,38,.65);
+  }
+  .deputy-profile-summary::before{
+    content:""; position:absolute; inset:0 0 auto; height:4px;
+    background:linear-gradient(90deg,#0b6238,#d4b16d,#0b6238);
+  }
+  .deputy-profile-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:18px; margin-bottom:18px; }
+  .deputy-profile-title{ margin:0 0 7px; color:#074426; font-size:1.28rem; font-weight:950; }
+  .deputy-profile-title i{ color:#b38a40; margin-left:7px; }
+  .deputy-profile-text{ margin:0; color:#526159; line-height:1.8; font-weight:650; }
+  .deputy-profile-badges,.deputy-profile-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .deputy-profile-badge,.deputy-profile-chip{
+    display:inline-flex; align-items:center; gap:6px; padding:7px 11px; border-radius:999px;
+    border:1px solid rgba(11,98,56,.16); background:#fff; color:#07502d;
+    font-size:.8rem; font-weight:850;
+  }
+  .deputy-profile-body{ display:grid; grid-template-columns:minmax(210px,.75fr) minmax(0,1.25fr); gap:14px; }
+  .deputy-profile-panel{ padding:16px; border:1px solid rgba(11,98,56,.12); border-radius:16px; background:rgba(255,255,255,.72); }
+  .deputy-profile-panel strong{ display:block; color:#074426; margin-bottom:8px; font-weight:900; }
+  .deputy-profile-panel p{ margin:0; color:#59665f; line-height:1.75; }
+  .deputy-profile-warning{ border-color:rgba(180,83,9,.22); background:#fff8e8; }
+  .deputy-profile-warning strong{ color:#92400e; }
+  .deputy-profile-chip{ padding:6px 10px; background:#edf8f1; }
+  [data-theme="dark"] .deputy-profile-summary{ background:linear-gradient(135deg,#10251b,#171d19); }
+  [data-theme="dark"] .deputy-profile-title,[data-theme="dark"] .deputy-profile-panel strong{ color:#e6cf9a; }
+  [data-theme="dark"] .deputy-profile-text,[data-theme="dark"] .deputy-profile-panel p{ color:#c1cbc5; }
+  [data-theme="dark"] .deputy-profile-panel,[data-theme="dark"] .deputy-profile-badge,[data-theme="dark"] .deputy-profile-chip{ background:rgba(0,0,0,.2); color:#e8f4ec; border-color:rgba(230,207,154,.2); }
+  [data-theme="dark"] .deputy-profile-warning{ background:rgba(146,64,14,.2); border-color:rgba(251,191,36,.28); }
+  [data-theme="dark"] .deputy-profile-warning strong{ color:#f8d38a; }
+  .admin-profile-summary::before{ background:linear-gradient(90deg,#245c86,#d4b16d,#245c86); }
+  .admin-profile-summary .deputy-profile-title{ color:#194b70; }
+  .admin-profile-summary .deputy-profile-chip{ color:#194b70; background:#edf6fb; border-color:rgba(36,92,134,.18); }
+  .profile-role-notice{
+    margin-bottom:14px; padding:12px 14px; border-radius:14px;
+    color:#194b70; background:#edf6fb; border:1px solid rgba(36,92,134,.18);
+    line-height:1.75; font-weight:700;
+  }
+  [data-theme="dark"] .profile-role-notice{ color:#cde7f8; background:rgba(36,92,134,.22); border-color:rgba(125,188,230,.25); }
+
+  @media (max-width:768px){
+    .deputy-profile-head{ flex-direction:column; }
+    .deputy-profile-body{ grid-template-columns:1fr; }
+    .deputy-profile-summary{ padding:20px 16px; }
+  }
+
   /* أزرار الحفظ بلمسة ملكية */
   .profile-scope .profile-form button[type="submit"],
   .profile-scope .profile-btn-primary,
@@ -978,6 +1032,91 @@
       </section>
     {% endif %}
 
+    {% if is_deputy_workspace %}
+      <section class="deputy-profile-summary" aria-labelledby="deputyProfileTitle">
+        <div class="deputy-profile-head">
+          <div>
+            <h2 class="deputy-profile-title" id="deputyProfileTitle">
+              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+              اختصاصي وصلاحياتي
+            </h2>
+            <p class="deputy-profile-text">ملخص نطاقك الفعّال في {{ active_school.name|default:"المدرسة الحالية" }}.</p>
+          </div>
+          <div class="deputy-profile-badges" aria-label="تعريف دور الوكيل">
+            <span class="deputy-profile-badge">{{ USER_ROLE_LABEL|default:"وكيل المدرسة" }}</span>
+            {% if deputy_template_label %}<span class="deputy-profile-badge">{{ deputy_template_label }}</span>{% endif %}
+            {% if deputy_domain_label %}<span class="deputy-profile-badge">{{ deputy_domain_label }}</span>{% endif %}
+            {% if deputy_has_temporary_delegation %}<span class="deputy-profile-badge">تفويض مؤقت فعّال</span>{% endif %}
+          </div>
+        </div>
+        <div class="deputy-profile-body">
+          <div class="deputy-profile-panel{% if deputy_scope_missing %} deputy-profile-warning{% endif %}">
+            <strong><i class="fa-solid fa-sitemap" aria-hidden="true"></i> الأقسام ضمن نطاقي</strong>
+            <p>{% if deputy_scope_names %}{{ deputy_scope_names|join:"، " }}{% else %}لم تُسنَد أقسام لهذا الحساب بعد.{% endif %}</p>
+          </div>
+          <div class="deputy-profile-panel{% if deputy_needs_setup %} deputy-profile-warning{% endif %}">
+            <strong><i class="fa-solid fa-key" aria-hidden="true"></i> الصلاحيات الفعالة ({{ deputy_capability_count }})</strong>
+            {% if deputy_capability_labels %}
+              <div class="deputy-profile-chips">
+                {% for label in deputy_capability_labels %}<span class="deputy-profile-chip">{{ label }}</span>{% endfor %}
+              </div>
+            {% else %}
+              <p>لم تُفعّل صلاحيات إشرافية بعد. اطلب من مدير المدرسة تحديد مجال الوكالة، الأقسام، والصلاحيات المناسبة لمهامك.</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    {% endif %}
+
+    {% if is_admin_staff_workspace %}
+      <section class="deputy-profile-summary admin-profile-summary" aria-labelledby="adminStaffProfileTitle">
+        <div class="deputy-profile-head">
+          <div>
+            <h2 class="deputy-profile-title" id="adminStaffProfileTitle">
+              <i class="fa-solid fa-user-gear" aria-hidden="true"></i>
+              دوري الإداري وصلاحياتي
+            </h2>
+            <p class="deputy-profile-text">ملخص عملك الإداري الفعّال في {{ active_school.name|default:"المدرسة الحالية" }}.</p>
+          </div>
+          <div class="deputy-profile-badges" aria-label="تعريف دور الموظف الإداري">
+            <span class="deputy-profile-badge">{{ admin_staff_template_label }}</span>
+            {% if admin_staff_has_temporary_delegation %}<span class="deputy-profile-badge">تفويض مؤقت فعّال</span>{% endif %}
+            <span class="deputy-profile-badge">{{ admin_staff_capability_count }} صلاحية إضافية</span>
+          </div>
+        </div>
+        {% if has_multiple_active_school_roles %}
+          <div class="profile-role-notice">
+            <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+            يحمل حسابك أكثر من دور في هذه المدرسة: {{ active_school_role_labels|join:"، " }}. لذلك تُعرض أدوات كل دور في قسم واضح ومستقل.
+          </div>
+        {% endif %}
+        <div class="deputy-profile-body">
+          <div class="deputy-profile-panel{% if admin_staff_scope_missing %} deputy-profile-warning{% endif %}">
+            <strong><i class="fa-solid fa-sitemap" aria-hidden="true"></i> نطاق الأقسام</strong>
+            <p>
+              {% if admin_staff_scope_names %}
+                {{ admin_staff_scope_names|join:"، " }}
+              {% elif admin_staff_scope_missing %}
+                لم تُسنَد أقسام رغم وجود صلاحيات تعتمد على النطاق؛ راجع مدير المدرسة.
+              {% else %}
+                مهام التنفيذ الشخصية لا تحتاج نطاقاً إشرافياً.
+              {% endif %}
+            </p>
+          </div>
+          <div class="deputy-profile-panel">
+            <strong><i class="fa-solid fa-key" aria-hidden="true"></i> الصلاحيات الإضافية ({{ admin_staff_capability_count }})</strong>
+            {% if admin_staff_capability_labels %}
+              <div class="deputy-profile-chips">
+                {% for label in admin_staff_capability_labels %}<span class="deputy-profile-chip">{{ label }}</span>{% endfor %}
+              </div>
+            {% else %}
+              <p>القالب الأساسي فعّال: تنفيذ التكليفات وتوثيق العمل ورفع الوثائق والمبادرات للمراجعة، دون إشراف أو اعتماد نهائي.</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    {% endif %}
+
     <!-- Profile Grid -->
     <div class="profile-grid">
       
@@ -1014,7 +1153,10 @@
           <ul class="profile-schools-list">
             {% for m in memberships %}
               <li class="profile-school-item">
-                <span class="profile-school-name">{{ m.school.name }}</span>
+                <span class="profile-school-copy">
+                  <span class="profile-school-name">{{ m.school.name }}</span>
+                  <span class="profile-school-role">{{ m.get_role_type_display }}</span>
+                </span>
                 {% if active_school and m.school_id == active_school.id %}
                   <span class="profile-school-badge">
                     <i class="fa-solid fa-circle-check" aria-hidden="true"></i>

@@ -38,6 +38,7 @@ from reports.models import (
     SchoolSubscription,
     SubscriptionPlan,
     Teacher,
+    TeacherAchievementFile,
 )
 
 
@@ -127,6 +128,20 @@ class TeacherHomeInvolvementTests(TestCase):
         )
 
         self.assertEqual(self._home().context["open_targets_count"], 0)
+
+    def test_a_cancelled_assignment_leaves_the_open_count(self):
+        assignment = self._assignment("تكليف ملغى")
+        AssignmentTarget.objects.create(
+            assignment=assignment,
+            assignee=self.teacher,
+            school=self.school,
+        )
+        assignment.cancel(by=self.manager, reason="تغيّرت الأولويات")
+
+        response = self._home()
+
+        self.assertEqual(response.context["open_targets_count"], 0)
+        self.assertNotContains(response, "تكليف ملغى")
 
     def test_an_overdue_assignment_is_counted_as_needing_attention(self):
         AssignmentTarget.objects.create(
@@ -248,6 +263,36 @@ class TeacherHomeInvolvementTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "ما أنا طرفٌ فيه")
+
+    def test_a_returned_achievement_file_reaches_follow_today_with_its_note(self):
+        TeacherAchievementFile.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            academic_year="1447-1448",
+            status=TeacherAchievementFile.Status.RETURNED,
+            manager_notes="أكمل شواهد التطوير المهني",
+        )
+
+        response = self._home()
+
+        self.assertEqual(response.context["returned_achievement_count"], 1)
+        self.assertContains(response, "ملف الإنجاز معاد لاستكماله")
+        self.assertContains(response, "أكمل شواهد التطوير المهني")
+        self.assertNotContains(response, "كل شيء محدث")
+
+    def test_a_colleagues_returned_achievement_file_stays_off_the_dashboard(self):
+        TeacherAchievementFile.objects.create(
+            teacher=self.other,
+            school=self.school,
+            academic_year="1447-1448",
+            status=TeacherAchievementFile.Status.RETURNED,
+            manager_notes="ملاحظة لا تخص المعلم",
+        )
+
+        response = self._home()
+
+        self.assertEqual(response.context["returned_achievement_count"], 0)
+        self.assertNotContains(response, "ملاحظة لا تخص المعلم")
 
 
 class HomeReportApprovalTests(TestCase):

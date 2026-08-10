@@ -24,13 +24,13 @@
       {% endif %}
     </p>
     <div class="lab-hero__actions">
-      <a class="lab-act lab-act--solid" href="{% url 'reports:lab_assets' %}">
+      <a class="lab-act lab-act--solid" href="{% url 'reports:lab_assets' %}#new-asset">
         <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>
-        العهدة
+        إضافة صنف للعهدة
       </a>
-      <a class="lab-act" href="{% url 'reports:lab_experiments' %}">
+      <a class="lab-act" href="{% url 'reports:lab_experiments' %}#new-experiment">
         <i class="fa-solid fa-vials" aria-hidden="true"></i>
-        التجارب
+        توثيق تجربة جديدة
       </a>
       <a class="lab-act" href="{% url 'reports:lab_assets_print' %}">
         <i class="fa-solid fa-print" aria-hidden="true"></i>
@@ -87,7 +87,7 @@
 
     {% if attention_assets %}
       <div class="lab-table-wrap">
-        <table class="lab-table">
+        <table class="lab-table lab-table--cards">
           <thead>
             <tr>
               <th>الصنف</th><th>النوع</th><th>الكمية</th><th>الحالة</th><th>الموقع</th>
@@ -96,15 +96,15 @@
           <tbody>
             {% for asset in attention_assets %}
               <tr>
-                <td><a href="{% url 'reports:lab_asset_detail' asset.pk %}">{{ asset.name }}</a></td>
-                <td>{{ asset.get_category_display }}</td>
-                <td>{{ asset.quantity }} {{ asset.unit }}</td>
-                <td>
+                <td data-label="الصنف"><a href="{% url 'reports:lab_asset_detail' asset.pk %}">{{ asset.name }}</a></td>
+                <td data-label="النوع">{{ asset.get_category_display }}</td>
+                <td data-label="الكمية">{{ asset.quantity }} {{ asset.unit }}</td>
+                <td data-label="الحالة">
                   <span class="lab-chip {% if asset.condition == 'missing' or asset.condition == 'damaged' %}lab-chip--danger{% else %}lab-chip--warn{% endif %}">
                     {{ asset.get_condition_display }}
                   </span>
                 </td>
-                <td>{{ asset.location|default:"—" }}</td>
+                <td data-label="الموقع">{{ asset.location|default:"—" }}</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -112,6 +112,7 @@
       </div>
     {% else %}
       <div class="lab-empty">
+        <span class="lab-empty__icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
         <strong>لا صنف يحتاج انتباهاً.</strong>
         كل ما في الجرد سليم — وما يتغيّر يظهر هنا أولاً.
       </div>
@@ -126,14 +127,14 @@
 
     {% if outstanding %}
       <div class="lab-table-wrap">
-        <table class="lab-table">
+        <table class="lab-table lab-table--cards">
           <thead><tr><th>الصنف</th><th>عند</th><th>الكمية</th></tr></thead>
           <tbody>
             {% for row in outstanding %}
               <tr>
-                <td><a href="{% url 'reports:lab_asset_detail' row.asset_id %}">{{ row.asset_name }}</a></td>
-                <td>{{ row.person_name }}</td>
-                <td>{{ row.quantity }}</td>
+                <td data-label="الصنف"><a href="{% url 'reports:lab_asset_detail' row.asset_id %}">{{ row.asset_name }}</a></td>
+                <td data-label="عند">{{ row.person_name }}</td>
+                <td data-label="الكمية">{{ row.quantity }}</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -141,6 +142,7 @@
       </div>
     {% else %}
       <div class="lab-empty">
+        <span class="lab-empty__icon"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></span>
         <strong>لا شيء خارج المختبر.</strong>
         كل ما سُلِّم أُعيد.
       </div>
@@ -156,17 +158,17 @@
 
     {% if recent_experiments %}
       <div class="lab-table-wrap">
-        <table class="lab-table">
+        <table class="lab-table lab-table--cards">
           <thead>
             <tr><th>التجربة</th><th>التاريخ</th><th>الصف</th><th>الحالة</th></tr>
           </thead>
           <tbody>
             {% for experiment in recent_experiments %}
               <tr>
-                <td><a href="{% url 'reports:lab_experiment_detail' experiment.pk %}">{{ experiment.title }}</a></td>
-                <td dir="rtl">{{ experiment.experiment_date|hijri }}</td>
-                <td>{{ experiment.class_name|default:"—" }}</td>
-                <td><span class="lab-chip">{{ experiment.get_approval_state_display }}</span></td>
+                <td data-label="التجربة"><a href="{% url 'reports:lab_experiment_detail' experiment.pk %}">{{ experiment.title|default:"مسودة بلا عنوان" }}</a></td>
+                <td data-label="التاريخ" dir="rtl">{% if experiment.experiment_date %}{{ experiment.experiment_date|hijri }}{% else %}—{% endif %}</td>
+                <td data-label="الصف">{{ experiment.class_name|default:"—" }}</td>
+                <td data-label="الحالة"><span class="lab-chip">{{ experiment.get_approval_state_display }}</span></td>
               </tr>
             {% endfor %}
           </tbody>
@@ -174,9 +176,11 @@
       </div>
     {% else %}
       <div class="lab-empty">
+        <span class="lab-empty__icon"><i class="fa-solid fa-vials" aria-hidden="true"></i></span>
         <strong>لم تُوثَّق تجربة بعد.</strong>
         {% if can_record %}
-          ابدأ من <a class="lab-link" href="{% url 'reports:lab_experiments' %}">سجل التجارب</a>.
+          ابدأ بأول محضر، ويمكنك حفظه مسودة وإكماله لاحقاً.
+          <a class="lab-btn lab-btn--ghost" href="{% url 'reports:lab_experiments' %}#new-experiment">توثيق أول تجربة</a>
         {% endif %}
       </div>
     {% endif %}

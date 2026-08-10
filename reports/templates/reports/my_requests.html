@@ -1,6 +1,7 @@
 {# reports/templates/reports/my_requests.html (طلباتي) #}
 {% extends "base.html" %}
 {% load static %}
+{% load hijri_tags %}
 
 {% block title %}طلباتي{% endblock %}
 
@@ -902,7 +903,10 @@ html[data-theme="dark"] .req-scope .pager .current{
                             </div>
                         </td>
                         <td>{{ t.get_department_display|default:t.department|default:"—" }}</td>
-                        <td style="direction:ltr; text-align:right">{{ t.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <time datetime="{{ t.created_at|date:'c' }}">{{ t.created_at|hijri }} هـ</time><br>
+                            <small style="direction:ltr;display:inline-block;color:var(--c-muted)">{{ t.created_at|date:"Y-m-d H:i" }} م</small>
+                        </td>
                         <td>
                             {% if t.status == 'open' or t.status == 'new' %}
                                 <span class="badge open">جديدة</span>
@@ -953,7 +957,7 @@ html[data-theme="dark"] .req-scope .pager .current{
                 
                 <div class="lc-meta">
                     <span class="lc-pill"><i class="fa-solid fa-building-user"></i> {{ t.get_department_display|default:t.department|default:"—" }}</span>
-                    <span class="lc-pill"><i class="fa-regular fa-clock"></i> {{ t.created_at|date:"Y-m-d" }}</span>
+                    <span class="lc-pill"><i class="fa-regular fa-clock"></i> {{ t.created_at|hijri }} هـ · {{ t.created_at|date:"Y-m-d" }} م</span>
                 </div>
                 
                 {% if t.pub_notes %}

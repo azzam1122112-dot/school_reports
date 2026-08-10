@@ -640,6 +640,133 @@ class SupervisionLandingPanelTests(RoleJourneyTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.context["supervision_rows"], list)
 
+    def test_a_bare_deputy_gets_an_explicit_setup_state(self):
+        page = self._page(self.deputy, "reports:home")
+        self.assertIn("مركز قيادة الوكيل", page)
+        self.assertIn("لم تُفعّل مهامك الإشرافية بعد", page)
+        self.assertIn("0 صلاحية", page)
+        self.assertIn("أدواتي الشخصية", page)
+
+    def test_a_plain_teacher_never_gets_the_deputy_workspace(self):
+        page = self._page(self.teacher, "reports:home")
+        self.assertNotIn("مركز قيادة الوكيل", page)
+        self.assertNotIn("إدارة نطاقي", page)
+
+    def test_deputy_workspace_only_links_granted_capabilities(self):
+        self._grant(caps.VIEW_SCHOOL_DASHBOARD, caps.ASSIGN_TASKS)
+        page = self._page(self.deputy, "reports:home")
+        self.assertIn(reverse("reports:staff_dashboard"), page)
+        self.assertIn(reverse("reports:assignment_board"), page)
+        self.assertNotIn(reverse("reports:admin_reports"), page)
+        self.assertIn("مؤشرات نطاقي", page)
+        self.assertIn("إدارة التكليفات", page)
+
+    def test_deputy_profile_explains_role_domain_scope_and_capabilities(self):
+        scope = self._grant(caps.REVIEW_REPORTS)
+        scope.domain = StaffScope.Domain.ACADEMIC
+        scope.template_code = "deputy_academic"
+        scope.save()
+        page = self._page(self.deputy, "reports:my_profile")
+        self.assertIn("اختصاصي وصلاحياتي", page)
+        self.assertIn("الشؤون التعليمية", page)
+        self.assertIn(self.department.name, page)
+        self.assertIn(caps.BY_CODE[caps.REVIEW_REPORTS].label, page)
+        self.assertIn(self.deputy_membership.get_role_type_display(), page)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# مساحة الموظف الإداري: تنفيذٌ أولاً، وصلاحيات إضافية عند المنح
+# ═══════════════════════════════════════════════════════════════════════
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class AdministrativeStaffWorkspaceTests(RoleJourneyTestCase):
+    def setUp(self):
+        super().setUp()
+        self.admin_staff = _user("موظف الرحلات الإداري", "0500021010")
+        self.admin_membership = SchoolMembership.objects.create(
+            school=self.school,
+            teacher=self.admin_staff,
+            role_type=SchoolMembership.RoleType.ADMIN_STAFF,
+            job_title=SchoolMembership.JobTitle.ADMIN_STAFF,
+        )
+
+    def test_basic_employee_gets_execution_center_without_deputy_tools(self):
+        page = self._page(self.admin_staff, "reports:home")
+
+        self.assertIn("مركز عمل الموظف الإداري", page)
+        self.assertIn("القالب الأساسي فعّال", page)
+        self.assertIn(reverse("reports:assigned_to_me"), page)
+        self.assertIn(reverse("reports:my_assignments"), page)
+        self.assertIn(reverse("reports:document_archive"), page)
+        self.assertNotIn("مركز قيادة الوكيل", page)
+        self.assertNotIn(reverse("reports:assignment_board"), page)
+        self.assertNotIn(reverse("reports:achievement_my_files"), page)
+
+    def test_employee_navigation_keeps_assigned_requests_even_when_empty(self):
+        page = self._nav(self.admin_staff)
+        self.assertIn("الطلبات المسندة", page)
+        self.assertIn(reverse("reports:assigned_to_me"), page)
+
+    def test_document_template_exposes_only_its_granted_tools(self):
+        scope = self._grant(
+            caps.DRAFT_CIRCULARS,
+            caps.ARCHIVE_DOCUMENTS,
+            caps.MANAGE_MEETINGS,
+            member=self.admin_membership,
+        )
+        scope.template_code = "admin_staff_documents"
+        scope.save()
+
+        page = self._page(self.admin_staff, "reports:home")
+        self.assertIn("موظف إداري — الوثائق والتعاميم", page)
+        self.assertIn(reverse("reports:circular_draft_list"), page)
+        self.assertIn("تنظيم الاجتماعات وكتابة المحاضر", page)
+        self.assertNotIn(reverse("reports:assignment_board"), page)
+        self.assertNotIn(reverse("reports:plan_create"), page)
+
+    def test_employee_scope_gap_is_explained_when_a_capability_needs_it(self):
+        self._grant(
+            caps.VIEW_SCHOOL_DASHBOARD,
+            member=self.admin_membership,
+            departments=[],
+        )
+        page = self._page(self.admin_staff, "reports:home")
+        self.assertIn("الصلاحيات فعّالة لكن نطاق الأقسام غير مكتمل", page)
+
+    def test_employee_profile_explains_the_basic_template(self):
+        page = self._page(self.admin_staff, "reports:my_profile")
+        self.assertIn("دوري الإداري وصلاحياتي", page)
+        self.assertIn("موظف إداري (الأساسي)", page)
+        self.assertIn("مهام التنفيذ الشخصية لا تحتاج نطاقاً إشرافياً", page)
+        self.assertIn(self.admin_membership.get_role_type_display(), page)
+
+    def test_dual_role_account_is_explicit_and_keeps_teacher_portfolio(self):
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            role_type=SchoolMembership.RoleType.ADMIN_STAFF,
+            job_title=SchoolMembership.JobTitle.ADMIN_STAFF,
+        )
+        page = self._page(self.teacher, "reports:home")
+
+        self.assertIn("لهذا الحساب أكثر من دور في المدرسة", page)
+        self.assertIn("موظف إداري، معلم", page)
+        self.assertIn("ملف الإنجاز كمعلم", page)
+        self.assertIn(reverse("reports:achievement_my_files"), page)
+
+    def test_admin_report_copy_is_written_for_execution_work(self):
+        page = self._page(self.admin_staff, "reports:add_report")
+        self.assertIn("توثيق عمل إداري", page)
+        self.assertIn("سجّل ما نُفّذ ونتائجه وشواهده", page)
+
+    def test_meeting_page_explains_read_only_mode(self):
+        page = self._page(self.admin_staff, "reports:meeting_list")
+        self.assertIn("تنظيم اجتماع جديد يحتاج صلاحية مستقلة من المدير", page)
+        self.assertNotIn(reverse("reports:meeting_create"), page)
+
+    def test_mansour_launcher_has_an_accessible_name(self):
+        page = self._page(self.admin_staff, "reports:home")
+        self.assertIn('aria-label="فتح المساعد الذكي منصور"', page)
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # محضر المختبر والموظف الإداري: بابٌ واحد للإسناد

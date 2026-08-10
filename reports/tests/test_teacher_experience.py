@@ -213,7 +213,7 @@ class TeacherExperienceTests(TestCase):
         self.assertTrue(response.context["IS_OFFICER"])
         self.assertIn(reverse("reports:assigned_to_me"), html)
         self.assertIn(reverse("reports:officer_reports"), html)
-        self.assertContains(response, "مهامي")
+        self.assertContains(response, "الطلبات المسندة")
         self.assertContains(response, "تقارير قسمي")
         self.assertContains(response, "تقاريري")
         self.assertContains(response, "طلباتي")
@@ -261,6 +261,7 @@ class TeacherExperienceTests(TestCase):
         form = TicketCreateForm(active_school=self.school)
         self.assertEqual(form.fields["title"].label, "عنوان الطلب")
         self.assertEqual(form.fields["body"].label, "تفاصيل الطلب")
+        self.assertTrue(form.fields["body"].required)
 
     def test_request_create_wires_external_recipients_loader(self):
         self._login_teacher()
@@ -310,6 +311,26 @@ class TeacherExperienceTests(TestCase):
             any(item.get("id") == self.teacher.id for item in payload["results"]),
             "Expected the current teacher to appear in recipients API results",
         )
+
+    def test_department_reports_explains_missing_report_type_configuration(self):
+        self._login_teacher()
+        department = Department.objects.create(
+            school=self.school,
+            name="قسم غير مهيأ",
+            slug="unconfigured-department",
+        )
+        DepartmentMembership.objects.create(
+            department=department,
+            teacher=self.teacher,
+            role_type=DepartmentMembership.TEACHER,
+        )
+
+        response = self.client.get(reverse("reports:department_reports"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["configuration_missing"])
+        self.assertContains(response, "تقارير القسم غير مهيأة بعد")
+        self.assertContains(response, "الإدارة لم تربط القسم بأنواع التقارير بعد")
 
     def test_teacher_core_templates_do_not_use_csp_blocked_inline_handlers(self):
         template_names = [

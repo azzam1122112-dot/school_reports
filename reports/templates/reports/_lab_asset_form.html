@@ -1,0 +1,43 @@
+<form method="post" class="lab-form" novalidate>
+  {% csrf_token %}
+  {% if form.errors %}
+    <div class="lab-form-error" role="alert">
+      تعذّر الحفظ. راجع الحقول الموضّحة أدناه.
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  <fieldset class="lab-form-section">
+    <legend><i class="fa-solid fa-tag" aria-hidden="true"></i> تعريف الصنف</legend>
+    <p class="lab-form-section__hint">بيانات تساعد على العثور على الصنف ومطابقته مع كشف العهدة.</p>
+    <div class="lab-grid-2">
+      {% include "reports/_lab_field.html" with field=form.name %}
+      {% include "reports/_lab_field.html" with field=form.code %}
+      {% include "reports/_lab_field.html" with field=form.category %}
+      {% include "reports/_lab_field.html" with field=form.location %}
+    </div>
+  </fieldset>
+
+  <fieldset class="lab-form-section">
+    <legend><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> الكمية والحالة</legend>
+    <div class="lab-grid-2">
+      {% include "reports/_lab_field.html" with field=form.quantity %}
+      {% include "reports/_lab_field.html" with field=form.unit %}
+      {% include "reports/_lab_field.html" with field=form.condition %}
+      {% include "reports/_lab_field.html" with field=form.custodian %}
+    </div>
+  </fieldset>
+
+  <fieldset class="lab-form-section">
+    <legend><i class="fa-solid fa-note-sticky" aria-hidden="true"></i> ملاحظات إضافية</legend>
+    {% include "reports/_lab_field.html" with field=form.notes %}
+  </fieldset>
+
+  <div class="lab-form-actions">
+    <span class="lab-form-actions__hint">يمكن تعديل بيانات الصنف وتسجيل التسليم والإرجاع لاحقاً.</span>
+    <button type="submit" class="lab-btn">
+      <i class="fa-solid fa-plus" aria-hidden="true"></i>
+      {{ save_label|default:"أضِف إلى الجرد" }}
+    </button>
+  </div>
+</form>

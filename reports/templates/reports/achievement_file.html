@@ -945,7 +945,7 @@
           <form class="af-form" method="post" autocomplete="off" style="margin-bottom:24px;">
             {% csrf_token %}
             <input type="hidden" name="action" value="private_comment_create" />
-            <label class="af-label">أضف تعليقًا للمعلّم</label>
+            <label class="af-label" for="{{ private_comment_form.body.id_for_label }}">أضف تعليقًا للمعلّم</label>
             {{ private_comment_form.body }}
             <div class="af-actions" style="margin-top:10px">
               <button class="af-btn af-btn-primary" type="submit">
@@ -979,8 +979,8 @@
                           {% csrf_token %}
                           <input type="hidden" name="action" value="private_comment_update" />
                           <input type="hidden" name="comment_id" value="{{ c.id }}" />
-                          <label class="af-label">نص التعليق</label>
-                          <textarea name="body" rows="3" required>{{ c.body }}</textarea>
+                          <label class="af-label" for="privateComment{{ c.id }}">نص التعليق</label>
+                          <textarea id="privateComment{{ c.id }}" name="body" rows="3" required>{{ c.body }}</textarea>
                           <div class="af-actions" style="margin-top:10px">
                             <button class="af-btn af-btn-primary" type="submit">حفظ التعديل</button>
                           </div>
@@ -1014,27 +1014,27 @@
           <input type="hidden" name="action" value="save_general" />
           <div class="af-grid">
             <div>
-              <label class="af-label">المؤهلات</label>
+              <label class="af-label" for="{{ general_form.qualifications.id_for_label }}">المؤهلات</label>
               {{ general_form.qualifications }}
             </div>
             <div>
-              <label class="af-label">الخبرات المهنية</label>
+              <label class="af-label" for="{{ general_form.professional_experience.id_for_label }}">الخبرات المهنية</label>
               {{ general_form.professional_experience }}
             </div>
             <div>
-              <label class="af-label">التخصص</label>
+              <label class="af-label" for="{{ general_form.specialization.id_for_label }}">التخصص</label>
               {{ general_form.specialization }}
             </div>
             <div>
-              <label class="af-label">نصاب الحصص</label>
+              <label class="af-label" for="{{ general_form.teaching_load.id_for_label }}">نصاب الحصص</label>
               {{ general_form.teaching_load }}
             </div>
             <div>
-              <label class="af-label">مواد التدريس</label>
+              <label class="af-label" for="{{ general_form.subjects_taught.id_for_label }}">مواد التدريس</label>
               {{ general_form.subjects_taught }}
             </div>
             <div>
-              <label class="af-label">بيانات التواصل</label>
+              <label class="af-label" for="{{ general_form.contact_info.id_for_label }}">بيانات التواصل</label>
               {{ general_form.contact_info }}
             </div>
           </div>
@@ -1068,7 +1068,7 @@
         <form class="af-form" method="post" autocomplete="off" class="af-card" style="padding:24px; box-shadow:none; border:2px dashed var(--brand); background:var(--brand-light);">
           {% csrf_token %}
           <div>
-            <label class="af-label">ملاحظات {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}</label>
+            <label class="af-label" for="{{ manager_notes_form.manager_notes.id_for_label }}">ملاحظات {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}</label>
             {{ manager_notes_form.manager_notes }}
           </div>
           <div class="af-actions" style="margin-top:16px">
@@ -1106,8 +1106,8 @@
                   {% csrf_token %}
                   <input type="hidden" name="action" value="save_section" />
                   <input type="hidden" name="section_id" value="{{ s.id }}" />
-                  <label class="af-label">ملاحظات {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }}</label>
-                  <textarea name="teacher_notes">{{ s.teacher_notes }}</textarea>
+                  <label class="af-label" for="sectionNotes{{ s.id }}">ملاحظات {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }}</label>
+                  <textarea id="sectionNotes{{ s.id }}" name="teacher_notes">{{ s.teacher_notes }}</textarea>
                   <div class="af-actions" style="margin-top:10px; justify-content:flex-end;">
                     <button class="af-btn af-btn-primary" type="submit">
                       <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> حفظ
@@ -1119,8 +1119,9 @@
                   {% csrf_token %}
                   <input type="hidden" name="action" value="upload_evidence" />
                   <input type="hidden" name="section_id" value="{{ s.id }}" />
-                  <label class="af-label">إضافة صور (يمكنك تحديد عدة صور)</label>
-                  <input type="file" name="images" multiple accept="image/*" />
+                  <label class="af-label" for="sectionImages{{ s.id }}">إضافة صور (يمكنك تحديد عدة صور)</label>
+                  <input id="sectionImages{{ s.id }}" type="file" name="images" multiple accept="image/*" aria-describedby="sectionImagesHelp{{ s.id }}" />
+                  <div class="af-muted" id="sectionImagesHelp{{ s.id }}">حتى 8 صور لكل محور.</div>
                   <div class="af-actions" style="margin-top:10px; justify-content:flex-end;">
                     <button class="af-btn af-btn-primary" type="submit">
                       <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> رفع الصور
@@ -1265,8 +1266,8 @@
     <div class="af-modal-hd" style="gap:12px; flex-wrap:wrap;">
       <h3 class="af-modal-ttl" style="margin:0"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> اختيار تقرير</h3>
       <div style="display:flex; align-items:center; gap:10px; flex:1; justify-content:flex-start;">
-        <input id="afReportSearch" type="text" placeholder="ابحث في تقاريري..." style="width: min(460px, 70vw);" />
-        <button class="af-btn" type="button" id="afReportReload" style="height:38px;"><i class="fa-solid fa-rotate" aria-hidden="true"></i></button>
+        <input id="afReportSearch" type="search" aria-label="البحث في تقاريري" placeholder="ابحث في تقاريري..." style="width: min(460px, 70vw);" />
+        <button class="af-btn" type="button" id="afReportReload" aria-label="تحديث نتائج التقارير" style="height:38px;"><i class="fa-solid fa-rotate" aria-hidden="true"></i></button>
         <button class="af-modal-close" type="button" id="afReportClose" aria-label="إغلاق">✕</button>
       </div>
     </div>

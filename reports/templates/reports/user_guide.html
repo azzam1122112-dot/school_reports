@@ -8,19 +8,10 @@
   <meta name="color-scheme" content="light dark">
   {% include "reports/partials/theme_bootstrap.html" %}
 
-  <title>دليل استخدام منصة توثيق | شرح مبسط {{ SCHOOL_TEACHER_DATIVE_LABEL|default:"للمعلم" }} و{{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }}</title>
-  <meta name="description" content="دليل مبسط ومصور لاستخدام منصة توثيق: التقارير، ملف الإنجاز، الطلبات، التعاميم، إدارة المعلمين ومتابعة المدرسة.">
+  <title>دليل استخدام منصة توثيق للمعلم ومدير المدرسة</title>
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
-  <link rel="canonical" href="{{ SITE_URL }}{% url 'reports:user_guide' %}">
-
-  <meta property="og:locale" content="ar_SA">
-  <meta property="og:type" content="article">
-  <meta property="og:site_name" content="منصة توثيق">
-  <meta property="og:title" content="دليل استخدام منصة توثيق">
-  <meta property="og:description" content="خطوات واضحة ومبسطة تساعد المعلم ومدير المدرسة على إنجاز العمل بثقة.">
-  <meta property="og:url" content="{{ SITE_URL }}{% url 'reports:user_guide' %}">
-  <meta property="og:image" content="{{ SITE_URL }}{% static 'img/landing/dashboard-system.png' %}">
-  <meta name="twitter:card" content="summary_large_image">
+  {% url 'reports:user_guide' as canonical_path %}
+  {% include "reports/partials/public_seo.html" with seo_title="دليل استخدام منصة توثيق للمعلم ومدير المدرسة" seo_description="دليل مبسط ومصور لاستخدام منصة توثيق: التقارير، ملف الإنجاز، الطلبات، التعاميم، إدارة المعلمين ومتابعة المدرسة." seo_image_alt="دليل استخدام منصة توثيق للمعلم ومدير المدرسة" canonical_path=canonical_path social_type="article" %}
 
   <link rel="icon" href="{% static 'img/brand-mark.svg' %}" type="image/svg+xml">
   {% include "reports/partials/pwa_install_head.html" %}
@@ -35,11 +26,21 @@
   <script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
   {
     "@context": "https://schema.org",
-    "@type": "HowTo",
-    "name": "دليل استخدام منصة توثيق",
+    "@type": "TechArticle",
+    "@id": "{{ SITE_URL }}{% url 'reports:user_guide' %}#article",
+    "headline": "دليل استخدام منصة توثيق",
+    "name": "دليل استخدام منصة توثيق للمعلم ومدير المدرسة",
     "description": "دليل مبسط لاستخدام منصة توثيق للمعلم ومدير المدرسة.",
     "inLanguage": "ar-SA",
-    "url": "{{ SITE_URL }}{% url 'reports:user_guide' %}"
+    "url": "{{ SITE_URL }}{% url 'reports:user_guide' %}",
+    "image": "{{ SITE_URL }}{% static 'img/landing/dashboard-system.png' %}",
+    "author": {"@id": "{{ SITE_URL }}/#organization"},
+    "publisher": {"@id": "{{ SITE_URL }}/#organization"},
+    "audience": [
+      {"@type": "EducationalAudience", "educationalRole": "teacher"},
+      {"@type": "EducationalAudience", "educationalRole": "school administrator"}
+    ],
+    "about": ["التقارير المدرسية", "ملف إنجاز المعلم", "الطلبات والتعاميم", "إدارة المدرسة"]
   }
   </script>
 </head>

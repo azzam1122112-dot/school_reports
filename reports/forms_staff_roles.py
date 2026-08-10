@@ -15,56 +15,15 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from . import capabilities as caps
-from .gender_labels import school_gender_labels
 from .models import Delegation, Department, SchoolMembership, StaffScope, Teacher
+from .staff_assignments import (
+    ASSIGNMENTS,
+    apply_staff_assignment,
+    assignment_cards,
+    assignment_choices,
+)
 
 __all__ = ["StaffRoleAssignForm", "StaffScopeForm", "DelegationForm", "ASSIGNMENTS"]
-
-
-# ما يختاره المدير من قائمة «الدور» ليس ``RoleType`` وحده. «محضر المختبر» مسمّى
-# وظيفي لا دور — صلاحيته صلاحية الموظف الإداري — لكنه في نظر المدير خيار من
-# خيارات الإسناد كبقيتها، وغيابُه من القائمة كان يضطره إلى إسناده معلّماً فيُعامَل
-# معاملة المعلّم في الصلاحية والكشوف. فتُعرض الخيارات في قائمة واحدة، ويُترجَم كل
-# خيار هنا إلى (دور، مسمّى) عند التطبيق.
-#
-# «مدير» ليس منها: نقل الإدارة قرار يخص مالك النظام، ولو أُتيح هنا لاستطاع
-# المدير أن يعزل نفسه بنقرة.
-#
-# والدور المقابل لكل مسمّى يُسأل من ``role_for_job_title`` لا يُكتب هنا: كتابته
-# في هذا الجدول جعلته إجابةً ثانية عن سؤال تُجيب عنه شاشةُ «إضافة مستخدم»
-# بغيرها، فخرج من البابين محضّران بصلاحيتين.
-def _titled(job_title: str) -> tuple[str, str]:
-    return (SchoolMembership.role_for_job_title(job_title), job_title)
-
-
-ASSIGNMENTS: dict[str, tuple[str, str | None]] = {
-    # الوكالة دورٌ بلا مسمّى وظيفي يقابله، فيبقى المسمّى على حاله.
-    SchoolMembership.RoleType.DEPUTY: (SchoolMembership.RoleType.DEPUTY, None),
-    SchoolMembership.RoleType.ADMIN_STAFF: _titled(
-        SchoolMembership.JobTitle.ADMIN_STAFF
-    ),
-    SchoolMembership.JobTitle.LAB_TECH: _titled(SchoolMembership.JobTitle.LAB_TECH),
-    SchoolMembership.RoleType.TEACHER: _titled(SchoolMembership.JobTitle.TEACHER),
-}
-
-# الأدوار التي يجوز لمدير المدرسة إسنادها — مشتقة من الخيارات أعلاه لا مكرّرة
-# عنها، فلا يبقى مصدران للحقيقة الواحدة.
-ASSIGNABLE_ROLES = tuple({role for role, _ in ASSIGNMENTS.values()})
-
-
-def assignment_choices(school=None) -> list[tuple[str, str]]:
-    """خيارات الإسناد بمسمّياتها حسب جنس المدرسة النشطة.
-
-    الوكيل في مدرسة بنات «وكيلة»، والمحضر «محضرة مختبر» — والتسمية تُقرأ من
-    مرجع المسمّيات لا تُكتب هنا.
-    """
-    labels = school_gender_labels(school)
-    return [
-        (SchoolMembership.RoleType.DEPUTY, str(labels["deputy"])),
-        (SchoolMembership.RoleType.ADMIN_STAFF, str(labels["admin_staff"])),
-        (SchoolMembership.JobTitle.LAB_TECH, str(labels["lab_tech"])),
-        (SchoolMembership.RoleType.TEACHER, str(labels["teacher_indefinite"])),
-    ]
 
 
 class StaffRoleAssignForm(forms.Form):
@@ -90,6 +49,7 @@ class StaffRoleAssignForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.school = school
         self.fields["role_type"].choices = assignment_choices(school)
+        self.assignment_cards = assignment_cards(school)
         # قائمة المنسوبين مقصورة على المدرسة النشطة، فمعرّف من خارجها يُرفض
         # في ``clean`` لا في القالب.
         self.fields["member"].queryset = (
@@ -147,54 +107,13 @@ class StaffRoleAssignForm(forms.Form):
         المختبر» بلا مسمّاه يجعله موظفاً إدارياً في كل كشف وتصدير، وهو ما كان
         يُفقده اسمه.
         """
-        member = self.cleaned_data["member"]
-        choice = self.cleaned_data["role_type"]
-        role, job_title = ASSIGNMENTS[choice]
-        keep_teaching = bool(self.cleaned_data.get("keep_teaching_role"))
-
-        keep = {role}
-        if keep_teaching and role != SchoolMembership.RoleType.TEACHER:
-            keep.add(SchoolMembership.RoleType.TEACHER)
-
-        # الأدوار الزائدة تُحذف، ونطاقاتها تسقط معها بـ CASCADE — وهو الصحيح:
-        # نطاق وكيلٍ لم يعد وكيلاً ليس له معنى.
-        SchoolMembership.objects.filter(
+        return apply_staff_assignment(
             school=self.school,
-            teacher=member,
-            role_type__in=SchoolMembership.STAFF_ROLES,
-        ).exclude(role_type__in=keep).delete()
-
-        membership = None
-        for wanted in sorted(keep):
-            obj, _ = SchoolMembership.objects.get_or_create(
-                school=self.school,
-                teacher=member,
-                role_type=wanted,
-                defaults={"is_active": True},
-            )
-            updates = []
-            if not obj.is_active:
-                obj.is_active = True
-                updates.append("is_active")
-
-            # عضوية «النصاب التدريسي» المصاحبة مسمّاها معلّم دائماً؛ والمسمّى
-            # المختار يُكتب على العضوية الأصلية. أما الوكيل فلا مسمّى وظيفياً
-            # له في القائمة، فيُترك مسمّاه كما هو ولا يُصفَّر بالإسناد.
-            wanted_title = (
-                SchoolMembership.JobTitle.TEACHER
-                if wanted == SchoolMembership.RoleType.TEACHER and wanted != role
-                else job_title
-            )
-            if wanted_title and obj.job_title != wanted_title:
-                obj.job_title = wanted_title
-                updates.append("job_title")
-
-            if updates:
-                obj.save(update_fields=updates)
-            if wanted == role:
-                membership = obj
-
-        return membership
+            member=self.cleaned_data["member"],
+            code=self.cleaned_data["role_type"],
+            keep_teaching_role=bool(self.cleaned_data.get("keep_teaching_role")),
+            actor=actor,
+        )
 
 
 class StaffScopeForm(forms.ModelForm):

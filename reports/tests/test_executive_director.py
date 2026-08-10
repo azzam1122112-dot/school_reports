@@ -139,6 +139,33 @@ class ExecutiveDirectorTests(TestCase):
         self.assertNotContains(response, self.outside_school.name)
         self.assertNotContains(response, self.other_group_school.name)
 
+    def test_dashboard_exposes_the_executive_decision_surface(self):
+        self.client.force_login(self.director)
+        response = self.client.get(reverse("reports:executive_dashboard"))
+
+        self.assertContains(response, "ما يحتاج قرارك")
+        self.assertContains(response, "صحة مدارس المجموعة")
+        self.assertContains(response, "data-school-search")
+        for row in response.context["rows"]:
+            self.assertIn("risk_score", row)
+            self.assertIn("risk_label", row)
+            self.assertIn("reports_delta", row)
+
+    def test_activity_window_is_selectable_but_bounded(self):
+        self.client.force_login(self.director)
+
+        for days in (7, 30, 90):
+            with self.subTest(days=days):
+                response = self.client.get(
+                    reverse("reports:executive_dashboard"), {"window": days}
+                )
+                self.assertEqual(response.context["activity_window_days"], days)
+
+        response = self.client.get(
+            reverse("reports:executive_dashboard"), {"window": 9999}
+        )
+        self.assertEqual(response.context["activity_window_days"], 30)
+
     def test_only_the_director_is_offered_the_group_link(self):
         self.client.force_login(self.director)
         self.assertContains(self.client.get(reverse("reports:executive_dashboard")), "لوحة المجموعة")

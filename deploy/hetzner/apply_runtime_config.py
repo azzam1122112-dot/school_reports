@@ -32,6 +32,7 @@ Usage (from the deploy workflow, or by hand on the server)::
 from __future__ import annotations
 
 import argparse
+import base64
 import os
 import re
 import shutil
@@ -63,6 +64,15 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Read MOYASAR_SECRET_KEY from stdin. An empty read leaves it unchanged.",
     )
+    parser.add_argument("--web-push-enabled", choices=BOOL_CHOICES)
+    parser.add_argument(
+        "--web-push-config-from-stdin",
+        action="store_true",
+        help=(
+            "Read three lines from stdin: VAPID private key, public key, and "
+            "mailto:/https: subject. Values are never printed."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -87,6 +97,9 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
             raise SystemExit("WEB_CONCURRENCY must be between 1 and 4 on this host.")
         values["WEB_CONCURRENCY"] = str(args.web_concurrency)
 
+    if args.web_push_enabled:
+        values["WEB_PUSH_ENABLED"] = args.web_push_enabled
+
     if args.moyasar_key_from_stdin:
         key = sys.stdin.read().strip()
         if key:
@@ -101,6 +114,39 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
                     f"MOYASAR_SECRET_KEY does not match MOYASAR_ENVIRONMENT={env}."
                 )
             values["MOYASAR_SECRET_KEY"] = key
+
+    if args.web_push_config_from_stdin:
+        lines = sys.stdin.read().splitlines()
+        if len(lines) != 3:
+            raise SystemExit(
+                "Web Push configuration requires exactly three stdin lines: private, public, subject."
+            )
+        private_key, public_key, subject = (line.strip() for line in lines)
+
+        def _decode_key(value: str, label: str) -> bytes:
+            if not re.fullmatch(r"[A-Za-z0-9_-]+", value):
+                raise SystemExit(f"{label} is not base64url without padding.")
+            try:
+                return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+            except Exception as exc:
+                raise SystemExit(f"{label} is not valid base64url.") from exc
+
+        private_raw = _decode_key(private_key, "WEB_PUSH_VAPID_PRIVATE_KEY")
+        public_raw = _decode_key(public_key, "WEB_PUSH_VAPID_PUBLIC_KEY")
+        if len(private_raw) != 32:
+            raise SystemExit("WEB_PUSH_VAPID_PRIVATE_KEY must decode to 32 bytes.")
+        if len(public_raw) != 65 or public_raw[:1] != b"\x04":
+            raise SystemExit("WEB_PUSH_VAPID_PUBLIC_KEY must be an uncompressed P-256 point.")
+        if not subject.startswith(("mailto:", "https://")):
+            raise SystemExit("WEB_PUSH_SUBJECT must start with mailto: or https://.")
+
+        values.update(
+            {
+                "WEB_PUSH_VAPID_PRIVATE_KEY": private_key,
+                "WEB_PUSH_VAPID_PUBLIC_KEY": public_key,
+                "WEB_PUSH_SUBJECT": subject,
+            }
+        )
 
     if not values:
         raise SystemExit("Nothing to apply — pass at least one option.")
@@ -146,6 +192,26 @@ def _assert_gateway_can_boot(path: Path, values: dict[str, str]) -> None:
         raise SystemExit(
             f"Refusing to enable Moyasar: the stored key does not match "
             f"MOYASAR_ENVIRONMENT={environment}. Supply a {expected}* key."
+        )
+
+
+def _assert_web_push_can_boot(path: Path, values: dict[str, str]) -> None:
+    if values.get("WEB_PUSH_ENABLED") != "True":
+        return
+    existing: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = re.match(r"^([A-Z0-9_]+)=(.*)$", line)
+        if match:
+            existing[match.group(1)] = match.group(2).strip()
+    private_key = values.get("WEB_PUSH_VAPID_PRIVATE_KEY") or existing.get(
+        "WEB_PUSH_VAPID_PRIVATE_KEY", ""
+    )
+    public_key = values.get("WEB_PUSH_VAPID_PUBLIC_KEY") or existing.get(
+        "WEB_PUSH_VAPID_PUBLIC_KEY", ""
+    )
+    if not private_key or not public_key:
+        raise SystemExit(
+            "Refusing to enable Web Push without both stable VAPID keys."
         )
 
 
@@ -223,6 +289,7 @@ def main() -> None:
 
     values = _collect(args)
     _assert_gateway_can_boot(path, values)
+    _assert_web_push_can_boot(path, values)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     backup = path.with_name(f"{path.name}.bak.{timestamp}")

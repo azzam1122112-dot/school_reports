@@ -596,3 +596,23 @@ def _invalidate_user_notif_cache(sender, instance, **kwargs):
             invalidate_user_notifications(tid)
     except Exception:
         pass
+
+
+@receiver(post_save, sender=NotificationRecipient)
+def _web_push_new_notification_recipient(sender, instance, created: bool, **kwargs):
+    """Individual creates do not pass through the bulk realtime helper."""
+    if kwargs.get("raw") or not created:
+        return
+    try:
+        from .web_push import queue_notification_web_push
+
+        queue_notification_web_push(
+            notification=instance.notification,
+            teacher_ids=[instance.teacher_id],
+        )
+    except Exception:
+        logger.exception(
+            "Unable to schedule Web Push notification=%s teacher=%s",
+            getattr(instance, "notification_id", None),
+            getattr(instance, "teacher_id", None),
+        )

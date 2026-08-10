@@ -14,6 +14,25 @@
   .gs-bar__track { height: 8px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; }
   .gs-bar__fill { height: 100%; background: #fff; border-radius: 999px; }
   .gs-bar__n { font-size: .82rem; font-weight: 800; margin-top: .35rem; opacity: .95; }
+  .gs-hero-actions { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1rem; }
+  .gs-hero-actions a { color:#fff; border-color:rgba(255,255,255,.3); background:rgba(255,255,255,.12); }
+  .gs-health {
+    display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:1rem; align-items:center;
+    margin-top:1.1rem; padding:1.05rem 1.15rem; border:1px solid var(--asg-line);
+    border-radius:17px; background:var(--asg-surface);
+  }
+  .gs-health__score { display:grid; width:64px; height:64px; place-items:center; border-radius:18px; font-size:1.2rem; font-weight:950; }
+  .gs-health[data-tone="danger"] .gs-health__score { color:var(--asg-danger); background:var(--id-tone-danger-wash); }
+  .gs-health[data-tone="warning"] .gs-health__score { color:var(--asg-gold); background:var(--id-tone-attention-wash); }
+  .gs-health[data-tone="stable"] .gs-health__score { color:var(--asg-green); background:var(--id-tone-approved-wash); }
+  .gs-health h2 { margin:0; font-size:1rem; font-weight:950; }
+  .gs-health p { margin:.25rem 0 0; color:var(--asg-muted); font-size:.78rem; line-height:1.7; }
+  .gs-health__state { text-align:end; }
+  .gs-health__state strong, .gs-health__state small { display:block; }
+  .gs-health__state small { margin-top:.2rem; color:var(--asg-muted); font-size:.7rem; }
+  .gs-kpi-link { color:inherit; text-decoration:none; transition:transform .16s ease,border-color .16s ease; }
+  .gs-kpi-link:hover { transform:translateY(-2px); border-color:var(--asg-green); color:inherit; }
+  @media (max-width:640px) { .gs-health { grid-template-columns:auto 1fr; } .gs-health__state { grid-column:1/-1; text-align:start; } }
 </style>
 {% endblock %}
 
@@ -44,29 +63,48 @@
         ({{ stats.assignments_done }} من {{ stats.assignments }})
       </div>
     </div>
+    <nav class="gs-hero-actions" aria-label="روابط متابعة المدرسة">
+      <a class="asg-btn" href="{% url 'reports:group_assignment_board' %}?group={{ group.pk }}"><i class="fa-solid fa-list-check" aria-hidden="true"></i> التكليفات</a>
+      <a class="asg-btn" href="{% url 'reports:group_subscriptions' %}?group={{ group.pk }}"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> الاشتراك والسعة</a>
+      <a class="asg-btn" href="{% url 'reports:group_report' %}?group={{ group.pk }}"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> مقارنة المجموعة</a>
+    </nav>
   </header>
+
+  <section class="gs-health" data-tone="{{ risk_tone }}" aria-labelledby="gsHealthTitle">
+    <div class="gs-health__score" aria-label="درجة الخطر {{ risk_score }} من 100">{{ risk_score }}</div>
+    <div>
+      <h2 id="gsHealthTitle">{{ risk_label }}</h2>
+      <p>
+        {% if risk_reasons %}{{ risk_reasons|join:" · " }}{% else %}لا توجد مؤشرات حرجة في الاشتراك أو السعة أو التكليفات أو النشاط.{% endif %}
+      </p>
+    </div>
+    <div class="gs-health__state">
+      <strong>{{ subscription_row.state.label }}</strong>
+      <small>حالة الاشتراك الحالية</small>
+    </div>
+  </section>
 
   <section class="asg-kpis" aria-label="مؤشرات المدرسة">
     <article class="asg-kpi">
       <div class="asg-kpi__v">{{ stats.seats }}</div>
       <div class="asg-kpi__l">منسوب</div>
     </article>
-    <article class="asg-kpi">
+    <a class="asg-kpi gs-kpi-link" href="{% url 'reports:group_report' %}?group={{ group.pk }}">
       <div class="asg-kpi__v">{{ stats.reports_total }}</div>
       <div class="asg-kpi__l">تقرير</div>
-    </article>
-    <article class="asg-kpi">
+    </a>
+    <a class="asg-kpi gs-kpi-link" href="{% url 'reports:group_report' %}?group={{ group.pk }}">
       <div class="asg-kpi__v">{{ stats.reports_recent }}</div>
-      <div class="asg-kpi__l">تقرير خلال 30 يوماً</div>
-    </article>
-    <article class="asg-kpi" data-tone="warn">
+      <div class="asg-kpi__l">تقرير خلال 30 يوماً · {% if stats.reports_delta > 0 %}+{% endif %}{{ stats.reports_delta }} عن السابق</div>
+    </a>
+    <a class="asg-kpi gs-kpi-link" data-tone="warn" href="{% url 'reports:group_approval_inbox' %}?group={{ group.pk }}">
       <div class="asg-kpi__v">{{ stats.reports_pending }}</div>
       <div class="asg-kpi__l">ينتظر الاعتماد</div>
-    </article>
-    <article class="asg-kpi" data-tone="danger">
+    </a>
+    <a class="asg-kpi gs-kpi-link" data-tone="danger" href="{% url 'reports:group_assignment_board' %}?group={{ group.pk }}">
       <div class="asg-kpi__v">{{ stats.assignments_overdue }}</div>
       <div class="asg-kpi__l">تكليف متأخر</div>
-    </article>
+    </a>
     <article class="asg-kpi">
       <div class="asg-kpi__v">{{ stats.achievements }}</div>
       <div class="asg-kpi__l">ملف إنجاز</div>

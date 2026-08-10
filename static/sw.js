@@ -1,4 +1,4 @@
-const CACHE_NAME = "tawtheeq-v8";
+const CACHE_NAME = "tawtheeq-v9";
 const OFFLINE_URL = "/static/offline.html";
 const CORE_ASSETS = [
   OFFLINE_URL,
@@ -119,4 +119,67 @@ self.addEventListener("fetch", (event) => {
 
 self.addEventListener("message", (event) => {
   if (event.data === "SKIP_WAITING") self.skipWaiting();
+});
+
+self.addEventListener("push", (event) => {
+  event.waitUntil((async () => {
+    let payload = {};
+    try {
+      payload = event.data ? event.data.json() : {};
+    } catch (error) {
+      payload = { body: event.data ? event.data.text() : "" };
+    }
+
+    const title = String(payload.title || "تنبيه جديد من منصة توثيق").slice(0, 100);
+    const body = String(payload.body || "لديك تنبيه جديد. افتح التطبيق للاطلاع عليه.").slice(0, 240);
+    const rawUrl = String(payload.url || "/notifications/mine/");
+    let targetUrl = "/notifications/mine/";
+    try {
+      const parsed = new URL(rawUrl, self.location.origin);
+      if (parsed.origin === self.location.origin) targetUrl = parsed.pathname + parsed.search + parsed.hash;
+    } catch (error) {}
+
+    await self.registration.showNotification(title, {
+      body,
+      icon: payload.icon || "/static/img/pwa/icon-192.png",
+      badge: payload.badge || "/static/img/pwa/icon-192.png",
+      tag: payload.tag || "tawtheeq-notification",
+      renotify: true,
+      requireInteraction: Boolean(payload.requireInteraction),
+      dir: "rtl",
+      lang: "ar",
+      data: {
+        url: targetUrl,
+        notificationId: payload.notificationId || null
+      },
+      actions: [
+        { action: "open", title: "فتح التنبيه" },
+        { action: "dismiss", title: "إغلاق" }
+      ]
+    });
+  })());
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  if (event.action === "dismiss") return;
+
+  event.waitUntil((async () => {
+    const rawUrl = event.notification.data && event.notification.data.url;
+    let target = new URL("/notifications/mine/", self.location.origin);
+    try {
+      const parsed = new URL(rawUrl || "/notifications/mine/", self.location.origin);
+      if (parsed.origin === self.location.origin) target = parsed;
+    } catch (error) {}
+
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windows) {
+      try {
+        if ("navigate" in client) await client.navigate(target.href);
+        return await client.focus();
+      } catch (error) {}
+    }
+    if (self.clients.openWindow) return self.clients.openWindow(target.href);
+    return undefined;
+  })());
 });

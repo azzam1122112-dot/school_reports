@@ -23,6 +23,7 @@ from django.utils import timezone
 
 from .storage import _compress_image_file
 from .telegram_alerts import TelegramDeliveryError, deliver_telegram_alert
+from .web_push import WebPushTransientError
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,21 @@ from core import opmetrics
 def send_telegram_alert_task(self, payload: dict[str, str]) -> str:
     """Deliver a safe operational alert without blocking the user request."""
     return deliver_telegram_alert(payload)
+
+
+@shared_task(
+    bind=True,
+    ignore_result=True,
+    autoretry_for=(WebPushTransientError,),
+    retry_backoff=True,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": 4},
+)
+def send_web_push_notification_task(self, notification_id: int, teacher_ids: list[int]) -> dict[str, int]:
+    """Deliver a notification to installed devices without blocking the request."""
+    from .web_push import deliver_notification_web_push
+
+    return deliver_notification_web_push(notification_id, teacher_ids)
 
 
 @shared_task(

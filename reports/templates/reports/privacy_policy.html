@@ -2,8 +2,8 @@
 
 {% block title %}سياسة الخصوصية وحماية البيانات | منصة توثيق{% endblock %}
 {% block seo_meta %}
-<meta name="description" content="سياسة الخصوصية في منصة توثيق: البيانات التي نجمعها، أغراض ومسوغات المعالجة، المشاركة، الاحتفاظ، وحقوق أصحاب البيانات.">
-<link rel="canonical" href="{{ SITE_URL }}{% url 'reports:privacy_policy' %}">
+{% url 'reports:privacy_policy' as canonical_path %}
+{% include "reports/partials/public_seo.html" with seo_title="سياسة الخصوصية وحماية البيانات | منصة توثيق" seo_description="سياسة الخصوصية في منصة توثيق: البيانات التي نجمعها، أغراض ومسوغات المعالجة، المشاركة، الاحتفاظ، وحقوق أصحاب البيانات." seo_image_alt="سياسة الخصوصية وحماية البيانات في منصة توثيق" canonical_path=canonical_path social_type="article" include_schema=True schema_type="WebPage" modified_date="2026-08-02" %}
 {% endblock %}
 {% block legal_title %}سياسة الخصوصية{% endblock %}
 {% block legal_intro %}توضح هذه السياسة كيف تجمع منصة توثيق البيانات الشخصية وتعالجها وتحميها، وكيف يمكن لصاحب البيانات ممارسة حقوقه.{% endblock %}

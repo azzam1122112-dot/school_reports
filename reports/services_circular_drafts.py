@@ -72,6 +72,9 @@ def publish_draft(draft: CircularDraft, publisher) -> Notification:
         ],
         ignore_conflicts=True,
     )
+    from .realtime_notifications import push_new_notification_to_teachers
+
+    push_new_notification_to_teachers(notification=notification, teacher_ids=recipient_ids)
 
     draft.published_notification = notification
     draft.published_at = timezone.now()

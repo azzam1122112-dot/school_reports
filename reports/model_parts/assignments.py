@@ -269,6 +269,13 @@ class AssignmentTarget(ApprovalMixin):
         return getattr(self.assignment, "due_at", None)
 
     @property
+    def approval_block_reason(self) -> str:
+        """سبب قفل دورة الاعتماد، إن كان السجل أرشيفياً لا يقبل انتقالاً."""
+        if getattr(self.assignment, "is_cancelled", False):
+            return "هذا التكليف ملغى ومحفوظ للسجل فقط."
+        return ""
+
+    @property
     def is_overdue(self) -> bool:
         """متأخر: فات موعده ولم يُعتمد بعد.
 

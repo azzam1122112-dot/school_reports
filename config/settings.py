@@ -245,6 +245,45 @@ except (TypeError, ValueError):
 NOTIFICATIONS_LOCAL_FALLBACK_ENABLED = _env_bool("NOTIFICATIONS_LOCAL_FALLBACK_ENABLED", True)
 NOTIFICATIONS_LOCAL_FALLBACK_THREAD = _env_bool("NOTIFICATIONS_LOCAL_FALLBACK_THREAD", True)
 
+# ----------------- PWA Web Push -----------------
+# Keep the private VAPID key in the runtime environment only.  The public key
+# is intentionally exposed to authenticated browsers when they subscribe.
+WEB_PUSH_VAPID_PRIVATE_KEY = (os.getenv("WEB_PUSH_VAPID_PRIVATE_KEY") or "").strip()
+WEB_PUSH_VAPID_PUBLIC_KEY = (os.getenv("WEB_PUSH_VAPID_PUBLIC_KEY") or "").strip()
+WEB_PUSH_SUBJECT = (
+    os.getenv("WEB_PUSH_SUBJECT")
+    or os.getenv("BUSINESS_SUPPORT_EMAIL")
+    or "mailto:support@tawtheeq-ksa.com"
+).strip()
+if "@" in WEB_PUSH_SUBJECT and not WEB_PUSH_SUBJECT.startswith(("mailto:", "https://")):
+    WEB_PUSH_SUBJECT = f"mailto:{WEB_PUSH_SUBJECT}"
+WEB_PUSH_ENABLED = _env_bool(
+    "WEB_PUSH_ENABLED",
+    bool(WEB_PUSH_VAPID_PRIVATE_KEY and WEB_PUSH_VAPID_PUBLIC_KEY),
+)
+WEB_PUSH_ALLOWED_ENDPOINT_HOSTS = tuple(
+    _split_env_list(
+        os.getenv("WEB_PUSH_ALLOWED_ENDPOINT_HOSTS")
+        or (
+            "fcm.googleapis.com,push.services.mozilla.com,"
+            "updates.push.services.mozilla.com,push.apple.com,"
+            "notify.windows.com,push.microsoft.com"
+        )
+    )
+)
+try:
+    WEB_PUSH_TIMEOUT_SECONDS = max(
+        2.0,
+        min(30.0, float(os.getenv("WEB_PUSH_TIMEOUT_SECONDS", "10") or "10")),
+    )
+except (TypeError, ValueError):
+    WEB_PUSH_TIMEOUT_SECONDS = 10.0
+
+if WEB_PUSH_ENABLED and not (WEB_PUSH_VAPID_PRIVATE_KEY and WEB_PUSH_VAPID_PUBLIC_KEY):
+    raise ImproperlyConfigured(
+        "WEB_PUSH_ENABLED requires WEB_PUSH_VAPID_PRIVATE_KEY and WEB_PUSH_VAPID_PUBLIC_KEY."
+    )
+
 try:
     NOTIFICATIONS_LOCAL_FALLBACK_MAX_RECIPIENTS = int(
         (os.getenv("NOTIFICATIONS_LOCAL_FALLBACK_MAX_RECIPIENTS", "30") or "30").strip()

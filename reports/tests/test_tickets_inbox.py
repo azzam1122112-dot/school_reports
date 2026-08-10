@@ -401,3 +401,59 @@ class TicketsInboxViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, ">مسح<", html=False)
+
+    def _closed_ticket(self):
+        return Ticket.objects.create(
+            creator=self.user,
+            assignee=self.user,
+            school=self.school,
+            is_platform=False,
+            title="طلب مغلق للاختبار",
+            body="يختبر مسار إعادة الفتح الصريح.",
+            status=Ticket.Status.DONE,
+        )
+
+    def _enter_school(self):
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+    def test_closed_ticket_shows_one_explicit_reopen_action(self):
+        ticket = self._closed_ticket()
+        self._enter_school()
+
+        response = self.client.get(reverse("reports:ticket_detail", args=[ticket.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "إعادة فتح الطلب")
+        self.assertNotContains(response, "حفظ التحديث")
+        self.assertNotContains(response, 'name="status"')
+
+    def test_closed_ticket_cannot_be_reopened_through_generic_status_post(self):
+        ticket = self._closed_ticket()
+        self._enter_school()
+
+        self.client.post(
+            reverse("reports:ticket_detail", args=[ticket.pk]),
+            {"status": Ticket.Status.OPEN},
+            follow=True,
+        )
+
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.status, Ticket.Status.DONE)
+
+    def test_closed_ticket_can_be_reopened_through_explicit_action(self):
+        ticket = self._closed_ticket()
+        self._enter_school()
+
+        response = self.client.post(
+            reverse("reports:ticket_detail", args=[ticket.pk]),
+            {"ticket_action": "reopen"},
+            follow=True,
+        )
+
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.status, Ticket.Status.OPEN)
+        self.assertContains(response, "أُعيد فتح الطلب")
+        self.assertTrue(ticket.notes.filter(body__startswith="إعادة فتح الطلب:").exists())

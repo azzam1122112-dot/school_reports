@@ -102,6 +102,9 @@ def group_school_detail(request, pk: int):
         "seats": SchoolMembership.seats_used(school),
         "reports_total": reports.count(),
         "reports_recent": reports.filter(created_at__gte=since).count(),
+        "reports_previous": reports.filter(
+            created_at__gte=since - timedelta(days=30), created_at__lt=since
+        ).count(),
         "reports_pending": reports.filter(
             approval_state__in=PENDING_REVIEW_STATES
         ).count(),
@@ -126,6 +129,7 @@ def group_school_detail(request, pk: int):
         if stats["assignments"]
         else 0
     )
+    stats["reports_delta"] = stats["reports_recent"] - stats["reports_previous"]
 
     # ما رفعته المدرسة إلى المجموعة — وهو ما يخص المدير التنفيذي فعلاً.
     group_targets = list(
@@ -151,6 +155,47 @@ def group_school_detail(request, pk: int):
         .first()
     )
 
+    # بطاقة صحة واحدة تجمع الإشارات المتناثرة، حتى لا يفسّر المدير التنفيذي
+    # تسعة أرقام قبل أن يعرف هل المدرسة مستقرة أم تحتاج تدخلاً.
+    attach_school_consumption_rows([school])
+    subscription_row = _group_subscription_row(
+        school,
+        getattr(school, "subscription", None),
+        SchoolArchiveAddon.objects.filter(school=school).first(),
+        getattr(manager, "teacher", None),
+    )
+    risk_score = 0
+    risk_reasons = []
+    state_key = subscription_row["state"]["key"]
+    if state_key in {"none", "expired", "cancelled"}:
+        risk_score += 50
+        risk_reasons.append("الاشتراك متوقف")
+    elif state_key in {"urgent", "soon"}:
+        risk_score += 25
+        risk_reasons.append("الاشتراك يقترب من الانتهاء")
+    if subscription_row["consumption"]["storage"]["percent"] >= 90:
+        risk_score += 30
+        risk_reasons.append("مساحة التخزين حرجة")
+    if subscription_row["consumption"]["seats"]["percent"] >= 90:
+        risk_score += 20
+        risk_reasons.append("المقاعد قاربت الامتلاء")
+    if stats["assignments_overdue"]:
+        risk_score += 25
+        risk_reasons.append("تكليفات متأخرة")
+    if stats["reports_pending"]:
+        risk_score += 10
+        risk_reasons.append("تقارير تنتظر الاعتماد")
+    if not stats["reports_recent"]:
+        risk_score += 10
+        risk_reasons.append("لا نشاط تقارير خلال 30 يوماً")
+    risk_score = min(risk_score, 100)
+    if risk_score >= 50:
+        risk_tone, risk_label = "danger", "تحتاج تدخلاً"
+    elif risk_score >= 20:
+        risk_tone, risk_label = "warning", "تحتاج متابعة"
+    else:
+        risk_tone, risk_label = "stable", "مستقرة"
+
     return render(
         request,
         "reports/group_school_detail.html",
@@ -161,6 +206,11 @@ def group_school_detail(request, pk: int):
             "school": school,
             "manager": getattr(manager, "teacher", None),
             "stats": stats,
+            "subscription_row": subscription_row,
+            "risk_score": risk_score,
+            "risk_reasons": risk_reasons,
+            "risk_tone": risk_tone,
+            "risk_label": risk_label,
             "group_targets": group_targets,
             "shared_practices": shared_practices,
         },

@@ -4,214 +4,58 @@
 {% block title %}لوحة المدير التنفيذي | منصة توثيق{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="{% static 'css/consumption-panel.css' %}?v=20260805.1">
-<style nonce="{{ CSP_NONCE }}">
-  /* القيم من جذر الهوية، ولا كتلة ليلية هنا: الجذر يقلب الرموز مرة واحدة.
-     و``--exec-green-fill`` حُذف — كان معرَّفاً ولا يستعمله سطر واحد، وغائباً
-     عن الكتلة الليلية أصلاً، فرمزٌ لا يُقرأ ولا يتقلّب ليس رمزاً. */
-  .exec-page {
-    --exec-ink: var(--id-ink);
-    --exec-muted: var(--id-muted);
-    --exec-line: var(--id-line);
-    --exec-soft: var(--id-surface-2);
-    --exec-surface: var(--id-surface);
-    --exec-green: var(--id-accent);
-    --exec-gold: var(--id-gold);
-    --exec-danger: var(--id-tone-danger);
-    --exec-warning: var(--id-tone-attention);
-    max-width: 1440px;
-    margin-inline: auto;
-    padding: 1.25rem;
-    color: var(--exec-ink);
-  }
-
-
-  /* ── الترويسة ───────────────────────────────────────────────── */
-  .exec-hero {
-    position: relative;
-    overflow: hidden;
-    border-radius: 20px;
-    padding: 1.9rem 1.75rem;
-    background: linear-gradient(135deg, var(--id-hero-from) 0%, var(--id-hero-via) 56%, var(--id-hero-to) 100%);
-    color: var(--id-hero-ink);
-    box-shadow: var(--id-e4);
-  }
-  .exec-hero::before {
-    content: "";
-    position: absolute;
-    inset-inline: 0;
-    inset-block-start: 0;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, var(--id-gold-500) 18%, var(--id-gold-300) 50%, var(--id-gold-500) 82%, transparent);
-  }
-  .exec-hero::after {
-    content: "";
-    position: absolute;
-    inset-inline-start: -70px;
-    inset-block-start: -90px;
-    width: 260px;
-    height: 260px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(182,138,66,.34), transparent 68%);
-    pointer-events: none;
-  }
-  .exec-hero__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: .45rem;
-    font-size: .78rem;
-    font-weight: 800;
-    letter-spacing: .01em;
-    padding: .32rem .8rem;
-    border-radius: 999px;
-    background: rgba(255,255,255,.16);
-    border: 1px solid rgba(255,255,255,.24);
-  }
-  /* عنوان الترويسة بتدرّج أبيض←ذهبي كما في لوحات الأدوار الثلاث الأخرى. */
-  .exec-hero__title {
-    margin: .75rem 0 .3rem;
-    font-size: 1.65rem;
-    font-weight: 900;
-    background: linear-gradient(92deg, #fff 0%, var(--id-gold-300) 96%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .exec-hero__eyebrow {
-    border: 1px solid rgba(212, 177, 109, .5);
-    background: rgba(212, 177, 109, .16);
-    color: var(--id-gold-300);
-  }
-  .exec-hero__meta { margin: 0; font-size: .92rem; opacity: .9; }
-  .exec-hero__note {
-    position: relative;
-    margin: 1.05rem 0 0;
-    padding: .6rem .85rem;
-    border-radius: 12px;
-    font-size: .82rem;
-    line-height: 1.7;
-    background: rgba(0,0,0,.16);
-    border-inline-start: 3px solid var(--exec-gold);
-  }
-
-  .exec-groups { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.1rem; }
-  .exec-groups a {
-    font-size: .82rem; font-weight: 800; text-decoration: none;
-    padding: .38rem .85rem; border-radius: 999px;
-    color: var(--id-hero-ink); background: rgba(255,255,255,.14);
-    border: 1px solid rgba(255,255,255,.24);
-  }
-  .exec-groups a.is-active { background: #fff; color: var(--id-green-800); }
-
-  /* ── بطاقات المؤشرات ────────────────────────────────────────── */
-  .exec-kpis {
-    display: grid; gap: .9rem; margin-top: 1.15rem;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  }
-  .exec-kpi {
-    background: var(--exec-surface);
-    border: 1px solid var(--exec-line);
-    border-radius: 16px;
-    padding: 1.05rem 1.1rem;
-    box-shadow: var(--id-e2);
-  }
-  .exec-kpi__icon {
-    width: 38px; height: 38px; border-radius: 11px;
-    display: grid; place-items: center;
-    background: var(--exec-soft); color: var(--exec-green);
-    font-size: .95rem; margin-bottom: .65rem;
-  }
-  .exec-kpi__value { font-size: 1.85rem; font-weight: 900; line-height: 1.1; }
-  .exec-kpi__label { font-size: .82rem; font-weight: 700; color: var(--exec-muted); margin-top: .2rem; }
-
-  /* ── الجدول ─────────────────────────────────────────────────── */
-  .exec-panel {
-    margin-top: 1.4rem;
-    background: var(--exec-surface);
-    border: 1px solid var(--exec-line);
-    border-radius: 18px;
-    overflow: hidden;
-  }
-  .exec-panel__head {
-    display: flex; flex-wrap: wrap; gap: .5rem;
-    align-items: baseline; justify-content: space-between;
-    padding: 1.05rem 1.2rem;
-    border-bottom: 1px solid var(--exec-line);
-  }
-  .exec-panel__head h2 { margin: 0; font-size: 1.05rem; font-weight: 900; }
-  .exec-panel__head p { margin: 0; font-size: .8rem; color: var(--exec-muted); }
-
-  /* الجداول العريضة تنزلق داخل حاويتها، فلا يزحف الجسم أفقياً. */
-  .exec-scroll { overflow-x: auto; }
-  .exec-table { width: 100%; border-collapse: collapse; min-width: 720px; }
-  .exec-table th, .exec-table td {
-    padding: .8rem 1.2rem; text-align: start;
-    border-bottom: 1px solid var(--exec-line);
-    font-size: .87rem;
-  }
-  .exec-table th {
-    font-size: .74rem; font-weight: 800; text-transform: none;
-    color: var(--exec-muted); background: var(--exec-soft);
-    white-space: nowrap;
-  }
-  .exec-table tbody tr:last-child td { border-bottom: 0; }
-  .exec-table__school { font-weight: 800; }
-  .exec-table__sub { display: block; font-size: .74rem; font-weight: 600; color: var(--exec-muted); margin-top: .12rem; }
-  .exec-num { font-variant-numeric: tabular-nums; font-weight: 800; }
-
-  .exec-bar { display: flex; align-items: center; gap: .5rem; min-width: 130px; }
-  .exec-bar__track {
-    flex: 1; height: 7px; border-radius: 999px;
-    background: var(--exec-soft); overflow: hidden;
-  }
-  .exec-bar__fill {
-    display: block; height: 100%; border-radius: 999px;
-    background: linear-gradient(90deg, var(--id-green-600), var(--id-gold-400));
-  }
-
-  .exec-chip {
-    display: inline-flex; align-items: center; gap: .32rem;
-    font-size: .74rem; font-weight: 800;
-    padding: .26rem .62rem; border-radius: 999px;
-    white-space: nowrap;
-  }
-  .exec-chip--active  { background: var(--id-tone-approved-wash);  color: var(--id-tone-approved); }
-  .exec-chip--ending  { background: var(--id-tone-attention-wash); color: var(--exec-warning); }
-  .exec-chip--expired,
-  .exec-chip--none    { background: var(--id-tone-danger-wash); color: var(--exec-danger); }
-
-  .exec-empty { padding: 2.4rem 1.2rem; text-align: center; color: var(--exec-muted); }
-  .exec-empty i { font-size: 1.7rem; color: var(--exec-green); display: block; margin-bottom: .6rem; }
-
-  @media (max-width: 640px) {
-    .exec-page { padding: .85rem; }
-    .exec-hero { padding: 1.35rem 1.15rem; }
-    .exec-hero__title { font-size: 1.32rem; }
-  }
-</style>
+<link rel="stylesheet" href="{% static 'css/consumption-panel.css' %}?v=20260810.1">
+<link rel="stylesheet" href="{% static 'css/executive-dashboard.css' %}?v=20260810.1">
+<script src="{% static 'js/executive-dashboard.js' %}?v=20260810.1" defer></script>
 {% endblock %}
 
 {% block content %}
 <div class="exec-page">
-
   <header class="exec-hero">
-    <span class="exec-hero__eyebrow"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i> المدارس المتكاملة</span>
-    <h1 class="exec-hero__title">{{ group.name }}</h1>
-    <p class="exec-hero__meta">
-      {% if group.education_department %}{{ group.education_department }} · {% endif %}
-      {{ totals.schools|intcomma }} مدرسة · {{ totals.teachers|intcomma }} معلماً
-      {% if group.headquarters_school %} · المقر: {{ group.headquarters_school.name }}{% endif %}
-    </p>
+    <div class="exec-hero__copy">
+      <span class="exec-hero__eyebrow">
+        <i class="fa-solid fa-compass" aria-hidden="true"></i>
+        مركز القيادة التنفيذية
+      </span>
+      <h1>{{ group.name }}</h1>
+      <p>
+        {% if group.education_department %}{{ group.education_department }} · {% endif %}
+        {{ totals.schools|intcomma }} مدرسة · {{ totals.teachers|intcomma }} منسوباً
+        {% if group.headquarters_school %} · المقر: {{ group.headquarters_school.name }}{% endif %}
+      </p>
+      <div class="exec-hero__freshness">
+        <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+        آخر تحديث {{ generated_at|date:"Y-m-d H:i" }}
+      </div>
+    </div>
 
-    <p class="exec-hero__note">
-      هذه اللوحة للمتابعة والإشراف على مستوى المجموعة. كل مدرسة تحتفظ بمديرها
-      وبكامل صلاحياته، والإدارة اليومية تبقى لديه.
-    </p>
+    <div class="exec-hero__controls">
+      <nav class="exec-hero__actions" aria-label="إجراءات تنفيذية سريعة">
+        <a class="exec-btn exec-btn--light" href="{% url 'reports:group_approval_inbox' %}?group={{ group.pk }}">
+          <i class="fa-solid fa-stamp" aria-hidden="true"></i> القرارات
+          {% if decisions_count %}<span>{{ decisions_count }}</span>{% endif %}
+        </a>
+        <a class="exec-btn exec-btn--glass" href="{% url 'reports:group_report' %}?group={{ group.pk }}">
+          <i class="fa-solid fa-chart-line" aria-hidden="true"></i> التقرير التنفيذي
+        </a>
+      </nav>
+
+      <form class="exec-window" method="get" aria-label="الفترة الزمنية للمؤشرات">
+        {% if groups|length > 1 %}<input type="hidden" name="group" value="{{ group.pk }}">{% endif %}
+        <label for="execWindow">فترة القياس</label>
+        <select id="execWindow" name="window" data-exec-window>
+          {% for days in activity_windows %}
+            <option value="{{ days }}" {% if days == activity_window_days %}selected{% endif %}>آخر {{ days }} يوماً</option>
+          {% endfor %}
+        </select>
+        <button type="submit">تطبيق</button>
+      </form>
+    </div>
 
     {% if groups|length > 1 %}
       <nav class="exec-groups" aria-label="مجموعات المدارس">
         {% for item in groups %}
-          <a href="?group={{ item.pk }}"
+          <a href="?group={{ item.pk }}&amp;window={{ activity_window_days }}"
              class="{% if item.pk == group.pk %}is-active{% endif %}"
              {% if item.pk == group.pk %}aria-current="page"{% endif %}>{{ item.name }}</a>
         {% endfor %}
@@ -219,112 +63,178 @@
     {% endif %}
   </header>
 
-  <section class="exec-kpis" aria-label="مؤشرات المجموعة">
-    <article class="exec-kpi">
-      <div class="exec-kpi__icon"><i class="fa-solid fa-school" aria-hidden="true"></i></div>
-      <div class="exec-kpi__value">{{ totals.schools|intcomma }}</div>
-      <div class="exec-kpi__label">مدارس المجموعة</div>
-    </article>
-    <article class="exec-kpi">
-      <div class="exec-kpi__icon"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
-      <div class="exec-kpi__value">{{ totals.teachers|intcomma }}</div>
-      <div class="exec-kpi__label">المعلمون النشطون</div>
-    </article>
-    <article class="exec-kpi">
-      <div class="exec-kpi__icon"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></div>
-      <div class="exec-kpi__value">{{ totals.reports_recent|intcomma }}</div>
-      <div class="exec-kpi__label">تقارير آخر {{ activity_window_days }} يوماً</div>
-    </article>
-    <article class="exec-kpi">
-      <div class="exec-kpi__icon"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></div>
-      <div class="exec-kpi__value">{{ totals.achievements|intcomma }}</div>
-      <div class="exec-kpi__label">ملفات الإنجاز</div>
-    </article>
+  <section class="exec-primary-kpis" aria-label="المؤشرات التي تقود القرار">
+    <a class="exec-primary-kpi" data-tone="decision" href="{% url 'reports:group_approval_inbox' %}?group={{ group.pk }}">
+      <span class="exec-primary-kpi__icon"><i class="fa-solid fa-gavel" aria-hidden="true"></i></span>
+      <span class="exec-primary-kpi__value">{{ decisions_count|intcomma }}</span>
+      <strong>قرارات تنتظرك</strong>
+      <small>{% if decisions_count %}ابدأ بها الآن{% else %}لا قرار معلّق{% endif %}</small>
+    </a>
+    <a class="exec-primary-kpi" data-tone="risk" href="#execSchoolsTitle">
+      <span class="exec-primary-kpi__icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+      <span class="exec-primary-kpi__value">{{ risk_count|intcomma }}</span>
+      <strong>مدارس تحتاج تدخلاً</strong>
+      <small>حسب الخطر والتأخر والسعة</small>
+    </a>
+    <a class="exec-primary-kpi" data-tone="late" href="{% url 'reports:group_assignment_board' %}?group={{ group.pk }}">
+      <span class="exec-primary-kpi__icon"><i class="fa-solid fa-clock" aria-hidden="true"></i></span>
+      <span class="exec-primary-kpi__value">{{ totals.assignments_overdue|intcomma }}</span>
+      <strong>تكليفات متأخرة</strong>
+      <small>من {{ totals.assignments|intcomma }} تكليفاً مسنداً</small>
+    </a>
+    <a class="exec-primary-kpi" data-tone="performance" href="{% url 'reports:group_report' %}?group={{ group.pk }}">
+      <span class="exec-primary-kpi__icon"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i></span>
+      <span class="exec-primary-kpi__value">{{ totals.completion }}%</span>
+      <strong>إنجاز التكليفات</strong>
+      <small>{{ totals.assignments_done|intcomma }} مكتمل من {{ totals.assignments|intcomma }}</small>
+    </a>
   </section>
 
-  {% if needs_attention %}
-    <section class="exec-panel" aria-labelledby="execAttentionTitle">
+  <div class="exec-decision-grid">
+    <section class="exec-panel exec-panel--decisions" aria-labelledby="execDecisionTitle">
       <div class="exec-panel__head">
-        <h2 id="execAttentionTitle"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> تحتاج متابعة</h2>
-        <p>
-          {{ needs_attention|length }} من {{ totals.schools }} مدرسة اشتراكها يقارب الانتهاء أو سعتها تقارب الامتلاء —
-          <a href="{% url 'reports:group_subscriptions' %}?group={{ group.pk }}">افتح كشف الاشتراكات</a>
-        </p>
+        <div>
+          <span class="exec-section-kicker">الأولوية الآن</span>
+          <h2 id="execDecisionTitle">ما يحتاج قرارك</h2>
+        </div>
+        <a class="exec-text-link" href="{% url 'reports:group_approval_inbox' %}?group={{ group.pk }}">فتح صندوق القرارات <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
       </div>
-      <div class="exec-scroll">
-        <table class="exec-table">
-          <thead>
-            <tr><th scope="col">المدرسة</th><th scope="col">حالة الاشتراك</th><th scope="col">الاستهلاك</th></tr>
-          </thead>
-          <tbody>
-            {% for row in needs_attention %}
-              <tr>
-                <td class="exec-table__school"><a href="{% url 'reports:group_school_detail' row.school.pk %}" style="color:inherit">{{ row.school.name }}</a></td>
-                <td><span class="exec-chip exec-chip--{{ row.subscription.tone }}">{{ row.subscription.label }}</span></td>
-                <td>{% include "reports/partials/consumption_rows.html" with row=row.consumption %}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  {% endif %}
 
-  <section class="exec-panel" aria-labelledby="execSchoolsTitle">
-    <div class="exec-panel__head">
-      <h2 id="execSchoolsTitle"><i class="fa-solid fa-list-check" aria-hidden="true"></i> مدارس المجموعة</h2>
-      <p>النشاط محسوب على آخر {{ activity_window_days }} يوماً</p>
+      {% if decision_items %}
+        <div class="exec-decision-list">
+          {% for item in decision_items %}
+            <a class="exec-decision" data-tone="{{ item.tone }}" href="{% url item.url_name %}?group={{ group.pk }}">
+              <span class="exec-decision__icon"><i class="fa-solid {{ item.icon }}" aria-hidden="true"></i></span>
+              <span class="exec-decision__copy">
+                <strong>{{ item.title }}</strong>
+                <small>{{ item.detail }}</small>
+              </span>
+              <span class="exec-decision__count">{{ item.count|intcomma }}</span>
+              <i class="fa-solid fa-chevron-left exec-decision__arrow" aria-hidden="true"></i>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="exec-all-clear">
+          <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+          <div><strong>لا شيء ينتظر قرارك الآن</strong><p>جميع القرارات الحالية مغلقة، ويمكنك الانتقال إلى متابعة الأداء.</p></div>
+        </div>
+      {% endif %}
+    </section>
+
+    <aside class="exec-panel exec-overview" aria-labelledby="execOverviewTitle">
+      <div class="exec-panel__head">
+        <div>
+          <span class="exec-section-kicker">نبض المجموعة</span>
+          <h2 id="execOverviewTitle">ملخص الفترة</h2>
+        </div>
+      </div>
+      <dl class="exec-overview__list">
+        <div>
+          <dt>تقارير الفترة</dt>
+          <dd>{{ totals.reports_recent|intcomma }}</dd>
+          <span class="exec-trend {% if totals.reports_delta > 0 %}is-up{% elif totals.reports_delta < 0 %}is-down{% endif %}">
+            {% if totals.reports_delta > 0 %}+{% endif %}{{ totals.reports_delta|intcomma }} عن الفترة السابقة
+          </span>
+        </div>
+        <div><dt>مدارس المجموعة</dt><dd>{{ totals.schools|intcomma }}</dd><span>مدارس نشطة</span></div>
+        <div><dt>المنسوبون النشطون</dt><dd>{{ totals.teachers|intcomma }}</dd><span>دون تكرار العضويات</span></div>
+        <div><dt>ملفات الإنجاز</dt><dd>{{ totals.achievements|intcomma }}</dd><span>على مستوى المدارس</span></div>
+      </dl>
+      <div class="exec-shortcuts">
+        <a href="{% url 'reports:group_subscriptions' %}?group={{ group.pk }}"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> الاشتراكات</a>
+        <a href="{% url 'reports:group_assignment_board' %}?group={{ group.pk }}"><i class="fa-solid fa-list-check" aria-hidden="true"></i> التكليفات</a>
+        <a href="{% url 'reports:council_list' %}?group={{ group.pk }}"><i class="fa-solid fa-users-rectangle" aria-hidden="true"></i> المجلس</a>
+      </div>
+    </aside>
+  </div>
+
+  <section class="exec-panel exec-schools" aria-labelledby="execSchoolsTitle">
+    <div class="exec-panel__head exec-panel__head--schools">
+      <div>
+        <span class="exec-section-kicker">من الأعلى خطراً إلى الأكثر استقراراً</span>
+        <h2 id="execSchoolsTitle">صحة مدارس المجموعة</h2>
+        <p>تجمع درجة الخطر الاشتراك والسعة والتكليفات المتأخرة والتقارير المنتظرة والنشاط.</p>
+      </div>
+      <div class="exec-table-tools">
+        <label class="exec-search">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <span class="sr-only">ابحث عن مدرسة</span>
+          <input type="search" placeholder="ابحث عن مدرسة…" data-school-search autocomplete="off">
+        </label>
+        <div class="exec-risk-filter" role="group" aria-label="تصفية المدارس حسب مستوى الخطر">
+          <button type="button" class="is-active" data-risk-filter="all">الكل</button>
+          <button type="button" data-risk-filter="danger">مرتفعة</button>
+          <button type="button" data-risk-filter="warning">متوسطة</button>
+          <button type="button" data-risk-filter="stable">مستقرة</button>
+        </div>
+      </div>
     </div>
 
-    {% if rows %}
+    {% if ranked_rows %}
       <div class="exec-scroll">
         <table class="exec-table">
           <thead>
             <tr>
               <th scope="col">المدرسة</th>
-              <th scope="col">المعلمون</th>
-              <th scope="col">تقارير الفترة</th>
-              <th scope="col">النشاط</th>
-              <th scope="col">ملفات الإنجاز</th>
-              <th scope="col">الاستهلاك</th>
+              <th scope="col">الحالة</th>
+              <th scope="col">سبب المتابعة</th>
+              <th scope="col">نشاط التقارير</th>
+              <th scope="col">التكليفات</th>
               <th scope="col">الاشتراك</th>
+              <th scope="col">الاستهلاك</th>
+              <th scope="col"><span class="sr-only">الإجراء</span></th>
             </tr>
           </thead>
           <tbody>
-            {% for row in rows %}
-              <tr>
+            {% for row in ranked_rows %}
+              <tr data-school-row data-risk="{{ row.risk_tone }}" data-search="{{ row.school.name|lower }} {{ row.school.city|default:''|lower }}">
                 <td>
-                  <a class="exec-table__school" href="{% url 'reports:group_school_detail' row.school.pk %}" style="color:inherit">{{ row.school.name }}</a>
+                  <a class="exec-table__school" href="{% url 'reports:group_school_detail' row.school.pk %}">{{ row.school.name }}</a>
                   <span class="exec-table__sub">
-                    {{ row.school.get_stage_display }} · {{ row.school.get_gender_display }}
-                    {% if row.school.city %} · {{ row.school.city }}{% endif %}
+                    {{ row.school.get_stage_display }} · {{ row.school.get_gender_display }}{% if row.school.city %} · {{ row.school.city }}{% endif %}
                   </span>
                 </td>
-                <td class="exec-num">{{ row.teachers|intcomma }}</td>
-                <td class="exec-num">{{ row.reports_recent|intcomma }}</td>
                 <td>
-                  <div class="exec-bar">
-                    <span class="exec-bar__track">
-                      <span class="exec-bar__fill" style="width: {{ row.activity_share }}%"></span>
-                    </span>
-                    <span class="exec-num" style="font-size:.76rem">{{ row.activity_share }}%</span>
+                  <span class="exec-risk exec-risk--{{ row.risk_tone }}"><i class="fa-solid fa-circle" aria-hidden="true"></i>{{ row.risk_label }}</span>
+                  <span class="exec-score">{{ row.risk_score }}/100</span>
+                </td>
+                <td>
+                  {% if row.risk_reasons %}
+                    <span class="exec-reason">{{ row.risk_reasons.0 }}</span>
+                    {% if row.risk_reasons|length > 1 %}<small>+{{ row.risk_reasons|length|add:"-1" }} مؤشرات أخرى</small>{% endif %}
+                  {% else %}<span class="exec-reason is-stable">لا مؤشر مقلق</span>{% endif %}
+                </td>
+                <td>
+                  <strong class="exec-num">{{ row.reports_recent|intcomma }}</strong>
+                  <span class="exec-delta {% if row.reports_delta > 0 %}is-up{% elif row.reports_delta < 0 %}is-down{% endif %}">
+                    {% if row.reports_delta > 0 %}+{% endif %}{{ row.reports_delta }}
+                  </span>
+                  <small>مقابل الفترة السابقة</small>
+                </td>
+                <td>
+                  <div class="exec-progress">
+                    <span><b>{{ row.completion }}%</b>{% if row.assignments_overdue %}<em>{{ row.assignments_overdue }} متأخر</em>{% endif %}</span>
+                    <span class="exec-progress__track"><span style="width:{{ row.completion }}%"></span></span>
                   </div>
                 </td>
-                <td class="exec-num">{{ row.achievements|intcomma }}</td>
-                <td>{% include "reports/partials/consumption_rows.html" with row=row.consumption %}</td>
                 <td><span class="exec-chip exec-chip--{{ row.subscription.tone }}">{{ row.subscription.label }}</span></td>
+                <td>{% include "reports/partials/consumption_rows.html" with row=row.consumption %}</td>
+                <td><a class="exec-row-action" href="{% url 'reports:group_school_detail' row.school.pk %}" aria-label="فتح ملف {{ row.school.name }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a></td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+      <p class="exec-no-results" data-school-empty hidden>لا توجد مدرسة تطابق البحث أو مستوى الخطر المحدد.</p>
+      <p class="sr-only" aria-live="polite" data-school-count></p>
     {% else %}
-      <p class="exec-empty">
+      <div class="exec-empty">
         <i class="fa-solid fa-school-circle-exclamation" aria-hidden="true"></i>
-        لا توجد مدارس مرتبطة بهذه المجموعة بعد.
-      </p>
+        <strong>لا توجد مدارس مرتبطة بهذه المجموعة بعد</strong>
+        <p>ستظهر مؤشرات المدارس هنا فور إضافتها وتفعيلها.</p>
+      </div>
     {% endif %}
   </section>
-
 </div>
 {% endblock %}

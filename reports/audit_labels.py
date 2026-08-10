@@ -21,7 +21,7 @@ from dataclasses import dataclass
 _MODELS: dict[str, tuple[str, str, str]] = {
     "Report": ("تقرير", "تقريراً", "fa-file-lines"),
     "Ticket": ("طلب", "طلباً", "fa-inbox"),
-    "Teacher": ("مستخدم", "مستخدماً", "fa-user"),
+    "Teacher": ("مستخدم", "بيانات مستخدم", "fa-user"),
     "School": ("مدرسة", "مدرسة", "fa-school"),
     "Department": ("قسم", "قسماً", "fa-sitemap"),
     "SchoolMembership": ("عضوية مدرسة", "عضوية مدرسة", "fa-id-badge"),

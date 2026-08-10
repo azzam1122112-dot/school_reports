@@ -104,6 +104,18 @@ def _experiment_for(request, pk: int, school) -> LabExperiment:
     )
 
 
+def _submission_missing(experiment: LabExperiment) -> list[dict[str, str]]:
+    """بيانات الإرسال الناقصة بصياغة تصلح لقائمة تحقق في الشاشة."""
+    missing = []
+    if not (experiment.title or "").strip():
+        missing.append({"field": "title", "label": "عنوان التجربة"})
+    if experiment.experiment_date is None:
+        missing.append({"field": "experiment_date", "label": "تاريخ التنفيذ"})
+    if not (experiment.procedure or "").strip():
+        missing.append({"field": "procedure", "label": "خطوات التنفيذ"})
+    return missing
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # لوحة المختبر
 # ─────────────────────────────────────────────────────────────────────────────
@@ -200,6 +212,7 @@ def lab_assets(request: HttpRequest) -> HttpResponse:
         condition = ""
 
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page") or 1)
+    summary = lab_summary(school)
 
     return render(
         request,
@@ -209,7 +222,7 @@ def lab_assets(request: HttpRequest) -> HttpResponse:
             "active_school": school,
             "form": form,
             "page_obj": page,
-            "summary": lab_summary(school),
+            "summary": summary,
             "categories": LabAsset.Category.choices,
             "conditions": LabAsset.Condition.choices,
             "q_term": term,
@@ -384,9 +397,7 @@ def lab_experiments(request: HttpRequest) -> HttpResponse:
             experiment.recorder = request.user
             experiment.save()
             form.save_m2m()
-            messages.success(
-                request, "وُثِّقت التجربة كمسودة. أرسلها للاعتماد حين تكتمل."
-            )
+            messages.success(request, "حُفظت المسودة. أكملها ثم أرسلها للاعتماد.")
             return redirect("reports:lab_experiment_detail", pk=experiment.pk)
         messages.error(request, "تعذّر حفظ التجربة — تحقّق من الحقول.")
 
@@ -406,6 +417,7 @@ def lab_experiments(request: HttpRequest) -> HttpResponse:
         state = ""
 
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page") or 1)
+    summary = lab_summary(school)
 
     return render(
         request,
@@ -415,13 +427,14 @@ def lab_experiments(request: HttpRequest) -> HttpResponse:
             "active_school": school,
             "form": form,
             "page_obj": page,
-            "summary": lab_summary(school),
+            "summary": summary,
             "states": ApprovalState.choices,
             "q_term": term,
             "q_state": state,
             "has_filters": bool(term or state),
             "qs": _clean_query_params(request.GET),
             "can_record": can_record,
+            "has_lab_assets": summary["assets_total"] > 0,
         },
     )
 
@@ -475,6 +488,8 @@ def lab_experiment_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "actions": available_actions(experiment, request.user, school=school),
             "timeline": list(transitions_for(experiment)),
             "can_record": can_record,
+            "submission_missing": _submission_missing(experiment),
+            "has_lab_assets": form.fields["assets"].queryset.exists(),
         },
     )
 

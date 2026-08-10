@@ -1,6 +1,6 @@
 {# reports/templates/reports/ticket_detail.html #}
 {% extends "base.html" %}
-{% load static ticket_notes %}
+{% load static ticket_notes hijri_tags %}
 
 {% block title %}
   {% if t.is_platform %}دعم فني #{{ t.id }} - {{ t.title }}{% else %}طلب #{{ t.id }} - {{ t.title }}{% endif %}
@@ -366,7 +366,7 @@
         <h1 class="hero-title">{{ t.title|default:"(بدون عنوان)" }}</h1>
         
         <div class="hero-meta">
-          <span><i class="fa-regular fa-calendar"></i> {{ t.created_at|date:"Y-m-d H:i" }}</span>
+          <span><i class="fa-regular fa-calendar"></i> {{ t.created_at|hijri }} هـ · {{ t.created_at|date:"Y-m-d H:i" }} م</span>
           <span><i class="fa-regular fa-user"></i> {{ t.creator.name|default:"غير معروف" }}</span>
           {% if not t.is_platform %}
             <span><i class="fa-solid fa-building-columns"></i> {{ t.department.name|default:"—" }}</span>
@@ -411,11 +411,11 @@
                   {% if t.attachment %}
                     {% with att_url=t.attachment.url|lower %}
                       {% if '.jpg' in att_url or '.png' in att_url or '.jpeg' in att_url or '.webp' in att_url %}
-                        <a href="{{ t.attachment.url }}" class="gallery-item lightbox-trigger">
-                          <img src="{{ t.attachment.url }}" alt="Attachment">
+                        <a href="{{ t.attachment.url }}" class="gallery-item lightbox-trigger" aria-label="فتح مرفق الطلب">
+                          <img src="{{ t.attachment.url }}" alt="مرفق الطلب">
                         </a>
                       {% else %}
-                        <a href="{{ t.attachment.url }}" target="_blank" class="gallery-item" style="display:flex;align-items:center;justify-content:center;background:var(--c-surface-alt);color:var(--c-text-muted);text-decoration:none;">
+                        <a href="{{ t.attachment.url }}" target="_blank" rel="noopener" class="gallery-item" aria-label="فتح مرفق الطلب في نافذة جديدة" style="display:flex;align-items:center;justify-content:center;background:var(--c-surface-alt);color:var(--c-text-muted);text-decoration:none;">
                           <i class="fa-solid fa-paperclip fa-2x"></i>
                         </a>
                       {% endif %}
@@ -423,8 +423,8 @@
                   {% endif %}
                   
                   {% for im in images %}
-                    <a href="{{ im.image.url }}" class="gallery-item lightbox-trigger">
-                      <img src="{{ im.image.url }}" alt="Image">
+                    <a href="{{ im.image.url }}" class="gallery-item lightbox-trigger" aria-label="فتح صورة مرفقة بالطلب">
+                      <img src="{{ im.image.url }}" alt="صورة مرفقة بالطلب">
                     </a>
                   {% endfor %}
                 </div>
@@ -453,7 +453,7 @@
                         <span style="opacity:0.7;font-weight:400">({{ n.author.display_role_label }})</span>
                       {% endif %}
                     </span>
-                    <span>{{ n.created_at|date:"Y-m-d H:i" }}</span>
+                    <span>{{ n.created_at|hijri }} هـ · {{ n.created_at|date:"Y-m-d H:i" }} م</span>
                   </div>
                   <div class="note-content">{{ n.body|ticket_note_ar|default:""|linebreaksbr }}</div>
                   
@@ -480,33 +480,48 @@
       {% if can_act and form %}
         <section class="lux-card" style="border-color:var(--c-brand);">
           <div class="lux-card-header" style="background:var(--c-brand-light);">
-            <h3 class="lux-card-title" style="color:var(--c-brand);"><i class="fa-solid fa-gavel"></i> اتخاذ إجراء</h3>
+            <h3 class="lux-card-title" style="color:var(--c-brand);">
+              {% if t.status == 'done' or t.status == 'rejected' %}
+                <i class="fa-solid fa-lock"></i> الطلب مغلق
+              {% else %}
+                <i class="fa-solid fa-gavel"></i> اتخاذ إجراء
+              {% endif %}
+            </h3>
           </div>
           <div class="lux-card-body">
-            <form method="post" novalidate>
-              {% csrf_token %}
-              <div style="margin-bottom:16px;">
-                <label class="dl-label" style="display:block;margin-bottom:8px;">تحديث الحالة:</label>
-                <select name="status" class="lux-select">
-                    {% for value,label in form.fields.status.choices %}
-                    <option value="{{ value }}" {% if value == t.status %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-              </div>
-              
-              <div style="margin-bottom:16px;">
-                <label class="dl-label" style="display:block;margin-bottom:8px;">إضافة رد أو ملاحظة:</label>
-                {% if t.status == 'done' or t.status == 'rejected' %}
-                    <div style="color:red;font-size:0.9rem;">الطلب مغلق (مكتمل أو مرفوض)، لا يمكن إضافة ملاحظات جديدة.</div>
-                {% else %}
-                    <textarea name="note" class="lux-textarea" rows="4" placeholder="اكتب ردّك هنا..."></textarea>
-                {% endif %}
-              </div>
+            {% if t.status == 'done' or t.status == 'rejected' %}
+              <p style="margin:0 0 16px;color:var(--c-text-muted);line-height:1.8;">
+                لا يمكن تعديل الحالة أو إضافة ردود إلى طلب مغلق. إذا عاد الطلب للعمل، أعد فتحه أولاً ثم سجّل التحديث المطلوب.
+              </p>
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="ticket_action" value="reopen">
+                <button type="submit" class="action-btn primary">
+                  <i class="fa-solid fa-lock-open"></i> إعادة فتح الطلب
+                </button>
+              </form>
+            {% else %}
+              <form method="post" novalidate>
+                {% csrf_token %}
+                <div style="margin-bottom:16px;">
+                  <label class="dl-label" for="ticketStatus" style="display:block;margin-bottom:8px;">تحديث الحالة:</label>
+                  <select id="ticketStatus" name="status" class="lux-select">
+                      {% for value,label in form.fields.status.choices %}
+                      <option value="{{ value }}" {% if value == t.status %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                  </select>
+                </div>
 
-              <button type="submit" class="action-btn primary">
-                <i class="fa-regular fa-paper-plane"></i> حفظ التحديث
-              </button>
-            </form>
+                <div style="margin-bottom:16px;">
+                    <label class="dl-label" for="ticketActionNote" style="display:block;margin-bottom:8px;">إضافة رد أو ملاحظة:</label>
+                    <textarea id="ticketActionNote" name="note" class="lux-textarea" rows="4" placeholder="اكتب ردّك هنا..."></textarea>
+                </div>
+
+                <button type="submit" class="action-btn primary">
+                  <i class="fa-regular fa-paper-plane"></i> حفظ التحديث
+                </button>
+              </form>
+            {% endif %}
           </div>
         </section>
 
@@ -519,7 +534,8 @@
               <form method="post" novalidate>
                 {% csrf_token %}
                 <div style="margin-bottom:16px;">
-                  <textarea name="note" class="lux-textarea" rows="4" placeholder="هل تود إضافة معلومات أخرى؟"></textarea>
+                  <label class="dl-label" for="ticketOwnerNote" style="display:block;margin-bottom:8px;">معلومات إضافية</label>
+                  <textarea id="ticketOwnerNote" name="note" class="lux-textarea" rows="4" placeholder="هل تود إضافة معلومات أخرى؟"></textarea>
                 </div>
                 <button type="submit" class="action-btn primary">
                   <i class="fa-solid fa-plus"></i> إضافة الرد
@@ -568,6 +584,7 @@
           
           <div style="padding:16px;">
             <div class="dl-label" style="margin-bottom:4px">رابط مباشر</div>
+            <label class="sr-only" for="ticketDirectLink">الرابط المباشر للطلب</label>
             <input type="text" id="ticketDirectLink" readonly value="{{ request.build_absolute_uri }}" class="lux-input" style="font-size:0.8rem; color:var(--c-text-muted);">
           </div>
         </div>

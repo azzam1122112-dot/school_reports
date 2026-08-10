@@ -107,6 +107,43 @@
     padding: 36px 32px;
   }
 
+  .or-scope .scope-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin: -14px 0 24px;
+    padding: 20px 22px;
+    color: var(--or-text);
+    background: color-mix(in srgb, var(--or-warning) 12%, var(--or-surface));
+    border: 1px solid color-mix(in srgb, var(--or-warning) 42%, var(--or-border));
+    border-radius: var(--or-radius-lg);
+    box-shadow: var(--or-shadow-sm);
+  }
+
+  .or-scope .scope-notice__icon {
+    display: grid;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    color: var(--or-primary-dark);
+    background: var(--or-surface);
+    border: 1px solid var(--or-border);
+    border-radius: 14px;
+  }
+
+  .or-scope .scope-notice strong {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 900;
+  }
+
+  .or-scope .scope-notice p {
+    margin: 0;
+    color: var(--or-text-soft);
+    line-height: 1.8;
+  }
+
   /* Filters Section */
   .or-scope .filters-form {
     margin-bottom: 32px;
@@ -690,10 +727,23 @@
       </p>
     </header>
 
+    {% if configuration_missing %}
+      <section class="scope-notice" role="status" aria-labelledby="orConfigurationTitle">
+        <span class="scope-notice__icon" aria-hidden="true"><i class="fa-solid fa-link-slash"></i></span>
+        <div>
+          <strong id="orConfigurationTitle">تقارير القسم غير مهيأة بعد</strong>
+          <p>
+            عضويتك في قسم «{{ department.name }}» فعّالة، لكن الإدارة لم تربط القسم بأنواع التقارير بعد.
+            ستظهر التقارير هنا تلقائياً بعد إكمال الربط، ولا يلزمك اتخاذ أي إجراء الآن.
+          </p>
+        </div>
+      </section>
+    {% endif %}
+
     <div class="card">
 
       <!-- Filters -->
-      <form method="get" class="filters-form" novalidate>
+      {% if not configuration_missing %}<form method="get" class="filters-form" novalidate>
         <div class="filters-grid">
 
           <div class="filter-group">
@@ -707,13 +757,13 @@
           </div>
 
           <div class="filter-group">
-            <label for="orTeacherName">👤 اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</label>
+            <label for="orTeacherName">👤 اسم المنسوب</label>
             <input
               id="orTeacherName"
               type="text"
               name="teacher_name"
               value="{{ teacher_name }}"
-              placeholder="اكتب اسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }} أو جزء منه"
+              placeholder="اكتب اسم المنسوب أو جزءاً منه"
               class="filter-input"
               autocomplete="off"
             >
@@ -738,7 +788,7 @@
             <a href="{{ request.path }}" class="btn btn-outline">🧹 مسح الفلاتر</a>
           {% endif %}
         </div>
-      </form>
+      </form>{% endif %}
 
       {# نحافظ على querystring للترقيم (بدون استدعاءات دوال داخل القالب) #}
       {% with qsp="" %}
@@ -753,7 +803,7 @@
             <thead>
               <tr>
                 <th>📅 التاريخ</th>
-                <th>👤 {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</th>
+                <th>👤 المنسوب</th>
                 <th>📖 العنوان</th>
                 <th>🏷️ التصنيف</th>
                 <th class="text-center">👥 {{ SCHOOL_BENEFICIARIES_LABEL|default:"المستفيدون" }}</th>
@@ -854,7 +904,9 @@
                 </tr>
               {% empty %}
                 <tr>
-                  <td colspan="8" class="text-center muted" style="padding:18px">لا توجد تقارير ضمن قسمك.</td>
+                  <td colspan="8" class="text-center muted" style="padding:18px">
+                    {% if configuration_missing %}ستظهر التقارير بعد ربط الإدارة القسم بأنواع التقارير.{% else %}لا توجد تقارير ضمن قسمك وفق الفلاتر الحالية.{% endif %}
+                  </td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -924,7 +976,9 @@
               </div>
             </article>
           {% empty %}
-            <div class="muted" style="text-align:center;padding:18px">لا توجد تقارير ضمن قسمك.</div>
+            <div class="muted" style="text-align:center;padding:18px">
+              {% if configuration_missing %}ستظهر التقارير بعد ربط الإدارة القسم بأنواع التقارير.{% else %}لا توجد تقارير ضمن قسمك وفق الفلاتر الحالية.{% endif %}
+            </div>
           {% endfor %}
         </div>
 
@@ -954,7 +1008,7 @@
       <div id="modalIdea" class="modal-idea"></div>
 
       <div class="modal-meta">
-        <div>👤 <b>{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}:</b> <span id="modalTeacher"></span></div>
+        <div>👤 <b>المنسوب:</b> <span id="modalTeacher"></span></div>
         <div>📖 <b>العنوان:</b> <span id="modalTitle"></span></div>
         <div>📅 <b>التاريخ:</b> <span id="modalDate"></span></div>
       </div>

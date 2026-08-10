@@ -128,23 +128,7 @@
         <h2><i class="fa-solid fa-pen" aria-hidden="true"></i> بيانات الصنف</h2>
       </div>
       <div class="lab-card">
-        <form method="post" class="lab-form" novalidate>
-          {% csrf_token %}
-          {% if form.non_field_errors %}
-            <ul class="errorlist">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
-          {% endif %}
-          <div class="lab-grid-2">
-            {% for field in form %}
-              <div class="lab-field">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
-                {{ field.errors }}
-              </div>
-            {% endfor %}
-          </div>
-          <div><button type="submit" class="lab-btn">احفظ التعديل</button></div>
-        </form>
+        {% include "reports/_lab_asset_form.html" with save_label="احفظ التعديل" %}
       </div>
     </section>
   {% else %}
@@ -161,23 +145,23 @@
 
     {% if handovers %}
       <div class="lab-table-wrap">
-        <table class="lab-table">
+        <table class="lab-table lab-table--cards">
           <thead>
             <tr><th>الحركة</th><th>الكمية</th><th>الشخص</th><th>التاريخ</th><th>سجّلها</th><th>ملاحظة</th></tr>
           </thead>
           <tbody>
             {% for handover in handovers %}
               <tr>
-                <td>
+                <td data-label="الحركة">
                   <span class="lab-chip {% if handover.direction == 'out' %}lab-chip--warn{% else %}lab-chip--good{% endif %}">
                     {{ handover.get_direction_display }}
                   </span>
                 </td>
-                <td>{{ handover.quantity }}</td>
-                <td>{{ handover.person_name|default:"—" }}</td>
-                <td dir="rtl">{{ handover.happened_at|hijri }}</td>
-                <td>{% firstof handover.recorded_by.name "—" %}</td>
-                <td>{{ handover.note|default:"—" }}</td>
+                <td data-label="الكمية">{{ handover.quantity }}</td>
+                <td data-label="الشخص">{{ handover.person_name|default:"—" }}</td>
+                <td data-label="التاريخ" dir="rtl">{{ handover.happened_at|hijri }}</td>
+                <td data-label="سجّلها">{% firstof handover.recorded_by.name "—" %}</td>
+                <td data-label="ملاحظة">{{ handover.note|default:"—" }}</td>
               </tr>
             {% endfor %}
           </tbody>

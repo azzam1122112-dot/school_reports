@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load hijri_tags %}
 
-{% block title %}{{ experiment.title }} | تجارب المختبر{% endblock %}
+{% block title %}{{ experiment.title|default:"مسودة تجربة" }} | تجارب المختبر{% endblock %}
 
 {% block head %}{% include "reports/_lab_theme.html" %}{% endblock %}
 
@@ -13,9 +13,9 @@
       <i class="fa-solid fa-vials" aria-hidden="true"></i>
       تجربة مختبر
     </span>
-    <h1>{{ experiment.title }}</h1>
+    <h1>{{ experiment.title|default:"مسودة تجربة بلا عنوان" }}</h1>
     <p class="lab-hero__lead">
-      <span dir="rtl">{{ experiment.experiment_date|hijri }}</span>
+      <span dir="rtl">{% if experiment.experiment_date %}{{ experiment.experiment_date|hijri }}{% else %}لم يُحدَّد تاريخ التنفيذ{% endif %}</span>
       {% if experiment.subject %}· {{ experiment.subject }}{% endif %}
       {% if experiment.class_name %}· {{ experiment.class_name }}{% endif %}
       {% if experiment.students_count %}· {{ experiment.students_count }} طالباً{% endif %}
@@ -55,6 +55,16 @@
       {% if actions %}
         <form method="post" action="{% url 'reports:lab_experiment_action' experiment.pk %}" class="lab-form">
           {% csrf_token %}
+          {% if submission_missing and 'submit' in actions %}
+            <div class="lab-readiness" role="status">
+              <strong><i class="fa-solid fa-list-check" aria-hidden="true"></i> أكمل هذه البيانات قبل الإرسال:</strong>
+              <ul>
+                {% for item in submission_missing %}
+                  <li><a class="lab-link" href="#id_{{ item.field }}">{{ item.label }}</a></li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
           <div class="lab-field">
             <label for="note">ملاحظة (تُلزم عند الإعادة أو طلب الاستكمال)</label>
             <input class="form-control" type="text" id="note" name="note" maxlength="500">
@@ -62,6 +72,7 @@
           <div style="display:flex;flex-wrap:wrap;gap:.5rem">
             {% for action in actions %}
               <button type="submit" name="approval_action" value="{{ action }}"
+                      {% if action == 'submit' and submission_missing %}disabled title="أكمل بيانات الإرسال أولاً"{% endif %}
                       class="lab-btn {% if action == 'return' or action == 'request_info' %}lab-btn--danger{% elif action != 'approve' %}lab-btn--ghost{% endif %}">
                 {% if action == 'submit' %}أرسِل للاعتماد
                 {% elif action == 'withdraw' %}اسحب للتعديل
@@ -94,6 +105,7 @@
       <h2><i class="fa-solid fa-file-lines" aria-hidden="true"></i> تفصيل التجربة</h2>
     </div>
     <div class="lab-card">
+      {% if experiment.requested_by or experiment.objectives or experiment.procedure or experiment.materials_note or experiment.assets.all or experiment.safety_notes or experiment.report %}
       <dl style="display:grid;gap:.9rem;margin:0">
         {% if experiment.requested_by %}
           <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">طلبها</dt>
@@ -130,6 +142,13 @@
           </dd></div>
         {% endif %}
       </dl>
+      {% else %}
+        <div class="lab-empty">
+          <span class="lab-empty__icon"><i class="fa-solid fa-pen" aria-hidden="true"></i></span>
+          <strong>تفاصيل المسودة لم تُكتب بعد.</strong>
+          استخدم قسم التعديل أدناه لإكمال بيانات التجربة.
+        </div>
+      {% endif %}
     </div>
   </section>
 
@@ -140,31 +159,7 @@
         <h2><i class="fa-solid fa-pen" aria-hidden="true"></i> تعديل</h2>
       </div>
       <div class="lab-card">
-        <form method="post" class="lab-form" novalidate>
-          {% csrf_token %}
-          {% if form.non_field_errors %}
-            <ul class="errorlist">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
-          {% endif %}
-          <div class="lab-grid-2">
-            {% for field in form %}
-              {% if field.name != 'objectives' and field.name != 'procedure' and field.name != 'materials_note' and field.name != 'safety_notes' %}
-                <div class="lab-field">
-                  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                  {{ field }}{{ field.errors }}
-                </div>
-              {% endif %}
-            {% endfor %}
-          </div>
-          {% for field in form %}
-            {% if field.name == 'objectives' or field.name == 'procedure' or field.name == 'materials_note' or field.name == 'safety_notes' %}
-              <div class="lab-field">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}{{ field.errors }}
-              </div>
-            {% endif %}
-          {% endfor %}
-          <div><button type="submit" class="lab-btn">احفظ التعديل</button></div>
-        </form>
+        {% include "reports/_lab_experiment_form.html" with save_label="احفظ التعديل" %}
       </div>
     </section>
   {% endif %}

@@ -317,8 +317,12 @@ class LabExperiment(ApprovalMixin):
         related_name="lab_experiments_requested",
         verbose_name="المعلّم الطالب للتجربة",
     )
-    title = models.CharField("عنوان التجربة", max_length=200)
-    experiment_date = models.DateField("تاريخ التنفيذ", db_index=True)
+    # المسودة قد تُنشأ قبل اكتمال التفاصيل. الإرسال وحده هو الذي يفرض العنوان
+    # والتاريخ والخطوات عبر ``assert_ready_for_submission`` أدناه.
+    title = models.CharField("عنوان التجربة", max_length=200, blank=True, default="")
+    experiment_date = models.DateField(
+        "تاريخ التنفيذ", null=True, blank=True, db_index=True
+    )
     subject = models.CharField("المادة", max_length=120, blank=True, default="")
     class_name = models.CharField(
         "الصف / الشعبة", max_length=120, blank=True, default=""
@@ -366,7 +370,7 @@ class LabExperiment(ApprovalMixin):
         ]
 
     def __str__(self) -> str:
-        return self.title
+        return self.title or "مسودة تجربة بلا عنوان"
 
     def assert_ready_for_submission(self) -> None:
         """ما لا تُرسَل التجربة بدونه.

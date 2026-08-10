@@ -93,8 +93,17 @@ def my_assignments(request):
     targets = list(targets_for_assignee(request.user, school))
     now = timezone.now()
 
-    open_targets = [t for t in targets if t.approval_state != ApprovalState.APPROVED]
-    done_targets = [t for t in targets if t.approval_state == ApprovalState.APPROVED]
+    # الإلغاء حالة أرشيفية مستقلة: لا هو «قيد العمل» ولا «منجز». إبقاؤه في
+    # المفتوح كان يجعل القائمة تناقض عدّاد الرئيسية، ويعرض للمكلَّف أزرار عمل
+    # على تكليف تمنعه الخدمات من تعديله.
+    cancelled_targets = [t for t in targets if t.assignment.is_cancelled]
+    active_targets = [t for t in targets if not t.assignment.is_cancelled]
+    open_targets = [
+        t for t in active_targets if t.approval_state != ApprovalState.APPROVED
+    ]
+    done_targets = [
+        t for t in active_targets if t.approval_state == ApprovalState.APPROVED
+    ]
     overdue = [t for t in open_targets if t.is_overdue]
     # «قريب» = أقل من ثلاثة أيام. المدى القصير هو ما يستحق تنبيهاً؛ ما بعده
     # يظهر في القائمة ولا يصرخ.
@@ -112,6 +121,7 @@ def my_assignments(request):
             "active_school": school,
             "open_targets": open_targets,
             "done_targets": done_targets,
+            "cancelled_targets": cancelled_targets,
             "overdue_count": len(overdue),
             "due_soon_count": len(due_soon),
             "total_count": len(targets),

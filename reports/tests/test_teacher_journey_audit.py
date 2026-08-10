@@ -58,6 +58,13 @@ TEACHER_PAGES = (
     "reports:my_circulars",
     "reports:my_notifications",
     "reports:assigned_to_me",
+    "reports:my_assignments",
+    "reports:meeting_list",
+    "reports:plan_list",
+    "reports:initiative_list",
+    "reports:document_archive",
+    "reports:my_work_archive",
+    "reports:my_activity_log",
     "reports:my_profile",
     "reports:user_guide",
 )
@@ -160,6 +167,8 @@ class TeacherJourneyAuditTests(TestCase):
             "reports:my_reports": reverse("reports:add_report"),
             "reports:achievement_my_files": "إنشاء",
             "reports:my_requests": reverse("reports:request_create"),
+            "reports:my_assignments": "لا تكليفات مفتوحة",
+            "reports:plan_list": "لا توجد خطط معتمدة لك بعد",
         }
         missing = [
             name

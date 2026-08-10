@@ -214,6 +214,10 @@ def _apply(obj, *, actor: Actor, action: str, to_state: str, note: str, **field_
     الاثنان معاً أو لا شيء: حالةٌ تغيّرت بلا واقعة تسجّلها تجعل السجل يكذب،
     وواقعةٌ بلا تغيّر حالة تجعله يبالغ.
     """
+    block_reason = getattr(obj, "approval_block_reason", "")
+    if block_reason:
+        raise ApprovalError(str(block_reason))
+
     from_state = obj.approval_state
     updates = {"approval_state": to_state, "review_note": (note or "").strip(), **field_updates}
 
@@ -487,6 +491,9 @@ def available_actions(obj, user, *, school=None) -> list[str]:
     مصدر واحد تقرأ منه الشاشة ويُقاس عليه الاختبار، فلا يعرض القالب زراً
     ترفضه الخدمة — وهو أسوأ ما يقابله مستخدم: فعلٌ مرئي ممنوع.
     """
+    if getattr(obj, "approval_block_reason", ""):
+        return []
+
     school = school or getattr(obj, "school", None)
     state = obj.approval_state
     is_owner = _owner_id(obj) == getattr(user, "pk", None)

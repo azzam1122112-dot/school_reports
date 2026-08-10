@@ -431,7 +431,7 @@ class SchoolMembershipAdmin(admin.ModelAdmin):
 
 
 from django.contrib import admin
-from .models import Notification, NotificationRecipient  # استورد من موضعك الفعلي
+from .models import Notification, NotificationRecipient, WebPushDelivery, WebPushSubscription
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
@@ -455,6 +455,36 @@ class NotificationRecipientAdmin(admin.ModelAdmin):
     list_filter = ("is_read", "created_at")
     search_fields = ("notification__title", "teacher__name")
     list_select_related = ("notification", "teacher")
+
+
+@admin.register(WebPushSubscription)
+class WebPushSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("id", "teacher", "is_active", "failure_count", "last_success_at", "updated_at")
+    list_filter = ("is_active", "updated_at")
+    search_fields = ("teacher__name", "teacher__phone", "endpoint")
+    readonly_fields = (
+        "teacher", "endpoint", "p256dh", "auth", "user_agent", "failure_count",
+        "last_success_at", "created_at", "updated_at",
+    )
+    list_select_related = ("teacher",)
+
+    def has_add_permission(self, request):
+        return False
+
+
+@admin.register(WebPushDelivery)
+class WebPushDeliveryAdmin(admin.ModelAdmin):
+    list_display = ("id", "notification", "subscription", "status", "attempts", "sent_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("notification__title", "subscription__teacher__name")
+    readonly_fields = (
+        "subscription", "notification", "status", "attempts", "last_error",
+        "last_attempt_at", "sent_at", "created_at",
+    )
+    list_select_related = ("notification", "subscription", "subscription__teacher")
+
+    def has_add_permission(self, request):
+        return False
 
 
 # =========================

@@ -313,10 +313,9 @@ class IncludedFeatureAccuracyTests(SimpleTestCase):
         self.assertIn("المتصفح", mobile["detail"])
         self.assertIn("لا يوجد تطبيق منفصل", mobile["detail"])
 
-    def test_no_feature_promises_push_notifications(self):
-        """The service worker handles install/activate/fetch/message only — there
-        is no PushManager, no VAPID key and no showNotification call, so alerts
-        reach users inside the platform rather than as device push."""
+    def test_pricing_does_not_overpromise_push_delivery_guarantees(self):
+        """Web Push now ships, but pricing must not imply an unconditional
+        guarantee: device permission, OS settings and connectivity still apply."""
         for feature in SUBSCRIPTION_INCLUDED_FEATURES:
             text = f"{feature['title']} {feature['detail']}"
             self.assertNotIn("إشعارات فورية", text, feature["title"])

@@ -40,3 +40,4 @@ from .plans import *           # noqa: F401,F403
 from .documents import *       # noqa: F401,F403
 from .circular_drafts import * # noqa: F401,F403
 from .group_oversight import * # noqa: F401,F403
+from .web_push import *       # noqa: F401,F403

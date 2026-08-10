@@ -48,7 +48,7 @@ class LabAssetForm(forms.ModelForm):
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "ميكروسكوب ضوئي"}),
             "code": forms.TextInput(attrs={"class": "form-control", "placeholder": "اختياري"}),
             "category": forms.Select(attrs={"class": "form-control"}),
-            "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
             "unit": forms.TextInput(attrs={"class": "form-control", "placeholder": "قطعة"}),
             "condition": forms.Select(attrs={"class": "form-control"}),
             "location": forms.TextInput(attrs={"class": "form-control", "placeholder": "دولاب ٣ — الرف الأعلى"}),
@@ -62,13 +62,18 @@ class LabAssetForm(forms.ModelForm):
         self.fields["custodian"].queryset = _school_members(school)
         self.fields["custodian"].required = False
         self.fields["custodian"].empty_label = "— بلا مسؤول محدَّد —"
+        self.fields["name"].help_text = "اسم واضح كما يظهر في كشف العهدة."
+        self.fields["code"].help_text = "اختياري — الرقم الرسمي أو التسلسلي إن وُجد."
+        self.fields["quantity"].help_text = "إجمالي الكمية المسجّلة، قطعة واحدة على الأقل."
+        self.fields["location"].help_text = "حدّد الدولاب والرف لتسهيل الوصول والجرد."
+        self.fields["custodian"].help_text = "يُسند تلقائياً لمحضر المختبر عند تركه فارغاً."
 
     def clean_quantity(self):
         quantity = self.cleaned_data.get("quantity")
         if quantity is None:
             return 0
-        if int(quantity) < 0:
-            raise forms.ValidationError("الكمية لا تكون سالبة.")
+        if int(quantity) < 1:
+            raise forms.ValidationError("أدخل قطعة واحدة على الأقل.")
         return int(quantity)
 
     def clean(self):
@@ -193,7 +198,21 @@ class LabExperimentForm(forms.ModelForm):
         self.fields["report"].required = False
         self.fields["report"].empty_label = "— بلا تقرير مرتبط —"
 
-        # الحقول الثلاثة التي يشترطها الإرسال تُعلَن مطلوبةً في الشاشة أيضاً،
-        # فلا يكتشف صاحبها الشرط عند الإرسال بعد أن حسب العمل منتهياً.
+        # المسودة عملٌ قيد الإنشاء، لذلك تقبل النقص. عند الإرسال يفرض النموذج
+        # نفسه عبر ``assert_ready_for_submission`` العنوان والتاريخ والخطوات.
         for name in ("title", "experiment_date", "procedure"):
-            self.fields[name].required = True
+            self.fields[name].required = False
+
+        self.fields["students_count"].required = False
+        self.fields["students_count"].widget.attrs["placeholder"] = "مثال: 24"
+        self.fields["students_count"].help_text = "اختياري في المسودة؛ اتركه فارغاً إن لم يُحصر بعد."
+        self.fields["assets"].help_text = "اختر ما استُخدم فعلياً من عهدة المختبر."
+        self.fields["objectives"].help_text = "ما الذي يُفترض أن يتعلمه الطلاب أو يلاحظوه؟"
+        self.fields["procedure"].help_text = "يلزم قبل الإرسال للاعتماد. اكتب خطوات قابلة للتكرار."
+
+        if not self.instance.pk and not self.is_bound:
+            self.initial["students_count"] = None
+
+    def clean_students_count(self):
+        value = self.cleaned_data.get("students_count")
+        return 0 if value in (None, "") else value

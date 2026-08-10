@@ -18,6 +18,12 @@
       يدوياً — فما في يد معلّمٍ لا يُحسب في المختبر.
     </p>
     <div class="lab-hero__actions">
+      {% if can_record %}
+        <a class="lab-act lab-act--solid" href="#new-asset">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          إضافة صنف جديد
+        </a>
+      {% endif %}
       <a class="lab-act" href="{% url 'reports:lab_dashboard' %}">
         <i class="fa-solid fa-flask" aria-hidden="true"></i>
         لوحة المختبر
@@ -50,34 +56,22 @@
 
   {# ═══ الإضافة — للمسجّل وحده ════════════════════════════════ #}
   {% if can_record %}
-    <section class="lab-section">
-      <div class="lab-section__head">
-        <h2><i class="fa-solid fa-plus" aria-hidden="true"></i> إضافة صنف</h2>
-      </div>
-      <div class="lab-card">
-        <form method="post" class="lab-form" novalidate>
-          {% csrf_token %}
-          {% if form.non_field_errors %}
-            <ul class="errorlist">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
-          {% endif %}
-          <div class="lab-grid-2">
-            {% for field in form %}
-              <div class="lab-field">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
-                {{ field.errors }}
-              </div>
-            {% endfor %}
-          </div>
-          <div>
-            <button type="submit" class="lab-btn">
-              <i class="fa-solid fa-plus" aria-hidden="true"></i>
-              أضِف إلى الجرد
-            </button>
-          </div>
-        </form>
-      </div>
+    <section class="lab-section" id="new-asset">
+      <details class="lab-entry" {% if form.errors or not summary.assets_total %}open{% endif %}>
+        <summary>
+          <span class="lab-entry__title">
+            <span class="lab-entry__icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+            <span class="lab-entry__copy">
+              <strong>إضافة صنف إلى العهدة</strong>
+              <small>سجّل بياناته الأساسية ومكانه وحالته.</small>
+            </span>
+          </span>
+          <i class="fa-solid fa-chevron-down lab-entry__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="lab-entry__body">
+          {% include "reports/_lab_asset_form.html" with save_label="أضِف إلى الجرد" %}
+        </div>
+      </details>
     </section>
   {% endif %}
 
@@ -118,7 +112,7 @@
 
     {% if page_obj.object_list %}
       <div class="lab-table-wrap">
-        <table class="lab-table">
+        <table class="lab-table lab-table--cards">
           <thead>
             <tr>
               <th>الصنف</th><th>الرقم</th><th>النوع</th>
@@ -128,17 +122,17 @@
           <tbody>
             {% for asset in page_obj.object_list %}
               <tr>
-                <td><a href="{% url 'reports:lab_asset_detail' asset.pk %}">{{ asset.name }}</a></td>
-                <td>{{ asset.code|default:"—" }}</td>
-                <td>{{ asset.get_category_display }}</td>
-                <td>{{ asset.quantity }} {{ asset.unit }}</td>
-                <td>{{ asset.available_quantity }}</td>
-                <td>
+                <td data-label="الصنف"><a href="{% url 'reports:lab_asset_detail' asset.pk %}">{{ asset.name }}</a></td>
+                <td data-label="الرقم">{{ asset.code|default:"—" }}</td>
+                <td data-label="النوع">{{ asset.get_category_display }}</td>
+                <td data-label="الكمية">{{ asset.quantity }} {{ asset.unit }}</td>
+                <td data-label="المتاح">{{ asset.available_quantity }}</td>
+                <td data-label="الحالة">
                   <span class="lab-chip {% if asset.condition == 'good' %}lab-chip--good{% elif asset.condition == 'missing' or asset.condition == 'damaged' %}lab-chip--danger{% else %}lab-chip--warn{% endif %}">
                     {{ asset.get_condition_display }}
                   </span>
                 </td>
-                <td>{{ asset.location|default:"—" }}</td>
+                <td data-label="الموقع">{{ asset.location|default:"—" }}</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -152,8 +146,12 @@
           <strong>لا نتائج لهذه التصفية.</strong>
           جرّب مصطلحاً أعمّ أو أزِل المرشّحات.
         {% else %}
+          <span class="lab-empty__icon"><i class="fa-solid fa-box-open" aria-hidden="true"></i></span>
           <strong>الجرد فارغ بعد.</strong>
-          {% if can_record %}أضِف أول صنف من النموذج أعلاه.{% endif %}
+          {% if can_record %}
+            ابدأ بإضافة أول صنف، ثم سجّل حركته وحالته من صفحة التفاصيل.
+            <a class="lab-btn lab-btn--ghost" href="#new-asset">إضافة أول صنف</a>
+          {% endif %}
         {% endif %}
       </div>
     {% endif %}

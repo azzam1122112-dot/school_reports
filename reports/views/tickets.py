@@ -397,6 +397,7 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
     can_act = _can_act(user, t)
 
     if request.method == "POST":
+        ticket_action = (request.POST.get("ticket_action") or "").strip()
         status_val = (request.POST.get("status") or "").strip()
         note_txt   = (request.POST.get("note") or "").strip()
         changed = False
@@ -404,6 +405,42 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
         status_label = dict(getattr(Ticket.Status, "choices", [])).get
 
         locked_statuses = {Ticket.Status.DONE, Ticket.Status.REJECTED}
+
+        # إعادة فتح الطلب المغلق قرار مستقل ومقصود، وليست نتيجة جانبية لقائمة الحالة.
+        # هذا يمنع إعادة فتح طلب مكتمل بالخطأ أو عبر POST مصطنع يتجاوز الواجهة.
+        if ticket_action == "reopen":
+            if not can_act:
+                messages.warning(request, "لا تملك صلاحية إعادة فتح هذا الطلب.")
+            elif t.status not in locked_statuses:
+                messages.info(request, "الطلب مفتوح بالفعل ولا يحتاج إلى إعادة فتح.")
+            else:
+                old_status = t.status
+                with transaction.atomic():
+                    t.status = Ticket.Status.OPEN
+                    t.save(update_fields=["status"])
+                    TicketNote.objects.create(
+                        ticket=t,
+                        author=request.user,
+                        body="إعادة فتح الطلب: {} → {}".format(
+                            status_label(old_status, old_status),
+                            status_label(Ticket.Status.OPEN, Ticket.Status.OPEN),
+                        ),
+                        is_public=True,
+                    )
+                _notify_ticket_status_change(
+                    t,
+                    request.user,
+                    old_status,
+                    Ticket.Status.OPEN,
+                    status_label,
+                )
+                messages.success(request, "أُعيد فتح الطلب، ويمكن الآن تحديثه وإضافة الردود.")
+            return redirect("reports:ticket_detail", pk=pk)
+
+        if t.status in locked_statuses and status_val and status_val != t.status:
+            messages.warning(request, "الطلب مغلق. استخدم زر «إعادة فتح الطلب» قبل تغيير حالته.")
+            status_val = ""
+
         is_locked_now_or_will_be = (t.status in locked_statuses) or (status_val in locked_statuses)
 
         # إضافة ملاحظة (المرسل أو من يملك الصلاحية)

@@ -323,6 +323,7 @@
           له. ووضعه في الذيل يجعل الشاشة تسأل عن التصنيف قبل أن يوجد المصنَّف.
           {% endcomment %}
           <div class="doc-drop" id="docDrop" data-limit="5242880">
+            <label class="sr-only" for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>
             <span class="doc-drop__icon" aria-hidden="true"><i class="fa-solid fa-cloud-arrow-up"></i></span>
             <span class="doc-drop__title">اسحب الملف هنا أو انقر للاختيار</span>
             <span class="doc-drop__hint">{{ form.file.help_text }}</span>

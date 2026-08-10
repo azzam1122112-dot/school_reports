@@ -575,24 +575,16 @@
         <div class="rol-field">
           <label>{{ assign_form.role_type.label }}</label>
           <div class="rol-roles">
-            {% for value, label in assign_form.role_type.field.choices %}
+            {% for option in assign_form.assignment_cards %}
               <div class="rol-role">
-                <input type="radio" name="role_type" id="role-{{ forloop.counter }}" value="{{ value }}"
-                       {% if assign_form.role_type.value|stringformat:"s" == value|stringformat:"s" %}checked{% endif %}>
+                <input type="radio" name="role_type" id="role-{{ forloop.counter }}" value="{{ option.code }}"
+                       {% if assign_form.role_type.value|stringformat:"s" == option.code|stringformat:"s" %}checked{% endif %}>
                 <label class="rol-role__box" for="role-{{ forloop.counter }}">
                   <span class="rol-role__t">
-                    {% if value == 'deputy' %}<i class="fa-solid fa-user-tie" aria-hidden="true"></i>
-                    {% elif value == 'lab_tech' %}<i class="fa-solid fa-flask" aria-hidden="true"></i>
-                    {% elif value == 'admin_staff' %}<i class="fa-solid fa-user-gear" aria-hidden="true"></i>
-                    {% else %}<i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>{% endif %}
-                    {{ label }}
+                    <i class="{{ option.icon }}" aria-hidden="true"></i>
+                    {{ option.label }}
                   </span>
-                  <span class="rol-role__x">
-                    {% if value == 'deputy' %}إشراف ومراجعة ضمن نطاق تحدّده أنت. لا يعتمد نهائياً.
-                    {% elif value == 'lab_tech' %}تجهيز المختبر وتوثيق تجاربه وعُهدته — صلاحيته صلاحية الموظف الإداري.
-                    {% elif value == 'admin_staff' %}إعداد وتنفيذ وتوثيق، ويرفع عمله للمراجعة.
-                    {% else %}توثيق أعماله المهنية وملف إنجازه وتنفيذ التكليفات.{% endif %}
-                  </span>
+                  <span class="rol-role__x">{{ option.description }}</span>
                 </label>
               </div>
             {% endfor %}

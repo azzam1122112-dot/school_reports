@@ -1266,6 +1266,7 @@ def department_reports(request: HttpRequest) -> HttpResponse:
                 "end_date": "",
                 "department": dept,
                 "can_delete": False,
+                "configuration_missing": True,
             },
         )
 
@@ -1307,6 +1308,7 @@ def department_reports(request: HttpRequest) -> HttpResponse:
             "end_date": end_date.isoformat() if end_date else "",
             "department": dept,
             "can_delete": False,
+            "configuration_missing": False,
         },
     )
 

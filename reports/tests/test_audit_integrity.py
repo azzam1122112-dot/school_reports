@@ -142,6 +142,10 @@ class AuditEntryLabellingTests(TestCase):
         self.assertEqual(view.tone, "update")
         self.assertIn("تقرير", view.headline)
 
+    def test_teacher_update_uses_natural_arabic_wording(self):
+        view = describe(AuditLog(action="update", model_name="Teacher"))
+        self.assertEqual(view.headline, "تعديل بيانات مستخدم")
+
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class MyActivityLogPageTests(TestCase):

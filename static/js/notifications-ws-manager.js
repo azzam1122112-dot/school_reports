@@ -77,8 +77,10 @@
 
   function logCloseEvent(reason, code, durationMs) {
     var unexpected = reason !== 'navigation' && reason !== 'logout';
-    var shortLived = durationMs > 0 && durationMs < 2000;
-    if (!unexpected && !shortLived) return;
+    if (!unexpected) {
+      log('close', { reason: reason, code: code, durationMs: durationMs });
+      return;
+    }
     if (!window.console || !console.warn) return;
     try {
       console.warn('[WS-Notif] close', {
