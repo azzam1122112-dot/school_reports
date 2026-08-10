@@ -37,6 +37,7 @@ class PwaInstallExperienceTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, 'id="pwaInstallPrompt"')
             self.assertContains(response, 'id="pwaInstallAction"')
+            self.assertContains(response, 'data-auto-prompt="false"')
             self.assertContains(response, "css/pwa-install.css")
             self.assertContains(response, "js/pwa-install.js")
             self.assertContains(response, 'rel="manifest"')
@@ -70,15 +71,30 @@ class PwaInstallExperienceTests(TestCase):
         self.assertIn("تثبيت التطبيق", script)
         self.assertIn("window.localStorage", script)
         self.assertNotIn("window.sessionStorage", script)
-        self.assertIn('var SW_URL = "/sw.js?v=8"', script)
+        self.assertIn('var SW_URL = "/sw.js?v=9"', script)
         self.assertIn('updateViaCache: "none"', script)
         self.assertIn("DISMISS_DAYS = 90", script)
+        self.assertIn("AUTO_RESURFACE_DAYS = 7", script)
         self.assertIn("AUTO_NATIVE_DELAY_MS = 15000", script)
         self.assertIn("AUTO_IOS_DELAY_MS = 20000", script)
+        self.assertIn("AUTO_FALLBACK_DELAY_MS = 22000", script)
+        self.assertIn("LAST_AUTO_SHOWN_KEY", script)
+        self.assertIn("wasAutoPromptShownRecently", script)
+        self.assertIn("rememberAutoPromptShown", script)
+        self.assertIn("autoPromptAllowed", script)
+        self.assertIn("isIOS && isMobile", script)
         self.assertIn("TawtheeqPWA", script)
         self.assertNotIn('event.key !== "Tab"', script)
         self.assertNotIn('document.body.style.overflow = "hidden"', script)
         self.assertNotIn("}, 900);", script)
+
+    def test_automatic_prompt_is_scoped_to_authenticated_pages(self):
+        template = self._source("reports/templates/reports/partials/pwa_install.html")
+
+        self.assertIn("data-auto-prompt", template)
+        self.assertIn("request.user.is_authenticated", template)
+        self.assertIn("true", template)
+        self.assertIn("false", template)
 
     def test_manifest_has_mobile_install_metadata(self):
         manifest = json.loads(self._source("static/manifest.json"))
@@ -117,7 +133,7 @@ class PwaInstallExperienceTests(TestCase):
         worker = self._source("static/sw.js")
         offline = self._source("static/offline.html")
 
-        self.assertIn('const CACHE_NAME = "tawtheeq-v8"', worker)
+        self.assertIn('const CACHE_NAME = "tawtheeq-v9"', worker)
         self.assertIn('const OFFLINE_URL = "/static/offline.html"', worker)
         self.assertIn("navigationPreload.enable()", worker)
         self.assertIn('startsWith("/api/")', worker)

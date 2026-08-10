@@ -127,9 +127,11 @@ jobs:
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
           DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          WEB_PUSH_VAPID_PRIVATE_KEY: ${{ secrets.WEB_PUSH_VAPID_PRIVATE_KEY }}
+          WEB_PUSH_VAPID_PUBLIC_KEY: ${{ secrets.WEB_PUSH_VAPID_PUBLIC_KEY }}
         run: |
           missing=""
-          for name in DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS DEPLOY_SSH_USER DEPLOY_SSH_HOST; do
+          for name in DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS DEPLOY_SSH_USER DEPLOY_SSH_HOST WEB_PUSH_VAPID_PRIVATE_KEY WEB_PUSH_VAPID_PUBLIC_KEY; do
             [ -n "${!name}" ] || missing="$missing $name"
           done
           if [ -n "$missing" ]; then
@@ -209,6 +211,24 @@ jobs:
             compose.hetzner.yaml compose.caddy.yaml deploy/hetzner \
           | ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
               "mkdir -p '$DEPLOY_PATH' && tar xzf - -C '$DEPLOY_PATH'"
+
+      - name: Configure stable Web Push keys
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+          WEB_PUSH_VAPID_PRIVATE_KEY: ${{ secrets.WEB_PUSH_VAPID_PRIVATE_KEY }}
+          WEB_PUSH_VAPID_PUBLIC_KEY: ${{ secrets.WEB_PUSH_VAPID_PUBLIC_KEY }}
+        run: |
+          # Secrets travel over stdin and are never placed in argv or logs.
+          printf '%s\n%s\n%s\n' \
+            "$WEB_PUSH_VAPID_PRIVATE_KEY" \
+            "$WEB_PUSH_VAPID_PUBLIC_KEY" \
+            'mailto:support@tawtheeq-ksa.com' \
+          | ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+              "DEPLOY_PATH='$DEPLOY_PATH' python3 \
+               '$DEPLOY_PATH/deploy/hetzner/apply_runtime_config.py' \
+               --web-push-enabled True --web-push-config-from-stdin"
 
       - name: Release and run migrations
         env:

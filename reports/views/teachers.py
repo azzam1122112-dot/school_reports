@@ -9,6 +9,11 @@ from ._helpers import (
 )
 from ..permissions import effective_user_role_label, is_school_manager
 from ..gender_labels import school_gender_labels
+from ..staff_assignments import (
+    apply_staff_assignment,
+    assignment_matches,
+    get_assignment,
+)
 
 
 def _decorate_manage_teacher_rows(teachers, *, active_school: Optional[School]) -> None:
@@ -910,7 +915,7 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
 @role_required({"manager"})
 @require_http_methods(["GET", "POST"])
 def add_teacher(request: HttpRequest) -> HttpResponse:
-    # كل معلم جديد يُربط تلقائياً بالمدرسة النشطة لهذا المدير
+    """إضافة منسوب وتكليفه من الكتالوج نفسه المستخدم في شاشة الأدوار."""
     active_school = _get_active_school(request)
     labels = school_gender_labels(active_school)
     if School.objects.filter(is_active=True).exists():
@@ -921,152 +926,165 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
             messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
             return redirect("reports:select_school")
 
-    if request.method == "POST":
-        # إنشاء معلّم فقط: بدون قسم/بدون دور داخل قسم. التكاليف تتم من صفحة أعضاء القسم.
-        form = TeacherCreateForm(request.POST, active_school=active_school)
-        continue_adding = request.POST.get("save_and_add_another") == "1"
-        job_title = None
-        try:
-            # يحدد المسمى الوظيفي داخل المدرسة (بنفس الصلاحيات)
-            job_title = (request.POST.get("job_title") or "").strip() or None
-        except Exception:
-            job_title = None
-        if job_title not in SchoolMembership.JobTitle.values:
-            messages.error(request, "اختر مسمى وظيفيًا صحيحًا.")
-            return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
+    def render_form(form, *, confirmation=None):
+        return render(
+            request,
+            "reports/add_teacher.html",
+            {
+                "form": form,
+                "title": "إضافة منسوب",
+                "page_title": "إضافة منسوب جديد",
+                "page_subtitle": "أنشئ الحساب وحدّد دوره الأساسي في خطوة واضحة وآمنة",
+                "role_change_confirmation": confirmation,
+                "is_staff_onboarding": True,
+                "next_url_value": _safe_next_url(
+                    request.POST.get("next") or request.GET.get("next")
+                ),
+            },
+        )
 
-        # الدور يُشتق من المسمّى بقاعدة النموذج الواحدة، فلا يخرج «محضر مختبر»
-        # من هذا الباب معلّماً ومن باب شاشة الأدوار موظفاً إدارياً.
-        member_role = SchoolMembership.role_for_job_title(job_title)
+    if request.method != "POST":
+        return render_form(TeacherCreateForm(active_school=active_school))
 
-        # ✅ إذا كان رقم الجوال موجودًا مسبقًا: لا ننشئ مستخدمًا جديدًا، بل نربطه بهذه المدرسة
-        try:
-            phone_raw = (request.POST.get("phone") or "").strip()
-            existing_teacher = None
-            if phone_raw:
-                existing_teacher = Teacher.objects.filter(phone=phone_raw).first()
-            if existing_teacher is not None and active_school is not None:
-                if not existing_teacher.is_active:
-                    messages.error(
-                        request,
-                        "الحساب الموجود موقوف على مستوى المنصة، ولا يمكن ربطه قبل إعادة تفعيله.",
-                    )
-                    return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
-                # هل يحمل فعلاً الدور المطلوب في هذه المدرسة؟
-                already = SchoolMembership.objects.filter(
-                    school=active_school,
-                    teacher=existing_teacher,
-                    role_type=member_role,
-                    is_active=True,
-                ).exists()
-                if already:
-                    messages.info(request, "المستخدم مرتبط بالفعل بهذه المدرسة.")
-                    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
-                    return redirect("reports:add_teacher" if continue_adding else (next_url or "reports:manage_teachers"))
+    continue_adding = request.POST.get("save_and_add_another") == "1"
+    phone_raw = (request.POST.get("phone") or "").strip()
+    existing_teacher = Teacher.objects.filter(phone=phone_raw).first() if phone_raw else None
+    # تمرير instance يمنع تحقق التفرد من رفض الحساب الموجود؛ ولا يُحفظ هذا
+    # النموذج عليه إطلاقاً، فتظل هويته وكلمة مروره كما هما.
+    form = TeacherCreateForm(
+        request.POST,
+        active_school=active_school,
+        instance=existing_teacher,
+    )
+    if not form.is_valid():
+        messages.error(request, "الرجاء تصحيح الأخطاء الظاهرة.")
+        return render_form(form)
 
-                # حدّ الباقة يُقاس بالمقاعد لا بصفوف المعلمين (مع ترك الضمان
-                # النهائي للموديل).
-                try:
-                    sub = getattr(active_school, "subscription", None)
-                    if sub is None or bool(getattr(sub, "is_expired", True)):
-                        messages.error(request, "لا يوجد اشتراك فعّال لهذه المدرسة.")
-                        return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
+    assignment_code = form.cleaned_data["job_title"]
+    keep_teaching = bool(form.cleaned_data.get("keep_teaching_role"))
+    assignment = get_assignment(assignment_code)
+    assignment_label = next(
+        (
+            item["label"]
+            for item in form.assignment_cards
+            if item["code"] == assignment_code
+        ),
+        assignment_code,
+    )
+    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
 
-                    max_teachers = int(getattr(sub, "teacher_limit", 0) or 0)
-                    # من يشغل مقعداً في المدرسة أصلاً لا يشغل ثانياً بدور ثانٍ:
-                    # الوكيل ذو النصاب التدريسي رجلٌ واحد لا رجلان.
-                    seats_new_member = not SchoolMembership.objects.filter(
-                        school=active_school,
-                        teacher=existing_teacher,
-                        role_type__in=SchoolMembership.SEAT_CONSUMING_ROLES,
-                    ).exists()
-                    if (
-                        max_teachers > 0
-                        and seats_new_member
-                        and SchoolMembership.seats_used(active_school) >= max_teachers
-                    ):
-                        messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} من حسابات {labels['teachers_object']} لهذه المدرسة حسب الباقة.")
-                        return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
-                except Exception:
-                    pass
+    # الاشتراك والمقعد يُفحصان مرة واحدة بالطريقة نفسها للحساب الجديد والموجود.
+    subscription = getattr(active_school, "subscription", None)
+    if subscription is None or bool(getattr(subscription, "is_expired", True)):
+        messages.error(request, "لا يوجد اشتراك فعّال لهذه المدرسة.")
+        return render_form(form)
+    maximum = int(getattr(subscription, "teacher_limit", 0) or 0)
+    consumes_new_seat = not (
+        existing_teacher
+        and SchoolMembership.objects.filter(
+            school=active_school,
+            teacher=existing_teacher,
+            role_type__in=SchoolMembership.SEAT_CONSUMING_ROLES,
+        ).exists()
+    )
+    if (
+        maximum > 0
+        and consumes_new_seat
+        and SchoolMembership.seats_used(active_school) >= maximum
+    ):
+        messages.error(
+            request,
+            f"لا يمكن إضافة أكثر من {maximum} من حسابات {labels['teachers_object']} لهذه المدرسة حسب الباقة.",
+        )
+        return render_form(form)
 
-                try:
-                    with transaction.atomic():
-                        SchoolMembership.objects.update_or_create(
-                            school=active_school,
-                            teacher=existing_teacher,
-                            role_type=member_role,
-                            defaults={
-                                "is_active": True,
-                                **({"job_title": job_title} if job_title else {}),
-                            },
-                        )
-                    messages.success(request, "✅ تم ربط المستخدم الموجود بهذه المدرسة بنجاح (بدون إنشاء حساب جديد).")
-                    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
-                    return redirect("reports:add_teacher" if continue_adding else (next_url or "reports:manage_teachers"))
-                except ValidationError as e:
-                    messages.error(request, " ".join(getattr(e, "messages", []) or [str(e)]))
-                except Exception:
-                    logger.exception("add_teacher link existing failed")
-                    messages.error(request, "حدث خطأ غير متوقع أثناء الربط. جرّب لاحقًا.")
-        except Exception:
-            # لو فشل هذا المسار لأي سبب نكمل التدفق الطبيعي (وقد يظهر خطأ unique من الفورم)
-            pass
-
-        # ✅ منع إضافة معلّم إذا تجاوزت المدرسة حد الباقة (يشمل غير النشط)
-        try:
-            if active_school is not None:
-                sub = getattr(active_school, "subscription", None)
-                if sub is None or bool(getattr(sub, "is_expired", True)):
-                    messages.error(request, "لا يوجد اشتراك فعّال لهذه المدرسة.")
-                    return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
-
-                max_teachers = int(getattr(sub, "teacher_limit", 0) or 0)
-                # حساب جديد لم يوجد بعد، فهو مقعد جديد قطعاً. والعدّ من
-                # ``seats_used`` وحده: عدّ صفوف ``TEACHER`` هنا يُبقي وكلاء
-                # المدرسة وموظفيها خارج الحساب، فتُتجاوز الباقة من هذا الباب
-                # ويظل رقم لوحة الاستهلاك مخالفاً لرقم هذه الشاشة.
-                if max_teachers > 0 and SchoolMembership.seats_used(active_school) >= max_teachers:
-                    messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} من حسابات {labels['teachers_object']} لهذه المدرسة حسب الباقة.")
-                    return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
-        except Exception:
-            # في حال خطأ غير متوقع، نكمل المسار الطبيعي (وسيمنعنا model validation عند الحفظ)
-            pass
-
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    teacher = form.save(commit=True)
-                    # ربط المستخدم بالمدرسة الحالية بالدور الذي يقتضيه مسمّاه
-                    if active_school is not None:
-                        SchoolMembership.objects.update_or_create(
-                            school=active_school,
-                            teacher=teacher,
-                            role_type=member_role,
-                            defaults={
-                                "is_active": True,
-                                **({"job_title": job_title} if job_title else {}),
-                            },
-                        )
-                messages.success(
+    try:
+        if existing_teacher is not None:
+            # أعد القراءة لأن ModelForm يبني القيم المنشورة على instance في الذاكرة؛
+            # الربط لا يغيّر اسم الحساب الموجود أو هويته أو كلمة مروره.
+            existing_teacher = Teacher.objects.get(pk=existing_teacher.pk)
+            if not existing_teacher.is_active:
+                messages.error(
                     request,
-                    "تمت إضافة المستخدم. كلمة المرور المؤقتة هي رقم الجوال، وسيُطلب تغييرها عند أول دخول.",
+                    "الحساب الموجود موقوف على مستوى المنصة، ولا يمكن ربطه قبل إعادة تفعيله.",
                 )
-                next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
-                return redirect("reports:add_teacher" if continue_adding else (next_url or "reports:manage_teachers"))
-            except IntegrityError:
-                messages.error(request, "تعذّر الحفظ: قد يكون رقم الجوال أو الهوية مستخدمًا مسبقًا.")
-            except ValidationError as e:
-                # مثال: تجاوز حد المعلمين حسب الباقة أو عدم وجود اشتراك فعّال
-                messages.error(request, " ".join(getattr(e, "messages", []) or [str(e)]))
-            except Exception:
-                logger.exception("add_teacher failed")
-                messages.error(request, "حدث خطأ غير متوقع أثناء الحفظ. جرّب لاحقًا.")
+                return render_form(form)
+
+            has_membership_here = SchoolMembership.objects.filter(
+                school=active_school,
+                teacher=existing_teacher,
+                role_type__in=SchoolMembership.STAFF_ROLES,
+            ).exists()
+            exact_assignment = assignment_matches(
+                school=active_school,
+                member=existing_teacher,
+                code=assignment_code,
+                keep_teaching_role=keep_teaching,
+            )
+            if exact_assignment:
+                messages.info(request, "الحساب مرتبط بالفعل بهذه المدرسة بالتكليف المختار.")
+                return redirect(
+                    "reports:add_teacher"
+                    if continue_adding
+                    else (next_url or "reports:manage_teachers")
+                )
+
+            if has_membership_here and request.POST.get("confirm_role_change") != "1":
+                return render_form(
+                    form,
+                    confirmation={
+                        "member_name": existing_teacher.name,
+                        "current_role": effective_user_role_label(
+                            existing_teacher, active_school=active_school
+                        ),
+                        "new_role": assignment_label,
+                        "keeps_teaching": keep_teaching,
+                    },
+                )
+
+            with transaction.atomic():
+                membership = apply_staff_assignment(
+                    school=active_school,
+                    member=existing_teacher,
+                    code=assignment_code,
+                    keep_teaching_role=keep_teaching,
+                    actor=request.user,
+                )
+            messages.success(
+                request,
+                f"تم ربط الحساب الموجود وإسناد دور «{assignment_label}» دون تغيير بيانات دخوله.",
+            )
         else:
-            messages.error(request, "الرجاء تصحيح الأخطاء الظاهرة.")
-    else:
-        form = TeacherCreateForm(active_school=active_school)
-    return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
+            with transaction.atomic():
+                teacher = form.save(commit=True)
+                membership = apply_staff_assignment(
+                    school=active_school,
+                    member=teacher,
+                    code=assignment_code,
+                    keep_teaching_role=keep_teaching,
+                    actor=request.user,
+                )
+            messages.success(
+                request,
+                "تمت إضافة المنسوب. كلمة المرور المؤقتة هي رقم الجوال، وسيُطلب تغييرها عند أول دخول.",
+            )
+
+        if continue_adding:
+            return redirect("reports:add_teacher")
+        if next_url:
+            return redirect(next_url)
+        if assignment.requires_scope:
+            messages.info(request, "أكمل الآن تحديد نطاق العمل والصلاحيات المناسبة.")
+            return redirect("reports:staff_role_scope", pk=membership.pk)
+        return redirect("reports:manage_teachers")
+    except IntegrityError:
+        messages.error(request, "تعذّر الحفظ: قد يكون رقم الجوال أو الهوية مستخدمًا مسبقًا.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(getattr(exc, "messages", []) or [str(exc)]))
+    except Exception:
+        logger.exception("add_teacher failed")
+        messages.error(request, "حدث خطأ غير متوقع أثناء الحفظ. جرّب لاحقًا.")
+    return render_form(form)
 
 @login_required(login_url="reports:login")
 @role_required({"manager"})

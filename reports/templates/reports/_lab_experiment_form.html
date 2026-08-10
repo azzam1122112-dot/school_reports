@@ -1,0 +1,62 @@
+<form method="post" class="lab-form" novalidate>
+  {% csrf_token %}
+  {% if form.errors %}
+    <div class="lab-form-error" role="alert">
+      تعذّر حفظ المسودة. راجع الحقول الموضّحة أدناه.
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  <fieldset class="lab-form-section">
+    <legend><i class="fa-solid fa-circle-info" aria-hidden="true"></i> بيانات التجربة</legend>
+    <p class="lab-form-section__hint">يمكن حفظ المسودة الآن وإكمالها لاحقاً. الحقول المعلّمة تلزم فقط عند الإرسال للاعتماد.</p>
+    <div class="lab-grid-2">
+      {% include "reports/_lab_field.html" with field=form.title submission_required=True %}
+      {% include "reports/_lab_field.html" with field=form.experiment_date submission_required=True %}
+      {% include "reports/_lab_field.html" with field=form.subject %}
+      {% include "reports/_lab_field.html" with field=form.class_name %}
+      {% include "reports/_lab_field.html" with field=form.requested_by %}
+      {% include "reports/_lab_field.html" with field=form.students_count %}
+    </div>
+  </fieldset>
+
+  <fieldset class="lab-form-section">
+    <legend><i class="fa-solid fa-list-check" aria-hidden="true"></i> الهدف والتنفيذ</legend>
+    <div class="lab-grid-2">
+      {% include "reports/_lab_field.html" with field=form.objectives %}
+      {% include "reports/_lab_field.html" with field=form.procedure submission_required=True %}
+    </div>
+  </fieldset>
+
+  <fieldset class="lab-form-section">
+    <legend><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> المواد والشواهد</legend>
+    <div class="lab-grid-2">
+      <div>
+        {% if has_lab_assets %}
+          {% include "reports/_lab_field.html" with field=form.assets %}
+        {% else %}
+          <div class="lab-empty" style="padding:1rem">
+            <strong>لا توجد أصناف في العهدة بعد.</strong>
+            أضف الأصناف أولاً لتتمكن من ربطها بالتجربة.
+            <a class="lab-btn lab-btn--ghost" href="{% url 'reports:lab_assets' %}#new-asset">إضافة صنف للعهدة</a>
+          </div>
+        {% endif %}
+      </div>
+      {% include "reports/_lab_field.html" with field=form.materials_note %}
+      {% include "reports/_lab_field.html" with field=form.report %}
+    </div>
+  </fieldset>
+
+  <fieldset class="lab-form-section">
+    <legend><i class="fa-solid fa-shield-heart" aria-hidden="true"></i> السلامة</legend>
+    {% include "reports/_lab_field.html" with field=form.safety_notes %}
+  </fieldset>
+
+  <div class="lab-form-actions">
+    <span class="lab-form-actions__hint">لن تصل المسودة إلى المدير حتى تختار «أرسل للاعتماد» من صفحة تفاصيلها.</span>
+    <button type="submit" class="lab-btn">
+      <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+      {{ save_label|default:"احفظ المسودة" }}
+    </button>
+  </div>
+</form>

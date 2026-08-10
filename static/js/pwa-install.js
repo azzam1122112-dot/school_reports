@@ -4,11 +4,14 @@
   if (window.__tawtheeqPwaInstallerLoaded) return;
   window.__tawtheeqPwaInstallerLoaded = true;
 
-  var SW_URL = "/sw.js?v=8";
+  var SW_URL = "/sw.js?v=9";
   var DISMISSED_UNTIL_KEY = "tawtheeq_pwa_install_dismissed_until_v2";
+  var LAST_AUTO_SHOWN_KEY = "tawtheeq_pwa_install_last_auto_shown_v1";
   var DISMISS_DAYS = 90;
+  var AUTO_RESURFACE_DAYS = 7;
   var AUTO_NATIVE_DELAY_MS = 15000;
   var AUTO_IOS_DELAY_MS = 20000;
+  var AUTO_FALLBACK_DELAY_MS = 22000;
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
@@ -27,6 +30,9 @@
   var laterButton = document.getElementById("pwaInstallLater");
   var description = document.getElementById("pwaInstallDescription");
   var steps = document.getElementById("pwaInstallSteps");
+  var autoPromptAllowed = Boolean(
+    promptRoot && promptRoot.getAttribute("data-auto-prompt") === "true"
+  );
 
   var userAgent = navigator.userAgent || "";
   var isIPadOS = /macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1;
@@ -43,16 +49,31 @@
   var deferredPrompt = null;
   var instructionsVisible = false;
 
-  function getDismissedUntil() {
+  function getStoredNumber(key) {
     try {
-      return Number(window.localStorage.getItem(DISMISSED_UNTIL_KEY) || 0);
+      return Number(window.localStorage.getItem(key) || 0);
     } catch (error) {
       return 0;
     }
   }
 
+  function getDismissedUntil() {
+    return getStoredNumber(DISMISSED_UNTIL_KEY);
+  }
+
   function isDismissed() {
     return getDismissedUntil() > Date.now();
+  }
+
+  function wasAutoPromptShownRecently() {
+    var lastShown = getStoredNumber(LAST_AUTO_SHOWN_KEY);
+    return lastShown > 0 && lastShown + (AUTO_RESURFACE_DAYS * 24 * 60 * 60 * 1000) > Date.now();
+  }
+
+  function rememberAutoPromptShown() {
+    try {
+      window.localStorage.setItem(LAST_AUTO_SHOWN_KEY, String(Date.now()));
+    } catch (error) {}
   }
 
   function rememberDismissal(days) {
@@ -123,9 +144,15 @@
 
   function showPrompt(options) {
     options = options || {};
-    if (isStandalone || (!options.explicit && (!isMobile || isDismissed()))) return false;
+    if (
+      isStandalone ||
+      (!options.explicit && (
+        !autoPromptAllowed || !isMobile || isDismissed() || wasAutoPromptShownRecently()
+      ))
+    ) return false;
     promptRoot.hidden = false;
     promptRoot.setAttribute("aria-hidden", "false");
+    if (!options.explicit) rememberAutoPromptShown();
     return true;
   }
 
@@ -153,9 +180,11 @@
       event.preventDefault();
       deferredPrompt = event;
       configureNativePrompt();
-      window.setTimeout(function () {
-        if (deferredPrompt && document.visibilityState === "visible") showPrompt();
-      }, AUTO_NATIVE_DELAY_MS);
+      if (autoPromptAllowed) {
+        window.setTimeout(function () {
+          if (deferredPrompt && document.visibilityState === "visible") showPrompt();
+        }, AUTO_NATIVE_DELAY_MS);
+      }
     });
   }
 
@@ -195,12 +224,24 @@
     hidePrompt(365);
   });
 
-  if (isIOS && isSafari && isMobile && !isStandalone && !isDismissed()) {
+  if (autoPromptAllowed && isIOS && isMobile && !isStandalone && !isDismissed()) {
     window.setTimeout(function () {
       if (promptRoot.hidden && document.visibilityState === "visible") {
         configureFallback();
         showPrompt();
       }
     }, AUTO_IOS_DELAY_MS);
+  }
+
+  // بعض متصفحات Android لا تطلق beforeinstallprompt رغم إمكانية الإضافة من
+  // القائمة. نعطي الحدث الأصلي الأولوية، ثم نعرض تعليمات يدوية إن لم يصل.
+  if (autoPromptAllowed && isMobile && !isIOS && !isStandalone && !isDismissed()) {
+    window.setTimeout(function () {
+      if (promptRoot.hidden && document.visibilityState === "visible") {
+        if (deferredPrompt) configureNativePrompt();
+        else configureFallback();
+        showPrompt();
+      }
+    }, AUTO_FALLBACK_DELAY_MS);
   }
 }());

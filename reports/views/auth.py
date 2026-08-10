@@ -40,6 +40,7 @@ from ..middleware import (
 from ..marketing_attribution import capture_marketing_attribution
 from ..models import WebAuthnCredential
 from ..forms import AccountPasswordResetForm, AccountSetPasswordForm
+from ..staff_workspace import build_staff_workspaces
 from ..pricing import (
     DEFAULT_SERVICE_PRICING,
     FREE_TRIAL_DAYS,
@@ -1308,6 +1309,7 @@ def my_profile(request: HttpRequest) -> HttpResponse:
         "pwd_form": pwd_form,
         "force_password_change": force_password_change,
         "passkey_credentials": WebAuthnCredential.objects.filter(teacher=request.user, is_active=True).order_by("-created_at"),
+        **build_staff_workspaces(request.user, active_school),
     }
     return render(request, "reports/my_profile.html", ctx)
 

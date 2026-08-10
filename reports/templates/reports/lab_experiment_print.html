@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>تجربة: {{ experiment.title }}</title>
+  <title>تجربة: {{ experiment.title|default:"مسودة بلا عنوان" }}</title>
 
   {% comment %}
   صفحة طباعة قائمة بذاتها — بلا طبقة الوضع الداكن، كبقية صفحات الطباعة هنا.
@@ -35,24 +35,40 @@
     .sign { display: flex; justify-content: space-between; gap: 20px; margin-top: 26px; font-size: 10.5pt; }
     .sign > div { flex: 1; }
     .sign .line { border-bottom: 1px dotted var(--line); height: 34px; margin-top: 6px; }
+    .print-toolbar {
+      display: flex; justify-content: center; gap: 8px; margin: 0 0 14px;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+    }
+    .print-toolbar a, .print-toolbar button {
+      border: 1px solid #17643f; border-radius: 8px; background: #17643f;
+      color: #fff; padding: 7px 14px; font: inherit; font-size: 10.5pt;
+      text-decoration: none; cursor: pointer;
+    }
+    .print-toolbar a { background: #fff; color: #17643f; }
     @media print {
       body { padding: 0; }
+      .print-toolbar { display: none !important; }
       section { break-inside: avoid; }
       @page { size: A4; margin: 12mm; }
     }
   </style>
 </head>
-<body onload="window.print()">
+<body>
+
+  <nav class="print-toolbar" aria-label="إجراءات المحضر">
+    <a href="{% url 'reports:lab_experiment_detail' experiment.pk %}">العودة إلى المحضر</a>
+    <button type="button" data-print-trigger>طباعة المحضر</button>
+  </nav>
 
   <header class="doc-head">
-    <h1>{{ experiment.title }}</h1>
+    <h1>{{ experiment.title|default:"مسودة تجربة بلا عنوان" }}</h1>
     <div class="sub">تجربة مختبر — {{ active_school.name }}</div>
   </header>
 
   <table class="facts">
     <tr>
       <th>تاريخ التنفيذ</th>
-      <td dir="rtl">{{ experiment.experiment_date|hijri }} هـ</td>
+      <td dir="rtl">{% if experiment.experiment_date %}{{ experiment.experiment_date|hijri }} هـ{% else %}—{% endif %}</td>
       <th>الحالة</th>
       <td class="state">{{ experiment.get_approval_state_display }}</td>
     </tr>
@@ -113,5 +129,8 @@
   <p style="font-size:9.5pt;color:var(--muted);margin-top:14px">
     طُبعت في <span dir="rtl">{{ printed_at|hijri }} هـ</span>
   </p>
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    document.querySelector('[data-print-trigger]').addEventListener('click', function () { window.print(); });
+  </script>
 </body>
 </html>

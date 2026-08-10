@@ -213,6 +213,21 @@ class LabCustodyTests(LabTestCase):
         # المحضّر صاحب العهدة افتراضاً، فلا يُطلب منه تسمية نفسه في كل صنف.
         self.assertEqual(asset.custodian_id, self.tech.pk)
 
+    def test_a_new_inventory_item_cannot_start_with_zero_quantity(self):
+        self._enter(self.tech)
+        response = self.client.post(
+            reverse("reports:lab_assets"),
+            {
+                "name": "صنف بلا كمية",
+                "category": LabAsset.Category.TOOL,
+                "quantity": 0,
+                "condition": LabAsset.Condition.GOOD,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(LabAsset.objects.filter(name="صنف بلا كمية").exists())
+        self.assertContains(response, "أدخل قطعة واحدة على الأقل")
+
     def test_a_teacher_cannot_reach_the_inventory(self):
         self._enter(self.teacher)
         response = self.client.get(reverse("reports:lab_assets"))
@@ -414,6 +429,9 @@ class LabCustodyTests(LabTestCase):
         self.assertIn("كشف عهدة المختبر", page)
         self.assertIn("أنبوب اختبار", page)
         self.assertIn("مدير المدرسة", page)
+        self.assertIn("العودة إلى العهدة", page)
+        self.assertIn("طباعة الكشف", page)
+        self.assertNotIn('onload="window.print()"', page)
 
     def test_the_print_page_carries_no_dark_mode_layer(self):
         """الورق أبيض دائماً — وهو عُرف كل صفحات الطباعة هنا."""
@@ -444,6 +462,27 @@ class LabExperimentTests(LabTestCase):
         experiment = LabExperiment.objects.get(title="تفاعل الحديد بالكبريت")
         self.assertEqual(experiment.recorder_id, self.tech.pk)
         self.assertEqual(experiment.approval_state, ApprovalState.DRAFT)
+
+    def test_an_incomplete_experiment_can_be_saved_as_a_draft(self):
+        self._enter(self.tech)
+        response = self.client.post(
+            reverse("reports:lab_experiments"),
+            {"title": "", "experiment_date": "", "procedure": ""},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        experiment = LabExperiment.objects.get(recorder=self.tech)
+        self.assertEqual(experiment.title, "")
+        self.assertIsNone(experiment.experiment_date)
+        self.assertEqual(experiment.approval_state, ApprovalState.DRAFT)
+        self.assertContains(response, "مسودة تجربة بلا عنوان")
+        self.assertContains(response, "أكمل هذه البيانات قبل الإرسال")
+
+    def test_experiment_screen_explains_draft_and_submission_requirements(self):
+        page = self._page(self.tech, "reports:lab_experiments")
+        self.assertIn("يمكن حفظ المسودة الآن وإكمالها لاحقاً", page)
+        self.assertIn("يلزم قبل الإرسال", page)
+        self.assertIn("احفظ المسودة", page)
 
     def test_an_experiment_without_steps_cannot_be_submitted(self):
         experiment = self._experiment(procedure="")
@@ -541,6 +580,9 @@ class LabExperimentTests(LabTestCase):
         self.assertIn("استخلاص الكلوروفيل", page)
         self.assertIn("طحن الورق", page)
         self.assertIn("قفازات", page)
+        self.assertIn("العودة إلى المحضر", page)
+        self.assertIn("طباعة المحضر", page)
+        self.assertNotIn('onload="window.print()"', page)
 
 
 # ═══════════════════════════════════════════════════════════════════════

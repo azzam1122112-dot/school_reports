@@ -381,6 +381,9 @@ urlpatterns = [
     # الإشعارات
     # =========================
     path("notifications/unread-count/", views.unread_notifications_count, name="unread_notifications_count"),
+    path("push/config/", views.web_push_config, name="web_push_config"),
+    path("push/subscribe/", views.web_push_subscribe, name="web_push_subscribe"),
+    path("push/unsubscribe/", views.web_push_unsubscribe, name="web_push_unsubscribe"),
     path("notifications/<int:pk>/", views.notification_detail, name="notification_detail"),
     path("notifications/<int:pk>/delete/", views.notification_delete, name="notification_delete"),
     path("notifications/send/", views.send_notification, name="send_notification"),  # تحويل للإنشاء (توافق قديم)

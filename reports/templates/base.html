@@ -1143,7 +1143,7 @@
                  والرابط مقصوراً على مسؤولي الأقسام. {% endcomment %}
               {% if SHOW_ASSIGNED_TO_ME %}
                 <a class="tab {% if active == 'assigned_to_me' %}is-active{% endif %}" href="{% url 'reports:assigned_to_me' %}">
-                  مهامي
+                  الطلبات المسندة
                   {% if NAV_ASSIGNED_TO_ME %}<span class="pill">{{ NAV_ASSIGNED_TO_ME }}</span>{% endif %}
                 </a>
               {% endif %}
@@ -1158,7 +1158,7 @@
                  كان الشرط يخفيه عن كل مسؤول قسم وعضوٍ فيه، فيفقد رابطَ ملفه
                  الشخصي من الشريط ولا يبقى له إلا الدرج — وهو ملفٌ يُقيَّم عليه
                  سنوياً، لا شاشةٌ ثانوية. {% endcomment %}
-              {% if not IS_GROUP_ONLY_DIRECTOR %}
+              {% if not IS_GROUP_ONLY_DIRECTOR and SHOW_PERSONAL_ACHIEVEMENT %}
                 <a class="tab {% if active == 'achievement_my_files' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_my_files' %}">ملف الإنجاز</a>
               {% endif %}
             {% endif %}
@@ -1286,9 +1286,12 @@
             {% if IS_EXECUTIVE_DIRECTOR %}
               <a class="tab {% if active == 'group_approval_inbox' %}is-active{% endif %}" href="{% url 'reports:group_approval_inbox' %}">الاعتماد</a>
 
+              {# التقرير التنفيذي قرارٌ يومي لا مادة ثانوية؛ يبقى بنقرة واحدة. #}
+              <a class="tab {% if active == 'group_report' %}is-active{% endif %}" href="{% url 'reports:group_report' %}">التقرير التنفيذي</a>
+
               {# المتابعة: ما يُقرأ ولا يُحرَّر #}
               <div class="nav-group" data-nav-group>
-                <button type="button" class="tab tab-trigger {% if active == 'executive_dashboard' or active == 'group_school_detail' or active == 'group_subscriptions' or active == 'group_report' or active == 'group_practices' or active == 'group_audit_log' %}is-active{% endif %}" aria-expanded="false" aria-haspopup="true">
+                <button type="button" class="tab tab-trigger {% if active == 'executive_dashboard' or active == 'group_school_detail' or active == 'group_subscriptions' or active == 'group_practices' or active == 'group_audit_log' %}is-active{% endif %}" aria-expanded="false" aria-haspopup="true">
                   <span>المتابعة</span>
                   <i class="fa-solid fa-chevron-down chev" aria-hidden="true"></i>
                 </button>
@@ -1300,10 +1303,6 @@
                   <a class="np-item {% if active == 'group_subscriptions' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:group_subscriptions' %}">
                     <i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i>
                     <span><b>اشتراكات المدارس</b><em>ما ينتهي قريباً وبمن تتصل</em></span>
-                  </a>
-                  <a class="np-item {% if active == 'group_report' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:group_report' %}">
-                    <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
-                    <span><b>التقرير المجمَّع</b><em>أداء المجموعة في وثيقة واحدة</em></span>
                   </a>
                   <a class="np-item {% if active == 'group_practices' %}is-active{% endif %}" role="menuitem" href="{% url 'reports:group_practices' %}">
                     <i class="fa-solid fa-star" aria-hidden="true"></i>
@@ -1441,7 +1440,7 @@
                     الأرشيف
                   </a>
                 {% endif %}
-              {% else %}
+              {% elif SHOW_PERSONAL_ACHIEVEMENT %}
                 <a href="{% url 'reports:achievement_my_files' %}" class="mi" role="menuitem">
                   <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                   ملف الإنجاز
@@ -1691,7 +1690,7 @@
              والشرط الصحيح وجودُ ما يُعرض. {% endcomment %}
           {% if SHOW_ASSIGNED_TO_ME %}
             <a class="{% if active == 'assigned_to_me' %}is-active{% endif %}" href="{% url 'reports:assigned_to_me' %}">
-              <span>مهامي المعيّنة</span>
+              <span>الطلبات المسندة</span>
               <span>{% if NAV_ASSIGNED_TO_ME %}<span class="pill">{{ NAV_ASSIGNED_TO_ME }}</span>{% endif %}</span>
             </a>
           {% endif %}
@@ -1738,7 +1737,7 @@
             <span>ملفات الإنجاز</span>
             <i class="fa-solid fa-file-lines"></i>
           </a>
-        {% else %}
+        {% elif SHOW_PERSONAL_ACHIEVEMENT %}
           <a class="{% if active == 'achievement_my_files' %}is-active{% endif %}" href="{% url 'reports:achievement_my_files' %}">
             <span>ملف الإنجاز</span>
             <i class="fa-solid fa-file-lines"></i>

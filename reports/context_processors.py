@@ -866,6 +866,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "IS_SCHOOL_MANAGER": False,
             "IS_SCHOOL_DEPUTY": False,
             "IS_ADMIN_STAFF": False,
+            "HAS_TEACHER_ROLE": False,
+            "SHOW_PERSONAL_ACHIEVEMENT": False,
             "IS_LAB_TECHNICIAN": False,
             "SHOW_LAB_NAV": False,
             "SHOW_ASSIGNED_TO_ME": False,
@@ -1114,12 +1116,22 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         from .permissions import is_admin_staff as _is_admin_staff
         from .permissions import is_lab_technician as _is_lab_technician
         from .permissions import is_school_deputy as _is_school_deputy
+        from .models import SchoolMembership as _SchoolMembership
 
         is_deputy_user = bool(
             active_school is not None and _is_school_deputy(u, active_school)
         )
         is_admin_staff_user = bool(
             active_school is not None and _is_admin_staff(u, active_school)
+        )
+        has_teacher_role = bool(
+            active_school is not None
+            and _SchoolMembership.objects.filter(
+                school=active_school,
+                teacher=u,
+                role_type=_SchoolMembership.RoleType.TEACHER,
+                is_active=True,
+            ).exists()
         )
         # المحضّر يُحسم بمسمّاه الوظيفي: المختبر عملُه لا صلاحيةٌ تُمنح له.
         is_lab_tech_user = bool(
@@ -1129,6 +1141,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         is_deputy_user = False
         is_admin_staff_user = False
+        has_teacher_role = False
         is_lab_tech_user = False
         show_lab_nav = False
 
@@ -1224,6 +1237,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "IS_SCHOOL_MANAGER": is_school_manager,
         "IS_SCHOOL_DEPUTY": is_deputy_user,
         "IS_ADMIN_STAFF": is_admin_staff_user,
+        "HAS_TEACHER_ROLE": has_teacher_role,
+        "SHOW_PERSONAL_ACHIEVEMENT": bool(has_teacher_role or is_lab_tech_user),
         "IS_LAB_TECHNICIAN": is_lab_tech_user,
         "SHOW_LAB_NAV": show_lab_nav,
         "IS_EXECUTIVE_DIRECTOR": is_executive_director_user,
@@ -1233,7 +1248,11 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         # للجميع: طلبٌ يُحال إلى موظف إداري يُحتسب في القائمة ولا رابط يوصله
         # إليه. والشرط الصحيح هو وجود ما يُعرض لا حملُ دور بعينه.
         "SHOW_ASSIGNED_TO_ME": bool(
-            is_officer or show_dept_reports_link or assigned_open
+            is_officer
+            or is_deputy_user
+            or is_admin_staff_user
+            or show_dept_reports_link
+            or assigned_open
         ),
         "SHOW_SUPERVISION_GROUP": show_supervision_group,
         **capability_flags,

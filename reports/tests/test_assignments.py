@@ -594,6 +594,49 @@ class AssignmentScreenTests(AssignmentBase):
         assignment.refresh_from_db()
         self.assertTrue(assignment.is_cancelled)
 
+    def test_a_cancelled_assignment_moves_to_the_assignees_archive(self):
+        target = self._target()
+        target.assignment.cancel(by=self.manager, reason="تغيّرت الأولويات")
+        self._enter(self.staff)
+
+        response = self.client.get(reverse("reports:my_assignments"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(target, response.context["open_targets"])
+        self.assertIn(target, response.context["cancelled_targets"])
+        self.assertContains(response, "الملغاة")
+        self.assertContains(response, "تغيّرت الأولويات")
+
+    def test_a_cancelled_assignment_detail_has_no_execution_actions(self):
+        target = self._target()
+        target.assignment.cancel(by=self.manager, reason="لم تعد المهمة مطلوبة")
+        self._enter(self.staff)
+
+        response = self.client.get(
+            reverse("reports:assignment_detail", args=[target.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["actions"], [])
+        self.assertContains(response, "هذا التكليف ملغى")
+        self.assertContains(response, "لم تعد المهمة مطلوبة")
+        self.assertNotContains(response, "رفع الشاهد")
+
+    def test_a_cancelled_assignment_rejects_a_forged_approval_post(self):
+        target = self._target()
+        target.assignment.cancel(by=self.manager, reason="انتهت الحاجة")
+        self._enter(self.staff)
+
+        response = self.client.post(
+            reverse("reports:assignment_approval_action", args=[target.pk]),
+            {"approval_action": "submit"},
+            follow=True,
+        )
+
+        target.refresh_from_db()
+        self.assertEqual(target.approval_state, ApprovalState.DRAFT)
+        self.assertContains(response, "هذا الإجراء غير متاح على هذا التكليف الآن")
+
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class AssigneeScopeTests(AssignmentBase):

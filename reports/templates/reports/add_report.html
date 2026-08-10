@@ -923,8 +923,8 @@
     
     <header class="ar-header">
       <div class="ar-title-box">
-        <h1>إضافة تقرير جديد</h1>
-        <p>مساحتك الإبداعية لتوثيق الإنجازات</p>
+        <h1>{% if IS_ADMIN_STAFF %}توثيق عمل إداري{% else %}إضافة تقرير جديد{% endif %}</h1>
+        <p>{% if IS_ADMIN_STAFF %}سجّل ما نُفّذ ونتائجه وشواهده بصياغة مهنية قابلة للمراجعة والأرشفة.{% else %}مساحتك الإبداعية لتوثيق الإنجازات{% endif %}</p>
       </div>
       <a href="{% url 'reports:home' %}" class="ar-back-btn">
         <i class="fa-solid fa-arrow-right"></i> الرئيسية

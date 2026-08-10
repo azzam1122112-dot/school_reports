@@ -186,6 +186,79 @@ class NotificationRecipient(models.Model):
         return f"{self.teacher} ← {self.notification}"
 
 
+class WebPushSubscription(models.Model):
+    """A browser/device Push API subscription owned by one signed-in user.
+
+    The endpoint is globally unique because one browser subscription must never
+    keep delivering an earlier user's notifications after accounts change on a
+    shared device.  Re-subscribing the same endpoint transfers it to the current
+    authenticated user.
+    """
+
+    teacher = models.ForeignKey(
+        Teacher,
+        on_delete=models.CASCADE,
+        related_name="web_push_subscriptions",
+    )
+    endpoint = models.TextField(unique=True)
+    p256dh = models.TextField()
+    auth = models.TextField()
+    user_agent = models.CharField(max_length=500, blank=True, default="")
+    is_active = models.BooleanField(default=True)
+    failure_count = models.PositiveSmallIntegerField(default=0)
+    last_success_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at", "-id")
+        indexes = [
+            models.Index(fields=["teacher", "is_active"]),
+            models.Index(fields=["is_active", "updated_at"]),
+        ]
+
+    def __str__(self):
+        return f"Web Push: {self.teacher_id} / {self.endpoint[:48]}"
+
+
+class WebPushDelivery(models.Model):
+    """Idempotency and delivery audit for a notification/device pair."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "قيد الإرسال"
+        SENT = "sent", "تم الإرسال"
+        FAILED = "failed", "تعذر الإرسال"
+
+    subscription = models.ForeignKey(
+        WebPushSubscription,
+        on_delete=models.CASCADE,
+        related_name="deliveries",
+    )
+    notification = models.ForeignKey(
+        Notification,
+        on_delete=models.CASCADE,
+        related_name="web_push_deliveries",
+    )
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    last_error = models.CharField(max_length=500, blank=True, default="")
+    last_attempt_at = models.DateTimeField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["subscription", "notification"],
+                name="uniq_web_push_delivery_subscription_notification",
+            ),
+        ]
+        indexes = [models.Index(fields=["status", "created_at"])]
+
+    def __str__(self):
+        return f"{self.notification_id} → {self.subscription_id} ({self.status})"
+
+
 # reports/models.py  (بعد class Ticket)
 class TicketImage(models.Model):
     ticket = models.ForeignKey(

@@ -2,8 +2,8 @@
 
 {% block title %}سياسة تقديم وتسليم الخدمة الرقمية | منصة توثيق{% endblock %}
 {% block seo_meta %}
-<meta name="description" content="سياسة تفعيل وتسليم خدمات منصة توثيق الرقمية، مدد التنفيذ، مسؤوليات العميل، والتعامل مع التأخير.">
-<link rel="canonical" href="{{ SITE_URL }}{% url 'reports:service_delivery_policy' %}">
+{% url 'reports:service_delivery_policy' as canonical_path %}
+{% include "reports/partials/public_seo.html" with seo_title="سياسة تقديم وتسليم الخدمة الرقمية | منصة توثيق" seo_description="سياسة تفعيل وتسليم خدمات منصة توثيق الرقمية، مدد التنفيذ، مسؤوليات العميل، والتعامل مع التأخير." seo_image_alt="سياسة تقديم الخدمة الرقمية في منصة توثيق" canonical_path=canonical_path social_type="article" include_schema=True schema_type="WebPage" modified_date="2026-08-02" %}
 {% endblock %}
 {% block legal_title %}سياسة تقديم وتسليم الخدمة الرقمية{% endblock %}
 {% block legal_intro %}خدمات منصة توثيق رقمية بالكامل؛ لا توجد منتجات مادية أو رسوم شحن. يتم التسليم بتفعيل حساب المدرسة والباقة المختارة.{% endblock %}

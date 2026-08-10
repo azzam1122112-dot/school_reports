@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load hijri_tags %}
+{% load hijri_tags static %}
 
 {% block title %}اشتراكات مدارس المجموعة{% endblock %}
 
@@ -195,6 +195,10 @@
   .gsubs-panel__title h2 { margin: 0; font-size: 1.05rem; font-weight: 950; }
   .gsubs-panel__title p { margin: 4px 0 0; color: var(--gs-muted); font-size: .82rem; font-weight: 750; line-height: 1.75; }
   .gsubs-panel__aside { margin-inline-start: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+  .gsubs-panel__tools { margin-inline-start:auto; display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+  .gsubs-search { position:relative; min-width:220px; }
+  .gsubs-search i { position:absolute; inset-inline-start:12px; top:50%; color:var(--gs-muted); transform:translateY(-50%); }
+  .gsubs-search input { width:100%; min-height:40px; padding:8px 36px 8px 12px; border:1px solid var(--gs-line); border-radius:var(--id-r1); color:var(--gs-ink); background:var(--gs-card); font:inherit; font-size:.8rem; }
 
   .gsubs-tab {
     display: inline-flex;
@@ -390,6 +394,7 @@
     }
   }
 </style>
+<script src="{% static 'js/executive-dashboard.js' %}?v=20260810.1" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -468,6 +473,12 @@
         <h2 id="gsubsTableTitle">كشف اشتراكات المدارس</h2>
         <p>مرتَّب بما يحتاج إجراءً أولاً، ثم الأقرب انتهاءً.</p>
       </div>
+      <div class="gsubs-panel__tools">
+        <label class="gsubs-search">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <span class="sr-only">ابحث عن مدرسة</span>
+          <input type="search" placeholder="ابحث عن مدرسة…" data-school-search autocomplete="off">
+        </label>
       <nav class="gsubs-panel__aside" aria-label="تصفية الكشف">
         <a class="gsubs-tab {% if state_filter == 'all' %}is-active{% endif %}" href="?state=all&group={{ group.pk }}">
           <i class="fa-solid fa-layer-group" aria-hidden="true"></i> الكل <b>{{ totals.schools }}</b>
@@ -482,6 +493,7 @@
           <i class="fa-solid fa-circle-check" aria-hidden="true"></i> مستقرة <b>{{ totals.active }}</b>
         </a>
       </nav>
+      </div>
     </div>
 
     <p class="gsubs-note">
@@ -508,7 +520,7 @@
         </thead>
         <tbody>
           {% for row in rows %}
-            <tr class="{% if row.order <= 3 or row.is_pressured %}gsubs-row--attention{% endif %}">
+            <tr class="{% if row.order <= 3 or row.is_pressured %}gsubs-row--attention{% endif %}" data-school-row data-search="{{ row.school.name|lower }} {{ row.school.city|default:''|lower }} {{ row.manager.name|default:''|lower }}">
               <td data-label="المدرسة">
                 <div class="gsubs-school">
                   <span class="gsubs-avatar" aria-hidden="true">{{ row.school.name|slice:":1" }}</span>
@@ -620,6 +632,8 @@
         </tbody>
       </table>
     </div>
+    <p class="gsubs-empty" data-school-empty hidden>لا توجد مدرسة تطابق عبارة البحث.</p>
+    <p class="sr-only" aria-live="polite" data-school-count></p>
   </section>
 </main>
 {% endblock %}

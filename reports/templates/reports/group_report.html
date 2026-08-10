@@ -39,6 +39,17 @@
     font-size: .7rem; font-weight: 900; background: var(--asg-soft); color: var(--asg-green);
     margin-inline-end: .4rem;
   }
+  .rep-insights { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.7rem; margin-top:1rem; }
+  .rep-insight { display:flex; gap:.7rem; align-items:flex-start; padding:.85rem; border:1px solid var(--asg-line); border-radius:13px; background:var(--asg-surface); }
+  .rep-insight__icon { display:grid; flex:0 0 38px; width:38px; height:38px; place-items:center; border-radius:11px; color:var(--asg-green); background:var(--asg-soft); }
+  .rep-insight[data-tone="danger"] .rep-insight__icon { color:var(--asg-danger); background:var(--id-tone-danger-wash); }
+  .rep-insight[data-tone="warn"] .rep-insight__icon { color:var(--asg-gold); background:var(--id-tone-attention-wash); }
+  .rep-insight strong,.rep-insight small { display:block; }
+  .rep-insight strong { font-size:.82rem; font-weight:900; }
+  .rep-insight small { margin-top:.2rem; color:var(--asg-muted); font-size:.7rem; line-height:1.6; }
+  .rep-name a { color:inherit; text-decoration:none; }
+  .rep-name a:hover { color:var(--asg-green); text-decoration:underline; }
+  @media (max-width:760px) { .rep-insights { grid-template-columns:1fr; } }
 </style>
 {% endblock %}
 
@@ -105,6 +116,21 @@
     </article>
   </section>
 
+  <section class="rep-insights" aria-label="قراءة تنفيذية سريعة">
+    <article class="rep-insight" data-tone="{% if snapshot.totals.assignments_overdue %}danger{% endif %}">
+      <span class="rep-insight__icon"><i class="fa-solid fa-clock" aria-hidden="true"></i></span>
+      <div><strong>{{ snapshot.totals.assignments_overdue }} تكليف متأخر</strong><small>{% if snapshot.totals.assignments_overdue %}يحتاج متابعة المدارس قبل اتساع فجوة التنفيذ.{% else %}لا توجد تكليفات متأخرة حالياً.{% endif %}</small></div>
+    </article>
+    <article class="rep-insight" data-tone="{% if snapshot.totals.reports_pending %}warn{% endif %}">
+      <span class="rep-insight__icon"><i class="fa-solid fa-stamp" aria-hidden="true"></i></span>
+      <div><strong>{{ snapshot.totals.reports_pending }} تقرير ينتظر الاعتماد</strong><small>{% if snapshot.totals.reports_pending %}تابع إغلاق دورة الاعتماد في المدارس.{% else %}لا تراكم في التقارير المنتظرة.{% endif %}</small></div>
+    </article>
+    <article class="rep-insight">
+      <span class="rep-insight__icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>
+      <div><strong>إنجاز المجموعة {{ snapshot.totals.completion }}%</strong><small>{{ snapshot.totals.assignments_done }} من {{ snapshot.totals.assignments }} حصة تكليف مكتملة.</small></div>
+    </article>
+  </section>
+
   <section class="asg-card">
     <h2 class="asg-card__title">مقارنة المدارس</h2>
     <p class="asg-card__hint">
@@ -133,7 +159,7 @@
             {% for row in snapshot.ranked %}
               <tr>
                 <td class="rep-name">
-                  <span class="rep-rank">{{ forloop.counter }}</span>{{ row.name }}
+                  <span class="rep-rank">{{ forloop.counter }}</span><a href="{% url 'reports:group_school_detail' row.school.pk %}">{{ row.name }}</a>
                 </td>
                 <td>{{ row.seats }}</td>
                 <td>{{ row.reports_total }}</td>

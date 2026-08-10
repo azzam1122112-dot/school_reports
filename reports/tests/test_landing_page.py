@@ -56,6 +56,36 @@ class LandingPageTests(TestCase):
         # The claim must stay an invitation to verify, never an invented statistic.
         self.assertContains(response, "جرّبه على أعمال أسبوع واحد")
 
+    def test_landing_puts_role_specific_journeys_before_the_long_catalog(self):
+        response = self.client.get(reverse("reports:landing"))
+        html = response.content.decode("utf-8")
+
+        self.assertLess(html.index('id="roles"'), html.index('id="start"'))
+        self.assertEqual(html.count('role="tab"'), 4)
+        self.assertEqual(html.count('role="tabpanel"'), 4)
+        self.assertContains(response, "صاحب قرار التشغيل والاشتراك")
+        self.assertContains(response, "مستخدم مدعو من إدارة المدرسة")
+        self.assertContains(response, "قيادة مجموعة مدارس")
+        self.assertContains(response, "مستخدم مدعو بصلاحيات محددة")
+        self.assertContains(response, "دخول المعلم")
+        self.assertContains(response, "دخول الموظف الإداري")
+        self.assertContains(response, "الطلبات والتكليفات والوثائق والاجتماعات والخطط والتقارير")
+        self.assertContains(response, "المعلم والموظف الإداري فيدخلان بعد إضافتهما")
+        self.assertIn('data-role-target="rolePanelManager"', html)
+        self.assertIn('data-role-target="rolePanelAdmin"', html)
+        self.assertIn('data-role-panel hidden', html)
+
+    def test_landing_metadata_names_the_product_outcome_and_core_audiences(self):
+        response = self.client.get(reverse("reports:landing"))
+
+        self.assertContains(
+            response,
+            "<title>منصة توثيق | إدارة وتشغيل المدارس والتقارير والإنجاز</title>",
+            html=True,
+        )
+        for audience in ("مدير المدرسة", "المعلم", "المدير التنفيذي", "الموظف الإداري"):
+            self.assertContains(response, audience)
+
     def test_landing_backs_each_feature_headline_with_concrete_capabilities(self):
         response = self.client.get(reverse("reports:landing"))
         html = response.content.decode("utf-8")
@@ -96,7 +126,7 @@ class LandingPageTests(TestCase):
         self.assertNotIn("هوية مقدم الخدمة", html)
         self.assertNotIn('href="#business"', html)
         self.assertIn('<span>دخول</span>', html)
-        self.assertIn('src="/static/js/landing.js"', html)
+        self.assertIn('src="/static/js/landing.js?v=20260810.1"', html)
         self.assertNotIn("var periodButtons", html)
         self.assertIn("no-store", response.headers["Cache-Control"])
         self.assertEqual(response.headers["CDN-Cache-Control"], "no-store")

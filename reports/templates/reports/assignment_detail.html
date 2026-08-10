@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load hijri_tags %}
 
 {% block title %}{{ assignment.title }} | التكليفات{% endblock %}
 
@@ -106,7 +107,10 @@
         <div class="dtl-meta">
           <div>
             <div class="dtl-meta__l">موعد التسليم</div>
-            <div class="dtl-meta__v">{{ assignment.due_at|date:"Y-m-d H:i" }}</div>
+            <div class="dtl-meta__v">
+              {{ assignment.due_at|hijri }} هـ
+              <time dir="ltr" datetime="{{ assignment.due_at|date:'c' }}">({{ assignment.due_at|date:"Y-m-d H:i" }})</time>
+            </div>
           </div>
           <div>
             <div class="dtl-meta__l">نسبة الإنجاز</div>
@@ -119,10 +123,26 @@
           <div>
             <div class="dtl-meta__l">القبول</div>
             <div class="dtl-meta__v">
-              {% if target.accepted_at %}{{ target.accepted_at|date:"Y-m-d" }}{% else %}لم يُقبل بعد{% endif %}
+              {% if target.accepted_at %}
+                {{ target.accepted_at|hijri }} هـ
+                <time dir="ltr" datetime="{{ target.accepted_at|date:'c' }}">({{ target.accepted_at|date:"Y-m-d" }})</time>
+              {% elif assignment.is_cancelled %}لم يُقبل قبل الإلغاء
+              {% else %}لم يُقبل بعد{% endif %}
             </div>
           </div>
         </div>
+
+        {% if assignment.is_cancelled %}
+          <div class="dtl-alert dtl-alert--late" role="status">
+            <span class="dtl-alert__l">هذا التكليف ملغى ومحفوظ للسجل فقط</span>
+            لا يتطلب منك أي إجراء، وقد أوقفت جميع أدوات التنفيذ والإرسال.
+            {% if assignment.cancelled_at %}
+              أُلغي في {{ assignment.cancelled_at|hijri }} هـ
+              <time dir="ltr" datetime="{{ assignment.cancelled_at|date:'c' }}">({{ assignment.cancelled_at|date:"Y-m-d H:i" }})</time>.
+            {% endif %}
+            {% if assignment.cancel_reason %}<br>السبب: {{ assignment.cancel_reason }}{% endif %}
+          </div>
+        {% endif %}
 
         {% if assignment.description %}
           <div class="dtl-body">{{ assignment.description }}</div>
@@ -166,7 +186,9 @@
       <section class="asg-card">
         <h2 class="asg-card__title">الشواهد</h2>
         <p class="asg-card__hint">
-          {% if is_assignee %}
+          {% if assignment.is_cancelled %}
+            الشواهد السابقة محفوظة للتوثيق فقط، ولا يمكن إضافة شاهد أو حذفه بعد إلغاء التكليف.
+          {% elif is_assignee %}
             ارفع ما يُثبت التنفيذ. بعد اعتماد تنفيذك لا يمكن حذف شاهد — فحذفه
             يفرّغ الاعتماد من سنده.
           {% else %}
@@ -186,7 +208,7 @@
                     {{ item.uploaded_by.name|default:"—" }} · {{ item.created_at|date:"Y-m-d H:i" }}
                   </div>
                 </div>
-                {% if is_assignee and not target.is_final %}
+                {% if is_assignee and not target.is_final and not assignment.is_cancelled %}
                   <form method="post" action="{% url 'reports:assignment_target_action' target.pk %}">
                     {% csrf_token %}
                     <input type="hidden" name="target_action" value="remove_evidence">
@@ -201,7 +223,7 @@
           <p class="asg-card__hint" style="margin:0">لم تُرفع شواهد بعد.</p>
         {% endif %}
 
-        {% if is_assignee and not target.is_final %}
+        {% if is_assignee and not target.is_final and not assignment.is_cancelled %}
           <form method="post" enctype="multipart/form-data"
                 action="{% url 'reports:assignment_target_action' target.pk %}"
                 style="margin-top:1rem">
@@ -246,7 +268,8 @@
                 </div>
                 <div class="dtl-step__who">
                   {{ step.actor_display }}{% if step.actor_role %} · {{ step.actor_role }}{% endif %}
-                  · {{ step.created_at|date:"Y-m-d H:i" }}
+                  · {{ step.created_at|hijri }} هـ
+                  <time dir="ltr" datetime="{{ step.created_at|date:'c' }}">({{ step.created_at|date:"Y-m-d H:i" }})</time>
                 </div>
                 {% if step.note %}<div class="dtl-step__note">{{ step.note }}</div>{% endif %}
               </li>
@@ -317,7 +340,7 @@
       {# ═══ الاعتماد ═════════════════════════════════════ #}
       <section class="asg-card" {% if not is_assignee %}style="margin-top:1.2rem"{% endif %}>
         <h2 class="asg-card__title">
-          {% if is_assignee %}الإرسال للمراجعة{% else %}قرارك{% endif %}
+          {% if assignment.is_cancelled %}حالة التكليف{% elif is_assignee %}الإرسال للمراجعة{% else %}قرارك{% endif %}
         </h2>
 
         {% if actions %}
@@ -375,7 +398,9 @@
           </script>
         {% else %}
           <p class="asg-card__hint" style="margin:0">
-            {% if target.is_final %}
+            {% if assignment.is_cancelled %}
+              أُلغي هذا التكليف؛ لا توجد إجراءات مطلوبة أو متاحة عليه.
+            {% elif target.is_final %}
               اعتُمد تنفيذ هذا التكليف. لا يُعدَّل بعد اعتماده.
             {% elif shortfall %}
               استوفِ شواهد التكليف أولاً ليصبح الإرسال للمراجعة متاحاً.

@@ -19,6 +19,12 @@
       المرتبط بها إن رُبِط — فلا يُرفع الشيء نفسه مرتين.
     </p>
     <div class="lab-hero__actions">
+      {% if can_record %}
+        <a class="lab-act lab-act--solid" href="#new-experiment">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          توثيق تجربة جديدة
+        </a>
+      {% endif %}
       <a class="lab-act" href="{% url 'reports:lab_dashboard' %}">
         <i class="fa-solid fa-flask" aria-hidden="true"></i>
         لوحة المختبر
@@ -46,46 +52,22 @@
   </section>
 
   {% if can_record %}
-    <section class="lab-section">
-      <div class="lab-section__head">
-        <h2><i class="fa-solid fa-plus" aria-hidden="true"></i> توثيق تجربة</h2>
-      </div>
-      <div class="lab-card">
-        <form method="post" class="lab-form" novalidate>
-          {% csrf_token %}
-          {% if form.non_field_errors %}
-            <ul class="errorlist">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
-          {% endif %}
-          <div class="lab-grid-2">
-            {% for field in form %}
-              {% if field.name != 'objectives' and field.name != 'procedure' and field.name != 'materials_note' and field.name != 'safety_notes' %}
-                <div class="lab-field">
-                  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                  {{ field }}
-                  {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
-                  {{ field.errors }}
-                </div>
-              {% endif %}
-            {% endfor %}
-          </div>
-          {% for field in form %}
-            {% if field.name == 'objectives' or field.name == 'procedure' or field.name == 'materials_note' or field.name == 'safety_notes' %}
-              <div class="lab-field">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
-                {{ field.errors }}
-              </div>
-            {% endif %}
-          {% endfor %}
-          <div>
-            <button type="submit" class="lab-btn">
-              <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
-              احفظ كمسودة
-            </button>
-          </div>
-        </form>
-      </div>
+    <section class="lab-section" id="new-experiment">
+      <details class="lab-entry" {% if form.errors or not summary.experiments_total %}open{% endif %}>
+        <summary>
+          <span class="lab-entry__title">
+            <span class="lab-entry__icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+            <span class="lab-entry__copy">
+              <strong>توثيق تجربة جديدة</strong>
+              <small>احفظها مسودة الآن، وأكملها قبل الإرسال للاعتماد.</small>
+            </span>
+          </span>
+          <i class="fa-solid fa-chevron-down lab-entry__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="lab-entry__body">
+          {% include "reports/_lab_experiment_form.html" with save_label="احفظ المسودة" %}
+        </div>
+      </details>
     </section>
   {% endif %}
 
@@ -116,7 +98,7 @@
 
     {% if page_obj.object_list %}
       <div class="lab-table-wrap">
-        <table class="lab-table">
+        <table class="lab-table lab-table--cards">
           <thead>
             <tr>
               <th>التجربة</th><th>التاريخ</th><th>المادة</th>
@@ -126,12 +108,12 @@
           <tbody>
             {% for experiment in page_obj.object_list %}
               <tr>
-                <td><a href="{% url 'reports:lab_experiment_detail' experiment.pk %}">{{ experiment.title }}</a></td>
-                <td dir="rtl">{{ experiment.experiment_date|hijri }}</td>
-                <td>{{ experiment.subject|default:"—" }}</td>
-                <td>{{ experiment.class_name|default:"—" }}</td>
-                <td>{{ experiment.students_count }}</td>
-                <td><span class="lab-chip" data-tone="{{ experiment.approval_tone }}">{{ experiment.get_approval_state_display }}</span></td>
+                <td data-label="التجربة"><a href="{% url 'reports:lab_experiment_detail' experiment.pk %}">{{ experiment.title|default:"مسودة بلا عنوان" }}</a></td>
+                <td data-label="التاريخ" dir="rtl">{% if experiment.experiment_date %}{{ experiment.experiment_date|hijri }}{% else %}—{% endif %}</td>
+                <td data-label="المادة">{{ experiment.subject|default:"—" }}</td>
+                <td data-label="الصف">{{ experiment.class_name|default:"—" }}</td>
+                <td data-label="الطلاب">{{ experiment.students_count|default:"—" }}</td>
+                <td data-label="الحالة"><span class="lab-chip" data-tone="{{ experiment.approval_tone }}">{{ experiment.get_approval_state_display }}</span></td>
               </tr>
             {% endfor %}
           </tbody>
@@ -144,8 +126,12 @@
         {% if has_filters %}
           <strong>لا نتائج لهذه التصفية.</strong>
         {% else %}
+          <span class="lab-empty__icon"><i class="fa-solid fa-vials" aria-hidden="true"></i></span>
           <strong>لم تُوثَّق تجربة بعد.</strong>
-          {% if can_record %}ابدأ من النموذج أعلاه.{% endif %}
+          {% if can_record %}
+            أنشئ المسودة الأولى، ويمكنك إكمال تفاصيلها لاحقاً.
+            <a class="lab-btn lab-btn--ghost" href="#new-experiment">توثيق أول تجربة</a>
+          {% endif %}
         {% endif %}
       </div>
     {% endif %}

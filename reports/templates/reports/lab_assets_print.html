@@ -35,15 +35,31 @@
     .sign > div { flex: 1; }
     .sign .line { border-bottom: 1px dotted var(--line); height: 34px; margin-top: 6px; }
     .empty { border: 1px dashed var(--line); padding: 12px; text-align: center; color: var(--muted); }
+    .print-toolbar {
+      display: flex; justify-content: center; gap: 8px; margin: 0 0 14px;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+    }
+    .print-toolbar a, .print-toolbar button {
+      border: 1px solid #17643f; border-radius: 8px; background: #17643f;
+      color: #fff; padding: 7px 14px; font: inherit; font-size: 10.5pt;
+      text-decoration: none; cursor: pointer;
+    }
+    .print-toolbar a { background: #fff; color: #17643f; }
     @media print {
       body { padding: 0; }
+      .print-toolbar { display: none !important; }
       thead { display: table-header-group; }
       tr { break-inside: avoid; }
       @page { size: A4; margin: 12mm; }
     }
   </style>
 </head>
-<body onload="window.print()">
+<body>
+
+  <nav class="print-toolbar" aria-label="إجراءات الكشف">
+    <a href="{% url 'reports:lab_assets' %}">العودة إلى العهدة</a>
+    <button type="button" data-print-trigger>طباعة الكشف</button>
+  </nav>
 
   <header class="doc-head">
     <h1>كشف عهدة المختبر</h1>
@@ -111,5 +127,8 @@
     <div>محضّر المختبر<div class="line"></div></div>
     <div>مدير المدرسة<div class="line"></div></div>
   </div>
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    document.querySelector('[data-print-trigger]').addEventListener('click', function () { window.print(); });
+  </script>
 </body>
 </html>

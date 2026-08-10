@@ -2,8 +2,8 @@
 
 {% block title %}سياسة الشكاوى والمقترحات | منصة توثيق{% endblock %}
 {% block seo_meta %}
-<meta name="description" content="قنوات تقديم الشكاوى والمقترحات لمنصة توثيق، مدد الرد والمعالجة، ونموذج شكوى إلكتروني مباشر.">
-<link rel="canonical" href="{{ SITE_URL }}{% url 'reports:complaints_policy' %}">
+{% url 'reports:complaints_policy' as canonical_path %}
+{% include "reports/partials/public_seo.html" with seo_title="سياسة الشكاوى والمقترحات | منصة توثيق" seo_description="قنوات تقديم الشكاوى والمقترحات لمنصة توثيق، مدد الرد والمعالجة، ونموذج شكوى إلكتروني مباشر." seo_image_alt="سياسة الشكاوى والمقترحات في منصة توثيق" canonical_path=canonical_path social_type="article" include_schema=True schema_type="WebPage" modified_date="2026-08-02" %}
 {% endblock %}
 {% block legal_title %}سياسة الشكاوى والمقترحات{% endblock %}
 {% block legal_intro %}نستقبل الشكاوى بالعربية عبر نموذج الموقع، ونمنح كل شكوى إلكترونية رقم متابعة واضحًا.{% endblock %}

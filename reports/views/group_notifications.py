@@ -180,6 +180,12 @@ def _fan_out(batch, schools, recipients_by_school, cleaned) -> None:
             [NotificationRecipient(notification=notification, teacher_id=tid) for tid in teacher_ids],
             ignore_conflicts=True,
         )
+        try:
+            from ..realtime_notifications import push_new_notification_to_teachers
+
+            push_new_notification_to_teachers(notification=notification, teacher_ids=teacher_ids)
+        except Exception:
+            logger.exception("notification realtime dispatch failed for notification %s", notification.pk)
         for tid in teacher_ids:
             try:
                 invalidate_user_notifications(int(tid))

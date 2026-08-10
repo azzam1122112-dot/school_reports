@@ -4,15 +4,8 @@
 {% block title %}الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق{% endblock %}
 {% block robots %}index,follow,max-image-preview:large,max-snippet:-1{% endblock %}
 {% block seo_meta %}
-<meta name="description" content="إجابات عن منصة توثيق للتقارير المدرسية وملفات الإنجاز والطلبات والتعاميم، وآلية الاستخدام والطباعة والصلاحيات وحماية بيانات المدرسة.">
-<link rel="canonical" href="{{ SITE_URL }}{% url 'reports:faq' %}">
-<meta property="og:locale" content="ar_SA">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="منصة توثيق">
-<meta property="og:title" content="الأسئلة الشائعة | منصة توثيق">
-<meta property="og:description" content="إجابات واضحة عن التقارير المدرسية وملفات الإنجاز والطلبات والتعاميم في منصة توثيق.">
-<meta property="og:url" content="{{ SITE_URL }}{% url 'reports:faq' %}">
-<meta name="twitter:card" content="summary">
+{% url 'reports:faq' as canonical_path %}
+{% include "reports/partials/public_seo.html" with seo_title="الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق" seo_description="إجابات عن منصة توثيق للتقارير المدرسية وملفات الإنجاز والطلبات والتعاميم، وآلية الاستخدام والطباعة والصلاحيات وحماية بيانات المدرسة." seo_image_alt="الأسئلة الشائعة عن منصة توثيق" canonical_path=canonical_path %}
 <script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
 {
   "@context": "https://schema.org",
@@ -31,23 +24,23 @@
     },
     {
       "@type": "Question",
-      "name": "هل المنصة مناسبة لأكثر من مدرسة؟",
+      "name": "هل المنصة مناسبة لمدرسة واحدة فقط؟",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "نعم، تدعم منصة توثيق مدرسة واحدة أو عدة مدارس مع عزل البيانات والصلاحيات والكادر بين المدارس."
+        "text": "لا، تدعم المنصة مدرسة واحدة أو عدة مدارس في الوقت نفسه، مع عزل واضح لبيانات وصلاحيات وكادر كل مدرسة."
       }
     },
     {
       "@type": "Question",
-      "name": "هل يمكن استخراج التقارير وملفات الإنجاز بصيغة PDF؟",
+      "name": "هل يمكن استخراج ملف إنجاز PDF؟",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "نعم، تنشئ المنصة تقارير وملفات إنجاز PDF منظمة وجاهزة للطباعة والمشاركة."
+        "text": "نعم، تولد المنصة ملف PDF منظمًا لملف الإنجاز يتضمن البيانات والشواهد المرفقة وشعار المدرسة، ويكون جاهزًا للطباعة."
       }
     },
     {
       "@type": "Question",
-      "name": "هل تحمي المنصة بيانات المدرسة؟",
+      "name": "هل المنصة آمنة وتحمي بيانات المدرسة؟",
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "تعزل المنصة بيانات كل مدرسة وتطبق صلاحيات حسب الدور وسجل تدقيق للعمليات الحساسة."

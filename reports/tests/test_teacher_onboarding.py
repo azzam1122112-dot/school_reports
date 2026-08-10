@@ -198,14 +198,14 @@ class TeacherOnboardingTests(TestCase):
             },
         )
 
-        self.assertRedirects(
-            response,
-            reverse("reports:manage_teachers"),
-            fetch_redirect_response=False,
-        )
         teacher = Teacher.objects.get(phone="0552223355")
         self.assertTrue(teacher.check_password(teacher.phone))
         membership = SchoolMembership.objects.get(school=self.school, teacher=teacher)
+        self.assertRedirects(
+            response,
+            reverse("reports:staff_role_scope", args=[membership.pk]),
+            fetch_redirect_response=False,
+        )
         self.assertEqual(membership.role_type, SchoolMembership.RoleType.ADMIN_STAFF)
         self.assertEqual(membership.job_title, SchoolMembership.JobTitle.ADMIN_STAFF)
 
@@ -244,6 +244,118 @@ class TeacherOnboardingTests(TestCase):
         )
         self.assertEqual(membership.role_type, SchoolMembership.RoleType.ADMIN_STAFF)
         self.assertEqual(membership.job_title, SchoolMembership.JobTitle.LAB_TECH)
+
+    def test_individual_form_offers_the_same_four_assignments_as_roles_screen(self):
+        from reports.forms_staff_roles import StaffRoleAssignForm
+
+        add_form = TeacherCreateForm(active_school=self.school)
+        roles_form = StaffRoleAssignForm(school=self.school)
+
+        self.assertEqual(
+            list(add_form.fields["job_title"].choices),
+            list(roles_form.fields["role_type"].choices),
+        )
+        self.assertEqual(
+            {value for value, _ in add_form.fields["job_title"].choices},
+            {"teacher", "deputy", "admin_staff", "lab_tech"},
+        )
+
+    def test_individual_page_renders_four_accessible_role_cards(self):
+        response = self.client.get(reverse("reports:add_teacher"))
+        html = response.content.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "إضافة منسوب جديد")
+        self.assertContains(response, "اختر الدور الأساسي في المدرسة")
+        self.assertEqual(html.count('class="role-option"'), 4)
+        self.assertContains(response, 'value="deputy"')
+        self.assertContains(response, "لديه نصاب تدريسي أيضًا")
+
+    def test_individual_add_can_create_a_deputy_and_continue_to_scope(self):
+        response = self.client.post(
+            reverse("reports:add_teacher"),
+            {
+                "name": "وكيل جديد",
+                "phone": "0552223388",
+                "national_id": "",
+                "job_title": SchoolMembership.RoleType.DEPUTY,
+                "is_active": "on",
+            },
+        )
+
+        membership = SchoolMembership.objects.get(
+            school=self.school, teacher__phone="0552223388"
+        )
+        self.assertEqual(membership.role_type, SchoolMembership.RoleType.DEPUTY)
+        self.assertRedirects(
+            response,
+            reverse("reports:staff_role_scope", args=[membership.pk]),
+            fetch_redirect_response=False,
+        )
+
+    def test_new_deputy_can_keep_a_teaching_load_explicitly(self):
+        self.client.post(
+            reverse("reports:add_teacher"),
+            {
+                "name": "وكيل معلّم",
+                "phone": "0552223399",
+                "national_id": "",
+                "job_title": SchoolMembership.RoleType.DEPUTY,
+                "keep_teaching_role": "on",
+                "is_active": "on",
+            },
+        )
+
+        roles = set(
+            SchoolMembership.objects.filter(
+                school=self.school, teacher__phone="0552223399"
+            ).values_list("role_type", flat=True)
+        )
+        self.assertEqual(roles, {"deputy", "teacher"})
+
+    def test_existing_member_role_change_requires_confirmation_then_replaces(self):
+        member = Teacher.objects.create_user(
+            phone="0552223400", name="منسوب موجود", password="safe-password"
+        )
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=member,
+            role_type=SchoolMembership.RoleType.TEACHER,
+            job_title=SchoolMembership.JobTitle.TEACHER,
+        )
+        payload = {
+            "name": member.name,
+            "phone": member.phone,
+            "national_id": "",
+            "job_title": SchoolMembership.RoleType.ADMIN_STAFF,
+            "is_active": "on",
+        }
+
+        review = self.client.post(reverse("reports:add_teacher"), payload)
+        self.assertEqual(review.status_code, 200)
+        self.assertContains(review, "راجع تغيير الدور")
+        self.assertEqual(
+            set(
+                SchoolMembership.objects.filter(
+                    school=self.school, teacher=member
+                ).values_list("role_type", flat=True)
+            ),
+            {SchoolMembership.RoleType.TEACHER},
+        )
+
+        confirmed = self.client.post(
+            reverse("reports:add_teacher"),
+            {**payload, "confirm_role_change": "1"},
+        )
+        membership = SchoolMembership.objects.get(school=self.school, teacher=member)
+        self.assertEqual(membership.role_type, SchoolMembership.RoleType.ADMIN_STAFF)
+        self.assertRedirects(
+            confirmed,
+            reverse("reports:staff_role_scope", args=[membership.pk]),
+            fetch_redirect_response=False,
+        )
+        member.refresh_from_db()
+        self.assertTrue(member.check_password("safe-password"))
 
     def test_blank_ready_rows_in_quick_table_are_not_treated_as_users(self):
         self.client.post(

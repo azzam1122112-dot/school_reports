@@ -149,7 +149,7 @@
 
   {% if achievements %}
     <section class="asg-card">
-      <h2 class="asg-card__title">ملفات إنجازي</h2>
+      <h2 class="asg-card__title">{% if HAS_TEACHER_ROLE %}ملفات إنجازي كمعلم{% elif IS_LAB_TECHNICIAN %}ملفات إنجازي المهني{% else %}ملفات إنجاز سابقة{% endif %}</h2>
       {% for item in achievements %}
         <div class="wa-line">
           <span class="wa-icon" aria-hidden="true"><i class="fa-solid fa-folder-open"></i></span>
@@ -157,7 +157,7 @@
             <div class="wa-line__title">
               <a href="{% url 'reports:achievement_file_detail' item.pk %}">ملف إنجاز {{ item.academic_year }}</a>
             </div>
-            <div class="wa-line__sub">{{ item.get_status_display }}</div>
+            <div class="wa-line__sub">{% if not HAS_TEACHER_ROLE and item.status == 'returned' %}معاد للاستكمال{% else %}{{ item.get_status_display }}{% endif %}</div>
           </div>
         </div>
       {% endfor %}

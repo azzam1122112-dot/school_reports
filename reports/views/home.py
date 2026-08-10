@@ -13,6 +13,7 @@ from ..model_parts.meetings import Meeting
 from ..model_parts.plans import Initiative
 from ..services_assignments import open_targets_for_assignee
 from ..services_meetings import meetings_for_user
+from ..staff_workspace import EMPTY_STAFF_WORKSPACES, build_staff_workspaces
 
 # ما يُعاد إلى صاحبه ليعمل عليه. «أعِد النظر» و«أرفق ما نقص» رسالتان مختلفتان
 # في دورة الاعتماد، لكنهما على لوحة صاحب العمل شيء واحد: كرةٌ في ملعبه.
@@ -37,10 +38,86 @@ _EMPTY_REPORT_APPROVAL = {
     "draft_reports_count": 0,
 }
 
+_EMPTY_ACHIEVEMENT_FOLLOWUP = {
+    "returned_achievement_files": [],
+    "returned_achievement_count": 0,
+}
+
+_EMPTY_TEACHER_SCOPE = {
+    "teacher_scope_label": "",
+}
+
 _EMPTY_LAB = {
     "lab_summary": None,
     "lab_attention": [],
 }
+
+
+def _achievement_followup(user, school) -> dict:
+    """ملفات الإنجاز التي عادت إلى صاحبها وتحتاج إجراءً منه.
+
+    الإشعار قد يُقرأ أو يضيع بين إشعارات أخرى، أما الحالة نفسها فهي مصدر
+    الحقيقة. لذلك تبقى في «متابعة اليوم» حتى يستكمل المعلم الملف ويرسله، لا
+    حتى يفتح الإشعار فقط.
+    """
+    if school is None:
+        return dict(_EMPTY_ACHIEVEMENT_FOLLOWUP)
+
+    try:
+        has_personal_achievement = SchoolMembership.objects.filter(
+            Q(
+                school=school,
+                teacher=user,
+                role_type=SchoolMembership.RoleType.TEACHER,
+                is_active=True,
+            )
+            | Q(
+                school=school,
+                teacher=user,
+                role_type=SchoolMembership.RoleType.ADMIN_STAFF,
+                job_title=SchoolMembership.JobTitle.LAB_TECH,
+                is_active=True,
+            )
+        ).exists()
+        if not has_personal_achievement:
+            return dict(_EMPTY_ACHIEVEMENT_FOLLOWUP)
+
+        queryset = TeacherAchievementFile.objects.filter(
+            teacher=user,
+            school=school,
+            status=TeacherAchievementFile.Status.RETURNED,
+        ).order_by("-updated_at", "-id")
+        return {
+            "returned_achievement_files": list(queryset[:3]),
+            "returned_achievement_count": queryset.count(),
+        }
+    except Exception:
+        logger.exception("Achievement follow-up panel failed")
+        return dict(_EMPTY_ACHIEVEMENT_FOLLOWUP)
+
+
+def _teacher_scope(user, school) -> dict:
+    """وصف قصير للسياق الفعلي: الأقسام التي يعمل فيها صاحب اللوحة."""
+    if school is None or DepartmentMembership is None:
+        return dict(_EMPTY_TEACHER_SCOPE)
+
+    try:
+        names = list(
+            DepartmentMembership.objects.filter(
+                teacher=user,
+                department__school=school,
+                department__is_active=True,
+            )
+            .values_list("department__name", flat=True)
+            .distinct()
+            .order_by("department__name")[:3]
+        )
+        return {
+            "teacher_scope_label": " • ".join(str(name) for name in names if name),
+        }
+    except Exception:
+        logger.exception("Teacher scope label failed")
+        return dict(_EMPTY_TEACHER_SCOPE)
 
 
 def _lab_panel(user, school) -> dict:
@@ -599,6 +676,9 @@ def home(request: HttpRequest) -> HttpResponse:
                 "home_notification_recipient_id": home_notification_recipient_id,
                 **_staff_involvement(request.user, active_school),
                 **report_approval,
+                **_achievement_followup(request.user, active_school),
+                **_teacher_scope(request.user, active_school),
+                **build_staff_workspaces(request.user, active_school),
                 **_supervision_queue(request.user, active_school),
                 **_lab_panel(request.user, active_school),
             },
@@ -625,6 +705,9 @@ def home(request: HttpRequest) -> HttpResponse:
                 # صمت ``TEMPLATE_STRING_IF_INVALID`` بدل أن تعتمد على قيمة.
                 **_EMPTY_INVOLVEMENT,
                 **_EMPTY_REPORT_APPROVAL,
+                **_EMPTY_ACHIEVEMENT_FOLLOWUP,
+                **_EMPTY_TEACHER_SCOPE,
+                **EMPTY_STAFF_WORKSPACES,
                 **_EMPTY_SUPERVISION,
                 **_EMPTY_LAB,
             }, status=500)

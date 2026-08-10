@@ -89,6 +89,61 @@
     }
   );
 
+  var roleTabs = Array.prototype.slice.call(
+    document.querySelectorAll("[data-role-target]")
+  );
+  var rolePanels = Array.prototype.slice.call(
+    document.querySelectorAll("[data-role-panel]")
+  );
+
+  function activateRole(tab, moveFocus) {
+    var targetId = tab && tab.getAttribute("data-role-target");
+    if (!targetId) return;
+
+    Array.prototype.forEach.call(roleTabs, function (item) {
+      var active = item === tab;
+      item.classList.toggle("is-active", active);
+      item.setAttribute("aria-selected", active ? "true" : "false");
+      item.setAttribute("tabindex", active ? "0" : "-1");
+    });
+    Array.prototype.forEach.call(rolePanels, function (panel) {
+      var active = panel.id === targetId;
+      panel.hidden = !active;
+      panel.classList.toggle("is-active", active);
+    });
+
+    if (moveFocus) tab.focus();
+  }
+
+  Array.prototype.forEach.call(roleTabs, function (tab, index) {
+    tab.addEventListener("click", function () {
+      activateRole(tab, false);
+    });
+    tab.addEventListener("keydown", function (event) {
+      var nextIndex = index;
+      if (event.key === "ArrowLeft") nextIndex = (index + 1) % roleTabs.length;
+      else if (event.key === "ArrowRight") nextIndex = (index - 1 + roleTabs.length) % roleTabs.length;
+      else if (event.key === "Home") nextIndex = 0;
+      else if (event.key === "End") nextIndex = roleTabs.length - 1;
+      else return;
+
+      event.preventDefault();
+      activateRole(roleTabs[nextIndex], true);
+    });
+  });
+
+  if (document.body.classList.contains("landing-page")) {
+    document.body.classList.add("landing-assistant-delayed");
+    var syncLandingScrollState = function () {
+      document.body.classList.toggle(
+        "landing-page-has-scrolled",
+        window.scrollY > 320
+      );
+    };
+    syncLandingScrollState();
+    window.addEventListener("scroll", syncLandingScrollState, { passive: true });
+  }
+
   var lightbox = document.getElementById("productLightbox");
   var lightboxImage = document.getElementById("productLightboxImage");
   var lightboxCaption = document.getElementById("productLightboxCaption");

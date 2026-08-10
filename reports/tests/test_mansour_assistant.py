@@ -178,7 +178,7 @@ class MansourAssistantTests(TestCase):
         self.assertContains(response, 'id="mansourLauncher"')
         self.assertContains(response, 'id="mansourPanel"')
         self.assertContains(response, "منصور")
-        self.assertNotContains(response, "اختر دورك")
+        self.assertNotContains(response, 'id="mansourAudience"')
         self.assertContains(response, 'aria-label="أسئلة مقترحة"')
         self.assertNotContains(response, "data-mansour-audience")
         self.assertContains(response, 'id="mansourReset"')

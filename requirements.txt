@@ -64,6 +64,9 @@ python-magic==0.4.27
 celery==5.4.0
 django-celery-results==2.5.1
 
+# Standards-based Web Push for installed PWAs (VAPID + payload encryption)
+pywebpush==2.4.0
+
 # Markdown rendering (User guide page)
 Markdown==3.10.3
 

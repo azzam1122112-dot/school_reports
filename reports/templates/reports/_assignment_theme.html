@@ -30,8 +30,20 @@
     background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24);
     color: var(--id-hero-ink); text-decoration: none;
   }
-  .asg-hero__title { margin: .75rem 0 .3rem; font-size: 1.5rem; font-weight: 900; }
-  .asg-hero__meta { margin: 0; font-size: .89rem; opacity: .92; line-height: 1.8; }
+  /* لا يرث العنوان لون الصفحة الداكن فوق الترويسة الخضراء. كان ذلك يخفض
+     التباين إلى أقل من 2.5:1 في عدد من شاشات المدير التنفيذي. */
+  .asg-hero__title {
+    position: relative; z-index: 1;
+    margin: .75rem 0 .3rem; font-size: 1.5rem; font-weight: 900;
+    color: #fff !important; -webkit-text-fill-color: #fff;
+    text-shadow: 0 1px 18px rgba(0,0,0,.18);
+  }
+  .asg-hero__meta {
+    position: relative; z-index: 1;
+    margin: 0; font-size: .89rem; color: rgba(255,255,255,.92);
+    line-height: 1.8;
+  }
+  .asg-hero__eyebrow { position: relative; z-index: 1; }
 
   .asg-kpis { display: grid; gap: .8rem; margin-top: 1.15rem; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
   .asg-kpi {

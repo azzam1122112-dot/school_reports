@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load hijri_tags %}
 
 {% block title %}تكليفاتي | منصة توثيق{% endblock %}
 
@@ -35,6 +36,12 @@
       <div class="asg-kpi__v">{{ done_targets|length }}</div>
       <div class="asg-kpi__l">معتمد</div>
     </article>
+    {% if cancelled_targets %}
+      <article class="asg-kpi">
+        <div class="asg-kpi__v">{{ cancelled_targets|length }}</div>
+        <div class="asg-kpi__l">ملغى ومحفوظ بالسجل</div>
+      </article>
+    {% endif %}
   </section>
 
   {% if open_targets %}
@@ -55,7 +62,8 @@
             </div>
             <div class="asg-item__sub">
               من {{ t.assignment.issuer_name|default:"—" }}
-              · يستحق {{ t.assignment.due_at|date:"Y-m-d H:i" }}
+              · يستحق {{ t.assignment.due_at|hijri }} هـ
+              <time dir="ltr" datetime="{{ t.assignment.due_at|date:'c' }}">({{ t.assignment.due_at|date:"Y-m-d H:i" }})</time>
               {% if t.assignment.department %} · {{ t.assignment.department.name }}{% endif %}
             </div>
           </div>
@@ -108,7 +116,8 @@
               <a href="{% url 'reports:assignment_detail' t.pk %}">{{ t.assignment.title }}</a>
             </div>
             <div class="asg-item__sub">
-              اعتُمد {{ t.decided_at|date:"Y-m-d" }}
+              اعتُمد {{ t.decided_at|hijri }} هـ
+              <time dir="ltr" datetime="{{ t.decided_at|date:'c' }}">({{ t.decided_at|date:"Y-m-d" }})</time>
               {% if t.decided_by %} · بواسطة {{ t.decided_by.name }}{% endif %}
             </div>
           </div>
@@ -116,6 +125,39 @@
             <span class="asg-tag asg-tag--done">
               <i class="fa-solid fa-check" aria-hidden="true"></i> معتمد
             </span>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if cancelled_targets %}
+    <section class="asg-card">
+      <h2 class="asg-card__title">الملغاة</h2>
+      <p class="asg-card__hint">
+        تكليفات أوقفتها الجهة المكلِّفة. تبقى هنا للسجل فقط ولا تتطلب منك
+        رفع شواهد أو إرسالاً للمراجعة.
+      </p>
+      {% for t in cancelled_targets %}
+        <article class="asg-item">
+          <div class="asg-item__main">
+            <div class="asg-item__title">
+              <a href="{% url 'reports:assignment_detail' t.pk %}">{{ t.assignment.title }}</a>
+            </div>
+            <div class="asg-item__sub">
+              من {{ t.assignment.issuer_name|default:"—" }}
+              {% if t.assignment.cancelled_at %}
+                · أُلغي {{ t.assignment.cancelled_at|hijri }} هـ
+                <time dir="ltr" datetime="{{ t.assignment.cancelled_at|date:'c' }}">({{ t.assignment.cancelled_at|date:"Y-m-d" }})</time>
+              {% endif %}
+              {% if t.assignment.cancel_reason %} · {{ t.assignment.cancel_reason|truncatechars:90 }}{% endif %}
+            </div>
+          </div>
+          <div class="asg-item__side">
+            <span class="asg-tag asg-tag--late">
+              <i class="fa-solid fa-ban" aria-hidden="true"></i> ملغى
+            </span>
+            <a class="asg-btn asg-btn--ghost asg-btn--sm" href="{% url 'reports:assignment_detail' t.pk %}">عرض السجل</a>
           </div>
         </article>
       {% endfor %}

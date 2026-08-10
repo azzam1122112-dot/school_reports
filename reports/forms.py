@@ -27,6 +27,7 @@ from django.utils import timezone
 
 from .validators import validate_circular_attachment_file
 from .gender_labels import school_gender_labels
+from .staff_assignments import assignment_cards, assignment_choices, get_assignment
 
 # ==============================
 # استيراد الموديلات (من models.py فقط)
@@ -828,11 +829,11 @@ class TeacherForm(forms.ModelForm):
 
 
 class TeacherCreateForm(forms.ModelForm):
-    """نموذج مبسّط لإنشاء معلّم فقط (بدون أي تكليفات).
+    """إنشاء حساب منسوب واختيار تكليفه المدرسي الأول.
 
-    - لا يعرض/لا يطلب تحديد قسم أو دور داخل القسم.
+    - يعرض الكتالوج نفسه الذي تستخدمه شاشة الأدوار والصلاحيات.
     - لا ينشئ DepartmentMembership نهائيًا.
-    - يضبط Teacher.role إلى "teacher" (إن وُجد) للتوافق مع الواجهات التراثية.
+    - كتابة SchoolMembership موحّدة في خدمة الإسناد ويستدعيها الـ view.
     """
 
     phone = forms.CharField(
@@ -880,17 +881,34 @@ class TeacherCreateForm(forms.ModelForm):
         }
 
     job_title = forms.ChoiceField(
-        label="الدور",
+        label="الدور في المدرسة",
         required=True,
-        choices=SchoolMembership.JobTitle.choices,
-        widget=forms.Select(attrs={"class": "form-control"}),
-        help_text="(بنفس الصلاحيات) — للاسم المعروض داخل المدرسة فقط.",
+        choices=(),
+        widget=forms.RadioSelect,
+        error_messages={"invalid_choice": "اختر دورًا معتمدًا من الخيارات الظاهرة."},
+    )
+    keep_teaching_role = forms.BooleanField(
+        label="لديه نصاب تدريسي أيضًا",
+        required=False,
+        help_text="ينشئ له مساحة المعلّم وملف الإنجاز بجانب دوره الأساسي.",
     )
 
     def __init__(self, *args, **kwargs):
         self._active_school = kwargs.pop("active_school", None)
         super().__init__(*args, **kwargs)
-        self.fields["job_title"].choices = _school_job_title_choices(self._active_school)
+        self.fields["job_title"].choices = assignment_choices(self._active_school)
+        self.assignment_cards = assignment_cards(self._active_school)
+        self.initial.setdefault("job_title", SchoolMembership.RoleType.TEACHER)
+
+    def clean(self):
+        cleaned = super().clean()
+        code = cleaned.get("job_title")
+        if not code:
+            return cleaned
+        assignment = get_assignment(code)
+        if not assignment.supports_teaching_load:
+            cleaned["keep_teaching_role"] = False
+        return cleaned
 
     def clean_national_id(self):
         nid = (self.cleaned_data.get("national_id") or "").strip()
@@ -1325,6 +1343,10 @@ class TicketCreateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self.active_school = active_school
+        # الواجهة تضع علامة «مطلوب» لأن الطلب بلا وصف لا يستطيع القسم
+        # تنفيذه. اجعل العقد البرمجي مطابقاً للنص المرئي وللتحقق الخادمي.
+        self.fields["body"].required = True
+        self.fields["body"].widget.attrs["required"] = True
 
         # عزل الأقسام حسب المدرسة النشطة
         if Department is not None:
@@ -2128,6 +2150,12 @@ class NotificationCreateForm(forms.Form):
                     [NotificationRecipient(notification=n, teacher_id=tid) for tid in teacher_ids],
                     ignore_conflicts=True,
                 )
+                try:
+                    from .realtime_notifications import push_new_notification_to_teachers
+
+                    push_new_notification_to_teachers(notification=n, teacher_ids=teacher_ids)
+                except Exception:
+                    logger.exception("Immediate realtime notification dispatch failed for notification %s", n.pk)
                 try:
                     from .cache_utils import invalidate_user_notifications
 

@@ -1,0 +1,37 @@
+{% load static %}
+<section
+  class="web-push-prompt"
+  id="webPushPrompt"
+  role="region"
+  aria-labelledby="webPushPromptTitle"
+  aria-describedby="webPushPromptDescription"
+  data-config-url="{% url 'reports:web_push_config' %}"
+  data-subscribe-url="{% url 'reports:web_push_subscribe' %}"
+  data-unsubscribe-url="{% url 'reports:web_push_unsubscribe' %}"
+  aria-hidden="true"
+  hidden
+>
+  <div class="web-push-prompt__card">
+    <button class="web-push-prompt__close" id="webPushPromptClose" type="button" aria-label="إغلاق طلب تفعيل الإشعارات">×</button>
+    <div class="web-push-prompt__heading">
+      <span class="web-push-prompt__icon" aria-hidden="true">🔔</span>
+      <div>
+        <p>لا يفوتك أي تنبيه</p>
+        <h2 id="webPushPromptTitle">فعّل إشعارات الجوال</h2>
+      </div>
+    </div>
+    <p class="web-push-prompt__description" id="webPushPromptDescription">
+      ستصل التنبيهات المهمة إلى شاشة القفل حتى عندما تكون منصة توثيق مغلقة.
+    </p>
+    <div class="web-push-prompt__benefits" aria-label="مزايا إشعارات الجوال">
+      <span>تنبيه فوري</span>
+      <span>فتح الإجراء مباشرة</span>
+      <span>يمكن إيقافها من الجهاز</span>
+    </div>
+    <p class="web-push-prompt__status" id="webPushPromptStatus" role="status" aria-live="polite"></p>
+    <div class="web-push-prompt__actions">
+      <button class="web-push-prompt__primary" id="webPushEnable" type="button">تفعيل الإشعارات</button>
+      <button class="web-push-prompt__later" id="webPushLater" type="button">لاحقًا</button>
+    </div>
+  </div>
+</section>

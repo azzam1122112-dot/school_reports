@@ -188,3 +188,18 @@ def push_new_notification_to_teachers(*, notification, teacher_ids: Iterable[int
         delta_count=dc,
         trace_id=trace_id,
     )
+
+    # WebSocket updates only an open page. Web Push reaches installed devices
+    # while the app is closed; delivery is idempotent if this helper is called
+    # more than once for the same notification.
+    try:
+        from .web_push import queue_notification_web_push
+
+        queue_notification_web_push(notification=notification, teacher_ids=valid_ids)
+    except Exception:
+        logger.warning(
+            "Web Push scheduling failed notification=%s trace_id=%s",
+            getattr(notification, "pk", None),
+            trace_id,
+            exc_info=True,
+        )

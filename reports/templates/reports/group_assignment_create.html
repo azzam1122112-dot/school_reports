@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}تكليف جديد للمجموعة | منصة توثيق{% endblock %}
 
@@ -11,8 +12,22 @@
   .gnew-schools input { margin-top: .2rem; }
   .gnew-check { display: flex; gap: .55rem; align-items: flex-start; font-size: .86rem; font-weight: 700; }
   .gnew-check input { margin-top: .2rem; }
-  .gnew-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.3rem; }
+  .gnew-layout { display:grid; grid-template-columns:minmax(0,1fr) 290px; gap:1rem; align-items:start; }
+  .gnew-summary { position:sticky; top:92px; }
+  .gnew-summary__row { display:flex; justify-content:space-between; gap:1rem; padding:.7rem 0; border-bottom:1px solid var(--asg-line); }
+  .gnew-summary__row:last-child { border-bottom:0; }
+  .gnew-summary__row span { color:var(--asg-muted); font-size:.75rem; font-weight:700; }
+  .gnew-summary__row strong { max-width:160px; text-align:end; font-size:.78rem; font-weight:900; overflow-wrap:anywhere; }
+  .gnew-summary__notice { display:flex; gap:.5rem; margin-top:.8rem; padding:.65rem; border-radius:10px; color:var(--asg-muted); background:var(--asg-soft); font-size:.72rem; line-height:1.7; }
+  .gnew-actions {
+    position:sticky; bottom:0; z-index:5; display:flex; gap:.6rem; flex-wrap:wrap;
+    margin-top:1rem; padding:.8rem; border:1px solid var(--asg-line); border-radius:14px;
+    background:color-mix(in srgb, var(--asg-surface) 92%, transparent); backdrop-filter:blur(12px);
+  }
+  .gnew-actions .asg-btn--primary { min-width:170px; justify-content:center; }
+  @media (max-width:900px) { .gnew-layout { grid-template-columns:1fr; } .gnew-summary { position:static; order:-1; } }
 </style>
+<script src="{% static 'js/group-assignment-create.js' %}?v=20260810.1" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -29,9 +44,12 @@
     </p>
   </header>
 
-  <form method="post" novalidate>
+  <form method="post" novalidate class="gnew-form" data-group-assignment-form>
     {% csrf_token %}
     <input type="hidden" name="group" value="{{ group.pk }}">
+
+    <div class="gnew-layout">
+      <div class="gnew-main">
 
     <section class="asg-card">
       <h2 class="asg-card__title">المطلوب</h2>
@@ -104,6 +122,20 @@
         الإصدار بدل أن تختفي بصمت.
       </div>
     </section>
+
+      </div>
+
+      <aside class="asg-card gnew-summary" aria-labelledby="gnewSummaryTitle">
+        <h2 class="asg-card__title" id="gnewSummaryTitle">ملخص قبل الإصدار</h2>
+        <p class="asg-card__hint">راجعه قبل إرسال التكليف إلى مديري المدارس.</p>
+        <div class="gnew-summary__row"><span>عنوان التكليف</span><strong data-summary-title>لم يُكتب بعد</strong></div>
+        <div class="gnew-summary__row"><span>المدارس المختارة</span><strong data-summary-schools>0 من {{ school_count }}</strong></div>
+        <div class="gnew-summary__row"><span>الأولوية</span><strong data-summary-priority>اعتيادي</strong></div>
+        <div class="gnew-summary__row"><span>موعد التسليم</span><strong data-summary-due>لم يحدد</strong></div>
+        <div class="gnew-summary__row"><span>الشواهد</span><strong data-summary-evidence>غير مطلوبة</strong></div>
+        <p class="gnew-summary__notice"><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span>لن يُصدر التكليف قبل تأكيدك النهائي، وستبقى لكل مدرسة حالة تنفيذ مستقلة.</span></p>
+      </aside>
+    </div>
 
     {% if form.non_field_errors %}
       <ul class="asg-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
