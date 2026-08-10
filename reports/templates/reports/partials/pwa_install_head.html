@@ -1,6 +1,6 @@
 {% load static %}
 {% if PWA_INSTALL_ENABLED %}
-<link rel="manifest" href="{% static 'manifest.json' %}?v=20260803.1">
+<link rel="manifest" href="{% static 'manifest.json' %}">
 <meta name="application-name" content="منصة توثيق">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -34,10 +34,10 @@
 <link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-ipad-1024x1366-2x-portrait.png' %}" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
 <link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-ipad-1024x1366-2x-landscape.png' %}" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
 
-<link rel="stylesheet" href="{% static 'css/pwa-install.css' %}?v=20260810.2">
-<script src="{% static 'js/pwa-install.js' %}?v=20260810.2" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+<link rel="stylesheet" href="{% static 'css/pwa-install.css' %}?v=20260811.2">
+<script src="{% static 'js/pwa-install.js' %}?v=20260811.2" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
 {% endif %}
 {% if request.user.is_authenticated %}
 <link rel="stylesheet" href="{% static 'css/web-push.css' %}?v=20260810.2">
-<script src="{% static 'js/web-push.js' %}?v=20260810.2" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+<script src="{% static 'js/web-push.js' %}?v=20260811.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
 {% endif %}

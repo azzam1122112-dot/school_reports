@@ -1,4 +1,8 @@
 .pwa-install {
+  --pwa-brand: var(--brand, #006c35);
+  --pwa-brand-700: var(--brand-700, #00542a);
+  --pwa-brand-ink: var(--brand-ink, #073b2a);
+  --pwa-accent: var(--accent, var(--royal-gold, #b9975b));
   position: fixed;
   z-index: 900;
   inset-inline: 12px;
@@ -19,12 +23,17 @@
   margin: 0 auto;
   padding: 20px;
   border: 1px solid rgba(185, 151, 91, .34);
+  border-color: color-mix(in srgb, var(--pwa-accent) 40%, transparent);
   border-radius: 24px;
   color: #14231c;
   background:
     radial-gradient(circle at 10% 0, rgba(185, 151, 91, .14), transparent 30%),
     #fff;
+  background:
+    radial-gradient(circle at 10% 0, color-mix(in srgb, var(--pwa-accent) 16%, transparent), transparent 30%),
+    #fff;
   box-shadow: 0 26px 80px rgba(3, 30, 18, .28);
+  box-shadow: 0 26px 80px color-mix(in srgb, var(--pwa-brand-ink) 28%, transparent);
   animation: pwa-install-rise .24s ease both;
   max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
@@ -61,8 +70,10 @@
   height: 54px;
   flex: 0 0 54px;
   border: 1px solid rgba(185, 151, 91, .4);
+  border-color: color-mix(in srgb, var(--pwa-accent) 46%, transparent);
   border-radius: 16px;
   box-shadow: 0 8px 20px rgba(7, 61, 43, .14);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--pwa-brand-ink) 16%, transparent);
 }
 
 .pwa-install__heading > div {
@@ -71,14 +82,15 @@
 
 .pwa-install__eyebrow {
   margin: 0 0 2px;
-  color: #997431;
+  color: #8a672b;
+  color: color-mix(in srgb, var(--pwa-accent) 72%, #000);
   font-size: .7rem;
   font-weight: 900;
 }
 
 .pwa-install h2 {
   margin: 0;
-  color: #073d2b;
+  color: var(--pwa-brand-ink);
   font-size: 1.14rem;
   font-weight: 950;
   line-height: 1.4;
@@ -92,6 +104,18 @@
   line-height: 1.8;
 }
 
+.pwa-install__announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .pwa-install__benefits {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -100,17 +124,37 @@
 }
 
 .pwa-install__benefits span {
-  display: grid;
-  min-height: 36px;
-  place-items: center;
-  padding: 6px 4px;
-  border: 1px solid rgba(10, 106, 69, .13);
-  border-radius: 11px;
-  color: #315b49;
-  background: rgba(238, 247, 242, .85);
-  font-size: .67rem;
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 6px;
+  border: 1px solid rgba(0, 108, 53, .16);
+  border-color: color-mix(in srgb, var(--pwa-brand) 16%, transparent);
+  border-radius: 12px;
+  color: var(--pwa-brand-ink);
+  background: #f2f9f5;
+  background: color-mix(in srgb, var(--pwa-brand) 7%, #fff);
+  font-size: .82rem;
   font-weight: 900;
+  line-height: 1.45;
   text-align: center;
+}
+
+.pwa-install__benefits span::before {
+  content: "✓";
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--pwa-brand);
+  font: 900 .7rem/1 Arial, sans-serif;
+  box-shadow: 0 4px 10px rgba(0, 108, 53, .22);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--pwa-brand) 22%, transparent);
 }
 
 .pwa-install__steps {
@@ -148,18 +192,20 @@
 }
 
 .pwa-install__primary {
-  border: 1px solid #0a6a45;
+  border: 1px solid var(--pwa-brand);
   color: #fff;
-  background: linear-gradient(135deg, #0a6a45, #073d2b);
-  box-shadow: 0 10px 24px rgba(7, 61, 43, .18);
+  background: linear-gradient(135deg, var(--pwa-brand), var(--pwa-brand-ink));
+  box-shadow: 0 10px 24px rgba(7, 59, 42, .20);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--pwa-brand-ink) 20%, transparent);
 }
 
 .pwa-install__primary:hover {
-  background: linear-gradient(135deg, #0b7a4e, #052f21);
+  background: linear-gradient(135deg, var(--pwa-brand-700), var(--pwa-brand-ink));
 }
 
 .pwa-install button:focus-visible {
   outline: 3px solid rgba(185, 151, 91, .58);
+  outline-color: color-mix(in srgb, var(--pwa-accent) 62%, transparent);
   outline-offset: 3px;
 }
 
@@ -177,6 +223,28 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+html[data-theme="dark"] .pwa-install__benefits span {
+  color: #dceee5;
+  background: #102920;
+  background: color-mix(in srgb, var(--pwa-brand) 12%, #102920);
+  border-color: rgba(110, 231, 168, .22);
+  border-color: color-mix(in srgb, var(--pwa-brand) 28%, transparent);
+}
+
+html[data-theme="dark"] .pwa-install__benefits span::before {
+  color: #071a13;
+}
+
+@media (max-width: 420px) {
+  .pwa-install__benefits {
+    grid-template-columns: 1fr;
+  }
+
+  .pwa-install__benefits span {
+    min-height: 40px;
   }
 }
 
@@ -205,12 +273,9 @@
     grid-template-columns: 1fr;
   }
 
-  .pwa-install__benefits {
-    grid-template-columns: 1fr;
-  }
-
   .pwa-install__benefits span {
-    min-height: 32px;
+    min-height: 38px;
+    font-size: .82rem;
   }
 }
 
