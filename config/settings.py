@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from ipaddress import ip_address
 import os
 import logging
 from urllib.parse import urlsplit, urlunsplit
@@ -39,6 +40,41 @@ def _media_querystring_auth_enabled(
 ) -> bool:
     """Never allow unsigned media URLs unless public access is explicit."""
     return (not public_access_enabled) or bool(requested_querystring_auth)
+
+
+def _validated_site_url(value: str, *, environment: str) -> str:
+    """Validate the canonical origin before it can drive permanent redirects."""
+    site_url = str(value or "").strip().rstrip("/")
+    parsed = urlsplit(site_url)
+    hostname = (parsed.hostname or "").lower().rstrip(".")
+
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not hostname
+        or parsed.username
+        or parsed.password
+        or parsed.query
+        or parsed.fragment
+        or parsed.path not in {"", "/"}
+    ):
+        raise ImproperlyConfigured(
+            "SITE_URL must be a plain origin such as https://tawtheeq-ksa.com."
+        )
+
+    if environment == "production":
+        local_hostname = hostname == "localhost" or hostname.endswith(".localhost")
+        try:
+            address = ip_address(hostname)
+            local_hostname = local_hostname or address.is_loopback or address.is_unspecified
+        except ValueError:
+            pass
+        if parsed.scheme != "https" or local_hostname:
+            raise ImproperlyConfigured(
+                "SITE_URL must use HTTPS and a public hostname in production; "
+                f"got {site_url!r}."
+            )
+
+    return site_url
 
 
 # ----------------- Environment -----------------
@@ -1279,10 +1315,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 PRINT_MULTIHEAD_POLICY = "blank"  # أو "dept"
 DEPARTMENT_HEAD_ROLE_SLUG = "department_head"
 
-SITE_URL = (os.getenv("SITE_URL") or "").strip()
-if not SITE_URL:
-    SITE_URL = "https://tawtheeq-ksa.com" if ENV == "production" else "http://127.0.0.1:8000"
-SITE_URL = SITE_URL.rstrip("/")
+_site_url_from_env = (os.getenv("SITE_URL") or "").strip()
+if not _site_url_from_env:
+    _site_url_from_env = (
+        "https://tawtheeq-ksa.com" if ENV == "production" else "http://127.0.0.1:8000"
+    )
+SITE_URL = _validated_site_url(_site_url_from_env, environment=ENV)
+
+# A PWA is permanently tied to the origin it was installed from. Avoid
+# advertising a localhost app unless installation testing is explicitly on.
+PWA_INSTALL_ENABLED = _env_bool("PWA_INSTALL_ENABLED", ENV == "production")
 
 # Public business disclosure shown in a collapsed, low-prominence section on
 # the landing and legal pages. Never place a national ID or personal photo here.

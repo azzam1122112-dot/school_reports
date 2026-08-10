@@ -1136,6 +1136,40 @@ html[data-theme="dark"] .skeleton::after{
   border-bottom:1px solid var(--line-2);
   background:rgba(2,6,23,.02);
 }
+
+.drawer-app-actions{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  padding:0 12px 12px;
+}
+.drawer-app-action{
+  display:flex;
+  min-width:0;
+  min-height:44px;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:9px 10px;
+  border:1px solid var(--line-2);
+  border-radius:12px;
+  color:var(--brand-700);
+  background:var(--brand-ghost);
+  font:800 .78rem/1.4 var(--font);
+  cursor:pointer;
+}
+.drawer-app-action:hover,
+.drawer-app-action:focus-visible{
+  border-color:rgba(0,108,53,.3);
+  background:rgba(0,108,53,.12);
+}
+.drawer-app-action[hidden]{display:none!important}
+.drawer-app-action i{flex:0 0 auto}
+.drawer-app-action span{min-width:0}
+
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  .drawer{padding-top:var(--safe-top)}
+}
 @media(max-width:1024px){.drawer-actions{display:flex}}
 
 /* User menu */
@@ -2842,4 +2876,3 @@ html[data-theme="dark"] .userbox .menu {
     background: #fff !important;
   }
 }
-

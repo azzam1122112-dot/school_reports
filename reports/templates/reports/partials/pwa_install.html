@@ -1,4 +1,5 @@
 {% load static %}
+{% if PWA_INSTALL_ENABLED %}
 <section
   class="pwa-install"
   id="pwaInstallPrompt"
@@ -42,6 +43,7 @@
     </div>
   </div>
 </section>
+{% endif %}
 {% if request.user.is_authenticated %}
   {% include "reports/partials/web_push_prompt.html" %}
 {% endif %}

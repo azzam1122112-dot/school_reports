@@ -2,7 +2,7 @@
   position: fixed;
   z-index: 900;
   inset-inline: 12px;
-  bottom: max(12px, env(safe-area-inset-bottom));
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   display: block;
   direction: rtl;
   pointer-events: none;
@@ -26,7 +26,7 @@
     #fff;
   box-shadow: 0 26px 80px rgba(3, 30, 18, .28);
   animation: pwa-install-rise .24s ease both;
-  max-height: calc(100dvh - 28px - env(safe-area-inset-bottom));
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   overscroll-behavior: contain;
   pointer-events: auto;
@@ -183,7 +183,7 @@
 @media (max-width: 360px) {
   .pwa-install {
     inset-inline: 8px;
-    bottom: max(8px, env(safe-area-inset-bottom));
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   }
 
   .pwa-install__card {
@@ -212,6 +212,14 @@
   .pwa-install__benefits span {
     min-height: 32px;
   }
+}
+
+@media (max-height: 520px) {
+  .pwa-install__card { padding: 14px 16px; border-radius: 18px; }
+  .pwa-install__benefits { display: none; }
+  .pwa-install__description { margin-top: 9px; line-height: 1.55; }
+  .pwa-install__steps { margin-top: 9px; padding-block: 8px; line-height: 1.55; }
+  .pwa-install__actions { margin-top: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
