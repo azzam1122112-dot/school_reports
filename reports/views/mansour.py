@@ -4,13 +4,15 @@ import json
 import logging
 
 from django.conf import settings
-from django.core.cache import cache
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
+
+from core import opmetrics
+from core.limits_cache import limits_cache
 
 from ..mansour_assistant import (
     MansourAssistantError,
@@ -49,13 +51,23 @@ def _json_response(payload: dict, *, status: int = 200) -> JsonResponse:
     )
 
 
+# ``none`` تعني تنقّلاً مكتوباً في شريط العنوان أو تطبيق PWA مثبَّتاً — وكلاهما
+# استعمال مشروع. والمرفوض هو ``cross-site`` وحده.
+_ALLOWED_FETCH_SITES = frozenset({"same-origin", "same-site", "none"})
+
+
 def _daily_budget_exhausted() -> bool:
     """Reserve one paid assistant call against the platform-wide daily ceiling.
 
     The per-IP limiter bounds a single visitor; this bounds the invoice. The
-    counter lives in the shared cache, so all web workers see the same total.
-    If the cache is unavailable we allow the call — a degraded cache must not
-    take the assistant offline — and log it so the gap is visible.
+    counter lives in the dedicated limits store — not the view cache, which is
+    deliberately evictable and swallows its errors. An evicted budget counter
+    reads as "nothing spent yet", so it would lift the invoice ceiling exactly
+    when traffic is heaviest.
+
+    If the store is unavailable we still allow the call: an outage must not take
+    the assistant offline. The cost of that gap is bounded by the per-IP limiter
+    and is logged at ``error`` so it is visible rather than silent.
     """
     limit = int(getattr(settings, "MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT", 0) or 0)
     if limit <= 0:
@@ -63,11 +75,16 @@ def _daily_budget_exhausted() -> bool:
 
     key = f"{DAILY_BUDGET_CACHE_PREFIX}:{timezone.localdate().isoformat()}"
     try:
+        store = limits_cache()
         # Two days of TTL so the key survives the timezone boundary.
-        cache.add(key, 0, timeout=60 * 60 * 48)
-        used = int(cache.incr(key))
+        store.add(key, 0, timeout=60 * 60 * 48)
+        used = int(store.incr(key))
     except Exception:
-        logger.warning("Mansour daily budget counter unavailable; allowing the call.")
+        logger.error(
+            "Mansour daily budget counter unavailable; allowing the call.",
+            exc_info=True,
+        )
+        opmetrics.increment("mansour.budget.store_unavailable")
         return False
 
     if used > limit:
@@ -139,6 +156,21 @@ def mansour_assistant_reply(request: HttpRequest) -> JsonResponse:
         return _json_response(
             {"ok": False, "message": "صيغة الطلب غير صحيحة."},
             status=415,
+        )
+
+    # هذه النقطة ``csrf_exempt`` وتستدعي واجهة مدفوعة، فبلا هذا الشرط يستطيع
+    # موقعٌ خارجي أن يستنزف الميزانية من متصفحات زوّاره: الطلبات تصل بعناوين
+    # الضحايا فتتوزّع على حدّ الـ IP بدل أن تصطدم به.
+    #
+    # و``if fetch_site`` مقصود: المتصفحات القديمة لا ترسل الترويسة أصلاً، ورفضُ
+    # من لا يرسلها يقطع الخدمة عن مستخدمين شرعيين لأجل ضابط تكميلي.
+    fetch_site = (request.headers.get("Sec-Fetch-Site") or "").strip().lower()
+    if fetch_site and fetch_site not in _ALLOWED_FETCH_SITES:
+        logger.warning("Mansour cross-site request refused sec_fetch_site=%s", fetch_site)
+        opmetrics.increment("mansour.request.cross_site_refused")
+        return _json_response(
+            {"ok": False, "message": "طلب غير مسموح."},
+            status=403,
         )
 
     try:

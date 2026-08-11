@@ -22,11 +22,27 @@ tawtheeq-ksa.com {
 		header_up X-Real-IP {http.request.header.Cf-Connecting-Ip}
 	}
 
+	# مصدر واحد للحقيقة في الترويسات المشتركة.
+	#
+	# ‏``SecurityMiddleware`` في Django لا يكتب ترويسةً موجودةً أصلاً في
+	# الاستجابة. فكل ترويسة تُكتب هنا **تُلغي** نظيرتها في الإعدادات بصمت —
+	# ولهذا كان ``SECURE_HSTS_PRELOAD = True`` بلا أثر في الإنتاج: هذا السطر
+	# كان يسبقه بلا ``preload``. إعدادٌ يبدو كأنه يعمل وهو لا يعمل، وهو أسوأ
+	# من غيابه.
+	#
+	# ‏``preload`` التزام طويل الأمد: الإدراج في قائمة المتصفحات يعني أن كل
+	# نطاق فرعي يجب أن يبقى على HTTPS. الشرط مستوفى هنا — النطاق كله خلف
+	# Cloudflare وCaddy — لكن راجعه قبل إضافة أي نطاق فرعي جديد.
 	header {
 		-Server
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		# لا ميزة جهاز تحتاجها المنصة. المنع الصريح يقطعها عن أي إطار أو
+		# سكربت يعمل داخل الصفحة، لا عن الصفحة وحدها.
+		Permissions-Policy "accelerometer=(), ambient-light-sensor=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), screen-wake-lock=(), serial=(), usb=(), xr-spatial-tracking=()"
+		# يمنع أصلاً آخر من تضمين موارد التطبيق (صور، مستندات، JSON) في صفحاته.
+		Cross-Origin-Resource-Policy "same-origin"
 	}
 
 	log {

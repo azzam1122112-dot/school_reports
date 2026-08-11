@@ -4,8 +4,8 @@
 {% block title %}مركز تشغيل المنصة | مدير النظام{% endblock %}
 
 {% block head %}
-<!-- Chart.js Library -->
-<script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" data-cfasync="false"></script>
+{# Chart.js مُستضاف محلياً: إدراج نطاق CDN عام في script-src يجعل كل حزمة عليه مصدراً مسموحاً. #}
+<script nonce="{{ CSP_NONCE }}" src="{% static 'js/vendor/chart.umd.min.js' %}?v=4.4.1" data-cfasync="false"></script>
 
 <style nonce="{{ CSP_NONCE }}">
     /* رموز هذه الصفحة — **مقصورة على حاويتها**.

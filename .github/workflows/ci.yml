@@ -52,12 +52,29 @@ jobs:
           python -m compileall -q config core reports maintenance manage.py
           python -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"
 
+      # ملف الأسرار لا يعود إلى التتبع. أُزيل مرة، وبقيت نسخه في التاريخ —
+      # والحارس هنا أرخص من تدوير مفتاح إنتاج مرة أخرى.
+      - name: Secrets hygiene
+        run: |
+          tracked="$(git ls-files '.env' '.env.*' 'deploy/hetzner/env.production' 'deploy/hetzner/env.redis' 'deploy/hetzner/env.postgres' | grep -v '\.example$' || true)"
+          if [ -n "$tracked" ]; then
+            echo "::error title=Secret file tracked by git::$tracked"
+            exit 1
+          fi
+          echo "No secret files are tracked."
+
       - name: Security checks
         run: |
-          python -m pip_audit -r requirements.txt
+          # القفل لا requirements.txt: الأخير يصف المباشرة وحدها، والثغرات
+          # وصلت الإنتاج عبر ما وراءها.
+          python -m pip_audit -r requirements.lock.txt --no-deps
           python -m bandit -r config core reports maintenance manage.py \
             -x "reports/tests,reports/migrations,core/migrations,maintenance/migrations,maintenance/tests.py" \
             --severity-level high --confidence-level high --quiet
+
+      # قفلٌ لا يواكب requirements.txt يعني أن ما يُفحص ليس ما يُبنى.
+      - name: Dependency lock is in sync
+        run: python scripts/check_requirements_lock.py
 
       - name: Django checks and migration drift
         run: |
@@ -263,3 +280,12 @@ jobs:
           ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
             "cd '$DEPLOY_PATH' && docker compose -f compose.hetzner.yaml \
              exec -T web python manage.py production_preflight"
+
+      # ‏preflight يقرأ إعدادات العملية من داخلها، فلا يرى ما تفعله الطبقة التي
+      # أمامها. وترويسات الحماية يكتبها Caddy، و``SecurityMiddleware`` لا يستبدل
+      # ترويسة موجودة — فكان ``SECURE_HSTS_PRELOAD = True`` مضبوطاً في الإعدادات
+      # وغائباً عن الاستجابة، ولا فحص داخلي يكشف ذلك. الرد الحقيقي وحده يفصل.
+      - name: Smoke-test the public site
+        env:
+          SITE_URL: ${{ secrets.PUBLIC_SITE_URL || 'https://tawtheeq-ksa.com' }}
+        run: python scripts/post_deploy_smoke.py "$SITE_URL"

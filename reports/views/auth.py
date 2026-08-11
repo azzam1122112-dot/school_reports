@@ -54,6 +54,7 @@ from ..flexible_pricing import (
 from ..moyasar_gateway import is_enabled as moyasar_is_enabled
 from ..tamara_gateway import is_enabled as tamara_is_enabled
 from core import opmetrics
+from core.limits_cache import limits_cache
 
 
 logger = logging.getLogger(__name__)
@@ -501,42 +502,73 @@ def _login_throttle_key(identifier: str) -> str:
     return "login:fail:" + hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:32]
 
 
+def _identifier_for_log(identifier: str) -> str:
+    """معرِّف صالح للربط في التحقيق، غير قابل للعكس إلى بيانات شخصية.
+
+    المعرِّف رقم جوال أو رقم هوية وطنية. وسجلّات التطبيق تُقرأ من دائرةٍ أوسع
+    ممن يقرأ قاعدة البيانات — فكتابته خاماً تُخرج البيانات الشخصية من ضوابطها
+    إلى ``stdout`` الحاوية وإلى كل نظام تجميع سجلات خلفها. والتجزئة تكفي
+    للربط بين محاولات المهاجم الواحد، وهي الغرض الوحيد من التسجيل هنا.
+    """
+    return _login_throttle_key(identifier)[-12:] if identifier else "-"
+
+
 def _login_account_locked(identifier: str) -> bool:
     """هل تجاوز هذا المعرِّف حدَّ المحاولات الفاشلة؟
 
-    تعذُّر الوصول إلى الذاكرة المؤقتة يُعامل كـ«غير مقفل»: حدُّ الـ IP ما زال
-    قائماً، وإسقاط تسجيل الدخول للجميع لأن Redis متعثّر أسوأ من فقد طبقةِ
-    تشديدٍ ثانية مؤقتاً.
+    **يفشل مغلقاً.** تعذُّر قراءة العدّاد لا يعني «لم يتجاوز»، بل يعني «لا
+    نعرف» — والفرق حاسم. وحدُّ الـ IP لا يسدّ الفجوة: المهاجم الموزَّع يبقى
+    تحته وهو يجرّب على الحساب الواحد بلا سقف، وهو بالضبط ما وُجد هذا العدّاد
+    ليمنعه.
+
+    وخطورة الفشل المفتوح هنا أنه صامت ومتزامن مع الضغط: سياسة Redis
+    ``volatile-lru`` تُخلي مفاتيح العدّادات — وهي وحدها الحاملة لـ TTL —
+    فتختفي الحماية بلا استثناء يُرفع ولا سطر يُكتب، في اللحظة التي تلزم فيها.
+
+    والمقايضة مقصودة: سقوط مخزن الحدود يمنع الدخول. ولذلك يجب أن يقترن هذا
+    بمخزن حدود مستقل بسياسة ``noeviction`` وبتنبيه على العدّاد أدناه، وإلا
+    صارت طبقة تشديدٍ سبباً في تعطّل.
     """
     if not identifier:
         return False
     try:
-        return int(cache.get(_login_throttle_key(identifier)) or 0) >= LOGIN_ACCOUNT_MAX_FAILURES
+        store = limits_cache()
+        return int(store.get(_login_throttle_key(identifier)) or 0) >= LOGIN_ACCOUNT_MAX_FAILURES
     except Exception:
-        return False
+        logger.error(
+            "Login throttle store unavailable — failing closed identifier_hash=%s",
+            _identifier_for_log(identifier),
+            exc_info=True,
+        )
+        opmetrics.increment("auth.login.throttle_store_unavailable")
+        return bool(getattr(settings, "LOGIN_THROTTLE_FAIL_CLOSED", True))
 
 
 def _register_login_failure(identifier: str) -> None:
     if not identifier:
         return
     key = _login_throttle_key(identifier)
+    store = limits_cache()
     try:
-        if cache.add(key, 1, timeout=LOGIN_ACCOUNT_WINDOW_SECONDS):
+        if store.add(key, 1, timeout=LOGIN_ACCOUNT_WINDOW_SECONDS):
             return
-        count = int(cache.incr(key))
+        count = int(store.incr(key))
         if count == LOGIN_ACCOUNT_MAX_FAILURES:
             # عند بلوغ الحدّ تُمدَّد المهلة لتصير تهدئة كاملة لا بقية نافذة.
-            cache.touch(key, LOGIN_ACCOUNT_LOCKOUT_SECONDS)
+            store.touch(key, LOGIN_ACCOUNT_LOCKOUT_SECONDS)
             logger.warning("Login throttle engaged for identifier hash=%s", key[-12:])
     except Exception:
-        pass
+        # تعذُّر **التسجيل** لا يُفشل الطلب: القراءة في ``_login_account_locked``
+        # هي الحارس، وهي وحدها التي تفشل مغلقة.
+        logger.error("Login throttle store unavailable on write", exc_info=True)
+        opmetrics.increment("auth.login.throttle_store_unavailable")
 
 
 def _clear_login_failures(identifier: str) -> None:
     if not identifier:
         return
     try:
-        cache.delete(_login_throttle_key(identifier))
+        limits_cache().delete(_login_throttle_key(identifier))
     except Exception:
         pass
 
@@ -619,8 +651,8 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
         # المرور مرة واحدة — راجع ``_resolve_login_candidate``.
         if _login_account_locked(identifier):
             logger.warning(
-                "Login blocked by account throttle identifier=%s trace_id=%s",
-                identifier,
+                "Login blocked by account throttle identifier_hash=%s trace_id=%s",
+                _identifier_for_log(identifier),
                 getattr(request, "trace_id", None),
             )
             opmetrics.increment("auth.login.throttled")
@@ -649,9 +681,9 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
 
             if admin_only and not getattr(user, "is_superuser", False):
                 logger.warning(
-                    "Admin login rejected non-superuser user_id=%s identifier=%s trace_id=%s",
+                    "Admin login rejected non-superuser user_id=%s identifier_hash=%s trace_id=%s",
                     getattr(user, "id", None),
-                    identifier,
+                    _identifier_for_log(identifier),
                     getattr(request, "trace_id", None),
                 )
                 opmetrics.increment("auth.login.failure")
@@ -743,9 +775,9 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
 
                         school_label = f" ({first_school_name})" if first_school_name else ""
                         logger.warning(
-                            "Login blocked due to expired subscriptions user_id=%s identifier=%s trace_id=%s",
+                            "Login blocked due to expired subscriptions user_id=%s identifier_hash=%s trace_id=%s",
                             getattr(user, "id", None),
-                            identifier,
+                            _identifier_for_log(identifier),
                             getattr(request, "trace_id", None),
                         )
                         messages.error(request, f"عذرًا، اشتراك المدرسة{school_label} منتهي. لا يمكن الدخول حتى يتم تجديد الاشتراك.")
@@ -813,15 +845,15 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
         # في تعداد الحسابات. وهي التجزئة الثانية والأخيرة في هذا المسار.
         try:
             if potential_user is not None and (not potential_user.is_active) and potential_user.check_password(password):
-                logger.warning("Login failed inactive-user user_id=%s identifier=%s trace_id=%s", getattr(potential_user, "id", None), identifier, getattr(request, "trace_id", None))
+                logger.warning("Login failed inactive-user user_id=%s identifier_hash=%s trace_id=%s", getattr(potential_user, "id", None), _identifier_for_log(identifier), getattr(request, "trace_id", None))
                 opmetrics.increment("auth.login.failure")
                 messages.error(request, "عذرًا، حسابك موقوف. يرجى التواصل مع الإدارة.")
             else:
-                logger.warning("Login failed invalid-credentials identifier=%s trace_id=%s", identifier, getattr(request, "trace_id", None))
+                logger.warning("Login failed invalid-credentials identifier_hash=%s trace_id=%s", _identifier_for_log(identifier), getattr(request, "trace_id", None))
                 opmetrics.increment("auth.login.failure")
                 messages.error(request, "رقم الجوال/الهوية أو كلمة المرور غير صحيحة")
         except Exception:
-            logger.warning("Login failed (exception path) identifier=%s trace_id=%s", identifier, getattr(request, "trace_id", None))
+            logger.warning("Login failed (exception path) identifier_hash=%s trace_id=%s", _identifier_for_log(identifier), getattr(request, "trace_id", None))
             opmetrics.increment("auth.login.failure")
             messages.error(request, "رقم الجوال/الهوية أو كلمة المرور غير صحيحة")
 

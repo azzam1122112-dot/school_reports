@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 
 from .client_ip import client_ip_for_ratelimit
+from .limits_cache import limits_cache
 from .trace_context import reset_trace_id, set_trace_id
 from . import opmetrics
 
@@ -230,8 +231,11 @@ class SchoolRateLimitMiddleware:
             window = max(10, int(getattr(settings, "SCHOOL_RATE_LIMIT_WINDOW_SECONDS", 60) or 60))
             bucket = int(time.time() // window)
             key = f"school-rate:v1:{int(school.pk)}:{bucket}"
-            created = cache.add(key, 1, timeout=window + 5)
-            count = 1 if created else int(cache.incr(key))
+            # مخزن العدّادات لا كاش العرض: الأخير يُخلي مفاتيحه تحت الضغط، وهو
+            # بالضبط الوقت الذي تلزم فيه ميزانية المستأجر.
+            store = limits_cache()
+            created = store.add(key, 1, timeout=window + 5)
+            count = 1 if created else int(store.incr(key))
         except Exception:
             # A cache incident must not become a platform-wide outage. The
             # process-wide concurrency ceiling remains the final safety net.

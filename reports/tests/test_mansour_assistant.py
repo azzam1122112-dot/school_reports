@@ -1086,12 +1086,12 @@ class MansourDailyBudgetTests(TestCase):
     def test_unavailable_cache_does_not_take_the_assistant_offline(self):
         from unittest.mock import MagicMock
 
-        # Rebind only the assistant view's cache reference so the rest of the
-        # request path (rate limiting, metrics) keeps a working cache.
+        # Rebind only the assistant view's limits-store accessor so the rest of
+        # the request path (rate limiting, metrics) keeps a working cache.
         broken_cache = MagicMock()
         broken_cache.add.side_effect = RuntimeError("redis down")
         broken_cache.incr.side_effect = RuntimeError("redis down")
 
-        with patch("reports.views.mansour.cache", broken_cache):
+        with patch("reports.views.mansour.limits_cache", return_value=broken_cache):
             for _ in range(3):
                 self.assertEqual(self._ask().status_code, 200)

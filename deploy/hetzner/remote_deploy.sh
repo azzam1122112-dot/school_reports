@@ -70,6 +70,18 @@ PREVIOUS_IMAGE="$(docker inspect --format '{{.Config.Image}}' school-reports-web
 
 export APP_IMAGE
 
+# يُثبَّت الوسم المنشور في `.env` بجانب ملفات compose.
+#
+# ‏compose يقرأ هذا الملف تلقائياً، فيصير `docker compose up -d` اليدوي — بعد
+# تعديل متغيّر بيئة مثلاً — عاملاً على الصورة المنشورة نفسها. وقبل هذا كان
+# الأمر اليدوي يسقط على وسم `school-reports:local` فيستبدل صورة الإنتاج بصمت
+# ويُسقط الموقع بخطأ صلاحيات لا علاقة له بالسبب.
+#
+# ويُكتب بذرّية (ملف مؤقت ثم `mv`) كي لا يقرأ أمرٌ متزامن ملفاً نصف مكتوب.
+printf 'APP_IMAGE=%s\n' "$APP_IMAGE" > "$DEPLOY_PATH/.env.tmp"
+mv -f "$DEPLOY_PATH/.env.tmp" "$DEPLOY_PATH/.env"
+log "pinned APP_IMAGE in $DEPLOY_PATH/.env"
+
 # --- pull --------------------------------------------------------------------
 if [ "${GHCR_TOKEN_FROM_STDIN:-}" = "1" ]; then
   GHCR_TOKEN="$(cat)"
