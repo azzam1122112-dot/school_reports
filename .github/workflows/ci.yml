@@ -107,7 +107,18 @@ jobs:
           EMAIL_PORT: "587"
           EMAIL_USE_TLS: "True"
           DEFAULT_FROM_EMAIL: no-reply@example.test
-        run: python manage.py check --deploy --fail-level WARNING
+        # ‏`collectstatic` هنا لا في النشر وحده.
+        #
+        # الإنتاج يستعمل `CompressedManifestStaticFilesStorage`، وهو **يفكّ
+        # مراجع الأصول داخل ملفات CSS/JS ويعيد كتابتها**. فمرجعٌ إلى ملف غير
+        # موجود — `sourceMappingURL` لحزمة مورَّدة بلا خريطتها مثلاً — يُسقط
+        # الأمر بـ `MissingFileError`. وتخزين التطوير لا يفعل شيئاً من ذلك، فكل
+        # الاختبارات تمرّ خضراء بينما يتوقف النشر عند `migrate`.
+        #
+        # وهو ليس فرضاً: هذا بالضبط ما أسقط الإصدار a02e61a7 والموقع معه.
+        run: |
+          python manage.py check --deploy --fail-level WARNING
+          python manage.py collectstatic --noinput --clear
 
       - name: Test
         run: python manage.py test --verbosity 1
