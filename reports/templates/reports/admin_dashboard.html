@@ -4,7 +4,8 @@
 {% block title %}لوحة إدارة المدرسة | منصة توثيق{% endblock %}
 
 {% block head %}
-<script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" data-cfasync="false"></script>
+{# Chart.js مُستضاف محلياً: إدراج نطاق CDN عام في script-src يجعل كل حزمة عليه مصدراً مسموحاً. #}
+<script nonce="{{ CSP_NONCE }}" src="{% static 'js/vendor/chart.umd.min.js' %}?v=4.4.1" data-cfasync="false"></script>
 <link rel="stylesheet" href="{% static 'css/consumption-panel.css' %}?v=20260805.1">
 <style nonce="{{ CSP_NONCE }}">
   /* لوحة مدير المدرسة — مبنية على جذر الهوية في `_identity.html`.

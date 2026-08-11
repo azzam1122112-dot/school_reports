@@ -244,7 +244,7 @@ class LandingPageTests(TestCase):
             (
                 "script-src 'self' "
                 f"'nonce-{response.context['CSP_NONCE']}' "
-                f"https://cdn.jsdelivr.net {seal_origin}"
+                f"{seal_origin}"
             ),
             policy,
         )
@@ -252,10 +252,14 @@ class LandingPageTests(TestCase):
             (
                 "script-src-elem 'self' "
                 f"'nonce-{response.context['CSP_NONCE']}' "
-                f"https://cdn.jsdelivr.net {seal_origin}"
+                f"{seal_origin}"
             ),
             policy,
         )
+        # ختم الجهة الحكومية أصلٌ واحد بعينه. أما نطاق CDN عام فيخدم كل حزمة
+        # منشورة عليه، فوجوده يحوّل ``script-src`` من حصرٍ إلى إذن عام —
+        # وChart.js صار مُستضافاً في ``static/js/vendor/``.
+        self.assertNotIn("cdn.jsdelivr.net", policy)
 
     def test_private_pages_send_noindex_header(self):
         response = self.client.get(reverse("reports:login"))

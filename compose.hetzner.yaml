@@ -7,7 +7,16 @@ x-logging: &default-logging
     max-file: "3"
 
 x-app: &app
-  image: ${APP_IMAGE:-school-reports:local}
+  # ‏`:?` لا `:-` عن قصد. الافتراض السابق `school-reports:local` كان وسماً لا
+  # وجود له على الخادم، فأيّ `docker compose up -d` يدوي بلا `APP_IMAGE` — وهو
+  # ما يفعله كل من يعدّل متغيّر بيئة ثم يعيد التشغيل — كان **يستبدل صورة
+  # الإنتاج بصمت** بوسم فارغ أو قديم: يفشل `collectstatic` بخطأ صلاحيات مضلِّل،
+  # ويتوقف الموقع، ولا شيء في الرسالة يشير إلى الصورة.
+  #
+  # الآن يرفض compose التشغيل ويقول السبب. و`remote_deploy.sh` يكتب الوسم
+  # المنشور في `.env` بجانب ملف compose، فتعمل الأوامر اليدوية على الصورة
+  # الصحيحة تلقائياً بلا أن يتذكر أحد تصديرها.
+  image: ${APP_IMAGE:?APP_IMAGE must be set. It is written to .env beside this file by remote_deploy.sh; source it or export the deployed image ref before running compose by hand.}
   restart: unless-stopped
   init: true
   security_opt:
@@ -23,6 +32,8 @@ x-app: &app
     postgres:
       condition: service_healthy
     redis:
+      condition: service_healthy
+    redis-limits:
       condition: service_healthy
   networks:
     - backend
@@ -116,6 +127,41 @@ services:
       --requirepass "$${REDIS_PASSWORD}"'
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - backend
+
+  # مخزن عدّادات الحدود — منفصل عن Redis الرئيسي عن قصد.
+  #
+  # الرئيسي يعمل بـ `volatile-lru` كي يبقى الوسيط حيًّا حين يمتلئ الكاش، وهو
+  # الاختيار الصحيح هناك. لكن العدّاد المُخلى يُقرأ «صفر محاولات» — أي أن
+  # الإخلاء يمحو حدَّ الدخول وميزانية المدرسة وسقف فاتورة المساعد، صامتًا،
+  # وفي لحظة الضغط تحديدًا.
+  #
+  # `noeviction` هنا آمن لأن الحجم صغير بطبعه: عدّاد لكل معرِّف/عنوان بنافذة
+  # دقائق، وكلها تحمل TTL فتنتهي بذاتها. 96MB سقفٌ واسع لعشرات آلاف العدّادات.
+  #
+  # ولا `appendonly` عمدًا: ضياع عدّاد عمره دقائق عند إعادة التشغيل مقبول،
+  # والكتابة إلى القرص لكل محاولة دخول ثمنٌ بلا مقابل.
+  redis-limits:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - ${REDIS_ENV_FILE:-deploy/hetzner/env.redis}
+    logging: *default-logging
+    mem_limit: 128m
+    command: >-
+      sh -c 'exec redis-server
+      --maxmemory "$${REDIS_LIMITS_MAXMEMORY:-96mb}"
+      --maxmemory-policy noeviction
+      --save ""
+      --requirepass "$${REDIS_PASSWORD}"'
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
       interval: 10s

@@ -89,6 +89,12 @@ class Command(BaseCommand):
         else:
             self._record(section, Check.OK, "SECRET_KEY looks strong")
 
+        # قوةُ المفتاح لا تعني سلامته. مفتاحٌ طويل ومتنوع لكنه ظهر في تاريخ Git
+        # هو مفتاح معروف: من يملك نسخة من المستودع يزوّر به جلسة أي مستخدم بلا
+        # كلمة مرور. والفحص هنا لا في مراجعة بشرية لأن المراجعة تحدث مرة،
+        # والنشر يحدث كل أسبوع.
+        self._check_compromised_secrets(section)
+
         hosts = list(getattr(settings, "ALLOWED_HOSTS", []))
         if "*" in hosts or not hosts:
             self._record(section, Check.FAIL, f"ALLOWED_HOSTS is unsafe: {hosts}")
@@ -111,6 +117,145 @@ class Command(BaseCommand):
             self._record(section, Check.OK, "CSP is enforced")
         else:
             self._record(section, Check.WARN, "CSP is off or report-only")
+
+    def _check_compromised_secrets(self, section):
+        """يرفض أي سرّ ما زال يطابق قيمة ظهرت في تاريخ Git."""
+        import os
+
+        from core.compromised_secrets import compromised_names, is_compromised
+
+        exposed = []
+        for name in compromised_names():
+            # يُقرأ من الإعدادات أولاً ثم من البيئة: بعضها إعداد Django
+            # (SECRET_KEY) وبعضها متغيّر بيئة فقط (DATABASE_URL, CLOUDINARY_*).
+            value = str(getattr(settings, name, "") or os.getenv(name, "") or "")
+            if is_compromised(name, value):
+                exposed.append(name)
+
+        if exposed:
+            self._record(
+                section,
+                Check.FAIL,
+                f"Secret still matches a value leaked in git history: {', '.join(exposed)}",
+                "Rotate it now. A leaked SECRET_KEY lets anyone with repository "
+                "access forge any user's session. See SECURITY_AUDIT_REPORT.md — SEC-001.",
+            )
+        else:
+            self._record(
+                section,
+                Check.OK,
+                "No secret matches a known-leaked value",
+            )
+
+    def _check_abuse_limits(self):
+        """الضوابط التي تختفي بصمت حين يتعثّر مخزنها — SEC-002."""
+        section = "Abuse limits"
+
+        from core.limits_cache import limits_cache, limits_cache_is_isolated
+
+        isolated = limits_cache_is_isolated()
+        fail_closed = bool(getattr(settings, "LOGIN_THROTTLE_FAIL_CLOSED", True))
+
+        if isolated:
+            self._record(
+                section, Check.OK, "Rate-limit counters live on a dedicated store"
+            )
+        else:
+            self._record(
+                section,
+                Check.WARN,
+                "Rate-limit counters share the view cache",
+                "That cache runs volatile-lru, so counters are evicted silently under "
+                "memory pressure — exactly when the limits matter. Set REDIS_LIMITS_URL.",
+            )
+
+        # هذه التوليفة تحديداً خطرة: الفشل المغلق على مخزن قابل للإخلاء يحوّل
+        # إخلاءَ مفتاحٍ عادياً إلى منعِ دخولٍ للجميع.
+        if fail_closed and not isolated:
+            self._record(
+                section,
+                Check.FAIL,
+                "LOGIN_THROTTLE_FAIL_CLOSED is on without a dedicated limits store",
+                "An ordinary cache eviction would then lock every user out. Either set "
+                "REDIS_LIMITS_URL, or set LOGIN_THROTTLE_FAIL_CLOSED=False until you do.",
+            )
+        elif fail_closed:
+            self._record(section, Check.OK, "Login throttle fails closed")
+        else:
+            self._record(
+                section,
+                Check.WARN,
+                "LOGIN_THROTTLE_FAIL_CLOSED is off",
+                "A throttle-store outage would silently disable brute-force protection.",
+            )
+
+        # المخزن يجب أن يكون قابلاً للكتابة فعلاً، لا مهيّأً فقط.
+        try:
+            store = limits_cache()
+            store.set("preflight:limits:selftest", 1, 10)
+            readable = store.get("preflight:limits:selftest") == 1
+            store.delete("preflight:limits:selftest")
+        except Exception as exc:
+            self._record(
+                section, Check.FAIL, "Limits store is not writable", str(exc)[:160]
+            )
+        else:
+            if readable:
+                self._record(section, Check.OK, "Limits store read/write works")
+            else:
+                self._record(
+                    section,
+                    Check.FAIL,
+                    "Limits store accepted a write but returned nothing",
+                    "Counters would read as zero — every limit silently disabled.",
+                )
+
+        if bool(getattr(settings, "SCHOOL_RATE_LIMIT_ENABLED", True)):
+            self._record(section, Check.OK, "Per-school request budget is on")
+        else:
+            self._record(
+                section,
+                Check.WARN,
+                "SCHOOL_RATE_LIMIT_ENABLED is off",
+                "One large school can then consume the whole concurrency allowance.",
+            )
+
+    def _check_data_exposure(self):
+        """المدة التي يبقى فيها الوصول ممكناً بعد أن يخرج الرابط عن اليد."""
+        section = "Data exposure"
+
+        expiry = int(getattr(settings, "MEDIA_SIGNED_URL_EXPIRE_SECONDS", 86400) or 0)
+        if expiry <= 3600:
+            self._record(section, Check.OK, f"Signed media URLs expire in {expiry}s")
+        else:
+            self._record(
+                section,
+                Check.FAIL,
+                f"Signed media URLs live {expiry}s",
+                "A signed URL carries its own authorisation, so its lifetime is the "
+                "leak window for a school's private files. Set AWS_QUERYSTRING_EXPIRE=900.",
+            )
+
+        retention = int(getattr(settings, "AUDIT_LOG_RETENTION_DAYS", 30) or 0)
+        if retention >= 180:
+            self._record(section, Check.OK, f"Audit log retention = {retention} days")
+        else:
+            self._record(
+                section,
+                Check.WARN,
+                f"Audit log retention is only {retention} days",
+                "Shorter than the discovery window for most incidents and disputes.",
+            )
+
+        if getattr(settings, "MEDIA_PUBLIC_ACCESS_ENABLED", False):
+            self._record(
+                section,
+                Check.FAIL,
+                "MEDIA_PUBLIC_ACCESS_ENABLED is on",
+                "School files would be readable without a signed URL.",
+            )
+        else:
+            self._record(section, Check.OK, "Uploaded school files stay private")
 
     def _check_database(self):
         section = "Database"
@@ -567,6 +712,8 @@ class Command(BaseCommand):
 
         for check in (
             self._check_runtime,
+            self._check_abuse_limits,
+            self._check_data_exposure,
             self._check_database,
             self._check_cache_and_broker,
             self._check_scheduled_jobs,

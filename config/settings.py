@@ -106,6 +106,74 @@ try:
 except (TypeError, ValueError):
     SENTRY_TRACES_SAMPLE_RATE = 0.05
 
+# أسماء الحقول التي لا تغادر الخادم أبداً. المطابقة على **جزء** من الاسم لا على
+# مطابقته كاملاً: الحقل قد يصل باسم ``new_password1`` أو ``teacher_phone`` أو
+# ``id_number``، وقائمةُ أسماءٍ دقيقة تفوت ما لم يُتوقَّع.
+_SENTRY_SENSITIVE_HINTS = (
+    "password", "passwd", "secret", "token", "authorization", "auth",
+    "csrf", "session", "cookie", "api_key", "apikey", "otp", "vapid",
+    "phone", "mobile", "national", "identity", "id_number", "iqama",
+    "iban", "card", "cvv",
+    # ``identifier`` هو اسم المتغيّر الذي يحمل رقم الجوال أو الهوية في مسار
+    # تسجيل الدخول (``reports.views.auth.login_view``) — وهو أكثر الإطارات
+    # احتمالاً لأن يُلتقط، لأن مسار الفشل هناك هو ما يرمي.
+    "identifier", "username", "email",
+)
+
+
+def _sentry_scrub(event, hint):  # pragma: no cover - يعمل في الإنتاج وحده
+    """ينزع البيانات الشخصية والأسرار قبل مغادرة العملية.
+
+    ``send_default_pii=False`` يمنع Sentry من **إضافة** بيانات المستخدم وعنوانه،
+    لكنه لا يمسّ ما التقطه أصلاً من محتوى الطلب ومتغيّرات الإطارات. ودالةٌ رمت
+    استثناءً وفيها متغيّر ``password`` أو ``national_id`` تُرسل قيمته كما هي —
+    وهي بالضبط البيانات التي يحكمها نظام حماية البيانات الشخصية السعودي.
+
+    والتنقية هنا لا في مراجعة لاحقة: ما يغادر الخادم لا يُستعاد.
+    """
+
+    def _scrub(value, depth=0):
+        if depth > 6:
+            return value
+        if isinstance(value, dict):
+            cleaned = {}
+            for key, item in value.items():
+                lowered = str(key).lower()
+                if any(hint_word in lowered for hint_word in _SENTRY_SENSITIVE_HINTS):
+                    cleaned[key] = "[Filtered]"
+                else:
+                    cleaned[key] = _scrub(item, depth + 1)
+            return cleaned
+        if isinstance(value, (list, tuple)):
+            return type(value)(_scrub(item, depth + 1) for item in value)
+        return value
+
+    try:
+        request = event.get("request")
+        if isinstance(request, dict):
+            request.pop("cookies", None)
+            for field in ("data", "headers", "env"):
+                if isinstance(request.get(field), dict):
+                    request[field] = _scrub(request[field])
+            # سلسلة الاستعلام تصل نصاً خاماً، فلا يمكن تنقيتها بالمفتاح.
+            if request.get("query_string"):
+                request["query_string"] = "[Filtered]"
+
+        if isinstance(event.get("extra"), dict):
+            event["extra"] = _scrub(event["extra"])
+
+        # متغيّرات الإطارات المحلية — أخطر مصدر: تحمل ما مرّ بالدالة كاملاً.
+        for exception in (event.get("exception") or {}).get("values") or []:
+            for frame in (exception.get("stacktrace") or {}).get("frames") or []:
+                if isinstance(frame.get("vars"), dict):
+                    frame["vars"] = _scrub(frame["vars"])
+    except Exception:
+        # تنقيةٌ تعطّلت يجب ألا تُسقط تقرير الخطأ ولا الطلب. وإسقاط الحدث أأمن
+        # من إرساله غير منقّى.
+        return None
+    return event
+
+
 if SENTRY_DSN:
     import sentry_sdk
 
@@ -115,6 +183,7 @@ if SENTRY_DSN:
         release=SENTRY_RELEASE,
         traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
         send_default_pii=False,
+        before_send=_sentry_scrub,
     )
 
 
@@ -676,6 +745,53 @@ else:
     }
 
 
+# ----------------- Rate-limit / throttle store -----------------
+# ── لماذا مخزن منفصل عن كاش العرض ───────────────────────────────
+# عدّادات الحدود ليست كاشاً. الكاش يُعاد بناؤه عند الضياع، أما العدّاد الضائع
+# فيُقرأ «صفر محاولات» — أي أن ضياعه **يُلغي الحماية** بدل أن يُبطئها.
+#
+# وكاش العرض يعمل بـ ``volatile-lru`` و``IGNORE_EXCEPTIONS: True`` عن قصد:
+# صفحةٌ بطيئة أهون من صفحة معطّلة. لكن السلوكين معاً قاتلان للعدّادات — الإخلاء
+# يمسحها صامتاً تحت الضغط، وابتلاعُ الاستثناء يخفي أن ذلك حدث. والنتيجة أن حدود
+# الدخول وميزانيات المستأجر وسقف فاتورة الذكاء الاصطناعي تختفي **في لحظة
+# الذروة تحديداً**، وهي اللحظة التي وُجدت لأجلها.
+#
+# فمخزن الحدود ``noeviction`` ولا يبتلع استثناءً. وحجمه صغير بطبعه: عدّاد لكل
+# معرِّف/عنوان بنافذة دقائق، فـ96MB سقفٌ واسع.
+#
+# والسقوط إلى ``default`` مقصود: بيئة لم تُفصل بعد تظل عاملة، والفصل ترقية
+# تشغيلية لا شرط تشغيل. أما ``LOGIN_THROTTLE_FAIL_CLOSED`` فيفترض هذا الفصل —
+# راجع ``reports.views.auth._login_account_locked``.
+REDIS_LIMITS_URL = os.getenv("REDIS_LIMITS_URL", "").strip()
+if REDIS_LIMITS_URL:
+    CACHES["limits"] = {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_LIMITS_URL,
+        "KEY_PREFIX": "lim",
+        "TIMEOUT": 900,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            # لا IGNORE_EXCEPTIONS هنا عمداً: المخزن يجب أن يرفع الاستثناء حين
+            # يتعثّر ليقرأه المتصل ويفشل مغلقاً، لا أن يعيد None فيُقرأ «صفر».
+        },
+    }
+    RATELIMIT_USE_CACHE = "limits"
+
+# تعذُّر التحقق من عدّاد الدخول يُعامل كـ«مقفل» — راجع التعليل الكامل في
+# ``reports.views.auth._login_account_locked``.
+#
+# **والافتراض مشتقّ لا ثابت.** الفشل المغلق يفترض مخزناً موثوقاً: تشغيله على
+# الكاش المشترك — وهو ``volatile-lru`` — يحوّل إخلاءَ مفتاحٍ روتينياً إلى منعِ
+# دخولٍ للجميع. وثابتُ ``True`` كان يعني أن كل بيئة لم تُضف فيها
+# ``REDIS_LIMITS_URL`` بعد تبدأ من الحالة الخطرة، ويصير الأمان رهن ترتيب
+# خطوتين في نشرٍ يدوي — وهو ترتيبٌ يُنسى مرة واحدة فيقفل المنصة.
+#
+# فالربط هنا يجعل الحالتين صحيحتين بذاتهما: بلا مخزن مستقل يبقى السلوك كما كان
+# (مفتوح، وحدُّ الـ IP قائم)، وبإضافته يشتدّ تلقائياً بلا خطوة ثانية يتذكرها
+# أحد. والتجاوز الصريح متاح للحالتين.
+LOGIN_THROTTLE_FAIL_CLOSED = _env_bool("LOGIN_THROTTLE_FAIL_CLOSED", bool(REDIS_LIMITS_URL))
+
+
 # ----------------- Channels Layer -----------------
 if REDIS_CHANNEL_LAYER_URL:
     CHANNEL_LAYERS = {
@@ -878,7 +994,11 @@ GENERATED_EXPORT_RETENTION_HOURS = max(
 
 
 # ----------------- Audit Logs Retention -----------------
-AUDIT_LOG_RETENTION_DAYS = int(os.getenv("AUDIT_LOG_RETENTION_DAYS", "30"))
+# سنة لا شهر: نزاعٌ تجاري أو تحقيقٌ في حادثة أمنية نادراً ما يُكتشف خلال
+# ثلاثين يوماً، ومن يمسح أثره اليوم كان يكفيه انتظار شهر. راقب حجم
+# ``reports_auditlog`` بعد التمديد، وأرشِف ما تجاوز 90 يوماً إلى R2 إن نما
+# أسرع من المتوقع.
+AUDIT_LOG_RETENTION_DAYS = int(os.getenv("AUDIT_LOG_RETENTION_DAYS", "365"))
 AUDIT_LOG_CLEANUP_ENABLED = _env_bool("AUDIT_LOG_CLEANUP_ENABLED", True)
 
 
@@ -1169,6 +1289,16 @@ DATA_UPLOAD_MAX_NUMBER_FILES = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FILES", "20
 # enabled explicitly because reports, tickets, circulars, achievement evidence,
 # and payment receipts may contain sensitive data.
 MEDIA_PUBLIC_ACCESS_ENABLED = _env_bool("MEDIA_PUBLIC_ACCESS_ENABLED", False)
+
+# عمر الرابط الموقَّع = مدة استهلاكه المتوقعة، لا مدة الجلسة. الرابط يحمل
+# التخويل في ذاته: من يحصل عليه يفتح الملف بلا حساب ولا عضوية. فطولُ عمره هو
+# بالضبط طولُ نافذة التسريب — عبر سجل المتصفح، أو لقطة شاشة تُشارَك، أو جهاز
+# مشترك. وربع ساعة تكفي أي فتح أو تنزيل مشروع.
+#
+# ويُعرَّف خارج فرع ``_use_r2`` عمداً: السياسة واحدة أياً كان مخزن الوسائط،
+# وحصرُها داخل الفرع كان يجعلها غير قابلة للفحص في أي بيئة لا R2 فيها — فيمرّ
+# اختبارُها على قيمةٍ افتراضية لا وجود لها في الإنتاج.
+MEDIA_SIGNED_URL_EXPIRE_SECONDS = int(os.getenv("AWS_QUERYSTRING_EXPIRE", "900"))
 if ENV == "production" and PRODUCTION_STRICT_MODE and MEDIA_PUBLIC_ACCESS_ENABLED:
     raise ImproperlyConfigured("MEDIA_PUBLIC_ACCESS_ENABLED must remain False for private school files.")
 
@@ -1205,7 +1335,7 @@ if _use_r2:
         public_access_enabled=MEDIA_PUBLIC_ACCESS_ENABLED,
         requested_querystring_auth=_env_bool("AWS_QUERYSTRING_AUTH", False),
     )
-    AWS_QUERYSTRING_EXPIRE = int(os.getenv("AWS_QUERYSTRING_EXPIRE", "86400"))
+    AWS_QUERYSTRING_EXPIRE = MEDIA_SIGNED_URL_EXPIRE_SECONDS
     AWS_S3_FILE_OVERWRITE = _env_bool("AWS_S3_FILE_OVERWRITE", True)
 
     AWS_S3_OBJECT_PARAMETERS = {

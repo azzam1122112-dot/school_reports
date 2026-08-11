@@ -869,8 +869,12 @@ class ContentSecurityPolicyMiddleware:
             form_action,
             "object-src 'none'",
             "frame-ancestors 'none'",
-            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net{seal_script_source}",
-            f"script-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net{seal_script_source}",
+            # لا نطاق CDN عام هنا. ``cdn.jsdelivr.net`` يخدم كل حزمة npm وكل
+            # مستودع GitHub، فإدراجه يحوّل ``script-src`` من حصرٍ على ما تملكه
+            # المنصة إلى إذنٍ بأي سكربت منشور — وأي بدائية حقن مستقبلية تتخطى
+            # الـ nonce عبره. وChart.js صار مُستضافاً في ``static/js/vendor/``.
+            f"script-src 'self' 'nonce-{nonce}'{seal_script_source}",
+            f"script-src-elem 'self' 'nonce-{nonce}'{seal_script_source}",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
             "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
             "img-src 'self' data: blob: https:",

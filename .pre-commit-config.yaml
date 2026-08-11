@@ -1,0 +1,59 @@
+# حرّاس ما قبل الالتزام.
+#
+# التركيز هنا على ما لا يمكن التراجع عنه: سرٌّ يدخل التاريخ يبقى فيه ولو حُذف
+# الملف بعده — وهو ما حدث فعلاً مع ``.env`` في هذا المستودع، فكلّف تدوير مفتاح
+# إنتاج. أما أخطاء الأسلوب فتُصلَح في أي وقت، ولذلك ``ruff`` هنا خفيف.
+#
+# التركيب:  pip install pre-commit && pre-commit install
+# التشغيل على كل الملفات مرة:  pre-commit run --all-files
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # يمنع إضافة ملف تجاوز الحدّ — الحارس الوحيد أمام تسريب قاعدة بيانات
+      # ‏SQLite كاملة بالخطأ.
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      # بلا ``--baseline`` عن قصد: القاعدة المرجعية تتطلب مسحاً كاملاً للمستودع
+      # (دقائق طويلة هنا بسبب الأصول المُجمَّعة)، وتُصبح ملفاً ثالثاً يُنسى
+      # تحديثه فيتحول الفحص إلى ختمٍ صامت. وبدونها يمسح الخطّاف الملفات
+      # المُدرَجة وحدها — وهو ما يهمّ فعلاً: ما يوشك أن يدخل التاريخ.
+      - id: detect-secrets
+        exclude: |
+          (?x)^(
+            requirements\.lock\.txt|
+            static/js/vendor/.*|
+            staticfiles/.*|
+            .*\.lock
+          )$
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.0
+    hooks:
+      - id: ruff
+
+  - repo: local
+    hooks:
+      # ‏``git check-ignore`` لا يكفي: ملفٌ أُضيف إلى التتبع مرة يبقى متتبَّعاً
+      # رغم وجوده في ``.gitignore``. الفحص هنا على التتبع نفسه.
+      - id: no-tracked-secret-files
+        name: ملفات الأسرار خارج تتبع Git
+        entry: python scripts/check_no_tracked_secrets.py
+        language: system
+        pass_filenames: false
+
+      - id: requirements-lock-in-sync
+        name: قفل الاعتماديات مواكب لـ requirements.txt
+        entry: python scripts/check_requirements_lock.py
+        language: system
+        pass_filenames: false
+        files: ^requirements(\.lock)?\.txt$

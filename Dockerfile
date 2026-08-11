@@ -38,8 +38,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY requirements.txt /app/
-RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+#
+# من قفلٍ مُجزَّأ لا من requirements.txt مباشرةً. الأخير يثبّت الاعتماديات
+# **المباشرة** وحدها، فكان `pip` يحلّ ما وراءها وقت البناء: صورتان تُبنيان في
+# يومين مختلفين تحملان شجرتين مختلفتين، ولا سجلّ لما دخل الإنتاج فعلاً. وهكذا
+# دخلت إصدارات من urllib3 وtwisted وmsgpack تحمل ثغرات معروفة دون أن يظهر ذلك
+# في أي فحص يقرأ requirements.txt.
+#
+# `--require-hashes` يجعل البناء يفشل إن اختلف بايت واحد عمّا فُحص — فيغطي
+# اختطاف الحزمة في المستودع، لا التثبيت وحده.
+#
+# التحديث:  pip-compile --generate-hashes --strip-extras \
+#               --output-file=requirements.lock.txt requirements.txt
+COPY requirements.txt requirements.lock.txt /app/
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir --require-hashes -r requirements.lock.txt
 
 # Copy project files
 COPY . /app/
