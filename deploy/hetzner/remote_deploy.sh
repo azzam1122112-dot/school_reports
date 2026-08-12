@@ -106,6 +106,14 @@ docker pull --quiet "$APP_IMAGE"
 log "starting release"
 docker compose "${COMPOSE_FILES[@]}" up -d
 
+# A bind-mounted Caddyfile can change without changing the container spec, so
+# ``compose up`` correctly leaves the running proxy untouched. Reload it
+# explicitly: this validates the new configuration and swaps it without a
+# listener restart or dropped connections.
+log "reloading Caddy configuration"
+docker compose "${COMPOSE_FILES[@]}" exec -T caddy \
+  caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+
 # --- verify ------------------------------------------------------------------
 log "waiting for web to report healthy"
 for _ in $(seq 1 60); do
