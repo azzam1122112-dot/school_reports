@@ -1510,9 +1510,10 @@ html[data-theme="dark"] .mr-page{
           سجل تقاريري
         </h1>
 
-        <a href="{% url 'reports:add_report' %}" class="btn btn-primary">
-          <i class="fa-solid fa-plus"></i> إضافة تقرير جديد
-        </a>
+        <div class="u-flex u-gap-06 u-wrap">
+          <a href="{% url 'reports:report_trash' %}" class="btn"><i class="fa-solid fa-trash-arrow-up"></i> سلة المحذوفات</a>
+          <a href="{% url 'reports:add_report' %}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> إضافة تقرير جديد</a>
+        </div>
       </div>
 
       <!-- Filters -->
@@ -1612,7 +1613,7 @@ html[data-theme="dark"] .mr-page{
                       <i class="fa-solid fa-eye"></i>
                     </a>
 
-                    <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form" data-confirm="حذف التقرير نهائيًا؟" data-confirm-type="danger">
+                    <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form" data-confirm="نقل التقرير إلى سلة المحذوفات؟ يمكنك استعادته لاحقًا." data-confirm-type="warning">
                       {% csrf_token %}
                       <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
                         <i class="fa-solid fa-trash"></i>
@@ -1672,7 +1673,7 @@ html[data-theme="dark"] .mr-page{
                   <i class="fa-solid fa-eye"></i>
                 </a>
 
-                <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form u-inline" data-confirm="حذف التقرير نهائيًا؟" data-confirm-type="danger">
+                <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form u-inline" data-confirm="نقل التقرير إلى سلة المحذوفات؟ يمكنك استعادته لاحقًا." data-confirm-type="warning">
                   {% csrf_token %}
                   <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
                     <i class="fa-solid fa-trash"></i>

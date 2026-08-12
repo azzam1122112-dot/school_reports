@@ -25,10 +25,13 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods
 from django_ratelimit.decorators import ratelimit
 
+from ._helpers import _get_active_school
+from ..guidance import role_guidance, school_readiness
 from ..marketing_attribution import (
     capture_marketing_attribution,
     school_marketing_fields,
 )
+from ..permissions import role_required
 from ..models import (
     School,
     SchoolArchiveAddon,
@@ -325,3 +328,41 @@ def registration_success(request):
     if not receipt:
         return redirect("reports:admin_dashboard")
     return render(request, "reports/registration_success.html", {"receipt": receipt})
+
+
+@login_required(login_url="reports:login")
+@require_GET
+def role_guidance_center(request):
+    """A single, data-backed starting point tailored to the user's active role."""
+    active_school = _get_active_school(request)
+    journey = role_guidance(request.user, active_school)
+    return render(
+        request,
+        "reports/role_guidance.html",
+        {
+            "active": "role_guidance",
+            "active_school": active_school,
+            "journey": journey,
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@role_required({"manager"})
+@require_GET
+def school_health(request):
+    """Operational readiness and feature dependencies for the active school."""
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "اختر مدرسة لعرض صحتها التشغيلية.")
+        return redirect("reports:select_school")
+
+    return render(
+        request,
+        "reports/school_health.html",
+        {
+            "active": "school_health",
+            "active_school": active_school,
+            "health": school_readiness(active_school),
+        },
+    )

@@ -206,7 +206,7 @@ def achievement_my_files(request: HttpRequest) -> HttpResponse:
             )
             _ensure_achievement_sections(ach_file)
             if created:
-                messages.success(request, "تم إنشاء ملف الإنجاز للسنة بنجاح ✅")
+                messages.success(request, "تم إنشاء ملف الإنجاز للسنة.")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
         messages.error(request, "تحقق من السنة الدراسية وأعد المحاولة.")
 
@@ -237,7 +237,7 @@ def achievement_file_delete(request: HttpRequest, pk: int) -> HttpResponse:
     file_school = getattr(file, "school", active_school)
     file.delete()
     sync_school_archive_storage_usage(file_school)
-    messages.success(request, "تم حذف ملف الإنجاز بنجاح ✅")
+    messages.success(request, "تم حذف ملف الإنجاز.")
     return redirect("reports:achievement_my_files")
 
 
@@ -274,7 +274,7 @@ def achievement_file_update_year(request: HttpRequest, pk: int) -> HttpResponse:
         else:
             file.academic_year = new_year
             file.save(update_fields=["academic_year", "updated_at"])
-            messages.success(request, f"تم تعديل السنة الدراسية إلى {new_year} ✅")
+            messages.success(request, f"تم تعديل السنة الدراسية إلى {new_year}.")
 
     else:
         # استخراج أول خطأ
@@ -531,7 +531,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                                 created_by=user,
                             )
                             NotificationRecipient.objects.create(notification=n, teacher=ach_file.teacher)
-                        messages.success(request, f"تم إرسال التعليق الخاص لـ{labels['teacher']} ✅")
+                        messages.success(request, f"تم إرسال التعليق الخاص لـ{labels['teacher']}.")
                         return redirect("reports:achievement_file_detail", pk=ach_file.pk)
                     except Exception:
                         logger.exception("Failed to create private achievement comment")
@@ -572,7 +572,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                     return redirect("reports:achievement_file_detail", pk=ach_file.pk)
                 try:
                     TeacherPrivateComment.objects.filter(pk=comment.pk).update(body=body)
-                    messages.success(request, "تم تعديل التعليق ✅")
+                    messages.success(request, "تم تعديل التعليق.")
                 except Exception:
                     messages.error(request, "تعذر تعديل التعليق.")
                 return redirect("reports:achievement_file_detail", pk=ach_file.pk)
@@ -583,7 +583,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                     return HttpResponse(status=403)
                 try:
                     comment.delete()
-                    messages.success(request, "تم حذف التعليق ✅")
+                    messages.success(request, "تم حذف التعليق.")
                 except Exception:
                     messages.error(request, "تعذر حذف التعليق.")
                 return redirect("reports:achievement_file_detail", pk=ach_file.pk)
@@ -594,7 +594,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
         if action == "save_general" and can_edit_teacher:
             if general_form.is_valid():
                 general_form.save()
-                messages.success(request, "تم حفظ البيانات العامة ✅")
+                messages.success(request, "تم حفظ البيانات العامة.")
                 return redirect("reports:achievement_file_detail", pk=ach_file.pk)
             messages.error(request, "تحقق من الحقول وأعد المحاولة.")
 
@@ -603,7 +603,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             sec_form = AchievementSectionNotesForm(request.POST, instance=sec)
             if sec_form.is_valid():
                 sec_form.save()
-                messages.success(request, "تم حفظ ملاحظات المحور ✅")
+                messages.success(request, "تم حفظ ملاحظات المحور.")
                 return redirect("reports:achievement_file_detail", pk=ach_file.pk)
             messages.error(request, "تحقق من ملاحظات المحور وأعد المحاولة.")
 
@@ -626,7 +626,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             for f in imgs:
                 AchievementEvidenceImage.objects.create(section=sec, image=f)
             sync_school_archive_storage_usage(active_school)
-            messages.success(request, "تم رفع الشواهد ✅")
+            messages.success(request, "تم رفع الشواهد.")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         elif action == "delete_evidence" and can_edit_teacher:
@@ -638,7 +638,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 except Exception:
                     pass
                 sync_school_archive_storage_usage(active_school)
-                messages.success(request, "تم حذف الصورة ✅")
+                messages.success(request, "تم حذف الصورة.")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         elif action == "add_report_evidence" and can_edit_teacher and section_id:
@@ -662,7 +662,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
             try:
                 add_report_evidence(section=sec, report=r)
-                messages.success(request, "تم إضافة التقرير كشاهِد ✅")
+                messages.success(request, "تمت إضافة التقرير كشاهد.")
             except Exception:
                 messages.error(request, "تعذر إضافة التقرير. ربما تمت إضافته مسبقاً.")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
@@ -682,7 +682,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 ok = remove_report_evidence(section=sec, evidence_id=evidence_id_int)
                 if ok:
                     sync_school_archive_storage_usage(active_school)
-                    messages.success(request, "تم إزالة التقرير من الشواهد ✅")
+                    messages.success(request, "تمت إزالة التقرير من الشواهد.")
                 else:
                     messages.error(request, "الشاهد غير موجود.")
             except Exception:
@@ -726,7 +726,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 "contact_info",
                 "updated_at",
             ])
-            messages.success(request, "تم استيراد البيانات الثابتة من ملف سابق ✅")
+            messages.success(request, "تم استيراد البيانات الثابتة من ملف سابق.")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         elif action == "submit" and can_edit_teacher:
@@ -744,12 +744,12 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 _notify_achievement_submitted(ach_file, active_school)
 
                 if frozen:
-                    messages.success(request, f"تم إرسال الملف للاعتماد ✅ (تم تجميد {frozen} تقرير/تقارير كشواهد)")
+                    messages.success(request, f"تم إرسال الملف للاعتماد وتجميد {frozen} تقرير/تقارير كشواهد.")
                 else:
-                    messages.success(request, "تم إرسال الملف للاعتماد ✅")
+                    messages.success(request, "تم إرسال الملف للاعتماد.")
             except Exception:
                 # حتى لو فشل التجميد لأي سبب، لا نكسر تجربة المستخدم
-                messages.success(request, "تم إرسال الملف للاعتماد ✅")
+                messages.success(request, "تم إرسال الملف للاعتماد.")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         elif action == "approve" and is_manager:
@@ -761,7 +761,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             # إشعار المعلم باعتماد ملف الإنجاز
             _notify_achievement_decided(ach_file, "approved", active_school)
 
-            messages.success(request, "تم اعتماد ملف الإنجاز ✅")
+            messages.success(request, "تم اعتماد ملف الإنجاز.")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         elif action == "return" and is_manager:
@@ -775,7 +775,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             # إشعار المعلم بإرجاع ملف الإنجاز
             _notify_achievement_decided(ach_file, "returned", active_school)
 
-            messages.success(request, f"تم إرجاع الملف لـ{labels['teacher']} مع الملاحظات ✅")
+            messages.success(request, f"تم إرجاع الملف لـ{labels['teacher']} مع الملاحظات.")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         messages.error(request, "تعذر تنفيذ العملية.")

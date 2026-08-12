@@ -1308,7 +1308,7 @@
     <section class="manager-section manager-setup" aria-labelledby="setupTitle">
       <div class="manager-setup__summary">
         <h2 id="setupTitle">جاهزية مساحة المدرسة</h2>
-        <p>أربع خطوات أساسية تجعل تجربة الفريق واضحة وتقلل الأخطاء عند إنشاء التقارير.</p>
+        <p>فحوص تشغيلية مرتبطة ببيانات المدرسة، توضح أثر كل إعداد على الفريق.</p>
         <div class="manager-setup__percent">
           <strong>{{ setup_percent }}%</strong>
           <span>{{ setup_completed }} من {{ setup_total }}</span>
@@ -1316,6 +1316,10 @@
         <div class="manager-setup__track" aria-label="نسبة اكتمال الإعداد">
           <span data-progress="{{ setup_percent }}"></span>
         </div>
+        {% if setup_next_step %}
+          <p><strong>التالي:</strong> {{ setup_next_step.title }}</p>
+        {% endif %}
+        <a href="{% url 'reports:school_health' %}">عرض صحة المدرسة كاملة</a>
       </div>
       <div class="manager-setup__steps">
         {% for step in setup_steps %}

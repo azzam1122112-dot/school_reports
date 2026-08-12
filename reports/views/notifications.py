@@ -88,7 +88,7 @@ def notifications_create(request: HttpRequest, mode: str = "notification") -> Ht
                         default_school=active_school,
                         force_requires_signature=True if is_circular else False,
                     )
-                messages.success(request, "✅ تم إرسال التعميم." if is_circular else "✅ تم إرسال الإشعار.")
+                messages.success(request, "تم إرسال التعميم." if is_circular else "تم إرسال الإشعار.")
                 return redirect("reports:circulars_sent" if is_circular else "reports:notifications_sent")
             except Exception:
                 logger.exception("notifications_create failed")
@@ -144,7 +144,7 @@ def notification_delete(request: HttpRequest, pk: int) -> HttpResponse:
             return redirect(sent_list_url)
     try:
         n.delete()
-        messages.success(request, "🗑️ تم حذف الإشعار.")
+        messages.success(request, "تم حذف الإشعار.")
     except Exception:
         logger.exception("notification_delete failed")
         messages.error(request, "تعذّر حذف الإشعار.")
@@ -459,7 +459,7 @@ def notification_sign(request: HttpRequest, pk: int) -> HttpResponse:
         messages.error(request, "تعذّر تسجيل التوقيع. جرّب لاحقًا.")
         return redirect("reports:my_circular_detail", pk=rec.pk)
 
-    messages.success(request, "✅ تم تسجيل توقيعك على التعميم بنجاح.")
+    messages.success(request, "تم تسجيل توقيعك على التعميم.")
     return redirect("reports:my_circular_detail", pk=rec.pk)
 
 

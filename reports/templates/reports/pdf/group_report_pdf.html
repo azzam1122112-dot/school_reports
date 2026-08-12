@@ -70,6 +70,12 @@
       margin-top: 10pt; padding: 6pt 8pt; font-size: 8pt; color: #4d5c55;
       background: #f6faf8; border-right: 2.5pt solid #b68a42; border-radius: 4pt;
     }
+    .briefing { margin-top: 10pt; }
+    .briefing-row { display: grid; grid-template-columns: 22% 14% 30% 34%; border-bottom: .5pt solid #e0ebe5; padding: 4pt 0; }
+    .briefing-row > span { padding: 0 3pt; }
+    .risk-danger { color: #991b1b; font-weight: 700; }
+    .risk-warning { color: #92400e; font-weight: 700; }
+    .risk-stable { color: #166534; font-weight: 700; }
   </style>
 </head>
 <body>
@@ -147,6 +153,19 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <div class="briefing">
+    <h2>أسباب الخطر والتوصيات</h2>
+    <div class="briefing-row"><span><strong>المدرسة</strong></span><span><strong>الحالة</strong></span><span><strong>الأسباب</strong></span><span><strong>التوصية</strong></span></div>
+    {% for row in snapshot.attention %}
+      <div class="briefing-row">
+        <span>{{ row.name }}</span>
+        <span class="risk-{{ row.risk_tone }}">{{ row.risk_label }} · {{ row.risk_score }}</span>
+        <span>{{ row.risk_reasons_text }}</span>
+        <span>{{ row.recommendation_text }}</span>
+      </div>
+    {% endfor %}
+  </div>
 
   <div class="note">
     الترتيب بنسبة الإنجاز تنازلياً ثم بالأقل تأخراً.

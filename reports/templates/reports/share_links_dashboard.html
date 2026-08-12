@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة روابط المشاركة | منصة توثيق{% endblock %}
+
+{% block head %}
+<style nonce="{{ CSP_NONCE }}">
+  .links-page { max-width: 1180px; margin: 0 auto; }
+  .links-head { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; padding: 24px 0 18px; border-bottom: 1px solid var(--line); }
+  .links-head h1 { margin: 0 0 6px; font-size: 1.55rem; letter-spacing: 0; color: var(--ink); }
+  .links-head p { margin: 0; color: var(--muted); }
+  .links-filter { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; padding: 18px 0; }
+  .links-field { display: grid; gap: 5px; }
+  .links-field label { color: var(--muted); font-size: .78rem; font-weight: 900; }
+  .links-field input, .links-field select { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; }
+  .links-btn { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-weight: 900; text-decoration: none; cursor: pointer; }
+  .links-btn--primary { background: var(--brand, #006c35); color: #fff; border-color: var(--brand, #006c35); }
+  .links-btn--danger { color: #b42318; }
+  .links-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 12px; }
+  .links-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  .links-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  .links-table th, .links-table td { padding: 12px; text-align: right; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .links-table th { color: var(--muted); font-size: .78rem; background: var(--line-2); }
+  .links-title { font-weight: 900; color: var(--ink); }
+  .links-meta { color: var(--muted); font-size: .78rem; margin-top: 3px; }
+  .links-status { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 4px 9px; font-size: .76rem; font-weight: 900; }
+  .links-status--active { color: #166534; background: rgba(22, 163, 74, .12); }
+  .links-status--expired { color: #92400e; background: rgba(245, 158, 11, .14); }
+  .links-status--disabled { color: #991b1b; background: rgba(220, 38, 38, .12); }
+  .links-url { max-width: 220px; direction: ltr; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .links-empty { padding: 40px; text-align: center; color: var(--muted); }
+  .links-pager { display: flex; justify-content: center; gap: 8px; padding: 16px; }
+  @media (max-width: 760px) {
+    .links-head { flex-direction: column; }
+    .links-filter { grid-template-columns: 1fr; }
+    .links-actions .links-btn { flex: 1 1 180px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="links-page" dir="rtl">
+  <header class="links-head">
+    <div>
+      <h1>إدارة روابط المشاركة</h1>
+      <p>{% if is_manager_view %}روابط المدرسة العامة وحالتها واستخدامها.{% else %}الروابط التي أنشأتها أو تخص أعمالك.{% endif %}</p>
+    </div>
+    <a class="links-btn" href="{% if IS_SCHOOL_MANAGER %}{% url 'reports:admin_dashboard' %}{% else %}{% url 'reports:my_reports' %}{% endif %}"><i class="fa-solid fa-arrow-right"></i> رجوع</a>
+  </header>
+
+  <form method="get" class="links-filter">
+    <div class="links-field"><label for="shareLinksQuery">بحث</label><input id="shareLinksQuery" type="search" name="q" value="{{ q }}" maxlength="120" placeholder="عنوان التقرير أو اسم صاحب الملف"></div>
+    <div class="links-field"><label for="shareLinksStatus">الحالة</label><select id="shareLinksStatus" name="status"><option value="all">الكل</option><option value="active" {% if status == 'active' %}selected{% endif %}>نشط</option><option value="expired" {% if status == 'expired' %}selected{% endif %}>منتهي</option><option value="disabled" {% if status == 'disabled' %}selected{% endif %}>متوقف</option></select></div>
+    <div class="links-field"><label for="shareLinksKind">النوع</label><select id="shareLinksKind" name="kind"><option value="">الكل</option><option value="report" {% if kind == 'report' %}selected{% endif %}>تقرير</option><option value="achievement" {% if kind == 'achievement' %}selected{% endif %}>ملف إنجاز</option></select></div>
+    <button class="links-btn links-btn--primary" type="submit"><i class="fa-solid fa-filter"></i> تطبيق</button>
+  </form>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="links-actions">
+      <button class="links-btn links-btn--danger" type="submit" name="action" value="disable_selected" data-confirm="إيقاف الروابط المحددة؟" data-confirm-type="warning"><i class="fa-solid fa-ban"></i> إيقاف المحدد</button>
+      <button class="links-btn links-btn--danger" type="submit" name="action" value="disable_all" data-confirm="إيقاف جميع الروابط النشطة التي تستطيع إدارتها؟" data-confirm-type="warning"><i class="fa-solid fa-link-slash"></i> إيقاف الكل</button>
+    </div>
+
+    <div class="links-table-wrap">
+      <table class="links-table">
+        <thead><tr><th><span class="u-sr-only">تحديد</span></th><th>المحتوى</th><th>الحالة</th><th>الصلاحية</th><th>الاستخدام</th><th>الرابط</th><th>الإدارة</th></tr></thead>
+        <tbody>
+          {% for link in links %}
+            <tr>
+              <td><input type="checkbox" name="link_ids" value="{{ link.pk }}" aria-label="تحديد رابط {{ link.ui_title }}" {% if not link.is_active %}disabled{% endif %}></td>
+              <td><div class="links-title">{{ link.ui_title }}</div><div class="links-meta">{{ link.get_kind_display }} · أنشأه {{ link.created_by.name|default:"حساب محذوف" }}</div></td>
+              <td><span class="links-status links-status--{{ link.ui_status }}">{% if link.ui_status == 'active' %}نشط{% elif link.ui_status == 'expired' %}منتهي{% else %}متوقف{% endif %}</span></td>
+              <td>{{ link.expires_at|date:"Y-m-d H:i" }}</td>
+              <td>{{ link.access_count }} فتح{% if link.last_accessed_at %}<div class="links-meta">آخرها {{ link.last_accessed_at|date:"Y-m-d H:i" }}</div>{% endif %}</td>
+              <td><div class="links-url" title="{{ link.public_url }}">{{ link.public_url }}</div></td>
+              <td>{% if link.kind == 'report' %}<a class="links-btn" href="{% url 'reports:report_share_manage' link.report_id %}">إدارة</a>{% else %}<a class="links-btn" href="{% url 'reports:achievement_share_manage' link.achievement_file_id %}">إدارة</a>{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7"><div class="links-empty">لا توجد روابط تطابق التصفية.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+
+  {% if links.paginator.num_pages > 1 %}
+    <nav class="links-pager" aria-label="صفحات الروابط">
+      {% if links.has_previous %}<a class="links-btn" href="?page={{ links.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">السابق</a>{% endif %}
+      <span class="links-btn">{{ links.number }} / {{ links.paginator.num_pages }}</span>
+      {% if links.has_next %}<a class="links-btn" href="?page={{ links.next_page_number }}{% if qs %}&{{ qs }}{% endif %}">التالي</a>{% endif %}
+    </nav>
+  {% endif %}
+</div>
+{% endblock %}

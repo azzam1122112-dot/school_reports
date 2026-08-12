@@ -434,6 +434,26 @@ def staff_role_scope(request, pk: int):
             role_type=membership.role_type,
         )
 
+    selected_codes = set(
+        form.data.getlist("capabilities")
+        if form.is_bound
+        else (form.initial.get("capabilities") or [])
+    )
+    capability_summary = [
+        {
+            "code": item.code,
+            "label": item.label,
+            "description": item.description,
+            "allowed": item.code in selected_codes,
+        }
+        for item in caps.capabilities_for_role(membership.role_type)
+    ]
+    fixed_boundaries = [
+        "لا يعتمد الأعمال اعتمادًا نهائيًا؛ القرار يبقى لمدير المدرسة.",
+        "لا يضيف المستخدمين ولا يغيّر أدوارهم أو اشتراك المدرسة.",
+        "لا يرى بيانات مدرسة أخرى أو أقسامًا خارج نطاقه.",
+    ]
+
     return render(
         request,
         "reports/staff_role_scope.html",
@@ -446,6 +466,8 @@ def staff_role_scope(request, pk: int):
             "templates": caps.templates_for_role(membership.role_type),
             "capability_groups": caps.grouped_for_role(membership.role_type),
             "capability_meta": caps.BY_CODE,
+            "capability_summary": capability_summary,
+            "fixed_boundaries": fixed_boundaries,
         },
     )
 

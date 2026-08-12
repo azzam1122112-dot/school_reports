@@ -261,6 +261,10 @@
     justify-content: center;
     gap: 6px;
   }
+  .expiry-picker { display: grid; gap: 8px; margin-bottom: 14px; }
+  .expiry-picker label { color: var(--ink); font-weight: 800; }
+  .expiry-picker select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
+  .share-metrics { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; color: var(--ink-light); font-size: .88rem; margin-bottom: 18px; }
 
   @keyframes fade-up {
     from { opacity: 0; transform: translateY(15px); }
@@ -358,6 +362,10 @@
           <h2>الرابط فعال وجاهز للمشاركة</h2>
           <p>يمكن لأي شخص لديه الرابط استعراض التقرير. <br> ينتهي الرابط تلقائياً في {{ expires_at_str }}</p>
         </div>
+        <div class="share-metrics">
+          <span><i class="fa-solid fa-eye" aria-hidden="true"></i> {{ active_link.access_count }} مرة فتح</span>
+          <span><i class="fa-solid fa-clock" aria-hidden="true"></i> آخر فتح: {{ active_link.last_accessed_at|date:"Y-m-d H:i"|default:"لم يُفتح بعد" }}</span>
+        </div>
 
         <!-- Link Copy Area -->
         <label for="shareUrl" class="u-block u-mb-2 u-fw-700 u-fs-md u-text-ink">رابط التقرير العام:</label>
@@ -407,6 +415,12 @@
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="action" value="enable">
+          <div class="expiry-picker">
+            <label for="reportExpiryDays">مدة صلاحية الرابط</label>
+            <select id="reportExpiryDays" name="expiry_days">
+              {% for days in expiry_choices %}<option value="{{ days }}" {% if days == expiry_days %}selected{% endif %}>{{ days }} أيام</option>{% endfor %}
+            </select>
+          </div>
           <button type="submit" class="btn-activate">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             توليد رابط المشاركة
@@ -417,6 +431,10 @@
           <span>يتم تأمين الرابط برمز تشفير فريد يصعب تخمينه.</span>
         </div>
       {% endif %}
+
+      <div class="expiry-info u-mt-lg">
+        <a href="{% url 'reports:share_links_dashboard' %}"><i class="fa-solid fa-list" aria-hidden="true"></i> إدارة جميع روابط المشاركة</a>
+      </div>
 
     </div>
   </div>

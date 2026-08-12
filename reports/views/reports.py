@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from datetime import timedelta
 import hashlib
 import json
 import logging
@@ -11,6 +12,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.conf import settings
 from django.core.cache import cache
 from django.http import JsonResponse
+from django.db.models import F, Q
 from django.views.decorators.cache import never_cache
 
 from ..report_ai import (
@@ -64,6 +66,20 @@ from ..ai_features import (
 
 
 logger = logging.getLogger(__name__)
+
+_SHARE_EXPIRY_OPTIONS = (1, 7, 14, 30, 90)
+
+
+def _share_expiry_choices(default_days: int) -> list[int]:
+    return sorted({*_SHARE_EXPIRY_OPTIONS, max(1, int(default_days or 7))})
+
+
+def _requested_share_expiry_days(request, default_days: int) -> int:
+    try:
+        selected = int(request.POST.get("expiry_days") or default_days)
+    except (TypeError, ValueError):
+        return default_days
+    return selected if selected in _share_expiry_choices(default_days) else default_days
 
 
 def _leadership_section_for_new_report(request, active_school):
@@ -258,7 +274,7 @@ def add_report(request: HttpRequest) -> HttpResponse:
                     "reports:leadership_portfolio_detail",
                     pk=leadership_section.portfolio_id,
                 )
-            messages.success(request, "تم إضافة التقرير بنجاح ✅")
+            messages.success(request, "تمت إضافة التقرير.")
             return redirect("reports:my_reports")
         logger.warning(
             "Report creation failed validation user_id=%s school_id=%s trace_id=%s errors=%s",
@@ -1456,7 +1472,7 @@ def department_reports(request: HttpRequest) -> HttpResponse:
     )
 
 # =========================
-# حذف تقرير (لوحة المدير)
+# نقل تقرير إلى سلة المحذوفات (لوحة المدير)
 # =========================
 @login_required(login_url="reports:login")
 @require_http_methods(["POST"])
@@ -1485,10 +1501,8 @@ def admin_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
             messages.error(request, "لا تملك صلاحية حذف هذا التقرير.")
             return _safe_redirect(request, "reports:admin_reports")
         
-        report_school = getattr(report, "school", active_school)
-        report.delete()
-        sync_school_archive_storage_usage(report_school)
-        messages.success(request, "🗑️ تم حذف التقرير بنجاح.")
+        report.move_to_trash(by=request.user)
+        messages.success(request, "تم نقل التقرير إلى سلة المحذوفات ويمكن استعادته.")
     except Exception:
         messages.error(request, "تعذّر حذف التقرير.")
     
@@ -1520,10 +1534,8 @@ def officer_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
             messages.error(request, "لا تملك صلاحية حذف هذا التقرير.")
             return _safe_redirect(request, "reports:admin_reports")
         
-        report_school = getattr(r, "school", active_school)
-        r.delete()
-        sync_school_archive_storage_usage(report_school)
-        messages.success(request, "🗑️ تم حذف التقرير بنجاح.")
+        r.move_to_trash(by=request.user)
+        messages.success(request, "تم نقل التقرير إلى سلة المحذوفات ويمكن استعادته.")
     except Exception:
         messages.error(request, "تعذّر حذف التقرير أو لا تملك صلاحية لذلك.")
     
@@ -1856,6 +1868,7 @@ def report_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
     if request.method == "POST":
         action = (request.POST.get("action") or "").strip().lower()
         if action == "enable":
+            selected_days = _requested_share_expiry_days(request, expiry_days)
             with transaction.atomic():
                 ShareLink.objects.filter(kind=ShareLink.Kind.REPORT, report=report, is_active=True).update(is_active=False)
 
@@ -1869,7 +1882,7 @@ def report_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
                             created_by=request.user,
                             school=getattr(report, "school", None),
                             report=report,
-                            expires_at=ShareLink.default_expires_at(),
+                            expires_at=timezone.now() + timedelta(days=selected_days),
                             is_active=True,
                         )
                         break
@@ -1884,14 +1897,14 @@ def report_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
             public_url = request.build_absolute_uri(reverse("reports:share_public", args=[created.token]))
             messages.success(
                 request,
-                f"تم تفعيل مشاركة التقرير ✅ (الرابط صالح لمدة {expiry_days} أيام حتى {timezone.localtime(created.expires_at).strftime('%Y-%m-%d %H:%M')})",
+                f"تم تفعيل مشاركة التقرير لمدة {selected_days} أيام حتى {timezone.localtime(created.expires_at).strftime('%Y-%m-%d %H:%M')}.",
             )
             messages.info(request, f"رابط المشاركة: {public_url}")
             return redirect("reports:report_share_manage", pk=report.pk)
 
         if action == "disable" and active_link is not None:
             ShareLink.objects.filter(pk=active_link.pk).update(is_active=False)
-            messages.success(request, "تم إلغاء رابط المشاركة ✅")
+            messages.success(request, "تم إيقاف رابط مشاركة التقرير.")
             return redirect("reports:report_share_manage", pk=report.pk)
 
         messages.error(request, "طلب غير صالح.")
@@ -1912,6 +1925,7 @@ def report_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
             "public_url": public_url,
             "expires_at_str": expires_at_str,
             "expiry_days": expiry_days,
+            "expiry_choices": _share_expiry_choices(expiry_days),
         },
     )
 
@@ -1939,6 +1953,7 @@ def achievement_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
     if request.method == "POST":
         action = (request.POST.get("action") or "").strip().lower()
         if action == "enable":
+            selected_days = _requested_share_expiry_days(request, expiry_days)
             with transaction.atomic():
                 ShareLink.objects.filter(kind=ShareLink.Kind.ACHIEVEMENT, achievement_file=ach_file, is_active=True).update(is_active=False)
 
@@ -1952,7 +1967,7 @@ def achievement_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
                             created_by=request.user,
                             school=getattr(ach_file, "school", None),
                             achievement_file=ach_file,
-                            expires_at=ShareLink.default_expires_at(),
+                            expires_at=timezone.now() + timedelta(days=selected_days),
                             is_active=True,
                         )
                         break
@@ -1967,14 +1982,14 @@ def achievement_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
             public_url = request.build_absolute_uri(reverse("reports:share_public", args=[created.token]))
             messages.success(
                 request,
-                f"تم تفعيل مشاركة ملف الإنجاز ✅ (الرابط صالح لمدة {expiry_days} أيام حتى {timezone.localtime(created.expires_at).strftime('%Y-%m-%d %H:%M')})",
+                f"تم تفعيل مشاركة ملف الإنجاز لمدة {selected_days} أيام حتى {timezone.localtime(created.expires_at).strftime('%Y-%m-%d %H:%M')}.",
             )
             messages.info(request, f"رابط المشاركة: {public_url}")
             return redirect("reports:achievement_share_manage", pk=ach_file.pk)
 
         if action == "disable" and active_link is not None:
             ShareLink.objects.filter(pk=active_link.pk).update(is_active=False)
-            messages.success(request, "تم إلغاء رابط المشاركة ✅")
+            messages.success(request, "تم إيقاف رابط مشاركة ملف الإنجاز.")
             return redirect("reports:achievement_share_manage", pk=ach_file.pk)
 
         messages.error(request, "طلب غير صالح.")
@@ -1995,6 +2010,114 @@ def achievement_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
             "public_url": public_url,
             "expires_at_str": expires_at_str,
             "expiry_days": expiry_days,
+            "expiry_choices": _share_expiry_choices(expiry_days),
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def share_links_dashboard(request: HttpRequest) -> HttpResponse:
+    """Manage public links without widening access to their underlying records."""
+    active_school = _get_active_school(request)
+    user = request.user
+    is_manager = bool(
+        active_school
+        and (
+            getattr(user, "is_superuser", False)
+            or is_school_manager(user, active_school=active_school)
+        )
+    )
+
+    links_qs = ShareLink.objects.select_related(
+        "school", "created_by", "report", "achievement_file"
+    )
+    if getattr(user, "is_superuser", False) and active_school is None:
+        pass
+    elif is_manager:
+        links_qs = links_qs.filter(school=active_school)
+    else:
+        links_qs = links_qs.filter(
+            Q(created_by=user)
+            | Q(report__teacher=user)
+            | Q(achievement_file__teacher=user)
+        ).distinct()
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip()
+        target_qs = links_qs.filter(is_active=True)
+        if action == "disable_selected":
+            selected_ids = [
+                int(value)
+                for value in request.POST.getlist("link_ids")[:200]
+                if str(value).isdigit()
+            ]
+            target_qs = target_qs.filter(pk__in=selected_ids)
+        elif action != "disable_all":
+            messages.error(request, "تعذر تنفيذ الإجراء. اختر روابط صالحة ثم أعد المحاولة.")
+            return redirect("reports:share_links_dashboard")
+
+        changed = target_qs.update(is_active=False)
+        if changed:
+            messages.success(request, f"تم إيقاف {changed} رابط مشاركة.")
+        else:
+            messages.info(request, "لا توجد روابط نشطة مطابقة لإيقافها.")
+        return redirect("reports:share_links_dashboard")
+
+    now = timezone.now()
+    status = (request.GET.get("status") or "all").strip().lower()
+    kind = (request.GET.get("kind") or "").strip().lower()
+    query = _clean_query_value(request.GET.get("q"))[:120]
+    if status == "active":
+        links_qs = links_qs.filter(is_active=True, expires_at__gt=now)
+    elif status == "expired":
+        links_qs = links_qs.filter(expires_at__lte=now)
+    elif status == "disabled":
+        links_qs = links_qs.filter(is_active=False)
+    else:
+        status = "all"
+    if kind in {ShareLink.Kind.REPORT, ShareLink.Kind.ACHIEVEMENT}:
+        links_qs = links_qs.filter(kind=kind)
+    else:
+        kind = ""
+    if query:
+        links_qs = links_qs.filter(
+            Q(report__title__icontains=query)
+            | Q(achievement_file__teacher_name__icontains=query)
+            | Q(created_by__name__icontains=query)
+        )
+
+    links_qs = links_qs.order_by("-created_at")
+    paginator = Paginator(links_qs, 40)
+    page = paginator.get_page(request.GET.get("page"))
+    for link in page:
+        link.ui_status = (
+            "disabled" if not link.is_active else "expired" if link.is_expired else "active"
+        )
+        link.ui_title = (
+            getattr(link.report, "title", "")
+            if link.kind == ShareLink.Kind.REPORT
+            else getattr(link.achievement_file, "teacher_name", "") or "ملف إنجاز"
+        )
+        link.public_url = request.build_absolute_uri(
+            reverse("reports:share_public", args=[link.token])
+        )
+
+    params = request.GET.copy()
+    params.pop("page", None)
+    return render(
+        request,
+        "reports/share_links_dashboard.html",
+        {
+            "active": "share_links_dashboard",
+            "active_school": active_school,
+            "links": page,
+            "status": status,
+            "kind": kind,
+            "q": query,
+            "qs": params.urlencode(),
+            "is_manager_view": is_manager,
+            "now": now,
         },
     )
 
@@ -2011,11 +2134,14 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
     if not link or (not link.is_active) or link.is_expired:
         return render(request, "reports/share_invalid.html", status=404)
 
-    ShareLink.objects.filter(pk=link.pk).update(last_accessed_at=timezone.now())
+    ShareLink.objects.filter(pk=link.pk).update(
+        last_accessed_at=timezone.now(),
+        access_count=F("access_count") + 1,
+    )
 
     if link.kind == ShareLink.Kind.REPORT:
         r = link.report
-        if r is None:
+        if r is None or r.trashed_at is not None:
             return render(request, "reports/share_invalid.html", status=404)
 
         school_scope = getattr(r, "school", None) or getattr(link, "school", None)
@@ -2163,7 +2289,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
 def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpResponse:
     link = _valid_sharelink_or_404(token, kind=ShareLink.Kind.REPORT)
     r = link.report
-    if r is None:
+    if r is None or r.trashed_at is not None:
         raise Http404
 
     if slot not in (1, 2, 3, 4):
@@ -2322,7 +2448,7 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
 
             form.save()
             sync_school_archive_storage_usage(report_school)
-            messages.success(request, "✏️ تم تحديث التقرير بنجاح.")
+            messages.success(request, "تم تحديث التقرير بنجاح.")
             nxt = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
             if nxt:
                 return redirect(nxt)
@@ -2351,9 +2477,66 @@ def delete_my_report(request: HttpRequest, pk: int) -> HttpResponse:
     qs = Report.objects.filter(teacher=request.user)
     qs = _filter_by_school(qs, active_school)
     r = get_object_or_404(qs, pk=pk)
-    report_school = getattr(r, "school", active_school)
-    r.delete()
-    sync_school_archive_storage_usage(report_school)
-    messages.success(request, "🗑️ تم حذف التقرير.")
+    r.move_to_trash(by=request.user)
+    messages.success(request, "تم نقل التقرير إلى سلة المحذوفات ويمكن استعادته.")
     nxt = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
     return redirect(nxt or "reports:my_reports")
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def report_trash(request: HttpRequest) -> HttpResponse:
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "اختر مدرسة لعرض سلة المحذوفات.")
+        return redirect("reports:select_school")
+
+    is_manager = bool(
+        getattr(request.user, "is_superuser", False)
+        or is_school_manager(request.user, active_school=active_school)
+    )
+    reports_qs = Report.all_objects.filter(
+        school=active_school,
+        trashed_at__isnull=False,
+    ).select_related("teacher", "category", "trashed_by")
+    if not is_manager:
+        reports_qs = reports_qs.filter(teacher=request.user)
+    reports_qs = reports_qs.order_by("-trashed_at", "-id")
+    page = Paginator(reports_qs, 30).get_page(request.GET.get("page"))
+    return render(
+        request,
+        "reports/report_trash.html",
+        {
+            "active": "report_trash",
+            "active_school": active_school,
+            "reports": page,
+            "is_manager_view": is_manager,
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def report_restore(request: HttpRequest, pk: int) -> HttpResponse:
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "اختر مدرسة لاستعادة التقرير.")
+        return redirect("reports:select_school")
+
+    report = get_object_or_404(
+        Report.all_objects.select_related("teacher"),
+        pk=pk,
+        school=active_school,
+        trashed_at__isnull=False,
+    )
+    is_manager = bool(
+        getattr(request.user, "is_superuser", False)
+        or is_school_manager(request.user, active_school=active_school)
+    )
+    if not (is_manager or report.teacher_id == request.user.pk):
+        messages.error(request, "لا تملك صلاحية استعادة هذا التقرير.")
+        return redirect("reports:report_trash")
+
+    report.restore_from_trash()
+    messages.success(request, "تمت استعادة التقرير وإعادته إلى قائمة التقارير.")
+    return redirect("reports:report_trash")

@@ -124,3 +124,15 @@ def action_filter_choices() -> list[tuple[str, str]]:
     """خيارات التصفية بالترتيب الذي يهم المستخدم: الإنجاز أولاً، الجلسة آخراً."""
     order = ("create", "update", "delete", "login", "logout")
     return [(key, _ACTIONS[key][0]) for key in order if key in _ACTIONS]
+
+
+def model_filter_choices(names) -> list[dict[str, str]]:
+    """Translate distinct stored model names for a readable filter menu."""
+    choices = []
+    for name in names:
+        raw = str(name or "").strip()
+        if not raw:
+            continue
+        label = _MODELS.get(raw, (raw, raw, ""))[0]
+        choices.append({"value": raw, "label": label})
+    return choices
