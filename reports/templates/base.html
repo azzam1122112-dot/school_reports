@@ -102,6 +102,7 @@
             <a class="tab {% if active == 'platform_payments_list' or active == 'platform_payment_detail' %}is-active{% endif %}" href="{% url 'reports:platform_payments_list' %}">المالية</a>
             <a class="tab {% if active == 'platform_tickets_list' %}is-active{% endif %}" href="{% url 'reports:platform_tickets_list' %}">الدعم</a>
             <a class="tab {% if active == 'platform_complaints_list' or active == 'platform_complaint_detail' %}is-active{% endif %}" href="{% url 'reports:platform_complaints_list' %}">الشكاوى</a>
+            <a class="tab {% if active == 'platform_email_inbox' or active == 'platform_email_detail' or active == 'platform_email_compose' or active == 'platform_email_settings' %}is-active{% endif %}" href="{% url 'reports:platform_email_inbox' %}">البريد</a>
             <a class="tab {% if active == 'platform_settings' or active == 'platform_archive_addons_list' or active == 'platform_plans_list' or active == 'platform_mansour_content' %}is-active{% endif %}" href="{% url 'reports:platform_settings' %}">الإعدادات</a>
           {% else %}
             <a class="tab {% if active == 'home' or IS_SCHOOL_MANAGER and active == 'admin_dashboard' or IS_EXECUTIVE_DIRECTOR and active == 'executive_dashboard' %}is-active{% endif %}" href="{% if IS_SCHOOL_MANAGER %}{% url 'reports:admin_dashboard' %}{% elif IS_EXECUTIVE_DIRECTOR and not SCHOOL_NAME %}{% url 'reports:executive_dashboard' %}{% else %}{% url 'reports:home' %}{% endif %}">الرئيسية</a>
@@ -734,6 +735,10 @@
             <span>شكاوى العملاء</span>
             <i class="fa-solid fa-comments"></i>
           </a>
+          <a class="{% if active == 'platform_email_inbox' or active == 'platform_email_detail' or active == 'platform_email_compose' or active == 'platform_email_settings' %}is-active{% endif %}" href="{% url 'reports:platform_email_inbox' %}">
+            <span>بريد المنصة</span>
+            <i class="fa-solid fa-envelope-open-text"></i>
+          </a>
           <a class="{% if active == 'platform_archive_addons_list' %}is-active{% endif %}" href="{% url 'reports:platform_archive_addons_list' %}">
             <span>التخزين والأرشيف</span>
             <i class="fa-solid fa-box-archive"></i>
@@ -1073,6 +1078,7 @@
                 <li><a href="{% url 'reports:platform_payments_list' %}"><i class="fa-solid fa-chevron-left"></i> المالية</a></li>
                 <li><a href="{% url 'reports:platform_tickets_list' %}"><i class="fa-solid fa-chevron-left"></i> الدعم الفني</a></li>
                 <li><a href="{% url 'reports:platform_complaints_list' %}"><i class="fa-solid fa-chevron-left"></i> شكاوى العملاء</a></li>
+                <li><a href="{% url 'reports:platform_email_inbox' %}"><i class="fa-solid fa-chevron-left"></i> بريد المنصة</a></li>
               {% elif IS_SCHOOL_MANAGER %}
                 <li><a href="{% url 'reports:admin_dashboard' %}"><i class="fa-solid fa-chevron-left"></i> لوحة المدرسة</a></li>
                 <li><a href="{% url 'reports:admin_reports' %}"><i class="fa-solid fa-chevron-left"></i> تقارير المدرسة</a></li>

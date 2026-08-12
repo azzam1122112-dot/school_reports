@@ -1050,6 +1050,7 @@ CELERY_TASK_ROUTES = {
     "reports.tasks.cleanup_expired_sessions_task": {"queue": "periodic"},
     "reports.tasks.monitor_infrastructure_capacity_task": {"queue": "periodic"},
     "reports.tasks.cleanup_generated_exports_task": {"queue": "periodic"},
+    "reports.tasks.cleanup_platform_email_task": {"queue": "periodic"},
 }
 
 # Heavy ZIPs are durable background jobs; PDFs render in the media worker and
@@ -1212,6 +1213,20 @@ EMAIL_HOST_PASSWORD = (os.getenv("EMAIL_HOST_PASSWORD") or "").strip()
 EMAIL_USE_TLS = _env_bool("EMAIL_USE_TLS", False)
 EMAIL_USE_SSL = _env_bool("EMAIL_USE_SSL", False)
 DEFAULT_FROM_EMAIL = (os.getenv("DEFAULT_FROM_EMAIL") or "no-reply@tawtheeq-ksa.com").strip()
+RESEND_API_KEY = (os.getenv("RESEND_API_KEY") or "").strip()
+RESEND_WEBHOOK_SECRET = (os.getenv("RESEND_WEBHOOK_SECRET") or "").strip()
+RESEND_API_BASE_URL = (os.getenv("RESEND_API_BASE_URL") or "https://api.resend.com").strip().rstrip("/")
+try:
+    RESEND_TIMEOUT = max(3, int((os.getenv("RESEND_TIMEOUT", "15") or "15").strip()))
+except (TypeError, ValueError):
+    RESEND_TIMEOUT = 15
+try:
+    RESEND_WEBHOOK_TOLERANCE = max(
+        60,
+        int((os.getenv("RESEND_WEBHOOK_TOLERANCE", "300") or "300").strip()),
+    )
+except (TypeError, ValueError):
+    RESEND_WEBHOOK_TOLERANCE = 300
 try:
     EMAIL_TIMEOUT = max(
         3,
@@ -1266,6 +1281,11 @@ if crontab is not None:
     CELERY_BEAT_SCHEDULE["cleanup-generated-exports-hourly"] = {
         "task": "reports.tasks.cleanup_generated_exports_task",
         "schedule": crontab(minute=20),
+    }
+
+    CELERY_BEAT_SCHEDULE["cleanup-platform-email-daily"] = {
+        "task": "reports.tasks.cleanup_platform_email_task",
+        "schedule": crontab(minute=35, hour=3),
     }
 
     if DAILY_MANAGER_REPORT_ENABLED:

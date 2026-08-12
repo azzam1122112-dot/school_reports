@@ -28,6 +28,7 @@ from ._helpers import (
 )
 from ..mansour_knowledge import AUDIENCE_LABELS
 from ..audit_export import audit_csv_response
+from ..models import PlatformEmail
 from ..permissions import executive_director_schools_qs
 from ..utils import create_system_notification
 from ..flexible_pricing import (
@@ -392,6 +393,11 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
             CustomerComplaint.Status.IN_PROGRESS,
         )
     ).count()
+    platform_email_unread = PlatformEmail.objects.filter(
+        direction=PlatformEmail.Direction.INBOUND,
+        is_read=False,
+        is_archived=False,
+    ).count()
 
     # البيانات الإحصائية (كاش 5 دقائق)
     stats_cache_key = "platform_stats_v4"
@@ -703,6 +709,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         "pending_payments": pending_payments,
         "pending_school_addition_requests": pending_school_addition_requests,
         "complaints_pending": complaints_pending,
+        "platform_email_unread": platform_email_unread,
         "tickets_open": int(period_payload["kpis"]["tickets_open"]),
         "recent_activities": recent_activities,
         "initial_period": selected_period,

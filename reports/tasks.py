@@ -114,6 +114,28 @@ def _email_delivery_configured() -> bool:
     return True
 
 
+@shared_task(bind=True, ignore_result=True)
+def cleanup_platform_email_task(self) -> int:
+    """Delete only archived mailbox records after the owner-defined retention period."""
+    if not _periodic_lock("cleanup_platform_email", ttl=1800):
+        return 0
+    PlatformEmail = apps.get_model("reports", "PlatformEmail")
+    PlatformEmailConfiguration = apps.get_model("reports", "PlatformEmailConfiguration")
+    config, _created = PlatformEmailConfiguration.objects.get_or_create(pk=1)
+    retention_days = max(30, min(int(config.retention_days or 365), 3650))
+    cutoff = timezone.now() - timedelta(days=retention_days)
+    deleted, _details = PlatformEmail.objects.filter(
+        is_archived=True,
+        updated_at__lt=cutoff,
+    ).delete()
+    logger.info(
+        "Task success name=cleanup_platform_email_task deleted=%s retention_days=%s",
+        deleted,
+        retention_days,
+    )
+    return int(deleted)
+
+
 @shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={"max_retries": 3})
 def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 2000) -> int:
     """Delete AuditLog rows older than N days.

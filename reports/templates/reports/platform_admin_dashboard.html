@@ -1541,6 +1541,11 @@
                             <span class="action-body"><strong>شكاوى العملاء</strong><span>متابعة الحالات وتوثيق الإجراءات.</span></span>
                             {% if complaints_pending > 0 %}<span class="action-badge">{{ complaints_pending }}</span>{% endif %}
                         </a>
+                        <a href="{% url 'reports:platform_email_inbox' %}" class="action-card {% if platform_email_unread > 0 %}is-warning{% endif %}" data-search-item data-search-title="بريد المنصة الوارد المرسل الرسائل Resend">
+                            <span class="action-icon bg-emerald-light"><i class="fas fa-envelope-open-text"></i></span>
+                            <span class="action-body"><strong>بريد المنصة</strong><span>الوارد والمرسل وحالات التسليم.</span></span>
+                            {% if platform_email_unread > 0 %}<span class="action-badge">{{ platform_email_unread }}</span>{% endif %}
+                        </a>
                         <a href="{% url 'reports:platform_school_notify' %}" class="action-card" data-search-item data-search-title="إرسال إشعار للمدرسة تنبيه">
                             <span class="action-icon bg-rose-light"><i class="fas fa-bullhorn"></i></span>
                             <span class="action-body"><strong>إرسال إشعار</strong><span>مراسلة مدرسة محددة.</span></span>

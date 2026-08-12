@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}إعدادات بريد المنصة{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/platform-email.css' %}">{% endblock %}
+{% block content %}
+<div class="mail-shell mail-shell--narrow" dir="rtl">
+  <header class="mail-page-head"><div><a href="{% url 'reports:platform_email_inbox' %}"><i class="fa-solid fa-arrow-right"></i> البريد</a><h1>إعدادات بريد المنصة</h1><p>هوية موحدة للإرسال، عنوان واضح للاستقبال، وربط محمي مع Resend.</p></div><span class="mail-page-head__icon"><i class="fa-solid fa-shield-halved"></i></span></header>
+  <section class="mail-connection-grid" aria-label="حالة الاتصال">
+    <article class="{% if api_configured %}is-ok{% endif %}"><i class="fa-solid fa-key"></i><div><strong>Resend API</strong><span>{% if api_configured %}المفتاح موجود في بيئة الخادم{% else %}المفتاح غير مضاف{% endif %}</span></div><b>{% if api_configured %}جاهز{% else %}ناقص{% endif %}</b></article>
+    <article class="{% if webhook_configured %}is-ok{% endif %}"><i class="fa-solid fa-fingerprint"></i><div><strong>توقيع Webhook</strong><span>{% if webhook_configured %}التحقق الأمني جاهز{% else %}سر التوقيع غير مضاف{% endif %}</span></div><b>{% if webhook_configured %}جاهز{% else %}ناقص{% endif %}</b></article>
+  </section>
+  <form class="mail-settings-form" method="post" novalidate>{% csrf_token %}
+    <section><header><i class="fa-solid fa-signature"></i><div><h2>هوية الإرسال</h2><p>الاسم والعنوان اللذان يراهما مستلمو رسائل المنصة.</p></div></header><div class="mail-two-fields"><div class="mail-field"><label for="{{ form.sender_name.id_for_label }}">اسم المرسل</label>{{ form.sender_name }}{{ form.sender_name.errors }}</div><div class="mail-field"><label for="{{ form.sender_email.id_for_label }}">بريد الإرسال</label>{{ form.sender_email }}{{ form.sender_email.errors }}</div></div></section>
+    <section><header><i class="fa-solid fa-inbox"></i><div><h2>الاستقبال والردود</h2><p>استخدم نطاقًا فرعيًا للاستقبال لتجنب تعارض سجلات MX.</p></div></header><div class="mail-two-fields"><div class="mail-field"><label for="{{ form.inbound_email.id_for_label }}">بريد الاستقبال</label>{{ form.inbound_email }}{{ form.inbound_email.errors }}</div><div class="mail-field"><label for="{{ form.reply_to_email.id_for_label }}">توجيه الردود إلى</label>{{ form.reply_to_email }}{{ form.reply_to_email.errors }}</div></div></section>
+    <section><header><i class="fa-solid fa-gears"></i><div><h2>التشغيل والاحتفاظ</h2><p>لن ترسل المنصة أو تستقبل داخل الصندوق حتى تفعيل الخيار الموافق.</p></div></header><div class="mail-toggle-row"><label>{{ form.is_sending_enabled }}<span><strong>تفعيل الإرسال</strong><small>السماح بإنشاء رسائل وردود من مركز التشغيل.</small></span></label><label>{{ form.is_receiving_enabled }}<span><strong>تفعيل الاستقبال</strong><small>عرض البريد الوارد بعد وصول Webhook.</small></span></label></div><div class="mail-field mail-field--compact"><label for="{{ form.retention_days.id_for_label }}">مدة الاحتفاظ بالأيام</label>{{ form.retention_days }}{{ form.retention_days.errors }}</div></section>
+    <section class="mail-webhook"><header><i class="fa-solid fa-code-branch"></i><div><h2>عنوان Webhook</h2><p>أضفه في Resend واختر أحداث الاستقبال والإرسال والتسليم والارتداد والفتح والنقر.</p></div></header><code dir="ltr">{{ webhook_url }}</code></section>
+    <footer class="mail-compose__footer"><a class="mail-button" href="{% url 'reports:platform_email_inbox' %}">رجوع</a><button class="mail-button is-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button></footer>
+  </form>
+</div>
+{% endblock %}
