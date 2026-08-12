@@ -1,4 +1,4 @@
-{% load hijri_tags %}
+{% load static hijri_tags %}
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -11,7 +11,7 @@
   أبيض دائماً، وطبقةُ الوضع الداكن على صفحة تُطبع تُنتج حبراً لا يُقرأ. وهو
   العُرف نفسه في كل صفحات الطباعة هنا، ويحرسه اختبار.
   {% endcomment %}
-  <style>
+  <style nonce="{{ CSP_NONCE }}">
     :root { --ink: #111; --muted: #444; --line: #000; --shade: #f3f3f3; }
     * { box-sizing: border-box; }
     body {
@@ -53,6 +53,7 @@
       @page { size: A4; margin: 12mm; }
     }
   </style>
+<link rel="stylesheet" href="{% static 'css/extracted.css' %}?v=20260812.1">
 </head>
 <body>
 
@@ -77,7 +78,7 @@
     <table>
       <thead>
         <tr>
-          <th style="width:26px">م</th>
+          <th class="xs-lab-assets-print-1">م</th>
           <th>الصنف</th>
           <th>الرقم</th>
           <th>النوع</th>
@@ -109,7 +110,7 @@
   {% if outstanding %}
     <h2>ما زال خارج المختبر</h2>
     <table>
-      <thead><tr><th style="width:26px">م</th><th>الصنف</th><th>عند</th><th>الكمية</th></tr></thead>
+      <thead><tr><th class="xs-lab-assets-print-1">م</th><th>الصنف</th><th>عند</th><th>الكمية</th></tr></thead>
       <tbody>
         {% for row in outstanding %}
           <tr>

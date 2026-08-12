@@ -2,7 +2,7 @@
 {% block title %}مدراء المدارس{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .sm-page{max-width:1120px;margin:0 auto;padding:clamp(12px,2.5vw,22px)}
   .sm-shell{display:grid;gap:14px}
   .sm-hero,.sm-panel{
@@ -146,7 +146,7 @@
                 </div>
 
                 <div>
-                  <div class="sm-label" style="margin-bottom:8px">المدارس المرتبطة</div>
+                  <div class="sm-label u-mb-2">المدارس المرتبطة</div>
                   {% if schools %}
                     <div class="sm-schools">
                       {% for s in schools %}
@@ -157,7 +157,7 @@
                       {% endfor %}
                     </div>
                   {% else %}
-                    <span class="muted" style="font-weight:900">لا توجد مدارس مرتبطة</span>
+                    <span class="muted u-fw-900">لا توجد مدارس مرتبطة</span>
                   {% endif %}
                 </div>
 

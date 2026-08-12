@@ -1,0 +1,55 @@
+/* static/css/language-switcher.css
+   ─────────────────────────────────────────────────────────────────────────
+   مبدّل اللغة في الطبقة العامة (الهبوط، الدخول، السياسات).
+
+   **لماذا ملفٌ مستقل.** المبدّل يظهر في قالبين لا يشتركان في ورقة أنماط:
+   ``landing.html`` مستقلٌّ بأنماطه، و``base.html`` يحمل نظام الرموز. فوضعُ
+   القواعد في أيٍّ منهما يترك النصف الآخر بلا نمط، ووضعُها في ``utilities.css``
+   يخلط مكوّناً بأدوات.
+
+   **الخصائص منطقية لا فيزيائية** (``margin-inline`` لا ``margin-left``): هذا
+   المكوّن تحديداً هو ما ينقل الصفحة بين ``rtl`` و``ltr``، فلا يصحّ أن يكون
+   هو نفسه مثبتاً على اتجاه واحد.
+
+   والرموز مكتوبة باحتياطي (``var(--x, #hex)``) لأن ``landing.html`` لا يحمّل
+   ``tokens.css``.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.langswitch {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+}
+
+.langswitch__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text-muted, #68766f);
+  background: transparent;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: var(--r-full, 9999px);
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.langswitch__btn:hover {
+  color: var(--brand, #006c35);
+  border-color: var(--brand, #006c35);
+  background: var(--bg-sub, #edf5ef);
+}
+
+.langswitch__btn:focus-visible {
+  outline: 3px solid var(--focus-ring, #8d6b2f);
+  outline-offset: 2px;
+}
+
+/* في صفحات السياسات يجلس المبدّل في ركن الترويسة، لا في سطر النص. */
+.legal-hero .langswitch {
+  float: inline-end;
+  margin-block-end: 0.5rem;
+}

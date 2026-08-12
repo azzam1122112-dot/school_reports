@@ -1,0 +1,218 @@
+/* static/css/utilities.css
+   ─────────────────────────────────────────────────────────────────────────
+   أصنافٌ مساعدة تحلّ محلّ سمات ``style="..."`` المضمَّنة في القوالب.
+
+   **لماذا هذه الطبقة موجودة أصلاً.** لأن السمة المضمَّنة ليست مسألة ذوق هنا:
+   وجودُ سمة ``style`` واحدة في أي قالب يُلزم سياسة المحتوى بحمل
+   ``style-src 'unsafe-inline'`` — وهو مكتوبٌ صراحةً في ``reports/middleware.py``
+   منذ سنوات كسببٍ لبقاء الإذن مفتوحاً. فدَينُ التصميم صار ثغرةً في السياسة.
+
+   وكان في القوالب 816 سمة: 781 قيمتها ثابتة، و35 تحمل متغيّراً من القالب
+   (عرضُ شريط تقدّم غالباً). والثابتة كلها تُستبدل بأصناف؛ والديناميكية تُنقل
+   إلى سمة بيانات يقرؤها الجافاسكربت — فتعديلُ الأنماط من JS لا يحكمه
+   ``style-src`` أصلاً.
+
+   **قواعد هذه الطبقة:**
+
+   * لا لون سداسي ولا مقاس عشوائي. القيم من ``tokens.css`` أو من السلّم أدناه.
+   * الاسم يصف **ما تفعله** لا شكلها: ``.u-hidden`` لا ``.u-none``.
+   * لا ``!important`` — هذه الطبقة تُحمَّل بعد أوراق المكوّنات، فترتيبُها يكفي.
+     و``!important`` هنا كان سيعيد إنتاج المشكلة التي جاءت لتحلّها.
+   * لا يُضاف صنف إلا وله موضعُ استعمال فعلي. طبقةُ أدواتٍ تنمو بلا استعمال
+     تصير قاموساً لا أحد يقرؤه.
+
+   سلّم المسافات مشتقّ من القيم الموجودة فعلاً في القوالب، لا من نظامٍ مستورد:
+   الهدف استبدالُ ما هو قائم لا إعادةُ تصميمه.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* سلّم المسافات — الأرقام هي ما تستعمله القوالب اليوم. */
+  --u-space-0: 0;
+  --u-space-1: 4px;
+  --u-space-2: 8px;
+  --u-space-3: 10px;
+  --u-space-4: 12px;
+  --u-space-5: 14px;
+  --u-space-6: 16px;
+  --u-space-7: 18px;
+  --u-space-8: 24px;
+  --u-space-sm: 0.6rem;
+  --u-space-md: 0.8rem;
+  --u-space-lg: 1rem;
+  --u-space-xl: 1.1rem;
+  --u-space-2xl: 1.2rem;
+}
+
+/* ── العرض والتخطيط ─────────────────────────────────────────────────── */
+.u-hidden { display: none; }
+.u-block { display: block; }
+.u-inline { display: inline; }
+.u-inline-block { display: inline-block; }
+.u-flex { display: flex; }
+.u-inline-flex { display: inline-flex; }
+.u-grid { display: grid; }
+
+.u-items-center { align-items: center; }
+.u-items-start { align-items: flex-start; }
+.u-items-end { align-items: flex-end; }
+.u-justify-center { justify-content: center; }
+.u-justify-between { justify-content: space-between; }
+.u-wrap { flex-wrap: wrap; }
+.u-nowrap { flex-wrap: nowrap; }
+.u-col { flex-direction: column; }
+.u-grow { flex: 1; }
+.u-shrink-0 { flex: 0 0 auto; }
+.u-self-start { align-self: flex-start; }
+.u-self-end { align-self: flex-end; }
+.u-span-all { grid-column: 1 / -1; }
+
+.u-gap-1 { gap: var(--u-space-1); }
+.u-gap-2 { gap: var(--u-space-2); }
+.u-gap-3 { gap: var(--u-space-3); }
+.u-gap-4 { gap: var(--u-space-4); }
+.u-gap-sm { gap: var(--u-space-sm); }
+
+/* ── المسافات ───────────────────────────────────────────────────────── */
+.u-m-0 { margin: 0; }
+.u-mt-0 { margin-top: 0; }
+.u-mt-1 { margin-top: var(--u-space-1); }
+.u-mt-2 { margin-top: var(--u-space-2); }
+.u-mt-3 { margin-top: var(--u-space-3); }
+.u-mt-4 { margin-top: var(--u-space-4); }
+.u-mt-5 { margin-top: var(--u-space-5); }
+.u-mt-6 { margin-top: var(--u-space-6); }
+.u-mt-sm { margin-top: var(--u-space-sm); }
+.u-mt-md { margin-top: var(--u-space-md); }
+.u-mt-lg { margin-top: var(--u-space-lg); }
+.u-mt-xl { margin-top: var(--u-space-xl); }
+.u-mt-2xl { margin-top: var(--u-space-2xl); }
+
+.u-mb-0 { margin-bottom: 0; }
+.u-mb-1 { margin-bottom: var(--u-space-1); }
+.u-mb-2 { margin-bottom: var(--u-space-2); }
+.u-mb-3 { margin-bottom: var(--u-space-3); }
+.u-mb-4 { margin-bottom: var(--u-space-4); }
+.u-mb-6 { margin-bottom: var(--u-space-6); }
+.u-mb-md { margin-bottom: var(--u-space-md); }
+
+/* ── النص ───────────────────────────────────────────────────────────── */
+/* ``start``/``end`` لا ``right``/``left``: القيمة المنطقية تنقلب مع اتجاه
+   الصفحة تلقائياً. وبالثابتة كان النصّ يبقى محاذىً لليمين في الصفحة
+   الإنجليزية — يُقلب النصّ ولا يُقلب التخطيط، وهي أسوأ من الحالتين. */
+.u-text-start { text-align: start; }
+.u-text-end { text-align: end; }
+.u-text-center { text-align: center; }
+
+.u-fw-700 { font-weight: 700; }
+.u-fw-800 { font-weight: 800; }
+.u-fw-900 { font-weight: 900; }
+.u-fw-950 { font-weight: 950; }
+
+.u-fs-sm { font-size: 0.85rem; }
+.u-fs-md { font-size: 0.9rem; }
+
+.u-text-muted { color: var(--text-muted); }
+.u-text-ink { color: var(--ink); }
+.u-text-danger { color: var(--danger); }
+
+/* ── الشفافية والقياس ───────────────────────────────────────────────── */
+.u-dim { opacity: 0.85; }
+.u-dim-more { opacity: 0.9; }
+.u-w-full { width: 100%; }
+.u-min-h-0 { min-height: 0; }
+
+/* ── أشرطة التقدّم ──────────────────────────────────────────────────────
+   القيمة الوحيدة التي لا يمكن أن تكون صنفاً: نسبةٌ تأتي من قاعدة البيانات.
+   تُكتب في ``data-progress`` ويقرؤها ``static/js/progress-bars.js`` فيضبط
+   العرض عبر CSSOM — ومسارُ CSSOM لا يحكمه ``style-src`` فلا يحتاج
+   ``'unsafe-inline'``. وقبل أن يعمل الجافاسكربت يكون العرض صفراً لا ممتلئاً،
+   فالشريط الفارغ أصدق من شريطٍ كاذب. */
+[data-progress] { width: 0; transition: width 0.4s var(--ease-out, ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-progress] { transition: none; }
+}
+
+/* ── توسعةٌ مشتقّة من القياس ────────────────────────────────────────────
+   الأصناف أدناه أُضيفت بعد عدّ الإعلانات الفعلية في القوالب: كل صنف هنا له
+   موضعُ استعمالٍ حقيقي، ولا صنف بلا استعمال.
+
+   الغرض تفكيك السمات **متعدّدة الإعلانات**: قيمةٌ مثل
+   ``display:flex;align-items:center;gap:.6rem;flex-wrap:wrap`` ليست نمطاً
+   واحداً بل أربعة، ولكلٍّ منها صنفُه — فتتحوّل السمة إلى قائمة أصناف بلا
+   اختراع مكوّن جديد. */
+
+/* المسافات — تكملة السلّم */
+.u-gap-05 { gap: 0.4rem; }
+.u-gap-06 { gap: 0.5rem; }
+.u-mt-6px { margin-top: 6px; }
+.u-mb-6px { margin-bottom: 6px; }
+.u-mb-lg { margin-bottom: 1rem; }
+.u-mb-05 { margin-bottom: 0.5rem; }
+.u-mb-09 { margin-bottom: 0.9rem; }
+.u-my-tight { margin: 0.2rem 0 0; }
+
+.u-p-3 { padding: var(--u-space-4); }
+.u-p-4 { padding: var(--u-space-5); }
+.u-p-5 { padding: var(--u-space-6); }
+.u-p-6 { padding: var(--u-space-7); }
+.u-p-lg { padding: 1rem; }
+
+/* التخطيط — تكملة */
+.u-justify-start { justify-content: flex-start; }
+.u-justify-end { justify-content: flex-end; }
+.u-min-w-0 { min-width: 0; }
+.u-nowrap-text { white-space: nowrap; }
+
+/* النص — تكملة */
+.u-fw-600 { font-weight: 600; }
+.u-fs-xs { font-size: 0.8rem; }
+.u-fs-lg { font-size: 1.1rem; }
+.u-fs-95 { font-size: 0.95rem; }
+.u-lh-relaxed { line-height: 1.8; }
+.u-lh-loose { line-height: 1.9; }
+.u-no-underline { text-decoration: none; }
+
+/* الألوان — من الرموز وحدها. الألوان السداسية المكتوبة بيدها في القوالب
+   تُترك لجولةٍ تُسمّي دورها أولاً، فترجمتُها إلى صنفٍ بلا اسمٍ دلالي تُثبّت
+   الخطأ بدل أن تُزيله. */
+.u-text-c-muted { color: var(--c-text-muted); }
+.u-text-c-muted-2 { color: var(--c-muted); }
+.u-text-lab-muted { color: var(--lab-muted); }
+.u-text-asg-danger { color: var(--asg-danger); }
+.u-text-c-primary { color: var(--c-primary); }
+.u-text-muted-alt { color: var(--muted); }
+
+/* القياسات المتكرّرة */
+.u-h-32 { height: 32px; }
+.u-h-38 { height: 38px; }
+.u-min-h-48 { min-height: 48px; }
+.u-radius-sm { border-radius: 8px; }
+.u-radius-md { border-radius: 12px; }
+.u-opacity-95 { opacity: 0.95; }
+
+/* ── حلقة التركيز ──────────────────────────────────────────────────────
+   كان ``:focus-visible`` معرَّفاً في عشرين موضعاً فقط عبر 489KB من CSS. وهذه
+   منصةٌ يقودها موظفون إداريون بلوحة المفاتيح ساعاتٍ يومياً — ومَن يتنقّل
+   بـ``Tab`` بلا حلقة تركيز يعمل أعمى.
+
+   ``:focus-visible`` لا ``:focus``: المتصفّح وحده يعرف إن كان التركيز جاء من
+   لوحة المفاتيح أو من نقرة فأرة. و``:focus`` كان يرسم الحلقة على كل نقرة زر —
+   وهو ما دفع كثيرين تاريخياً إلى ``outline: none`` فأتلفوا الوصولية كلها.
+
+   ``outline`` لا ``box-shadow``: الأولى وحدها تصمد في وضع التباين العالي في
+   ويندوز، وهو الوضع الذي يعتمده ضعاف البصر فعلاً.
+
+   وهذه القاعدة أولى لا أخيرة في الملف: أي مكوّن يريد حلقةً خاصة به يكتبها
+   بعدها فتفوز — الافتراض هنا أرضيةٌ لا سقف. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus-ring, #b9975b);
+  outline-offset: 2px;
+  border-radius: var(--r-sm, 6px);
+}
+
+/* الفأرة لا ترسم حلقة — والمتصفّحات القديمة التي لا تعرف ``:focus-visible``
+   تتجاهل هذه القاعدة كلها فتبقى على سلوكها الافتراضي الآمن. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus:not(:focus-visible) {
+  outline: none;
+}

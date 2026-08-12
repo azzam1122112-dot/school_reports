@@ -18,11 +18,21 @@ try:
 except Exception:  # pragma: no cover
     ReportType = None  # type: ignore
 
+from core.observability import report_degraded as _degraded
+
 from .permissions import allowed_categories_for, restrict_queryset_for_user
 from .search_utils import smart_search_q, REPORT_SEARCH_FIELDS
 
 
 def _model_has_field(model, field_name: str) -> bool:
+    """هل للنموذج هذا الحقل؟
+
+    **آخر استعمال مشروع لهذا الفحص.** كان يُستدعى في أربعة عشر موضعاً على
+    نماذج معروفة بالاسم (``Report``، ``Department``، ``Ticket``، ``ReportType``)
+    — وكلها تملك ``school`` منذ عشرات الترحيلات، فكان الشرط يُقيَّم ``True``
+    دائماً ويُخفي القصد. أما هنا فالنموذج **مجهول وقت الكتابة**: يأتي من
+    ``qs.model`` أياً كان المتصل، فالسؤال حقيقي.
+    """
     try:
         return field_name in {f.name for f in model._meta.get_fields()}
     except Exception:
@@ -37,6 +47,7 @@ def filter_by_school(qs: QuerySet, active_school: Optional[School]) -> QuerySet:
         if _model_has_field(qs.model, "school"):
             return qs.filter(school=active_school)
     except Exception:
+        _degraded("reports.filter_by_school", model=getattr(qs, "model", None).__name__)
         return qs
     return qs
 
@@ -190,7 +201,7 @@ def get_reporttype_choices(*, active_school: Optional[School]) -> list[tuple[str
 
     qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
     try:
-        if active_school is not None and _model_has_field(ReportType, "school"):
+        if active_school is not None:
             qs = qs.filter(school=active_school)
     except Exception:
         pass
@@ -217,7 +228,7 @@ def get_report_for_user_or_404(*, user, pk: int, active_school: Optional[School]
     qs = Report.objects.select_related("teacher", "category", "school")
 
     if getattr(user, "is_superuser", False):
-        if active_school is not None and _model_has_field(Report, "school"):
+        if active_school is not None:
             qs = qs.filter(school=active_school)
         return get_object_or_404(qs, pk=pk)
 
@@ -225,8 +236,7 @@ def get_report_for_user_or_404(*, user, pk: int, active_school: Optional[School]
     if active_school is None:
         return get_object_or_404(qs, pk=pk, teacher=user)
 
-    if _model_has_field(Report, "school"):
-        qs = qs.filter(school=active_school)
+    qs = qs.filter(school=active_school)
 
     try:
         cats = allowed_categories_for(user, active_school) or set()

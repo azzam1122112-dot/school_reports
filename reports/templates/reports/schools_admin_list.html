@@ -2,7 +2,7 @@
 {% block title %}إدارة المدارس{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .schools-page{max-width:1120px;margin:0 auto;padding:clamp(12px,2.5vw,22px)}
   .schools-shell{display:grid;gap:14px}
   .schools-hero,.schools-panel{
@@ -132,13 +132,13 @@
                 </div>
 
                 <div class="school-managers">
-                  <span class="schools-label" style="margin:0">المدراء</span>
+                  <span class="schools-label u-m-0">المدراء</span>
                   {% if managers %}
                     {% for manager in managers %}
                       <span class="school-manager">{{ manager.name }}</span>
                     {% endfor %}
                   {% else %}
-                    <span class="muted" style="font-weight:900">لا يوجد حساب إدارة معيّن</span>
+                    <span class="muted u-fw-900">لا يوجد حساب إدارة معيّن</span>
                   {% endif %}
                 </div>
 

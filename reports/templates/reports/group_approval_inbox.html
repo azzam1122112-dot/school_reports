@@ -112,7 +112,7 @@
         ردود التكليفات
         {% if assignment_rows %}<span class="gai-count">{{ assignment_rows|length }}</span>{% endif %}
       </h2>
-      <a class="gai-eyebrow" href="{% url 'reports:group_assignment_board' %}" style="margin:0">لوحة التكليفات</a>
+      <a class="gai-eyebrow u-m-0" href="{% url 'reports:group_assignment_board' %}">لوحة التكليفات</a>
     </div>
 
     {% if assignment_rows %}
@@ -147,7 +147,7 @@
         محاضر المجلس
         {% if minutes_rows %}<span class="gai-count">{{ minutes_rows|length }}</span>{% endif %}
       </h2>
-      <a class="gai-eyebrow" href="{% url 'reports:council_list' %}" style="margin:0">المجلس</a>
+      <a class="gai-eyebrow u-m-0" href="{% url 'reports:council_list' %}">المجلس</a>
     </div>
 
     {% if minutes_rows %}

@@ -1,0 +1,262 @@
+"""الإملاء الصوتي للتقرير: البوابة، والحصة، وما يحدث حين تتعثّر الخدمة.
+
+ثلاثة ثوابت تحرسها هذه الاختبارات:
+  ١. الميزة لا تُستدعى من متصفّح عادي ما دام ``VOICE_REPORT_PWA_ONLY`` مفعّلاً.
+  ٢. ثلاث محاولات يومياً لكل معلّم، تُحسب على الخادم لا في الواجهة.
+  ٣. الحصة لا تُستهلك على طلبٍ لم ينتج نصاً — لا برفضٍ في التحقق ولا بعطلٍ
+     لدى المزوّد.
+"""
+
+from __future__ import annotations
+
+import io
+from unittest.mock import patch
+
+from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
+from django.urls import reverse
+
+from reports.models import (
+    School,
+    SchoolMembership,
+    SchoolSubscription,
+    SubscriptionPlan,
+    Teacher,
+)
+from reports.voice_report import (
+    VoiceReportError,
+    VoiceReportUnavailable,
+    normalise_audio_type,
+    voice_report_daily_remaining,
+)
+
+PWA = {"HTTP_X_TAWTHEEQ_SURFACE": "standalone"}
+
+
+def audio_upload(*, size: int = 40_000, content_type: str = "audio/webm;codecs=opus"):
+    return SimpleUploadedFile("clip", b"\x1a\x45\xdf\xa3" + b"0" * (size - 4), content_type=content_type)
+
+
+@override_settings(
+    VOICE_REPORT_ENABLED=True,
+    VOICE_REPORT_PWA_ONLY=True,
+    VOICE_REPORT_DAILY_LIMIT=3,
+    OPENAI_API_KEY="sk-test-key",
+    ALLOWED_HOSTS=["testserver"],
+)
+class VoiceReportEndpointTests(TestCase):
+    def setUp(self):
+        # الحصة وحدّ المعدّل يعيشان في الكاش المشترك بين الاختبارات.
+        cache.clear()
+        self.school = School.objects.create(name="مدرسة الصوت", code="voice-school")
+        plan = SubscriptionPlan.objects.create(
+            name="باقة", price=0, days_duration=365, max_teachers=0
+        )
+        SchoolSubscription.objects.create(school=self.school, plan=plan)
+        self.teacher = Teacher.objects.create_user(
+            phone="500990001", name="معلم الصوت", password="voice-pass"
+        )
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        self.client.force_login(self.teacher)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+        self.url = reverse("reports:transcribe_report_voice")
+
+    def _post(self, **extra):
+        payload = extra.pop("data", {"audio": audio_upload()})
+        headers = dict(PWA)
+        headers.update(extra)
+        return self.client.post(self.url, payload, **headers)
+
+    # ── البوابة ──────────────────────────────────────────────────────
+    def test_a_plain_browser_request_is_refused(self):
+        response = self.client.post(self.url, {"audio": audio_upload()})
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["reason"], "pwa_required")
+        self.assertEqual(voice_report_daily_remaining(self.teacher.pk), 3)
+
+    @override_settings(VOICE_REPORT_PWA_ONLY=False)
+    def test_the_gate_can_be_opened_by_configuration(self):
+        with patch("reports.views.reports.transcribe_audio", return_value="نص"), patch(
+            "reports.views.reports.polish_dictation", return_value="نص التقرير المفرَّغ."
+        ):
+            response = self.client.post(self.url, {"audio": audio_upload()})
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_is_not_allowed(self):
+        self.assertEqual(self.client.get(self.url, **PWA).status_code, 405)
+
+    @override_settings(VOICE_REPORT_ENABLED=False)
+    def test_a_disabled_feature_answers_404(self):
+        self.assertEqual(self._post().status_code, 404)
+
+    # ── المسار الناجح ────────────────────────────────────────────────
+    def test_a_recording_becomes_report_text(self):
+        with patch(
+            "reports.views.reports.transcribe_audio", return_value="اليوم نفذت نشاط يعني توعوي"
+        ) as transcribe, patch(
+            "reports.views.reports.polish_dictation", return_value="اليوم نُفِّذ نشاط توعوي."
+        ):
+            response = self._post()
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["text"], "اليوم نُفِّذ نشاط توعوي.")
+        self.assertEqual(body["remaining"], 2)
+        self.assertEqual(body["daily_limit"], 3)
+        self.assertEqual(transcribe.call_count, 1)
+
+    # ── الحصة ────────────────────────────────────────────────────────
+    def test_three_a_day_then_the_fourth_is_refused(self):
+        with patch("reports.views.reports.transcribe_audio", return_value="نص"), patch(
+            "reports.views.reports.polish_dictation", return_value="نص مفرَّغ للتقرير."
+        ):
+            for expected in (2, 1, 0):
+                response = self._post()
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["remaining"], expected)
+
+            fourth = self._post()
+
+        self.assertEqual(fourth.status_code, 429)
+        self.assertEqual(fourth.json()["remaining"], 0)
+
+    def test_the_voice_quota_is_separate_from_the_text_improver_quota(self):
+        """تسجيلٌ واحد لا يجوز أن يأكل حقّ المعلّم في تحسين الصياغة."""
+        from reports.report_ai import report_ai_daily_remaining
+
+        with patch("reports.views.reports.transcribe_audio", return_value="نص"), patch(
+            "reports.views.reports.polish_dictation", return_value="نص مفرَّغ للتقرير."
+        ):
+            self._post()
+
+        self.assertEqual(voice_report_daily_remaining(self.teacher.pk), 2)
+        self.assertEqual(report_ai_daily_remaining(self.teacher.pk), 3)
+
+    # ── لا تُحتسب محاولة بلا نص ───────────────────────────────────────
+    def test_a_provider_outage_does_not_consume_a_try(self):
+        with patch(
+            "reports.views.reports.transcribe_audio",
+            side_effect=VoiceReportUnavailable("تعذر الوصول إلى خدمة التفريغ الآن."),
+        ):
+            response = self._post()
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(voice_report_daily_remaining(self.teacher.pk), 3)
+
+    def test_unclear_audio_does_not_consume_a_try(self):
+        with patch(
+            "reports.views.reports.transcribe_audio",
+            side_effect=VoiceReportError("لم أتبيّن كلامًا واضحًا في التسجيل."),
+        ):
+            response = self._post()
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(voice_report_daily_remaining(self.teacher.pk), 3)
+
+    # ── التحقق من الملف ──────────────────────────────────────────────
+    def test_a_rejected_file_never_reaches_the_provider_nor_the_quota(self):
+        with patch("reports.views.reports.transcribe_audio") as transcribe:
+            response = self._post(data={"audio": audio_upload(content_type="application/pdf")})
+
+        self.assertEqual(response.status_code, 400)
+        transcribe.assert_not_called()
+        self.assertEqual(voice_report_daily_remaining(self.teacher.pk), 3)
+
+    def test_a_missing_recording_is_rejected(self):
+        self.assertEqual(self._post(data={}).status_code, 400)
+
+    def test_a_tiny_recording_is_rejected(self):
+        response = self._post(data={"audio": audio_upload(size=500)})
+        self.assertEqual(response.status_code, 400)
+
+    @override_settings(VOICE_REPORT_MAX_BYTES=200_000)
+    def test_an_oversized_recording_is_rejected(self):
+        response = self._post(data={"audio": audio_upload(size=260_000)})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(voice_report_daily_remaining(self.teacher.pk), 3)
+
+    def test_anonymous_visitors_are_redirected_to_login(self):
+        self.client.logout()
+        response = self.client.post(self.url, {"audio": audio_upload()}, **PWA)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("reports:login"), response["Location"])
+
+
+class AudioTypeTests(TestCase):
+    def test_the_recorder_codec_suffix_is_tolerated(self):
+        self.assertEqual(normalise_audio_type("audio/webm;codecs=opus"), "webm")
+        self.assertEqual(normalise_audio_type("AUDIO/MP4"), "mp4")
+
+    def test_anything_outside_the_allow_list_is_refused(self):
+        for value in ("application/pdf", "image/png", "", "text/plain", "audio/aiff"):
+            with self.subTest(content_type=value):
+                with self.assertRaises(VoiceReportError):
+                    normalise_audio_type(value)
+
+
+@override_settings(
+    VOICE_REPORT_ENABLED=True,
+    OPENAI_API_KEY="sk-test-key",
+    VOICE_REPORT_MODEL="gpt-4o-mini-transcribe",
+)
+class TranscriptionRequestTests(TestCase):
+    """ما يُرسل فعلاً إلى المزوّد."""
+
+    def _fake_response(self, payload: bytes):
+        class _Response(io.BytesIO):
+            def __enter__(self_inner):
+                return self_inner
+
+            def __exit__(self_inner, *exc):
+                return False
+
+        return _Response(payload)
+
+    def test_the_request_is_multipart_with_a_server_side_filename(self):
+        from reports.voice_report import transcribe_audio
+
+        captured = {}
+
+        def fake_urlopen(request, timeout=None):
+            captured["url"] = request.full_url
+            captured["content_type"] = request.headers.get("Content-type", "")
+            captured["body"] = request.data
+            import json as _json
+
+            return self._fake_response(
+                _json.dumps({"text": "اليوم نُفِّذ نشاط توعوي في الإذاعة المدرسية"}).encode("utf-8")
+            )
+
+        with patch("reports.voice_report.urlopen", fake_urlopen):
+            text = transcribe_audio(b"0" * 5000, "webm")
+
+        self.assertEqual(text, "اليوم نُفِّذ نشاط توعوي في الإذاعة المدرسية")
+        self.assertEqual(captured["url"], "https://api.openai.com/v1/audio/transcriptions")
+        self.assertTrue(captured["content_type"].startswith("multipart/form-data; boundary="))
+        body = captured["body"]
+        self.assertIn(b'name="model"', body)
+        self.assertIn(b"gpt-4o-mini-transcribe", body)
+        self.assertIn(b'name="language"', body)
+        self.assertIn("ar".encode(), body)
+        # اسم الملف يُصاغ على الخادم؛ اسم العميل لا يصل الترويسة أبدًا.
+        self.assertIn(b'filename="report.webm"', body)
+
+    def test_a_polish_failure_falls_back_to_the_raw_transcript(self):
+        """تعثّر التجميل لا يجوز أن يضيّع كلام المعلّم."""
+        from reports.voice_report import polish_dictation
+
+        with patch(
+            "reports.voice_report._post",
+            side_effect=VoiceReportUnavailable("outage"),
+        ):
+            self.assertEqual(polish_dictation("نص خام بلا ترقيم"), "نص خام بلا ترقيم")

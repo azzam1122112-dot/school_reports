@@ -7,7 +7,7 @@
 {% if report_ai_enabled %}
 <link rel="stylesheet" href="{% static 'css/report-ai-improver.css' %}?v=20260801.2">
 {% endif %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      Report Edit (page-only polish)
      - Scoped داخل .er-scope
@@ -493,12 +493,12 @@
       <div class="er-body">
         {% if messages %}
           {% for message in messages %}
-            <div class="msg err" style="margin-bottom:10px">{{ message }}</div>
+            <div class="msg err u-mb-3">{{ message }}</div>
           {% endfor %}
         {% endif %}
 
         {% if form.non_field_errors %}
-          <div class="msg err" style="margin-bottom:10px">
+          <div class="msg err u-mb-3">
             {% for e in form.non_field_errors %}• {{ e }}<br>{% endfor %}
           </div>
         {% endif %}
@@ -542,7 +542,7 @@
             <div class="row">
               <label for="{{ form.report_date.id_for_label }}">📅 التاريخ</label>
               {{ form.report_date }}
-              <div id="reportDateHijri" aria-live="polite" style="margin-top:6px;font-weight:800;color:#0a5c33;font-size:.95rem;"></div>
+              <div id="reportDateHijri" aria-live="polite" class="xs-edit-report-1"></div>
               {% if form.report_date.errors %}
                 <div class="msg err">{% for e in form.report_date.errors %}• {{ e }}<br>{% endfor %}</div>
               {% endif %}
@@ -744,7 +744,7 @@
                 </div>
               </div>
 
-              <div class="note" style="margin-top:10px">
+              <div class="note u-mt-3">
                 لإزالة صورة حالية فعِّل مربع <b>إزالة</b>؛ أو اختر صورة جديدة لاستبدالها (سيتم إلغاء الإزالة تلقائيًا).
               </div>
             </div>

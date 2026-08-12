@@ -16,6 +16,8 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
 
+from core.observability import report_degraded as _degraded, soft_call, soft_fail
+
 from ._helpers import *
 from ._helpers import (
     _is_staff, _safe_next_url, _set_active_school,
@@ -52,7 +54,6 @@ from ..flexible_pricing import (
     serialize_flexible_pricing_catalog,
 )
 from ..moyasar_gateway import is_enabled as moyasar_is_enabled
-from ..tamara_gateway import is_enabled as tamara_is_enabled
 from core import opmetrics
 from core.limits_cache import limits_cache
 
@@ -146,6 +147,38 @@ def _passkey_device_label(request: HttpRequest, provided: str = "") -> str:
     return platform or browser or "جهاز مفعّل"
 
 
+def _password_reset_validity_text() -> str:
+    """Say how long the link lives, in words, from the configured timeout.
+
+    The email states a duration; leaving it hardcoded means it silently lies
+    the day someone changes ``PASSWORD_RESET_TIMEOUT``.
+    """
+    try:
+        seconds = int(getattr(settings, "PASSWORD_RESET_TIMEOUT", 3600) or 3600)
+    except (TypeError, ValueError):
+        seconds = 3600
+
+    if seconds < 3600:
+        minutes = max(1, seconds // 60)
+        if minutes == 1:
+            return "دقيقة واحدة"
+        if minutes == 2:
+            return "دقيقتين"
+        return f"{minutes} دقيقة" if minutes > 10 else f"{minutes} دقائق"
+
+    hours = seconds // 3600
+    if hours == 1:
+        return "ساعة واحدة"
+    if hours == 2:
+        return "ساعتين"
+    if hours <= 10:
+        return f"{hours} ساعات"
+    days = hours // 24
+    if days >= 1:
+        return "يومًا واحدًا" if days == 1 else f"{days} أيام"
+    return f"{hours} ساعة"
+
+
 @method_decorator(
     ratelimit(key="ip", rate="5/10m", method="POST", block=True),
     name="dispatch",
@@ -153,23 +186,66 @@ def _passkey_device_label(request: HttpRequest, provided: str = "") -> str:
 class AccountPasswordResetView(auth_views.PasswordResetView):
     template_name = "reports/password_reset_form.html"
     email_template_name = "reports/emails/password_reset_email.txt"
+    html_email_template_name = "reports/emails/password_reset_email.html"
     subject_template_name = "reports/emails/password_reset_subject.txt"
     form_class = AccountPasswordResetForm
     success_url = reverse_lazy("reports:password_reset_done")
+    # Drives the progress rail in password_reset_base.html.
+    extra_context = {"recovery_step": 1}
+
+    @property
+    def extra_email_context(self) -> dict[str, str]:
+        """Brand the recovery email — Django's default context has no identity."""
+        return {
+            "platform_name": "منصة توثيق",
+            "logo_url": self._brand_logo_url(),
+            "expiry_text": _password_reset_validity_text(),
+            "support_email": (
+                getattr(settings, "SECURITY_CONTACT_EMAIL", "") or ""
+            ).strip(),
+        }
+
+    def _brand_logo_url(self) -> str:
+        """Absolute logo URL, or "" so the header renders without it.
+
+        Inboxes block remote images by default anyway, so this is decoration:
+        never let a missing SITE_URL or a broken static path raise inside a
+        password-recovery request.
+        """
+        try:
+            from django.templatetags.static import static
+
+            path = static("img/logo1.png")
+            site_url = (getattr(settings, "SITE_URL", "") or "").strip().rstrip("/")
+            if site_url:
+                return f"{site_url}{path}"
+            return self.request.build_absolute_uri(path)
+        except Exception:
+            return ""
 
 
 class AccountPasswordResetDoneView(auth_views.PasswordResetDoneView):
     template_name = "reports/password_reset_done.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["recovery_step"] = 2
+        # The page tells the visitor how long the link lives; read it from the
+        # same setting the email does so the two can never disagree.
+        context["expiry_text"] = _password_reset_validity_text()
+        return context
 
 
 class AccountPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
     template_name = "reports/password_reset_confirm.html"
     form_class = AccountSetPasswordForm
     success_url = reverse_lazy("reports:password_reset_complete")
+    extra_context = {"recovery_step": 3}
 
 
 class AccountPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
     template_name = "reports/password_reset_complete.html"
+    extra_context = {"recovery_step": 4}
 
 
 def _offer_passkey_enrollment(request: HttpRequest, user: Teacher) -> None:
@@ -315,7 +391,9 @@ def _complete_passkey_login(request: HttpRequest, user: Teacher, *, next_url: st
                 if s is not None:
                     _set_active_school(request, s)
     except Exception:
-        pass
+        # بلا مدرسة نشطة يُردّ المستخدم من كل شاشة تسأل عنها — يبدو كأن
+        # عضويته أُلغيت.
+        _degraded("auth.autoselect_active_school", user_id=getattr(user, "pk", None))
 
     if is_force_password_change_required(request):
         messages.warning(request, _force_password_change_notice())
@@ -570,7 +648,9 @@ def _clear_login_failures(identifier: str) -> None:
     try:
         limits_cache().delete(_login_throttle_key(identifier))
     except Exception:
-        pass
+        # عدّادُ إخفاقاتٍ لا يُمسح بعد دخولٍ ناجح يُبقي الحساب يقترب من القفل
+        # بلا سبب. ولا يجوز أن يُسقط الدخول — لكنه يجب أن يُرى.
+        _degraded("auth.clear_login_failures")
 
 
 def _resolve_login_candidate(identifier: str):
@@ -689,6 +769,21 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                 opmetrics.increment("auth.login.failure")
                 messages.error(request, "هذا الدخول خاص بمدير النظام فقط.")
                 return redirect("reports:platform_login")
+
+            # ── بوّابة العامل الثاني ─────────────────────────────────────
+            # **موضعُها هنا وحدها.** ما بعد هذا السطر ينادي ``login()`` في سبعة
+            # فروع مختلفة بحسب الدور والاشتراك والعضوية. ووضعُ الفحص في كل فرع
+            # يعني أن نسيان فرعٍ واحد يفتح باباً كاملاً لا يكشفه شيء — لأن بقية
+            # الفروع تعمل. فالبوابة قبلها جميعاً: من له عامل ثانٍ نافذ لا تُنشأ
+            # له جلسة مصادَق عليها هنا إطلاقاً.
+            from .totp import start_totp_challenge
+            from ..models import TeacherTotpDevice
+
+            if TeacherTotpDevice.objects.filter(
+                teacher=user, confirmed_at__isnull=False
+            ).exists():
+                start_totp_challenge(request, user, next_url=next_value or "")
+                return redirect("reports:totp_challenge")
 
             # ✅ قواعد الاشتراك عند تسجيل الدخول:
             # - السوبر: يتجاوز دائمًا.
@@ -810,7 +905,10 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                         if s is not None:
                             _set_active_school(request, s)
             except Exception:
-                pass
+                _degraded(
+                    "auth.autoselect_active_school_post_login",
+                    user_id=getattr(user, "pk", None),
+                )
 
             force_password_change = is_force_password_change_required(request)
             if force_password_change:
@@ -1310,22 +1408,20 @@ def my_profile(request: HttpRequest) -> HttpResponse:
             if pwd_form.is_valid():
                 user = pwd_form.save()
                 update_session_auth_hash(request, user)
-                try:
+                # مفتاحُ جلسةٍ لا يُحدَّث بعد تغيير كلمة المرور يُبطل قاعدة
+                # الجلسة الواحدة صامتاً.
+                with soft_fail("auth.session_key_after_password_change", user_id=user.pk):
                     new_session_key = request.session.session_key or ""
                     if new_session_key and getattr(user, "current_session_key", "") != new_session_key:
                         user.current_session_key = new_session_key
                         user.save(update_fields=["current_session_key"])
-                except Exception:
-                    pass
                 clear_force_password_change_flag(request)
 
                 # إرسال إيميل تأكيد تغيير كلمة المرور (في الخلفية)
-                try:
+                with soft_fail("auth.password_change_email", user_id=user.pk):
                     from ..utils import run_task_safe
                     from ..tasks import send_password_change_email_task
                     run_task_safe(send_password_change_email_task, user.pk)
-                except Exception:
-                    pass
 
                 if force_password_change:
                     messages.success(request, "تم حفظ البريد الإلكتروني وتحديث كلمة المرور بنجاح.")
@@ -1662,18 +1758,20 @@ def landing_pricing_context() -> dict[str, Any]:
     if ttl <= 0:
         return _build_landing_pricing_context()
 
-    try:
-        cached = cache.get(LANDING_PRICING_CACHE_KEY)
-        if isinstance(cached, dict):
-            return cached
-    except Exception:
-        pass
+    cached = soft_call(
+        "landing.pricing_cache_get",
+        lambda: cache.get(LANDING_PRICING_CACHE_KEY),
+        default=None,
+    )
+    if isinstance(cached, dict):
+        return cached
 
     ctx = _build_landing_pricing_context()
-    try:
-        cache.set(LANDING_PRICING_CACHE_KEY, ctx, ttl)
-    except Exception:
-        pass
+    soft_call(
+        "landing.pricing_cache_set",
+        lambda: cache.set(LANDING_PRICING_CACHE_KEY, ctx, ttl),
+        default=None,
+    )
     return ctx
 
 
@@ -1702,7 +1800,6 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
     # while its gateway is actually switched on, so the footer can never
     # advertise a payment method a visitor cannot use. Kept out of the cached
     # pricing dict so a settings change takes effect on the next request.
-    ctx["tamara_enabled"] = tamara_is_enabled()
     ctx["moyasar_enabled"] = moyasar_is_enabled()
 
     response = render(request, "reports/landing.html", ctx)

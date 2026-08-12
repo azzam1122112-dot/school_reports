@@ -7,11 +7,18 @@ import hashlib
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import FieldDoesNotExist
 from django.http import HttpRequest
 from django.utils import timezone
 from django.apps import apps
 from django.db.models import Count, Q
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
+
+# هذه الوحدة تعمل في **كل طلب**، فسقوطها يُسقط كل صفحة. ولذلك تختار في مواضع
+# كثيرة أن تُكمل بقيمة بديلة بدل أن ترمي — وهو الاختيار الصحيح. أما ما كان
+# خاطئاً فهو أن يمرّ ذلك بلا أثر: قسمٌ فارغ في الشريط لا يُميَّز عن قسمٍ تعثّر
+# بناؤه، لا في السجل ولا في Sentry. ``soft_*`` تُبقي الإكمال وتُلغي الصمت.
+from core.observability import report_degraded as _degraded, soft, soft_call, soft_fail
 
 from .models import (
     Ticket,
@@ -35,46 +42,48 @@ CLOSED_STATES = {"done", "rejected", "cancelled"}
 # -----------------------------
 # أدوات مساعدة عامة
 # -----------------------------
+@soft("nav.count", default=0)
 def _safe_count(qs) -> int:
-    try:
-        return qs.count()
-    except Exception:
-        return 0
+    return qs.count()
 
 
+@soft("nav.get_model", default=None)
 def _get_model(app_label: str, model_name: str):
-    try:
-        return apps.get_model(app_label, model_name)
-    except Exception:
-        return None
+    return apps.get_model(app_label, model_name)
 
 
 def _get_membership_model():
     return _get_model("reports", "DepartmentMembership")
 
 
+@soft("nav.model_fields", default=frozenset())
 def _model_fields(model) -> Set[str]:
-    try:
-        return {f.name for f in model._meta.get_fields()}
-    except Exception:
-        return set()
+    return {f.name for f in model._meta.get_fields()}
 
 
+@soft("nav.cache_ttl", default=10)
 def _nav_cache_ttl_seconds() -> int:
     """Short TTL to smooth load spikes without keeping stale nav data for long."""
-    try:
-        default_ttl = 20 if not bool(getattr(settings, "DEBUG", False)) else 5
-        return max(0, int(getattr(settings, "NAV_CONTEXT_CACHE_TTL_SECONDS", default_ttl) or 0))
-    except Exception:
-        return 10
+    default_ttl = 20 if not bool(getattr(settings, "DEBUG", False)) else 5
+    return max(0, int(getattr(settings, "NAV_CONTEXT_CACHE_TTL_SECONDS", default_ttl) or 0))
 
 
+@soft("nav.active_school_id", default=0)
 def _active_school_id_from_request(request: Optional[HttpRequest]) -> int:
-    try:
-        sid = request.session.get("active_school_id") if request is not None else None
-        return int(sid) if sid else 0
-    except Exception:
-        return 0
+    sid = request.session.get("active_school_id") if request is not None else None
+    return int(sid) if sid else 0
+
+
+# ── الكاش لا يُسقط الطلب، لكنه لا يُبتلع صامتاً ──────────────────────────────
+# Redis يعمل بـ ``IGNORE_EXCEPTIONS: True`` فيُعيد ``None`` بدل أن يرمي، لكن
+# ``cache.set`` قد يرمي على أخطاء أخرى (تسلسل، انقطاع). وتعثّر الكاش هنا يعني
+# أن كل طلب يعيد بناء الشريط من القاعدة — وهو تدهور أداءٍ صامت يستحق أن يُقاس.
+def _cache_get(key: str):
+    return soft_call("nav.cache_get", lambda: cache.get(key), default=None, key=key)
+
+
+def _cache_set(key: str, value, ttl: int) -> None:
+    soft_call("nav.cache_set", lambda: cache.set(key, value, ttl), default=None, key=key)
 
 
 # -----------------------------
@@ -126,11 +135,9 @@ def _detect_officer_departments(user, active_school: Optional[School] = None) ->
             .filter(teacher=user, role_type__in=officer_values, department__is_active=True)
         )
         # عزل حسب المدرسة النشطة إن وُجدت
-        try:
+        with soft_fail("nav.department_school_filter", school=getattr(active_school, "pk", None)):
             if active_school is not None and "school" in _model_fields(Department):
                 membs = membs.filter(department__school=active_school)
-        except Exception:
-            pass
         seen, unique = set(), []
         for m in membs:
             d = m.department
@@ -139,6 +146,7 @@ def _detect_officer_departments(user, active_school: Optional[School] = None) ->
                 unique.append(d)
         return unique
     except Exception:
+        _degraded("nav.officer_departments", user_id=getattr(user, "pk", None))
         return []
 
 
@@ -154,11 +162,9 @@ def _detect_member_departments(user, active_school: Optional[School] = None) -> 
             .filter(teacher=user, role_type__in=teacher_values, department__is_active=True)
         )
         # عزل حسب المدرسة النشطة إن وُجدت
-        try:
+        with soft_fail("nav.department_school_filter", school=getattr(active_school, "pk", None)):
             if active_school is not None and "school" in _model_fields(Department):
                 membs = membs.filter(department__school=active_school)
-        except Exception:
-            pass
 
         seen, unique = set(), []
         for m in membs:
@@ -168,24 +174,47 @@ def _detect_member_departments(user, active_school: Optional[School] = None) -> 
                 unique.append(d)
         return unique
     except Exception:
+        _degraded("nav.member_departments", user_id=getattr(user, "pk", None))
         return []
 
 
 def _user_department_codes(user, active_school: Optional[School] = None) -> List[str]:
+    """رموزُ أقسام المستخدم — استعلامٌ واحد لكل طلب لا واحدٌ لكل نداء.
+
+    ``_targeted_for_user_q`` تناديها، وتلك تُنادى مرتين في الطلب الواحد: مرة
+    لمسار الإشعار البارز ومرة لعدّاد غير المقروء. فكان الجدول يُقرأ مرتين
+    لنتيجةٍ واحدة لا تتغيّر داخل الطلب.
+
+    والذاكرة على كائن المستخدم لا في الكاش: عمرها عمرُ الطلب بالضبط، فلا
+    تحتاج إبطالاً ولا تُخطئ عبر الطلبات — وهو النمط نفسه الذي تستعمله
+    ``permissions._school_membership_cache``.
+    """
+    cache_key = int(getattr(active_school, "pk", 0) or 0)
+    memo = getattr(user, "_nav_department_codes_cache", None)
+    if isinstance(memo, dict) and cache_key in memo:
+        return memo[cache_key]
+
     Membership = _get_membership_model()
     if Membership is None:
         return []
     try:
         qs = Membership.objects.filter(teacher=user, department__is_active=True)
-        try:
+        with soft_fail(
+            "nav.department_school_filter", school=getattr(active_school, "pk", None)
+        ):
             if active_school is not None and "school" in _model_fields(Department):
                 qs = qs.filter(department__school=active_school)
-        except Exception:
-            pass
-        codes = list(qs.values_list("department__slug", flat=True))
-        return [c for c in codes if c]
+        codes = [c for c in qs.values_list("department__slug", flat=True) if c]
     except Exception:
+        _degraded("nav.department_codes", user_id=getattr(user, "pk", None))
         return []
+
+    if not isinstance(memo, dict):
+        memo = {}
+        with soft_fail("nav.department_codes_memo"):
+            user._nav_department_codes_cache = memo
+    memo[cache_key] = codes
+    return codes
 
 
 # -----------------------------
@@ -212,7 +241,7 @@ def _notification_sender_str(obj) -> str:
     f = _model_fields(obj.__class__)
     for cand in ("sender", "created_by", "author", "user", "teacher", "owner"):
         if cand in f:
-            try:
+            with soft_fail("nav.notification_sender", field=cand):
                 v = getattr(obj, cand, None)
                 if v:
                     return str(
@@ -221,33 +250,53 @@ def _notification_sender_str(obj) -> str:
                         or getattr(v, "username", None)
                         or v
                     )
-            except Exception:
-                pass
     return "الإدارة"
+
+
+_DISMISS_COOKIE_PREFIX = "notif_dismissed_"
+
+
+def _has_dismissal_cookies(request: Optional[HttpRequest]) -> bool:
+    """هل أخفى المستخدم أي إشعار أصلاً؟
+
+    **السؤال يسبق الاستعلام.** كانت دالتا الاستبعاد أدناه تجلبان حتى ثمانين
+    معرّفاً من القاعدة ثم تسألان الكوكيز عنها — أي استعلامان كاملان في **كل
+    طلب**، بينما الغالبية العظمى من المستخدمين لم يُخفوا شيئاً قط فتعود
+    القائمة فارغة دائماً.
+
+    وقراءة الكوكيز مجانية: قاموسٌ في الذاكرة. فإن لم يكن فيه مفتاح إخفاء واحد،
+    فلا شيء يمكن استبعاده — ولا حاجة لسؤال القاعدة.
+    """
+    if not request:
+        return False
+    cookies = getattr(request, "COOKIES", None) or {}
+    return any(str(key).startswith(_DISMISS_COOKIE_PREFIX) for key in cookies)
 
 
 def _exclude_notif_dismissed_cookies_notif_qs(qs, request: Optional[HttpRequest]):
     """استبعاد الإشعارات التي أخفاها المستخدم عبر الكوكي على مستوى Notification."""
-    if not request:
+    if not _has_dismissal_cookies(request):
         return qs
-    try:
+
+    def _apply():
         ids = list(qs.values_list("id", flat=True)[:80])
-        skip = [i for i in ids if request.COOKIES.get(f"notif_dismissed_{i}")]
+        skip = [i for i in ids if request.COOKIES.get(f"{_DISMISS_COOKIE_PREFIX}{i}")]
         return qs.exclude(id__in=skip) if skip else qs
-    except Exception:
-        return qs
+
+    return soft_call("nav.dismissed_cookies_notif", _apply, default=qs)
 
 
 def _exclude_notif_dismissed_cookies_recipient_qs(qs, request: Optional[HttpRequest], notif_fk: str):
     """استبعاد سجلات الاستلام التي أخفاها المستخدم عبر الكوكي (يفترض وجود FK اسمه notif_fk)."""
-    if not request:
+    if not _has_dismissal_cookies(request):
         return qs
-    try:
+
+    def _apply():
         ids = list(qs.values_list(f"{notif_fk}_id", flat=True)[:80])
-        skip = [i for i in ids if request.COOKIES.get(f"notif_dismissed_{i}")]
+        skip = [i for i in ids if request.COOKIES.get(f"{_DISMISS_COOKIE_PREFIX}{i}")]
         return qs.exclude(**{f"{notif_fk}_id__in": skip}) if skip else qs
-    except Exception:
-        return qs
+
+    return soft_call("nav.dismissed_cookies_recipient", _apply, default=qs, fk=notif_fk)
 
 
 def _published_notifications_qs(N):
@@ -255,16 +304,16 @@ def _published_notifications_qs(N):
     qs = N.objects.all()
     now = timezone.now()
     f = _model_fields(N)
-    try:
+    # تعثّرٌ هنا يُعيد استعلاماً **أوسع** من المقصود — إشعارات غير منشورة أو
+    # منتهية تظهر للمستخدم. فهو ليس تدهوراً تجميلياً بل تسرّب محتوى، ويجب أن
+    # يُرى في السجل لا أن يُبتلع.
+    with soft_fail("nav.published_notifications_filter"):
         if "is_active" in f:
             qs = qs.filter(is_active=True)
         if "status" in f and hasattr(N, "Status"):
-            try:
-                published_value = getattr(N.Status, "PUBLISHED", None)
-                if published_value is not None:
-                    qs = qs.filter(status=published_value)
-            except Exception:
-                pass
+            published_value = getattr(N.Status, "PUBLISHED", None)
+            if published_value is not None:
+                qs = qs.filter(status=published_value)
         # حقول أوقات شائعة
         if "starts_at" in f:
             qs = qs.filter(Q(starts_at__lte=now) | Q(starts_at__isnull=True))
@@ -274,9 +323,45 @@ def _published_notifications_qs(N):
             qs = qs.filter(Q(publish_at__lte=now) | Q(publish_at__isnull=True))
         if "expires_at" in f:
             qs = qs.filter(Q(expires_at__gte=now) | Q(expires_at__isnull=True))
-    except Exception:
-        pass
     return qs
+
+
+def _user_lookup_for_relation(N, relation_name: str) -> Optional[str]:
+    """المسار الذي يُطابَق به المستخدم عبر علاقة ``relation_name``.
+
+    العلاقة قد تشير إلى المستخدم مباشرةً (``recipients=user``) أو إلى جدول وسيط
+    يحمل مفتاح المستخدم (``recipients__teacher=user``). واختيار الصيغة الخطأ لا
+    يُنتج نتيجةً ناقصة بل ``ValueError`` عند تنفيذ الاستعلام — وهو بالضبط ما كان
+    يحدث هنا: ``Notification.recipients`` هو العكسيُّ لـ``NotificationRecipient``
+    لا علاقةَ متعدّدٍ بالمعلّمين، فكان ``Q(recipients=user)`` يرمي في كل نداء،
+    ويُبتلع صامتاً، فيموت مسار الاحتياط كلّه بلا أثر.
+
+    فيُسأل الميتا عن النموذج المرتبط بدل التخمين من الاسم.
+    """
+    from django.contrib.auth import get_user_model
+
+    user_model = get_user_model()
+    try:
+        field = N._meta.get_field(relation_name)
+    except FieldDoesNotExist:
+        return None
+
+    related_model = getattr(field, "related_model", None)
+    if related_model is None:
+        return None
+    if related_model is user_model:
+        return relation_name
+
+    # جدول وسيط: نبحث فيه عن المفتاح المشير إلى المستخدم.
+    for candidate in ("teacher", "user", "recipient", "member"):
+        try:
+            through_field = related_model._meta.get_field(candidate)
+        except FieldDoesNotExist:
+            # حقلٌ غير موجود هو معنى وجود المرشّح التالي — لا خطأ يُسجَّل.
+            continue
+        if getattr(through_field, "related_model", None) is user_model:
+            return f"{relation_name}__{candidate}"
+    return None
 
 
 def _targeted_for_user_q(N, user) -> Q:
@@ -290,12 +375,11 @@ def _targeted_for_user_q(N, user) -> Q:
         q |= Q(teacher=user)
     if "user" in f:
         q |= Q(user=user)
-    for m2m_name in ("recipients", "teachers", "users", "audience_teachers"):
-        if m2m_name in f:
-            try:
-                q |= Q(**{f"{m2m_name}": user})
-            except Exception:
-                pass
+    for relation_name in ("recipients", "teachers", "users", "audience_teachers"):
+        if relation_name in f:
+            lookup = _user_lookup_for_relation(N, relation_name)
+            if lookup:
+                q |= Q(**{lookup: user})
     user_codes = _user_department_codes(user)
     if user_codes:
         if "department" in f:
@@ -314,10 +398,9 @@ def _order_newest(qs, N_or_R):
         if cand in f:
             order_fields.append(f"-{cand}")
     if order_fields:
-        try:
-            return qs.order_by(*order_fields)
-        except Exception:
-            pass
+        return soft_call(
+            "nav.order_newest", lambda: qs.order_by(*order_fields), default=qs
+        )
     return qs
 
 
@@ -326,19 +409,15 @@ def _notification_title_body_dict(obj) -> Tuple[str, str]:
     title = ""
     for cand in ("title", "subject", "heading", "name"):
         if cand in f:
-            try:
+            with soft_fail("nav.notification_title", field=cand):
                 title = getattr(obj, cand) or ""
                 break
-            except Exception:
-                pass
     body = ""
     for cand in ("body", "message", "content", "text", "details"):
         if cand in f:
-            try:
+            with soft_fail("nav.notification_body", field=cand):
                 body = getattr(obj, cand) or ""
                 break
-            except Exception:
-                pass
     return (str(title).strip() or "إشعار"), str(body or "")
 
 
@@ -353,11 +432,9 @@ def _build_hero_payload_from_notification(n) -> Dict[str, Any]:
     f = _model_fields(n.__class__)
     for cand in ("action_url", "url", "link"):
         if cand in f:
-            try:
+            with soft_fail("nav.notification_action_url", field=cand):
                 data["action_url"] = getattr(n, cand) or ""
                 break
-            except Exception:
-                pass
     return data
 
 
@@ -376,12 +453,9 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
     ttl = _nav_cache_ttl_seconds()
     cache_key = f"nav:hero:v1:u{uid}:s{sid}"
     if uid and ttl > 0:
-        try:
-            cached_val = cache.get(cache_key)
-            if cached_val is not None:
-                return cached_val
-        except Exception:
-            pass
+        cached_val = _cache_get(cache_key)
+        if cached_val is not None:
+            return cached_val
 
     # المسار المفضل: عبر سجلات الاستلام (Recipient)
     if R:
@@ -407,8 +481,10 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
                 # فلترة تخصّص المستلم
                 qs = qs.filter(**{user_fk: user})
 
-                # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
-                try:
+                # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL).
+                # تعثّرٌ هنا يُسقط حاجز العزل بين المدارس، فلا يجوز أن يمرّ بلا
+                # أثر مهما بدا نادراً.
+                with soft_fail("nav.hero_school_isolation", user_id=uid, school_id=sid):
                     if request is not None:
                         sid = request.session.get("active_school_id")
                     else:
@@ -419,8 +495,6 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
                             Q(**{f"{notif_fk}__school_id": sid}) |
                             Q(**{f"{notif_fk}__school_id__isnull": True})
                         )
-                except Exception:
-                    pass
 
                 # غير مقروء
                 if "is_read" in fR:
@@ -457,20 +531,19 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
 
                 rec = qs.first()
                 if rec:
-                    try:
-                        n = getattr(rec, notif_fk)
-                    except Exception:
-                        n = None
+                    n = soft_call(
+                        "nav.hero_recipient_notification",
+                        lambda: getattr(rec, notif_fk),
+                        default=None,
+                        user_id=uid,
+                    )
                     if n:
                         payload = _build_hero_payload_from_notification(n)
                         if uid and ttl > 0:
-                            try:
-                                cache.set(cache_key, payload, ttl)
-                            except Exception:
-                                pass
+                            _cache_set(cache_key, payload, ttl)
                         return payload
             except Exception:
-                pass
+                _degraded("nav.hero_via_recipient", user_id=uid, school_id=sid)
 
     # فالباك: مباشرة من Notification (يعمل فقط إن كان هناك استهداف عبر حقول الـ Notification نفسها)
     try:
@@ -478,13 +551,11 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
         base_qs = _published_notifications_qs(N).filter(_targeted_for_user_q(N, user)).distinct()
 
         # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
-        try:
+        with soft_fail("nav.hero_fallback_school_isolation", user_id=uid):
             sid = request.session.get("active_school_id") if request is not None else None
             fN = _model_fields(N)
             if sid and "school" in fN:
                 base_qs = base_qs.filter(Q(school_id=sid) | Q(school__isnull=True))
-        except Exception:
-            pass
         base_qs = _exclude_notif_dismissed_cookies_notif_qs(base_qs, request)
         base_qs = _order_newest(base_qs, N)
 
@@ -492,10 +563,7 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
         if obj:
             payload = _build_hero_payload_from_notification(obj)
             if uid and ttl > 0:
-                try:
-                    cache.set(cache_key, payload, ttl)
-                except Exception:
-                    pass
+                _cache_set(cache_key, payload, ttl)
             return payload
 
         # فرصة ثانية: نطاق آخر 3 أيام
@@ -515,21 +583,15 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
             if obj:
                 payload = _build_hero_payload_from_notification(obj)
                 if uid and ttl > 0:
-                    try:
-                        cache.set(cache_key, payload, ttl)
-                    except Exception:
-                        pass
+                    _cache_set(cache_key, payload, ttl)
                 return payload
         except Exception:
-            pass
+            _degraded("nav.hero_recent_window", user_id=uid)
     except Exception:
-        pass
+        _degraded("nav.hero_fallback", user_id=uid)
 
     if uid and ttl > 0:
-        try:
-            cache.set(cache_key, None, ttl)
-        except Exception:
-            pass
+        _cache_set(cache_key, None, ttl)
 
     return None
 
@@ -545,12 +607,9 @@ def _unread_count(user, request: Optional[HttpRequest] = None) -> int:
     ttl = _nav_cache_ttl_seconds()
     cache_key = f"nav:unread:v2:u{uid}:s{sid}"
     if uid and ttl > 0:
-        try:
-            cached_val = cache.get(cache_key)
-            if cached_val is not None:
-                return int(cached_val)
-        except Exception:
-            pass
+        cached_val = _cache_get(cache_key)
+        if cached_val is not None:
+            return int(cached_val)
 
     # المسار المفضل: NotificationRecipient
     if R:
@@ -573,7 +632,7 @@ def _unread_count(user, request: Optional[HttpRequest] = None) -> int:
             qs = R.objects.filter(**{user_fk: user})
 
             # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
-            try:
+            with soft_fail("nav.unread_school_isolation", user_id=uid, school_id=sid):
                 sid = request.session.get("active_school_id") if request is not None else None
                 fN = _model_fields(N)
                 if sid and notif_fk and "school" in fN:
@@ -581,8 +640,6 @@ def _unread_count(user, request: Optional[HttpRequest] = None) -> int:
                         Q(**{f"{notif_fk}__school_id": sid}) |
                         Q(**{f"{notif_fk}__school_id__isnull": True})
                     )
-            except Exception:
-                pass
 
             if "is_read" in fR:
                 qs = qs.filter(is_read=False)
@@ -595,11 +652,9 @@ def _unread_count(user, request: Optional[HttpRequest] = None) -> int:
                 now = timezone.now()
 
                 # فصل: احتساب غير المقروء للإشعارات فقط (يستبعد التعاميم)
-                try:
+                with soft_fail("nav.unread_exclude_circulars", user_id=uid):
                     if "requires_signature" in fN:
                         qs = qs.filter(**{f"{notif_fk}__requires_signature": False})
-                except Exception:
-                    pass
 
                 if "expires_at" in fN:
                     qs = qs.filter(**{f"{notif_fk}__expires_at__gt": now}) | qs.filter(
@@ -610,12 +665,10 @@ def _unread_count(user, request: Optional[HttpRequest] = None) -> int:
 
             val = _safe_count(qs)
             if uid and ttl > 0:
-                try:
-                    cache.set(cache_key, int(val), ttl)
-                except Exception:
-                    pass
+                _cache_set(cache_key, int(val), ttl)
             return val
         except Exception:
+            _degraded("nav.unread_via_recipient", user_id=uid, school_id=sid)
             return 0
 
     # فالباك: بلا سجل استلام → نعجز عن قياس غير المقروء بدقة
@@ -623,29 +676,31 @@ def _unread_count(user, request: Optional[HttpRequest] = None) -> int:
         qs = _published_notifications_qs(N).filter(_targeted_for_user_q(N, user)).distinct()
 
         # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
-        try:
+        with soft_fail("nav.unread_fallback_school_isolation", user_id=uid):
             sid = request.session.get("active_school_id") if request is not None else None
             fN = _model_fields(N)
             if sid and "school" in fN:
                 qs = qs.filter(Q(school_id=sid) | Q(school__isnull=True))
-        except Exception:
-            pass
         val = _safe_count(qs)
         if uid and ttl > 0:
-            try:
-                cache.set(cache_key, int(val), ttl)
-            except Exception:
-                pass
+            _cache_set(cache_key, int(val), ttl)
         return val
     except Exception:
+        _degraded("nav.unread_fallback", user_id=uid)
         return 0
 
 
 def _reverse_any(names: Iterable[str]) -> Optional[str]:
+    """أول مسار قابل للحل من قائمة مرشّحين.
+
+    ``NoReverseMatch`` هنا **متوقَّع لا استثنائي**: القائمة مرشّحون، وفشل أحدهم
+    هو معنى وجود التالي. فيُصطاد بنوعه وحده — و``except Exception`` كان يبتلع
+    معه أخطاء استيراد وإعداد حقيقية.
+    """
     for n in names:
         try:
             return reverse(n)
-        except Exception:
+        except NoReverseMatch:
             continue
     return None
 
@@ -698,12 +753,9 @@ def _pending_signatures_count(user, request: Optional[HttpRequest] = None) -> in
     ttl = _nav_cache_ttl_seconds()
     cache_key = f"nav:pending-sign:v1:u{uid}:s{sid}"
     if uid and ttl > 0:
-        try:
-            cached_val = cache.get(cache_key)
-            if cached_val is not None:
-                return int(cached_val)
-        except Exception:
-            pass
+        cached_val = _cache_get(cache_key)
+        if cached_val is not None:
+            return int(cached_val)
 
     now = timezone.now()
     try:
@@ -711,36 +763,28 @@ def _pending_signatures_count(user, request: Optional[HttpRequest] = None) -> in
 
         # فلترة نشر/انتهاء على مستوى Notification إن وُجدت
         fN = _model_fields(N)
-        try:
+        with soft_fail("nav.pending_signatures_active_filter", user_id=uid):
             if "is_active" in fN:
                 qs = qs.filter(**{f"{notif_fk}__is_active": True})
-        except Exception:
-            pass
-        try:
+        with soft_fail("nav.pending_signatures_expiry_filter", user_id=uid):
             if "expires_at" in fN:
                 qs = qs.filter(
                     Q(**{f"{notif_fk}__expires_at__gte": now}) | Q(**{f"{notif_fk}__expires_at__isnull": True})
                 )
-        except Exception:
-            pass
 
         # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
-        try:
+        with soft_fail("nav.pending_signatures_school_isolation", user_id=uid, school_id=sid):
             sid = request.session.get("active_school_id") if request is not None else None
             if sid and "school" in fN:
                 qs = qs.filter(Q(**{f"{notif_fk}__school_id": sid}) | Q(**{f"{notif_fk}__school__isnull": True}))
-        except Exception:
-            pass
 
         qs = _exclude_notif_dismissed_cookies_recipient_qs(qs, request, notif_fk=notif_fk)
         val = _safe_count(qs)
         if uid and ttl > 0:
-            try:
-                cache.set(cache_key, int(val), ttl)
-            except Exception:
-                pass
+            _cache_set(cache_key, int(val), ttl)
         return val
     except Exception:
+        _degraded("nav.pending_signatures", user_id=uid, school_id=sid)
         return 0
 
 
@@ -804,13 +848,20 @@ def _capability_flags(
     if active_school is None:
         return flags
 
-    try:
-        from .permissions import delegated_capabilities, scope_capabilities
+    # تعثّرٌ هنا يُطفئ **كل** أعلام الصلاحيات، فيختفي من الشريط كلُّ ما يملكه
+    # الوكيل والموظف الإداري ويبدو النظام وكأنه سحب صلاحياتهم. أخطر من أن يمرّ
+    # بلا سطر سجلّ.
+    from .permissions import delegated_capabilities, scope_capabilities
 
-        granted = set(scope_capabilities(user, active_school)) | set(
-            delegated_capabilities(user, active_school)
-        )
-    except Exception:
+    granted = soft_call(
+        "nav.capability_flags",
+        lambda: set(scope_capabilities(user, active_school))
+        | set(delegated_capabilities(user, active_school)),
+        default=None,
+        user_id=getattr(user, "pk", None),
+        school_id=getattr(active_school, "pk", None),
+    )
+    if granted is None:
         return flags
 
     for name, code in _NAV_CAPABILITY_FLAGS:
@@ -843,439 +894,580 @@ def _shows_supervision_group(flags: Dict[str, bool], *, is_school_manager: bool)
     if is_school_manager:
         return False
     return any(bool(flags.get(name)) for name in _SUPERVISION_FLAGS)
+# =============================================================================
+# كونتكست التنقل
+# =============================================================================
+# **لماذا فُكِّكت هذه الدالة.** كانت ``nav_context`` واحدةً من 425 سطراً تعمل في
+# كل طلب لكل مستخدم — أسخن مسار في المنصة وأقلّه قابليةً للقراءة. وطولها لم يكن
+# مسألة ذوق: بناءُ الشريط يمرّ بأحد عشر قراراً مستقلاً (المدرسة النشطة، عضويات
+# الأقسام، نطاق الإدارة، عدّادات التذاكر، الأرشيف، المدير التنفيذي، أدوار
+# المدرسة، الصلاحيات، الإشعارات، مبدّل المدارس)، وكانت كلها في نطاقٍ واحد
+# تتشارك عشرات المتغيّرات المحلية. فأيّ تعديل في أحدها يقرأ الأربعين سطراً التي
+# قبله ليطمئن، ولا شيء يمنعه من إضافة استعلامٍ لكل صفحة في النظام.
+#
+# فصار لكل قرارٍ دالةٌ تُسمّيه، مدخلاتُها صريحة ومخرجاتُها قاموسٌ من مفاتيح
+# القالب. و``nav_context`` تنسّق بينها فقط.
+#
+# **العقد محروس** في ``reports/tests/test_nav_context_contract.py``: مجموعةُ
+# المفاتيح كاملةً لكل دور، **وسقفُ الاستعلامات**. والثاني هو المهم — انحدار
+# الأداء هنا صامت: لا خطأ ولا بطء ملحوظ محلياً، فقط استعلامٌ إضافي مضروبٌ في كل
+# صفحة وكل مستخدم.
 
 
-# -----------------------------
-# المُعالج الرئيس لكونتكست التنقل
-# -----------------------------
-# ... (باقي الاستيرادات والدوال كما لديك تمامًا)
+def _anonymous_nav_context() -> Dict[str, Any]:
+    """شكلُ الكونتكست للزائر — **الشكل نفسه** بقيم صفرية.
 
-def nav_context(request: HttpRequest) -> Dict[str, Any]:
-    u = getattr(request, "user", None)
-    if not u or not getattr(u, "is_authenticated", False):
-        return {
-            "NAV_MY_OPEN_TICKETS": 0,
-            "NAV_ASSIGNED_TO_ME": 0,
-            "IS_OFFICER": False,
-            "OFFICER_DEPARTMENT": None,
-            "OFFICER_DEPARTMENTS": [],
-            "SHOW_OFFICER_REPORTS_LINK": False,
-            "SHOW_DEPARTMENT_REPORTS_LINK": False,
-            "SHOW_SCHOOL_REPORTS_LINK": False,
-            "SHOW_ARCHIVE_LINK": False,
-            "IS_SCHOOL_MANAGER": False,
-            "IS_SCHOOL_DEPUTY": False,
-            "IS_ADMIN_STAFF": False,
-            "HAS_TEACHER_ROLE": False,
-            "SHOW_PERSONAL_ACHIEVEMENT": False,
-            "IS_LAB_TECHNICIAN": False,
-            "SHOW_LAB_NAV": False,
-            "SHOW_ASSIGNED_TO_ME": False,
-            "SHOW_SUPERVISION_GROUP": False,
-            "IS_EXECUTIVE_DIRECTOR": False,
-            "IS_GROUP_ONLY_DIRECTOR": False,
-            "GROUP_NAME": None,
-            **_empty_capability_flags(),
-            "DEPARTMENT_REPORTS_URLNAME": None,
-            "NAV_OFFICER_REPORTS": 0,
-            "SHOW_ADMIN_DASHBOARD_LINK": False,
-            "NAV_NOTIFICATIONS_UNREAD": 0,
-            "NAV_SIGNATURES_PENDING": 0,
-            "NAV_NOTIFICATION_HERO": None,
-            "CAN_SEND_NOTIFICATIONS": False,
-            "SEND_NOTIFICATION_URL": None,
-            "SCHOOL_NAME": None,
-            "SCHOOL_LOGO_URL": None,
-            "USER_ROLE_LABEL": None,
-            **school_gender_template_context(None),
-        }
+    القالب واحد للحالتين، ومفتاحٌ يوجد للمسجَّل دون الزائر يُقرأ فارغاً بلا خطأ
+    — فيختفي عنصرٌ في حالةٍ ويظهر في أخرى بلا سبب مفهوم. ولذلك تُبنى المجموعة
+    كاملةً هنا لا مختصرةً.
+    """
+    return {
+        "NAV_MY_OPEN_TICKETS": 0,
+        "NAV_ASSIGNED_TO_ME": 0,
+        "IS_OFFICER": False,
+        "OFFICER_DEPARTMENT": None,
+        "OFFICER_DEPARTMENTS": [],
+        "SHOW_OFFICER_REPORTS_LINK": False,
+        "SHOW_DEPARTMENT_REPORTS_LINK": False,
+        "SHOW_SCHOOL_REPORTS_LINK": False,
+        "SHOW_ARCHIVE_LINK": False,
+        "ARCHIVE_ADDON_ACTIVE": False,
+        "HAS_SAVED_ARCHIVE": False,
+        "IS_SCHOOL_MANAGER": False,
+        "IS_SCHOOL_DEPUTY": False,
+        "IS_ADMIN_STAFF": False,
+        "HAS_TEACHER_ROLE": False,
+        "SHOW_PERSONAL_ACHIEVEMENT": False,
+        "IS_LAB_TECHNICIAN": False,
+        "SHOW_LAB_NAV": False,
+        "SHOW_ASSIGNED_TO_ME": False,
+        "SHOW_SUPERVISION_GROUP": False,
+        "IS_EXECUTIVE_DIRECTOR": False,
+        "IS_GROUP_ONLY_DIRECTOR": False,
+        "GROUP_NAME": None,
+        **_empty_capability_flags(),
+        "DEPARTMENT_REPORTS_URLNAME": None,
+        "NAV_OFFICER_REPORTS": 0,
+        "SHOW_ADMIN_DASHBOARD_LINK": False,
+        "NAV_NOTIFICATIONS_UNREAD": 0,
+        "NAV_SIGNATURES_PENDING": 0,
+        "NAV_NOTIFICATION_HERO": None,
+        "CAN_SEND_NOTIFICATIONS": False,
+        "SEND_NOTIFICATION_URL": None,
+        "SCHOOL_ID": None,
+        "SCHOOL_NAME": None,
+        "SCHOOL_LOGO_URL": None,
+        "USER_SCHOOLS": [],
+        "USER_ROLE_LABEL": None,
+        **school_gender_template_context(None),
+    }
 
-    # -----------------------------
-    # Short-TTL caching (per user + active_school + dismissal cookies)
-    # - Cuts repeated COUNT/exists queries across page navigations.
-    # - Cookie signature ensures dismissing a hero/notification invalidates cache quickly.
-    # -----------------------------
-    try:
-        ttl = int(getattr(settings, "NAV_CONTEXT_CACHE_TTL_SECONDS", 20) or 0)
-    except Exception:
-        ttl = 20
 
-    cache_key = None
-    if ttl > 0:
-        try:
-            sid_raw = request.session.get("active_school_id")
-            sid_for_key = str(int(sid_raw)) if sid_raw else "none"
-        except Exception:
-            sid_for_key = "none"
+def _nav_cache_key(request: HttpRequest, user) -> Optional[str]:
+    """مفتاح كاش الشريط، أو ``None`` إن تعذّر بناؤه.
 
-        try:
-            dismissed_keys = [k for k in (request.COOKIES or {}).keys() if k.startswith("notif_dismissed_")]
-            dismissed_keys.sort()
-            dismissed_sig = hashlib.sha256("|".join(dismissed_keys).encode("utf-8")).hexdigest()[:12]
-        except Exception:
-            dismissed_sig = "nocookies"
+    يدخل في المفتاح كل ما يغيّر الناتج: المستخدم، والمدرسة النشطة، ودوره،
+    وأعلامُ حسابه، ورقمُ إصدار دوره (يُزاد عند تغيير الصلاحيات)، وبصمةُ كوكيز
+    الإخفاء (فإخفاء إشعار يُبطل النسخة فوراً).
 
-        try:
-            uid = int(getattr(u, "id", 0) or 0)
-            role_version = int(cache.get(f"navctx:role-version:u{uid}", 1) or 1)
-            user_flags = "".join(
-                [
-                    "s" if getattr(u, "is_superuser", False) else "-",
-                    "f" if getattr(u, "is_staff", False) else "-",
-                ]
-            )
-            role_id = int(getattr(u, "role_id", 0) or 0)
-            cache_key = (
-                # v5: صار الكونتكست يحمل أعلام الصلاحيات وأدوار المدرسة. ورقم
-                # الإصدار يُزاد مع كل تغيير في **شكل** الناتج لا في قيمته: قيمةٌ
-                # مخزَّنة بالشكل القديم تصل قالباً يقرأ مفاتيح لا وجود لها فيها،
-                # فتُقرأ فارغةً بلا خطأ — وتختفي روابط لثوانٍ بعد كل نشر.
-                f"navctx:v7:u{uid}:s{sid_for_key}:r{role_id}:"
-                f"f{user_flags}:v{role_version}:c{dismissed_sig}"
-            )
-            cached = cache.get(cache_key)
-            if isinstance(cached, dict):
-                return cached
-        except Exception:
-            cache_key = None
+    ``v7`` يُزاد مع كل تغيير في **شكل** الناتج لا في قيمته: قيمةٌ مخزَّنة بالشكل
+    القديم تصل قالباً يقرأ مفاتيح لا وجود لها فيها، فتُقرأ فارغةً بلا خطأ —
+    وتختفي روابط لثوانٍ بعد كل نشر.
+    """
+    sid_raw = soft_call(
+        "nav.context_session_school",
+        lambda: request.session.get("active_school_id"),
+        default=None,
+    )
+    sid_for_key = str(int(sid_raw)) if sid_raw else "none"
 
-    # نحدد المدرسة النشطة (إن وُجدت) لاستخدامها في العدادات
-    # ── أولاً نحاول إعادة استخدام ما حمّله الـ middleware ──
+    def _dismissed_signature() -> str:
+        dismissed_keys = [k for k in (request.COOKIES or {}).keys() if k.startswith("notif_dismissed_")]
+        dismissed_keys.sort()
+        return hashlib.sha256("|".join(dismissed_keys).encode("utf-8")).hexdigest()[:12]
+
+    dismissed_sig = soft_call(
+        "nav.context_cookie_signature", _dismissed_signature, default="nocookies"
+    )
+
+    def _build() -> str:
+        uid = int(getattr(user, "id", 0) or 0)
+        role_version = int(cache.get(f"navctx:role-version:u{uid}", 1) or 1)
+        user_flags = "".join(
+            [
+                "s" if getattr(user, "is_superuser", False) else "-",
+                "f" if getattr(user, "is_staff", False) else "-",
+            ]
+        )
+        role_id = int(getattr(user, "role_id", 0) or 0)
+        return (
+            f"navctx:v7:u{uid}:s{sid_for_key}:r{role_id}:"
+            f"f{user_flags}:v{role_version}:c{dismissed_sig}"
+        )
+
+    return soft_call(
+        "nav.context_cache_key",
+        _build,
+        default=None,
+        user_id=getattr(user, "pk", None),
+    )
+
+
+def _resolve_active_school(request: HttpRequest) -> Optional[School]:
+    """المدرسة النشطة، مُعاد استخدامها من الـ middleware إن أمكن.
+
+    ``ActiveSchoolGuardMiddleware`` حمّلها وخوّلها بالفعل، فقراءتها من الطلب
+    توفّر استعلاماً في كل صفحة. والسقوط إلى الجلسة لمسارات لا يمرّ عليها الحارس.
+    """
     active_school = getattr(request, "active_school", None)
-    if active_school is None:
-        try:
-            sid = request.session.get("active_school_id")
-            if sid:
-                active_school = School.objects.filter(pk=sid, is_active=True).first()
-        except Exception:
-            active_school = None
+    if active_school is not None:
+        return active_school
 
-    gender_context = school_gender_template_context(active_school)
+    def _load():
+        sid = request.session.get("active_school_id")
+        return School.objects.filter(pk=sid, is_active=True).first() if sid else None
 
-    try:
+    return soft_call("nav.context_active_school", _load, default=None)
+
+
+def _ticket_counters(user, active_school: Optional[School]) -> Dict[str, int]:
+    """عدّادا التذاكر — في استعلامٍ واحد لا اثنين."""
+
+    def _aggregate():
         ticket_base = Ticket.objects.filter(status__in=UNRESOLVED_STATES)
         if active_school is not None:
             ticket_base = ticket_base.filter(school=active_school)
-        ticket_agg = ticket_base.aggregate(
-            my_open=Count("id", filter=Q(creator=u)),
-            assigned_open=Count("id", filter=Q(assignee=u)),
+        return ticket_base.aggregate(
+            my_open=Count("id", filter=Q(creator=user)),
+            assigned_open=Count("id", filter=Q(assignee=user)),
         )
-        my_open = ticket_agg["my_open"]
-        assigned_open = ticket_agg["assigned_open"]
-    except Exception:
-        my_open = 0
-        assigned_open = 0
 
-    # تحديد عضويات المدرسة/القسم في استعلامات مجمعة لتقليل كلفة كل طلب.
-    manager_school_ids: set[int] = set()
-    officer_depts: list[Department] = []
-    member_depts: list[Department] = []
+    return soft_call(
+        "nav.ticket_counters",
+        _aggregate,
+        default={"my_open": 0, "assigned_open": 0},
+        user_id=getattr(user, "pk", None),
+        school_id=getattr(active_school, "pk", None),
+    )
 
-    any_school_manager = False
-    is_school_manager = False
+
+def _manager_scope(user, active_school: Optional[School]) -> Tuple[bool, bool]:
+    """(يدير مدرسةً ما، يدير المدرسة النشطة).
+
+    الأول يفتح رابط لوحة الإدارة، والثاني يقرّر شكل الشريط كله.
+    """
     try:
-        if getattr(u, "is_authenticated", False):
-            manager_school_ids = get_school_manager_school_ids(u)
-            any_school_manager = bool(manager_school_ids)
-            if active_school is not None:
-                is_school_manager = int(getattr(active_school, "id", 0) or 0) in manager_school_ids
-            else:
-                is_school_manager = any_school_manager
+        manager_school_ids = get_school_manager_school_ids(user)
     except Exception:
-        manager_school_ids = set()
+        # مديرٌ يُقرأ «ليس مديراً» يفقد شريطه كاملاً. أسوأ تدهور ممكن هنا.
+        _degraded("nav.manager_schools", user_id=getattr(user, "pk", None))
+        return (False, False)
+
+    any_school_manager = bool(manager_school_ids)
+    if active_school is not None:
+        is_here = int(getattr(active_school, "id", 0) or 0) in manager_school_ids
+    else:
+        is_here = any_school_manager
+    return (any_school_manager, is_here)
+
+
+def _department_roles(
+    user, active_school: Optional[School]
+) -> Tuple[List[Department], List[Department]]:
+    """(أقسامٌ يرأسها، أقسامٌ هو عضو فيها) — من استعلامٍ واحد لا اثنين.
+
+    الفصل بين الدورين يتم في بايثون على الصفوف نفسها: استعلامان منفصلان لكل
+    دور كانا يقرآن الجدول مرتين لنتيجةٍ واحدة.
+    """
+    officer_depts: List[Department] = []
+    member_depts: List[Department] = []
+
+    Membership = _get_membership_model()
+    if Membership is None:
+        return (officer_depts, member_depts)
 
     try:
-        Membership = _get_membership_model()
-        if Membership is not None:
-            membs = Membership.objects.select_related("department").filter(
-                teacher=u,
-                department__is_active=True,
-            )
-            if active_school is not None and "school" in _model_fields(Department):
-                membs = membs.filter(department__school=active_school)
+        membs = Membership.objects.select_related("department").filter(
+            teacher=user,
+            department__is_active=True,
+        )
+        if active_school is not None and "school" in _model_fields(Department):
+            membs = membs.filter(department__school=active_school)
 
-            officer_values = set(_officer_role_values(Membership))
-            teacher_values = set(_teacher_role_values(Membership))
-            seen_officer: set[int] = set()
-            seen_member: set[int] = set()
-            for m in membs:
-                d = getattr(m, "department", None)
-                if d is None or getattr(d, "pk", None) is None:
-                    continue
-                role_type = getattr(m, "role_type", None)
-                did = int(d.pk)
-                if role_type in officer_values and did not in seen_officer:
-                    seen_officer.add(did)
-                    officer_depts.append(d)
-                if role_type in teacher_values and did not in seen_member:
-                    seen_member.add(did)
-                    member_depts.append(d)
+        officer_values = set(_officer_role_values(Membership))
+        teacher_values = set(_teacher_role_values(Membership))
+        seen_officer: set[int] = set()
+        seen_member: set[int] = set()
+        for m in membs:
+            d = getattr(m, "department", None)
+            if d is None or getattr(d, "pk", None) is None:
+                continue
+            role_type = getattr(m, "role_type", None)
+            did = int(d.pk)
+            if role_type in officer_values and did not in seen_officer:
+                seen_officer.add(did)
+                officer_depts.append(d)
+            if role_type in teacher_values and did not in seen_member:
+                seen_member.add(did)
+                member_depts.append(d)
     except Exception:
-        officer_depts = []
-        member_depts = []
+        _degraded("nav.department_memberships", user_id=getattr(user, "pk", None))
+        return ([], [])
 
-    is_officer = bool(officer_depts)
-    show_officer_link = bool(getattr(u, "is_superuser", False) or is_officer)
-    is_member = bool(member_depts)
-    
-    # مدير المدرسة لا يظهر له "تقارير قسمي" بل "تقارير المدرسة"
-    show_dept_reports_link = bool((show_officer_link or is_member) and not is_school_manager)
-    dept_reports_urlname = "reports:officer_reports" if show_officer_link else "reports:department_reports"
-    
-    # رابط تقارير المدرسة لمدير المدرسة فقط
-    show_school_reports_link = bool(is_school_manager and active_school is not None)
+    return (officer_depts, member_depts)
 
-    # تقارير officer
-    nav_officer_reports = 0
+
+def _officer_reports_count(
+    user,
+    active_school: Optional[School],
+    *,
+    officer_depts: List[Department],
+    is_officer: bool,
+) -> int:
+    """عدد تقارير آخر سبعة أيام ضمن نطاق رئيس القسم."""
     try:
         start_date = timezone.localdate() - timedelta(days=7)
         base_qs = Report.objects.filter(report_date__gte=start_date)
-        if active_school is not None and "school" in {f.name for f in Report._meta.get_fields()}:
+        if active_school is not None:
             base_qs = base_qs.filter(school=active_school)
 
-        if getattr(u, "is_superuser", False):
-            nav_officer_reports = base_qs.count()
-        elif is_officer:
-            dept_ids = [int(getattr(d, "pk", 0) or 0) for d in officer_depts if getattr(d, "pk", None)]
-            if dept_ids:
-                try:
-                    rt_ids = {
-                        int(x)
-                        for x in Department.objects.filter(pk__in=dept_ids).values_list("reporttypes__id", flat=True)
-                        if x
-                    }
-                except Exception:
-                    rt_ids = set()
+        if getattr(user, "is_superuser", False):
+            return base_qs.count()
 
-                if rt_ids:
-                    nav_officer_reports = base_qs.filter(category_id__in=list(rt_ids)).count()
-    except Exception:
-        nav_officer_reports = 0
+        if not is_officer:
+            return 0
 
-    has_saved_archive = False
-    if active_school is not None:
-        try:
-            has_saved_archive = SchoolYearArchive.objects.filter(
-                school=active_school,
-                status__in=[
-                    SchoolYearArchive.Status.READY,
-                    SchoolYearArchive.Status.PARTIAL,
-                ],
-            ).exists()
-        except Exception:
-            has_saved_archive = False
-    archive_addon_active = bool(
-        active_school is not None
-        and school_has_archive_addon(active_school)
-    )
-    show_archive_link = bool(
-        active_school is not None
-        and (
-            is_school_manager
-            or archive_addon_active
-            or has_saved_archive
+        dept_ids = [int(getattr(d, "pk", 0) or 0) for d in officer_depts if getattr(d, "pk", None)]
+        if not dept_ids:
+            return 0
+
+        rt_ids = soft_call(
+            "nav.officer_report_types",
+            lambda: {
+                int(x)
+                for x in Department.objects.filter(pk__in=dept_ids).values_list(
+                    "reporttypes__id", flat=True
+                )
+                if x
+            },
+            default=set(),
         )
+        if not rt_ids:
+            return 0
+        return base_qs.filter(category_id__in=list(rt_ids)).count()
+    except Exception:
+        _degraded("nav.officer_reports_count", user_id=getattr(user, "pk", None))
+        return 0
+
+
+def _archive_visibility(
+    active_school: Optional[School], *, is_school_manager: bool
+) -> Dict[str, Any]:
+    """متى يظهر رابط الأرشيف، ولماذا.
+
+    ثلاثة أسباب مستقلة: أن يكون المستخدم مديراً، أو أن تكون الإضافة مفعّلة، أو
+    أن يوجد أرشيفٌ محفوظ بالفعل — فالأخير يعني بياناتٍ لا يجوز أن يُحجب عنها
+    صاحبُها لأن الاشتراك انتهى.
+    """
+    if active_school is None:
+        return {
+            "SHOW_ARCHIVE_LINK": False,
+            "ARCHIVE_ADDON_ACTIVE": False,
+            "HAS_SAVED_ARCHIVE": False,
+        }
+
+    has_saved_archive = soft_call(
+        "nav.saved_archive_exists",
+        lambda: SchoolYearArchive.objects.filter(
+            school=active_school,
+            status__in=[
+                SchoolYearArchive.Status.READY,
+                SchoolYearArchive.Status.PARTIAL,
+            ],
+        ).exists(),
+        default=False,
+        school_id=getattr(active_school, "pk", None),
     )
+    archive_addon_active = bool(school_has_archive_addon(active_school))
 
-    # روابط لوحة المدير: تظهر لكل من لديه is_staff (مدير/سوبر أدمن) أو مدير مدرسة
-    show_admin_link = bool(getattr(u, "is_staff", False)) or any_school_manager
+    return {
+        "SHOW_ARCHIVE_LINK": bool(
+            is_school_manager or archive_addon_active or has_saved_archive
+        ),
+        "ARCHIVE_ADDON_ACTIVE": archive_addon_active,
+        "HAS_SAVED_ARCHIVE": has_saved_archive,
+    }
 
-    # المدير التنفيذي لمجموعة المدارس المتكاملة — رابط لوحة المجموعة وحده،
-    # فالدور إشرافي لا يفتح أي مسار تحرير.
-    group_name = None
+
+def _executive_director_context(user) -> Dict[str, Any]:
+    """المدير التنفيذي لمجموعة المدارس — دورٌ إشرافي لا يفتح مسار تحرير.
+
+    ``IS_GROUP_ONLY_DIRECTOR`` يميّز من **لا عضوية مدرسة له** — وهي حالته
+    المُصمَّمة — عمّن جمع الصفتين: شريط الأول بلا شاشات العمل الشخصي (تقاريره
+    وطلباته وملف إنجازه)، فكلها تسأل عن مدرسة نشطة أولاً وتردّه.
+    """
     try:
+        from .models import SchoolMembership as _SchoolMembership
         from .permissions import executive_director_groups as _director_groups
         from .permissions import is_executive_director as _is_executive_director
 
-        is_executive_director_user = bool(_is_executive_director(u))
-        # المدير التنفيذي **بلا عضوية مدرسة** — وهي حالته المُصمَّمة. تُميَّز عمّن
-        # جمع الصفتين لأن شريطه يختلف: من لا مدرسة له لا تُعرض له شاشات العمل
-        # الشخصي (تقاريره وطلباته وملف إنجازه)، فكلها تسأل عن مدرسة أولاً وتردّه.
-        if is_executive_director_user:
-            from .models import SchoolMembership as _SchoolMembership
+        if not bool(_is_executive_director(user)):
+            return {
+                "IS_EXECUTIVE_DIRECTOR": False,
+                "IS_GROUP_ONLY_DIRECTOR": False,
+                "GROUP_NAME": None,
+            }
 
-            group_only_director = not _SchoolMembership.objects.filter(
-                teacher=u, is_active=True
-            ).exists()
-        else:
-            group_only_director = False
-        if is_executive_director_user:
-            # اسم المجموعة يحلّ محل اسم المدرسة في الترويسة: المدير التنفيذي
-            # لا مدرسةَ نشطةَ له، فكانت ترويسته تقول «منصة توثيق» — اسمُ
-            # المنتَج لا اسمُ ما يقوده.
-            first_group = _director_groups(u).first()
-            group_name = getattr(first_group, "name", None)
+        group_only = not _SchoolMembership.objects.filter(
+            teacher=user, is_active=True
+        ).exists()
+        # اسم المجموعة يحلّ محل اسم المدرسة في الترويسة: بلا مدرسة نشطة كانت
+        # الترويسة تقول «منصة توثيق» — اسمُ المنتَج لا اسمُ ما يقوده.
+        first_group = _director_groups(user).first()
+        return {
+            "IS_EXECUTIVE_DIRECTOR": True,
+            "IS_GROUP_ONLY_DIRECTOR": group_only,
+            "GROUP_NAME": getattr(first_group, "name", None),
+        }
     except Exception:
-        is_executive_director_user = False
-        group_only_director = False
-        group_name = None
+        # يُقرأ «ليس تنفيذياً» فيفقد لوحة المجموعة كاملة.
+        _degraded("nav.executive_director", user_id=getattr(user, "pk", None))
+        return {
+            "IS_EXECUTIVE_DIRECTOR": False,
+            "IS_GROUP_ONLY_DIRECTOR": False,
+            "GROUP_NAME": None,
+        }
 
-    # الأدوار المدرسية — القائمة كانت تعرف «مديراً» أو «معلّماً» ولا شيء بينهما.
+
+def _school_role_flags(user, active_school: Optional[School]) -> Dict[str, bool]:
+    """أدوار المستخدم داخل مدرسته النشطة.
+
+    القائمة كانت تعرف «مديراً» أو «معلّماً» ولا شيء بينهما — والوكيل والموظف
+    الإداري والمحضّر بلا شريط. والمحضّر يُحسم بمسمّاه الوظيفي: المختبر عملُه لا
+    صلاحيةٌ تُمنح له.
+    """
+    empty = {
+        "IS_SCHOOL_DEPUTY": False,
+        "IS_ADMIN_STAFF": False,
+        "HAS_TEACHER_ROLE": False,
+        "IS_LAB_TECHNICIAN": False,
+        "SHOW_LAB_NAV": False,
+    }
+    if active_school is None:
+        return empty
+
     try:
+        from .models import SchoolMembership as _SchoolMembership
         from .permissions import can_view_lab as _can_view_lab
         from .permissions import is_admin_staff as _is_admin_staff
         from .permissions import is_lab_technician as _is_lab_technician
         from .permissions import is_school_deputy as _is_school_deputy
-        from .models import SchoolMembership as _SchoolMembership
 
-        is_deputy_user = bool(
-            active_school is not None and _is_school_deputy(u, active_school)
-        )
-        is_admin_staff_user = bool(
-            active_school is not None and _is_admin_staff(u, active_school)
-        )
-        has_teacher_role = bool(
-            active_school is not None
-            and _SchoolMembership.objects.filter(
+        return {
+            "IS_SCHOOL_DEPUTY": bool(_is_school_deputy(user, active_school)),
+            "IS_ADMIN_STAFF": bool(_is_admin_staff(user, active_school)),
+            "HAS_TEACHER_ROLE": _SchoolMembership.objects.filter(
                 school=active_school,
-                teacher=u,
+                teacher=user,
                 role_type=_SchoolMembership.RoleType.TEACHER,
                 is_active=True,
-            ).exists()
+            ).exists(),
+            "IS_LAB_TECHNICIAN": bool(_is_lab_technician(user, active_school)),
+            "SHOW_LAB_NAV": bool(_can_view_lab(user, active_school)),
+        }
+    except Exception:
+        # الوكيل والموظف والمحضّر يُقرأون «معلّمين» — يفقدون شريطهم بالكامل.
+        _degraded(
+            "nav.school_roles",
+            user_id=getattr(user, "pk", None),
+            school_id=getattr(active_school, "pk", None),
         )
-        # المحضّر يُحسم بمسمّاه الوظيفي: المختبر عملُه لا صلاحيةٌ تُمنح له.
-        is_lab_tech_user = bool(
-            active_school is not None and _is_lab_technician(u, active_school)
-        )
-        show_lab_nav = bool(active_school is not None and _can_view_lab(u, active_school))
-    except Exception:
-        is_deputy_user = False
-        is_admin_staff_user = False
-        has_teacher_role = False
-        is_lab_tech_user = False
-        show_lab_nav = False
+        return empty
 
-    # أعلام الصلاحيات المُنطَقة — مصدر شروط القائمة كلها.
-    capability_flags = _capability_flags(
-        u, active_school, is_school_manager=is_school_manager
-    )
-    show_supervision_group = _shows_supervision_group(
-        capability_flags, is_school_manager=is_school_manager
-    )
 
-    # تسمية دور المستخدم الحالي (لعرضها في الواجهة)
-    user_role_label: Optional[str] = effective_user_role_label(u, active_school=active_school)
+def _notification_counters(user, request: HttpRequest) -> Dict[str, Any]:
+    """عدّادا الإشعارات والتواقيع، والإشعار البارز.
 
-    # من يحق له إرسال إشعارات؟
-    # الإرسال يجب أن يكون ضمن مدرسة محددة لغير السوبر
-    can_send_notifications = bool(getattr(u, "is_superuser", False) or (active_school is not None and (is_officer or is_school_manager)))
+    الدوال الثلاث تُمسك تعثّرها داخلياً وتُبلّغ عنه؛ فالغلاف هنا شبكةُ أمانٍ
+    أخيرة لا موضعَ التقاطٍ أول — ولذلك يحمل كلٌّ اسماً مستقلاً يميّزه في السجل.
+    """
+    uid = getattr(user, "pk", None)
+    return {
+        "NAV_NOTIFICATIONS_UNREAD": soft_call(
+            "nav.unread_count_outer",
+            lambda: _unread_count(user, request=request),
+            default=0,
+            user_id=uid,
+        ),
+        "NAV_SIGNATURES_PENDING": soft_call(
+            "nav.pending_signatures_outer",
+            lambda: _pending_signatures_count(user, request=request),
+            default=0,
+            user_id=uid,
+        ),
+        "NAV_NOTIFICATION_HERO": soft_call(
+            "nav.hero_outer",
+            lambda: _pick_hero_notification(user, request=request),
+            default=None,
+            user_id=uid,
+        ),
+    }
 
-    # اختر الرابط الأنسب الذي يملك إذن الدخول إليه
-    send_notification_url = None
-    if can_send_notifications:
-        # نفضّل المسار المحمي الموحّد
-        send_notification_url = _reverse_any([
-            "reports:notifications_create",   # يسمح للمدير/المسؤول (بعد تعديل الديكوريتر)
-            "reports:send_notification",      # fallback قديم
-            "reports:notification_create",
-            "reports:announcement_create",
-            "reports:admin_message_create",
-            "reports:notifications_send",
-        ])
 
-    # عداد الإشعارات + الـ Hero
+def _school_switcher(user, active_school: Optional[School]) -> Dict[str, Any]:
+    """المدرسة المعروضة في الترويسة، وقائمة ما يمكن التبديل إليه.
+
+    الدور مدرسي لا حسابي، فتظهر كل العضويات النشطة حتى لمن يدير مدرسة ويدرّس
+    في أخرى؛ والمدرسة المختارة هي ما يقرّر شكل الشريط.
+    """
+    empty = {
+        "SCHOOL_ID": None,
+        "SCHOOL_NAME": None,
+        # شعارات المدارس حُذفت من النظام؛ المفتاح باقٍ لأن القوالب تقرؤه.
+        "SCHOOL_LOGO_URL": None,
+        "USER_SCHOOLS": [],
+    }
     try:
-        unread_count = _unread_count(u, request=request)
-    except Exception:
-        unread_count = 0
-
-    try:
-        signatures_pending = _pending_signatures_count(u, request=request)
-    except Exception:
-        signatures_pending = 0
-    try:
-        hero = _pick_hero_notification(u, request=request)
-    except Exception:
-        hero = None
-
-    # المدرسة النشطة + قائمة مدارس المستخدم (للتبديل في الهيدر)
-    school_name = None
-    school_logo = None
-    school_id = None
-    user_schools: list[School] = []
-    try:
-        if getattr(request.user, "is_authenticated", False):
-            if not getattr(request.user, "is_superuser", False):
-                # الدور مدرسي لا حسابي. لذلك تظهر كل العضويات النشطة حتى لمن
-                # يدير مدرسة ويدرّس في أخرى؛ وتقرر المدرسة المختارة شكل الشريط.
-                user_schools = list(
-                    School.objects.filter(
-                        memberships__teacher=request.user,
-                        memberships__is_active=True,
-                        is_active=True,
-                    )
-                    .distinct()
-                    .order_by("name")
+        user_schools: List[School] = []
+        if not getattr(user, "is_superuser", False):
+            user_schools = list(
+                School.objects.filter(
+                    memberships__teacher=user,
+                    memberships__is_active=True,
+                    is_active=True,
                 )
-        # ── إعادة استخدام active_school المحمّل أعلاه بدل query جديد ──
-        if active_school is not None:
-            school_id = active_school.pk
-            school_name = active_school.name
-            # تم حذف شعارات المدارس (logo_file/logo_url) نهائيًا من النظام
-            school_logo = None
+                .distinct()
+                .order_by("name")
+            )
+        return {
+            "SCHOOL_ID": getattr(active_school, "pk", None),
+            "SCHOOL_NAME": getattr(active_school, "name", None),
+            "SCHOOL_LOGO_URL": None,
+            "USER_SCHOOLS": user_schools,
+        }
     except Exception:
-        school_name = None
-        school_logo = None
-        school_id = None
-        user_schools = []
+        # بلا قائمة مدارس يعجز صاحب العضويات المتعددة عن التبديل بينها.
+        _degraded("nav.user_schools", user_id=getattr(user, "pk", None))
+        return empty
 
-    out = {
-        "NAV_MY_OPEN_TICKETS": my_open,
+
+def nav_context(request: HttpRequest) -> Dict[str, Any]:
+    """كل ما يحتاجه الشريط الجانبي والترويسة، لهذا المستخدم في مدرسته النشطة.
+
+    تنسيقٌ فقط: كل قرارٍ في دالته، وهذه تجمع نواتجها. راجع تعليل التفكيك أعلى
+    الملف، والعقد المحروس في ``test_nav_context_contract.py``.
+    """
+    user = getattr(request, "user", None)
+    if not user or not getattr(user, "is_authenticated", False):
+        return _anonymous_nav_context()
+
+    # ── كاش قصير العمر يمتصّ ذروة التنقّل بين الصفحات ──
+    ttl = soft_call(
+        "nav.context_ttl",
+        lambda: int(getattr(settings, "NAV_CONTEXT_CACHE_TTL_SECONDS", 20) or 0),
+        default=20,
+    )
+    cache_key = _nav_cache_key(request, user) if ttl > 0 else None
+    if cache_key:
+        cached = _cache_get(cache_key)
+        if isinstance(cached, dict):
+            return cached
+
+    active_school = _resolve_active_school(request)
+
+    # ── الأدوار والنطاق ──
+    any_school_manager, is_school_manager = _manager_scope(user, active_school)
+    officer_depts, member_depts = _department_roles(user, active_school)
+    is_officer = bool(officer_depts)
+    show_officer_link = bool(getattr(user, "is_superuser", False) or is_officer)
+
+    role_flags = _school_role_flags(user, active_school)
+    director_context = _executive_director_context(user)
+    capability_flags = _capability_flags(
+        user, active_school, is_school_manager=is_school_manager
+    )
+
+    # ── وجهات التقارير ──
+    # مدير المدرسة يرى «تقارير المدرسة» لا «تقارير قسمي».
+    show_dept_reports_link = bool(
+        (show_officer_link or bool(member_depts)) and not is_school_manager
+    )
+
+    # ── العدّادات ──
+    ticket_agg = _ticket_counters(user, active_school)
+    assigned_open = ticket_agg["assigned_open"]
+
+    # ── من يرسل الإشعارات، وإلى أي مسار ──
+    can_send_notifications = bool(
+        getattr(user, "is_superuser", False)
+        or (active_school is not None and (is_officer or is_school_manager))
+    )
+    send_notification_url = (
+        _reverse_any(
+            [
+                "reports:notifications_create",
+                "reports:send_notification",
+                "reports:notification_create",
+                "reports:announcement_create",
+                "reports:admin_message_create",
+                "reports:notifications_send",
+            ]
+        )
+        if can_send_notifications
+        else None
+    )
+
+    out: Dict[str, Any] = {
+        "NAV_MY_OPEN_TICKETS": ticket_agg["my_open"],
         "NAV_ASSIGNED_TO_ME": assigned_open,
         "IS_OFFICER": is_officer,
         "OFFICER_DEPARTMENT": officer_depts[0] if officer_depts else None,
         "OFFICER_DEPARTMENTS": officer_depts,
         "SHOW_OFFICER_REPORTS_LINK": show_officer_link,
         "SHOW_DEPARTMENT_REPORTS_LINK": show_dept_reports_link,
-        "SHOW_SCHOOL_REPORTS_LINK": show_school_reports_link,
-        "SHOW_ARCHIVE_LINK": show_archive_link,
-        "ARCHIVE_ADDON_ACTIVE": archive_addon_active,
-        "HAS_SAVED_ARCHIVE": has_saved_archive,
-        "DEPARTMENT_REPORTS_URLNAME": dept_reports_urlname,
-        "NAV_OFFICER_REPORTS": nav_officer_reports,
-        "SHOW_ADMIN_DASHBOARD_LINK": show_admin_link,
+        "SHOW_SCHOOL_REPORTS_LINK": bool(is_school_manager and active_school is not None),
+        "DEPARTMENT_REPORTS_URLNAME": (
+            "reports:officer_reports" if show_officer_link else "reports:department_reports"
+        ),
+        "NAV_OFFICER_REPORTS": _officer_reports_count(
+            user, active_school, officer_depts=officer_depts, is_officer=is_officer
+        ),
+        # رابط لوحة الإدارة لكل من يحمل is_staff أو يدير مدرسةً ما.
+        "SHOW_ADMIN_DASHBOARD_LINK": bool(getattr(user, "is_staff", False)) or any_school_manager,
         "IS_SCHOOL_MANAGER": is_school_manager,
-        "IS_SCHOOL_DEPUTY": is_deputy_user,
-        "IS_ADMIN_STAFF": is_admin_staff_user,
-        "HAS_TEACHER_ROLE": has_teacher_role,
-        "SHOW_PERSONAL_ACHIEVEMENT": bool(has_teacher_role or is_lab_tech_user),
-        "IS_LAB_TECHNICIAN": is_lab_tech_user,
-        "SHOW_LAB_NAV": show_lab_nav,
-        "IS_EXECUTIVE_DIRECTOR": is_executive_director_user,
-        "IS_GROUP_ONLY_DIRECTOR": group_only_director,
-        "GROUP_NAME": group_name,
-        # «مهامي المعيّنة» كان مشروطاً بكوْن المستخدم مسؤول قسم، والعدّاد يُحسب
+        "SHOW_PERSONAL_ACHIEVEMENT": bool(
+            role_flags["HAS_TEACHER_ROLE"] or role_flags["IS_LAB_TECHNICIAN"]
+        ),
+        # «مهامي المعيّنة» كان مشروطاً بكوْن المستخدم رئيس قسم، والعدّاد يُحسب
         # للجميع: طلبٌ يُحال إلى موظف إداري يُحتسب في القائمة ولا رابط يوصله
-        # إليه. والشرط الصحيح هو وجود ما يُعرض لا حملُ دور بعينه.
+        # إليه. والشرط الصحيح وجودُ ما يُعرض لا حملُ دور بعينه.
         "SHOW_ASSIGNED_TO_ME": bool(
             is_officer
-            or is_deputy_user
-            or is_admin_staff_user
+            or role_flags["IS_SCHOOL_DEPUTY"]
+            or role_flags["IS_ADMIN_STAFF"]
             or show_dept_reports_link
             or assigned_open
         ),
-        "SHOW_SUPERVISION_GROUP": show_supervision_group,
-        **capability_flags,
-        "NAV_NOTIFICATIONS_UNREAD": unread_count,
-        "NAV_SIGNATURES_PENDING": signatures_pending,
-        "NAV_NOTIFICATION_HERO": hero,
+        "SHOW_SUPERVISION_GROUP": _shows_supervision_group(
+            capability_flags, is_school_manager=is_school_manager
+        ),
         "CAN_SEND_NOTIFICATIONS": can_send_notifications,
         "SEND_NOTIFICATION_URL": send_notification_url,
-        "SCHOOL_ID": school_id,
-        "SCHOOL_NAME": school_name,
-        "SCHOOL_LOGO_URL": school_logo,
-        "USER_SCHOOLS": user_schools,
-        "USER_ROLE_LABEL": user_role_label,
-        **gender_context,
+        "USER_ROLE_LABEL": effective_user_role_label(user, active_school=active_school),
+        **role_flags,
+        **director_context,
+        **capability_flags,
+        **_archive_visibility(active_school, is_school_manager=is_school_manager),
+        **_notification_counters(user, request),
+        **_school_switcher(user, active_school),
+        **school_gender_template_context(active_school),
     }
 
-    if cache_key and ttl > 0:
-        try:
-            cache.set(cache_key, out, ttl)
-        except Exception:
-            pass
+    if cache_key:
+        _cache_set(cache_key, out, ttl)
 
     return out
+
 
 
 def nav_counters(request: HttpRequest) -> Dict[str, int]:
@@ -1380,36 +1572,23 @@ def payment_gateways(request: HttpRequest) -> Dict[str, Any]:
 
     **لماذا معالج سياق لا متغيّر في كل عرض؟** لأن ذكر البوابة ليس شأن صفحة
     الدفع وحدها: سياسة الخصوصية تُفصح عن معالِج الدفع بوصفه معالجاً للبيانات،
-    وسجلّ المدفوعات يعرض حالته، ولوحة المنصة كذلك. وكانت الأعلام تُمرَّر من
-    عرضين فقط (صفحة الهبوط و«اشتراكي»)، فبقيت سياسة الخصوصية تسمّي «تمارا»
-    اسماً صريحاً غير مشروط بشيء — وهي صفحة عامة يقرؤها كل زائر.
-
-    والاسم التجاري لبوابةٍ لم تُعتمد بعد لا يجوز عرضه: العرض التزامٌ تجاري
-    تجاه مزوّد الخدمة، لا تفصيلاً في الواجهة. فمصدرُ الحقيقة واحد، ومن أراد
-    ذكر بوابة سأل عنه.
+    وسجلّ المدفوعات يعرض حالته، ولوحة المنصة كذلك. وحين كانت الأعلام تُمرَّر
+    من عرضين فقط، بقي اسمٌ تجاري ظاهراً في صفحة عامة بلا شرط. فمصدرُ الحقيقة
+    واحد، ومن أراد ذكر بوابة سأل عنه.
     """
     from .moyasar_gateway import is_enabled as _moyasar_enabled
-    from .tamara_gateway import is_enabled as _tamara_enabled
 
-    try:
-        moyasar_on = bool(_moyasar_enabled())
-    except Exception:
-        moyasar_on = False
-    try:
-        tamara_on = bool(_tamara_enabled())
-    except Exception:
-        tamara_on = False
+    # بوّابةٌ تُقرأ «معطّلة» بسبب تعثّر تعني اختفاء وسيلة الدفع من صفحة
+    # الاشتراك — عطلٌ تجاري مباشر لا يجوز أن يمرّ صامتاً.
+    moyasar_on = bool(soft_call("gateways.moyasar_enabled", _moyasar_enabled, default=False))
 
     names: List[str] = []
     if moyasar_on:
         names.append("ميسر")
-    if tamara_on:
-        names.append("تمارا")
 
     return {
         "moyasar_enabled": moyasar_on,
-        "tamara_enabled": tamara_on,
-        # جاهزة للعرض نصّاً: «ميسر» أو «ميسر وتمارا» أو فراغ عند تعطيلهما معاً.
+        # جاهزة للعرض نصّاً: «ميسر» أو فراغ عند تعطيلها.
         "active_payment_gateway_names": " و".join(names),
         "any_payment_gateway_enabled": bool(names),
     }

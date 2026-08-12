@@ -570,13 +570,13 @@
                   <div class="gsubs-meter__row"><span>المقاعد</span><b>{{ row.consumption.seats.label }}</b></div>
                   {% if not row.consumption.seats.is_unlimited %}
                     <div class="gsubs-bar" data-tone="{% if row.consumption.seats.percent >= 90 %}danger{% elif row.consumption.seats.percent >= 75 %}warn{% else %}ok{% endif %}" aria-hidden="true">
-                      <span style="width:{{ row.consumption.seats.percent }}%"></span>
+                      <span data-progress="{{ row.consumption.seats.percent }}"></span>
                     </div>
                   {% endif %}
                   <div class="gsubs-meter__row"><span>مساحة العمل</span><b>{{ row.consumption.storage.label }}</b></div>
                   {% if not row.consumption.storage.is_unlimited %}
                     <div class="gsubs-bar" data-tone="{% if row.consumption.storage.percent >= 90 %}danger{% elif row.consumption.storage.percent >= 75 %}warn{% else %}ok{% endif %}" aria-hidden="true">
-                      <span style="width:{{ row.consumption.storage.percent }}%"></span>
+                      <span data-progress="{{ row.consumption.storage.percent }}"></span>
                     </div>
                   {% endif %}
                 </div>

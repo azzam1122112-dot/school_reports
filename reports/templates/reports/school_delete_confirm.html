@@ -3,7 +3,7 @@
 {% block title %}تأكيد حذف المدرسة | إدارة المنصة{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .delete-shell {
     width: min(820px, calc(100% - 2rem));
     margin: 2rem auto 3rem;

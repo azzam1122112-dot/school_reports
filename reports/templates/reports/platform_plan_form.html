@@ -4,7 +4,7 @@
 {% block title %}{% if plan %}تعديل خطة{% else %}إضافة خطة جديدة{% endif %}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      Platform Plan Form — Scoped page styles
      - بدون تعديل .btn / .card العامة

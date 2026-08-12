@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      School Manager Form (page-only polish)
      - Scoped: .schools-scope
@@ -192,7 +192,7 @@
 
 {% block content %}
 <div class="container schools-scope" dir="rtl">
-  <div class="page-head" style="max-width:860px;margin-inline:auto">
+  <div class="page-head xs-school-manager-create-1">
     <div>
       <h1 class="page-title">
         {% if mode == "edit" %}تعديل حساب إدارة مدرسة{% else %}إنشاء حساب إدارة مدرسة{% endif %}
@@ -207,7 +207,7 @@
     </div>
   </div>
 
-  <div style="max-width:860px;margin-inline:auto">
+  <div class="xs-school-manager-create-1">
     <div class="card">
       <div class="kicker">
         {% if mode == "edit" and manager %}
@@ -217,13 +217,13 @@
         {% endif %}
 
         <span class="count-pill" id="selectedCountPill" aria-live="polite">
-          <i class="fa-solid fa-school" style="opacity:.9"></i>
+          <i class="fa-solid fa-school u-dim-more"></i>
           المحدد: <span id="selectedCount">0</span>
         </span>
       </div>
 
       {% if form.non_field_errors %}
-        <div class="msg error" data-autohide="false" style="margin-bottom:10px;">
+        <div class="msg error u-mb-3" data-autohide="false">
           {% for err in form.non_field_errors %}{{ err }}<br>{% endfor %}
         </div>
       {% endif %}
@@ -235,38 +235,38 @@
           <!-- بيانات المدير -->
           <div class="schools-box">
             <h3 class="section-title">
-              <span><i class="fa-solid fa-user-gear" style="opacity:.85"></i> بيانات حساب الإدارة</span>
+              <span><i class="fa-solid fa-user-gear u-dim"></i> بيانات حساب الإدارة</span>
             </h3>
 
-            <div style="display:grid;gap:12px">
+            <div class="u-grid u-gap-4">
               <div>
-                <label for="{{ form.name.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">اسم المسؤول</label>
+                <label for="{{ form.name.id_for_label }}" class="u-block u-fw-950 u-mb-6px u-text-ink">اسم المسؤول</label>
                 {{ form.name }}
                 {% for e in form.name.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
               </div>
 
               <div>
-                <label for="{{ form.phone.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">رقم الجوال (اسم المستخدم)</label>
+                <label for="{{ form.phone.id_for_label }}" class="u-block u-fw-950 u-mb-6px u-text-ink">رقم الجوال (اسم المستخدم)</label>
                 {{ form.phone }}
                 <div class="hint">سيُستخدم رقم الجوال لتسجيل الدخول.</div>
                 {% for e in form.phone.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
               </div>
 
               <div>
-                <label for="{{ form.email.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">البريد الإلكتروني <span style="color:#dc2626">*</span></label>
+                <label for="{{ form.email.id_for_label }}" class="u-block u-fw-950 u-mb-6px u-text-ink">البريد الإلكتروني <span class="xs-school-manager-create-2">*</span></label>
                 {{ form.email }}
-                <div class="hint">إجباري لاستقبال الملخص الأسبوعي (من الأحد حتى الخميس 4:00 م).</div>
+                <div class="hint">إجباري لاستعادة كلمة المرور وتنبيهات الأمان.</div>
                 {% for e in form.email.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
               </div>
 
               <div>
-                <label for="{{ form.national_id.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">الهوية الوطنية (اختياري)</label>
+                <label for="{{ form.national_id.id_for_label }}" class="u-block u-fw-950 u-mb-6px u-text-ink">الهوية الوطنية (اختياري)</label>
                 {{ form.national_id }}
                 {% for e in form.national_id.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
               </div>
 
               <div>
-                <label for="{{ form.password.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">كلمة المرور</label>
+                <label for="{{ form.password.id_for_label }}" class="u-block u-fw-950 u-mb-6px u-text-ink">كلمة المرور</label>
                 {{ form.password }}
                 {% if mode == "edit" %}
                   <div class="hint">اتركها فارغة إذا لا تريد تغيير كلمة المرور.</div>
@@ -275,7 +275,7 @@
               </div>
 
               <div>
-                <label for="{{ form.is_active.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">حالة الحساب</label>
+                <label for="{{ form.is_active.id_for_label }}" class="u-block u-fw-950 u-mb-6px u-text-ink">حالة الحساب</label>
                 {{ form.is_active }}
                 {% for e in form.is_active.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
               </div>
@@ -285,25 +285,23 @@
           <!-- المدارس -->
           <div class="schools-box">
             <h3 class="section-title">
-              <span><i class="fa-solid fa-school" style="opacity:.85"></i> المدارس المرتبطة</span>
-              <span class="hint" style="margin:0">اختر مدرسة واحدة على الأقل</span>
+              <span><i class="fa-solid fa-school u-dim"></i> المدارس المرتبطة</span>
+              <span class="hint u-m-0">اختر مدرسة واحدة على الأقل</span>
             </h3>
 
             <div class="schools-actions">
               <input
                 type="search"
                 id="managerSchoolsSearch"
-                class="input"
+                class="input xs-school-manager-create-3"
                 placeholder="ابحث عن مدرسة..."
                 autocomplete="off"
                 spellcheck="false"
-                style="min-width:240px"
-                aria-label="بحث المدارس"
-              >
-              <button type="button" class="btn btn-outline" id="selectAllSchools" style="padding:8px 10px;min-height:38px">
+                aria-label="بحث المدارس">
+              <button type="button" class="btn btn-outline xs-school-manager-create-4" id="selectAllSchools">
                 تحديد الكل
               </button>
-              <button type="button" class="btn btn-outline" id="clearAllSchools" style="padding:8px 10px;min-height:38px">
+              <button type="button" class="btn btn-outline xs-school-manager-create-4" id="clearAllSchools">
                 مسح
               </button>
             </div>
@@ -319,11 +317,11 @@
                       value="{{ s.id }}"
                       {% if s.id|stringformat:"s" in selected_ids %}checked{% endif %}
                     >
-                    <div style="display:grid;gap:2px">
-                      <span style="font-weight:950;color:var(--ink)">{{ s.name }}</span>
+                    <div class="xs-school-manager-create-5">
+                      <span class="u-fw-950 u-text-ink">{{ s.name }}</span>
                       <div class="school-meta">
-                        {% if s.city %}<span><i class="fa-solid fa-location-dot" style="opacity:.75"></i> {{ s.city }}</span>{% endif %}
-                        <span dir="ltr" style="opacity:.85">#{{ s.id }}</span>
+                        {% if s.city %}<span><i class="fa-solid fa-location-dot xs-school-manager-create-6"></i> {{ s.city }}</span>{% endif %}
+                        <span dir="ltr" class="u-dim">#{{ s.id }}</span>
                       </div>
                     </div>
                   </label>
@@ -333,11 +331,11 @@
               {% endif %}
             </div>
 
-            <div class="field-error" id="schoolsError" style="display:none">• اختر مدرسة واحدة على الأقل.</div>
+            <div class="field-error u-hidden" id="schoolsError">• اختر مدرسة واحدة على الأقل.</div>
           </div>
         </div>
 
-        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div class="u-mt-4 u-flex u-gap-3 u-wrap u-items-center">
           <button type="submit" class="btn btn-primary">
             {% if mode == "edit" %}حفظ التعديلات{% else %}حفظ وإنشاء الحساب{% endif %}
           </button>

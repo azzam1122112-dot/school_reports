@@ -4,7 +4,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .mt-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; }
   @media (max-width: 900px) { .mt-grid { grid-template-columns: 1fr; } }
 
@@ -87,9 +87,9 @@
   <div class="mt-grid">
     <div>
       {# ═══ الحالة والغرض ═══════════════════════════════ #}
-      <section class="asg-card" style="margin-top:1.2rem">
-        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
-          <h2 class="asg-card__title" style="margin:0">الجلسة</h2>
+      <section class="asg-card u-mt-2xl">
+        <div class="u-flex u-items-center u-gap-sm u-wrap u-mb-09">
+          <h2 class="asg-card__title u-m-0">الجلسة</h2>
           <span class="asg-tag {% if meeting.is_held %}asg-tag--done{% endif %}">
             {{ meeting.get_status_display }}
           </span>
@@ -116,11 +116,11 @@
         </div>
 
         {% if meeting.purpose %}
-          <div class="mt-readonly" style="margin-top:1rem">{{ meeting.purpose }}</div>
+          <div class="mt-readonly u-mt-lg">{{ meeting.purpose }}</div>
         {% endif %}
 
         {% if meeting.is_cancelled and meeting.cancel_reason %}
-          <div class="mt-readonly" style="margin-top:1rem">
+          <div class="mt-readonly u-mt-lg">
             <strong>سبب الإلغاء:</strong> {{ meeting.cancel_reason }}
           </div>
         {% endif %}
@@ -150,11 +150,11 @@
             {% endif %}
           </div>
         {% empty %}
-          <p class="asg-card__hint" style="margin:0">لم تُضف بنود بعد.</p>
+          <p class="asg-card__hint u-m-0">لم تُضف بنود بعد.</p>
         {% endfor %}
 
         {% if is_organizer and not meeting.is_cancelled %}
-          <form method="post" action="{% url 'reports:council_action' meeting.pk %}" style="margin-top:1rem">
+          <form method="post" action="{% url 'reports:council_action' meeting.pk %}" class="u-mt-lg">
             {% csrf_token %}
             <input type="hidden" name="meeting_action" value="add_agenda">
             <div class="asg-field">
@@ -173,8 +173,8 @@
       {# ═══ المحضر ═════════════════════════════════════ #}
       {% if minutes %}
         <section class="asg-card mt-minutes">
-          <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.5rem">
-            <h2 class="asg-card__title" style="margin:0">المحضر</h2>
+          <div class="u-flex u-items-center u-gap-sm u-wrap u-mb-05">
+            <h2 class="asg-card__title u-m-0">المحضر</h2>
             <span class="asg-tag {% if minutes.is_final %}asg-tag--done{% endif %}">
               {{ minutes.get_approval_state_display }}
             </span>
@@ -186,7 +186,7 @@
           </p>
 
           {% if minutes.review_note %}
-            <div class="mt-readonly" style="border-inline-start:3px solid var(--asg-gold);margin-bottom:1rem">
+            <div class="mt-readonly xs-council-detail-1">
               <strong>آخر ملاحظة:</strong> {{ minutes.review_note }}
             </div>
           {% endif %}
@@ -196,7 +196,7 @@
               {% csrf_token %}
               <input type="hidden" name="meeting_action" value="save_minutes">
               {{ minutes_form.body }}
-              <button type="submit" class="asg-btn asg-btn--ghost" style="margin-top:.8rem">
+              <button type="submit" class="asg-btn asg-btn--ghost u-mt-md">
                 <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
                 حفظ المحضر
               </button>
@@ -204,7 +204,7 @@
           {% elif minutes.body %}
             <div class="mt-readonly">{{ minutes.body }}</div>
           {% else %}
-            <p class="asg-card__hint" style="margin:0">لم يُكتب المحضر بعد.</p>
+            <p class="asg-card__hint u-m-0">لم يُكتب المحضر بعد.</p>
           {% endif %}
 
           {% if minutes_timeline %}
@@ -228,14 +228,13 @@
           {% endif %}
 
           {% if minutes_actions %}
-            <form method="post" action="{% url 'reports:council_minutes_action' meeting.pk %}"
-                  style="margin-top:1rem">
+            <form method="post" action="{% url 'reports:council_minutes_action' meeting.pk %}" class="u-mt-lg">
               {% csrf_token %}
               <input type="hidden" name="approval_action" id="mtAction" value="">
               <div class="asg-field">
                 <textarea name="note" rows="3" placeholder="ملاحظتك على المحضر (اختياري)…"></textarea>
               </div>
-              <div class="mt-actions" style="margin-top:0">
+              <div class="mt-actions u-mt-0">
                 {% if 'issue' in minutes_actions %}
                   <button type="submit" class="asg-btn asg-btn--primary" data-mt="issue">
                     <i class="fa-solid fa-stamp" aria-hidden="true"></i>
@@ -305,7 +304,7 @@
               {% if row.decision.body %}<div class="mt-row__sub">{{ row.decision.body }}</div>{% endif %}
             </div>
 
-            <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
+            <div class="u-flex u-gap-05 u-wrap u-items-center">
               {% if row.state == 'done' %}
                 <span class="asg-tag asg-tag--done">نُفِّذ</span>
               {% elif row.state == 'late' %}
@@ -333,11 +332,11 @@
             </div>
           </div>
         {% empty %}
-          <p class="asg-card__hint" style="margin:0">لم تُسجَّل قرارات بعد.</p>
+          <p class="asg-card__hint u-m-0">لم تُسجَّل قرارات بعد.</p>
         {% endfor %}
 
         {% if is_organizer and meeting.is_held %}
-          <form method="post" action="{% url 'reports:council_action' meeting.pk %}" style="margin-top:1.1rem">
+          <form method="post" action="{% url 'reports:council_action' meeting.pk %}" class="u-mt-xl">
             {% csrf_token %}
             <input type="hidden" name="meeting_action" value="add_decision">
             <div class="asg-field">
@@ -376,7 +375,7 @@
 
     {# ═══ العمود الثاني ══════════════════════════════ #}
     <div>
-      <section class="asg-card" style="margin-top:1.2rem">
+      <section class="asg-card u-mt-2xl">
         <h2 class="asg-card__title">الحضور</h2>
         {% if is_organizer and meeting.is_held %}
           <form method="post" action="{% url 'reports:council_action' meeting.pk %}">
@@ -394,7 +393,7 @@
                 </select>
               </div>
             {% endfor %}
-            <button type="submit" class="asg-btn asg-btn--ghost" style="margin-top:.6rem">
+            <button type="submit" class="asg-btn asg-btn--ghost u-mt-sm">
               <i class="fa-solid fa-user-check" aria-hidden="true"></i>
               حفظ الحضور
             </button>
@@ -410,7 +409,7 @@
               </span>
             </div>
           {% empty %}
-            <p class="asg-card__hint" style="margin:0">لا مدعوين.</p>
+            <p class="asg-card__hint u-m-0">لا مدعوين.</p>
           {% endfor %}
         {% endif %}
       </section>
@@ -418,7 +417,7 @@
       {% if is_organizer and not meeting.is_cancelled %}
         <section class="asg-card">
           <h2 class="asg-card__title">إدارة الجلسة</h2>
-          <div class="mt-actions" style="margin-top:0">
+          <div class="mt-actions u-mt-0">
             {% if not meeting.is_held %}
               <form method="post" action="{% url 'reports:council_action' meeting.pk %}">
                 {% csrf_token %}
@@ -437,7 +436,7 @@
                 </button>
               </form>
             {% else %}
-              <p class="asg-card__hint" style="margin:0">
+              <p class="asg-card__hint u-m-0">
                 انعقدت في {{ meeting.held_at|date:"Y-m-d H:i" }}. اكتب المحضر
                 وأصدر القرارات، ثم أصدر المحضر.
               </p>

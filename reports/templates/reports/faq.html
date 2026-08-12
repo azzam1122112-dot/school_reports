@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load i18n static %}
 
 {% block title %}الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق{% endblock %}
 {% block robots %}index,follow,max-image-preview:large,max-snippet:-1{% endblock %}
@@ -52,7 +52,7 @@
 {% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .faq-page {
     max-width: 900px;
     margin: 0 auto;
@@ -256,11 +256,11 @@
   
   <div class="faq-hero">
     <h1><i class="fa-solid fa-circle-question"></i> الأسئلة الشائعة</h1>
-    <p>إجابات لأكثر الأسئلة شيوعاً حول منصة توثيق</p>
+    <p>{% translate "إجابات لأكثر الأسئلة شيوعاً حول منصة توثيق" %}</p>
   </div>
 
   <div class="faq-search">
-    <label class="sr-only" for="faqSearch">البحث في الأسئلة الشائعة</label>
+    <label class="sr-only" for="faqSearch">{% translate "البحث في الأسئلة الشائعة" %}</label>
     <input type="text" id="faqSearch" placeholder="ابحث عن سؤالك هنا...">
   </div>
 
@@ -269,7 +269,7 @@
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>ما هي منصة توثيق؟</h3>
+        <h3>{% translate "ما هي منصة توثيق؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
@@ -279,11 +279,11 @@
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>هل المنصة مناسبة لمدرسة واحدة فقط؟</h3>
+        <h3>{% translate "هل المنصة مناسبة لمدرسة واحدة فقط؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>لا، تدعم المنصة مدرسة واحدة أو عدة مدارس في نفس الوقت، مع عزل واضح للبيانات بين كل مدرسة. كل مدرسة لها بياناتها وصلاحياتها وكادرها التعليمي المستقل.</p>
+        <p>{% translate "لا، تدعم المنصة مدرسة واحدة أو عدة مدارس في نفس الوقت، مع عزل واضح للبيانات بين كل مدرسة. كل مدرسة لها بياناتها وصلاحياتها وكادرها التعليمي المستقل." %}</p>
       </div>
     </div>
 
@@ -299,11 +299,11 @@
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>هل المنصة آمنة وتحمي بيانات المدرسة؟</h3>
+        <h3>{% translate "هل المنصة آمنة وتحمي بيانات المدرسة؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>نعم، المنصة مبنية على أحدث معايير الأمان. تتضمن: تشفير البيانات، جلسة واحدة لكل مستخدم، تسجيل خروج تلقائي بعد الخمول، وسجل تدقيق كامل لجميع العمليات الحساسة.</p>
+        <p>{% translate "نعم، المنصة مبنية على أحدث معايير الأمان. تتضمن: تشفير البيانات، جلسة واحدة لكل مستخدم، تسجيل خروج تلقائي بعد الخمول، وسجل تدقيق كامل لجميع العمليات الحساسة." %}</p>
       </div>
     </div>
   </div>
@@ -313,17 +313,17 @@
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>كم صورة يمكنني إرفاقها في التقرير؟</h3>
+        <h3>{% translate "كم صورة يمكنني إرفاقها في التقرير؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>يمكنك إرفاق حتى 4 صور في كل تقرير. ستظهر الصور في التقرير المطبوع بتنسيق احترافي.</p>
+        <p>{% translate "يمكنك إرفاق حتى 4 صور في كل تقرير. ستظهر الصور في التقرير المطبوع بتنسيق احترافي." %}</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>هل يمكنني تعديل التقرير بعد حفظه؟</h3>
+        <h3>{% translate "هل يمكنني تعديل التقرير بعد حفظه؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
@@ -333,7 +333,7 @@
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>كيف يمكنني طباعة التقرير؟</h3>
+        <h3>{% translate "كيف يمكنني طباعة التقرير؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
@@ -343,7 +343,7 @@
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>هل يمكن تخصيص أنواع التقارير حسب احتياجات المدرسة؟</h3>
+        <h3>{% translate "هل يمكن تخصيص أنواع التقارير حسب احتياجات المدرسة؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
@@ -357,17 +357,17 @@
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>ما الفرق بين التقرير والطلب؟</h3>
+        <h3>{% translate "ما الفرق بين التقرير والطلب؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>التقرير هو توثيق لحدث أو نشاط قمت به. أما الطلب فهو طلب تحتاج فيه لإجراء من قسم معين (مثل طلب صيانة، طلب احتياج، أو استفسار).</p>
+        <p>{% translate "التقرير هو توثيق لحدث أو نشاط قمت به. أما الطلب فهو طلب تحتاج فيه لإجراء من قسم معين (مثل طلب صيانة، طلب احتياج، أو استفسار)." %}</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>كيف أتابع حالة طلبي؟</h3>
+        <h3>{% translate "كيف أتابع حالة طلبي؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
@@ -377,17 +377,17 @@
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>هل يمكنني إرفاق ملفات أو صور مع الطلب؟</h3>
+        <h3>{% translate "هل يمكنني إرفاق ملفات أو صور مع الطلب؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>نعم، يمكنك إرفاق صور أو ملفات داعمة مع طلبك لتوضيح المشكلة أو الاحتياج بشكل أفضل.</p>
+        <p>{% translate "نعم، يمكنك إرفاق صور أو ملفات داعمة مع طلبك لتوضيح المشكلة أو الاحتياج بشكل أفضل." %}</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>من يتلقى الطلبات؟</h3>
+        <h3>{% translate "من يتلقى الطلبات؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
@@ -401,31 +401,31 @@
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>هل يمكن استخراج ملف إنجاز PDF؟</h3>
+        <h3>{% translate "هل يمكن استخراج ملف إنجاز PDF؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>نعم، المنصة تولد ملف PDF احترافي لملف الإنجاز يحتوي على جميع بياناتك والشواهد (الصور) المرفقة، مع شعار المدرسة وتنسيق احترافي جاهز للطباعة.</p>
+        <p>{% translate "نعم، المنصة تولد ملف PDF احترافي لملف الإنجاز يحتوي على جميع بياناتك والشواهد (الصور) المرفقة، مع شعار المدرسة وتنسيق احترافي جاهز للطباعة." %}</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>كم عدد الشواهد (الصور) التي يمكن إضافتها لكل محور؟</h3>
+        <h3>{% translate "كم عدد الشواهد (الصور) التي يمكن إضافتها لكل محور؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>يمكنك إضافة حتى 8 صور لكل محور من محاور ملف الإنجاز (التخطيط، التنفيذ، التقويم، التنمية المهنية، المسؤوليات الإضافية).</p>
+        <p>{% translate "يمكنك إضافة حتى 8 صور لكل محور من محاور ملف الإنجاز (التخطيط، التنفيذ، التقويم، التنمية المهنية، المسؤوليات الإضافية)." %}</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>هل توجد مشاركة خارجية لملف الإنجاز؟</h3>
+        <h3>{% translate "هل توجد مشاركة خارجية لملف الإنجاز؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>نعم، يمكنك إنشاء رابط مؤقت لمشاركة ملف الإنجاز مع الجهات المعنية أو المهتمين خارج المنصة. الرابط قابل للتفعيل والتعطيل ويمكن تحديد مدة صلاحيته.</p>
+        <p>{% translate "نعم، يمكنك إنشاء رابط مؤقت لمشاركة ملف الإنجاز مع الجهات المعنية أو المهتمين خارج المنصة. الرابط قابل للتفعيل والتعطيل ويمكن تحديد مدة صلاحيته." %}</p>
       </div>
     </div>
 
@@ -445,27 +445,27 @@
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>كيف أعرف أن لدي إشعار جديد؟</h3>
+        <h3>{% translate "كيف أعرف أن لدي إشعار جديد؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>ستظهر علامة حمراء على أيقونة الإشعارات في أعلى الصفحة عند وصول إشعار جديد لم تقرأه بعد.</p>
+        <p>{% translate "ستظهر علامة حمراء على أيقونة الإشعارات في أعلى الصفحة عند وصول إشعار جديد لم تقرأه بعد." %}</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>ماذا يحدث إذا لم أوقع على التعميم في الوقت المحدد؟</h3>
+        <h3>{% translate "ماذا يحدث إذا لم أوقع على التعميم في الوقت المحدد؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>بعض التعاميم لها موعد نهائي للتوقيع. عدم التوقيع قبل الموعد قد يظهر في تقارير الإدارة. احرص على مراجعة التعاميم والتوقيع عليها في الوقت المناسب.</p>
+        <p>{% translate "بعض التعاميم لها موعد نهائي للتوقيع. عدم التوقيع قبل الموعد قد يظهر في تقارير الإدارة. احرص على مراجعة التعاميم والتوقيع عليها في الوقت المناسب." %}</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>هل يمكن للمدير معرفة من قرأ ووقع على التعميم؟</h3>
+        <h3>{% translate "هل يمكن للمدير معرفة من قرأ ووقع على التعميم؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
@@ -479,7 +479,7 @@
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>كيف يمكن إضافة حسابات جديدة للكادر التعليمي؟</h3>
+        <h3>{% translate "كيف يمكن إضافة حسابات جديدة للكادر التعليمي؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
@@ -489,7 +489,7 @@
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>لا أرى لوحة المدرسة، لماذا؟</h3>
+        <h3>{% translate "لا أرى لوحة المدرسة، لماذا؟" %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
@@ -505,15 +505,15 @@
       <div class="faq-answer">
         {% comment %} تصحيح: النص السابق كان يَعِد بإنشاء أدوار مخصصة غير مدعومة في المنصة.
            الوصف أدناه يطابق ما ينفّذه النظام فعلاً اليوم. {% endcomment %}
-        <p>نعم. تُنشئ داخل مدرستك أقساماً حسب حاجتك، وتُعيّن لكل قسم مسؤولاً يطّلع على تقارير أنواع قسمه دون غيرها، وتُسند إليه الطلبات الواردة ومتابعتها. كما تحدّد لكل منسوب مسمّاه الوظيفي داخل المدرسة.</p>
+        <p>{% translate "نعم. تُنشئ داخل مدرستك أقساماً حسب حاجتك، وتُعيّن لكل قسم مسؤولاً يطّلع على تقارير أنواع قسمه دون غيرها، وتُسند إليه الطلبات الواردة ومتابعتها. كما تحدّد لكل منسوب مسمّاه الوظيفي داخل المدرسة." %}</p>
       </div>
     </div>
   </div>
 
   <div class="faq-cta">
-    <h3>لم تجد إجابة لسؤالك؟</h3>
-    <p>فريق الدعم الفني جاهز لمساعدتك</p>
-    <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-primary" style="padding: 16px 32px; font-size: 1rem;">
+    <h3>{% translate "لم تجد إجابة لسؤالك؟" %}</h3>
+    <p>{% translate "فريق الدعم الفني جاهز لمساعدتك" %}</p>
+    <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-primary xs-faq-1">
       <i class="fa-solid fa-life-ring"></i> تواصل معنا
     </a>
   </div>

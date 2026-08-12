@@ -5,7 +5,7 @@
 {% block title %}إرسال إشعار{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      إرسال إشعار - تصميم 2026
      تصميم عصري وفخم مع تأثيرات متقدمة
@@ -836,9 +836,9 @@
                 {% for field in form.visible_fields %}
                   {% if field.name == "teachers" or field.name == "target_department" %}
                     <div class="field full" data-name="{{ field.html_name|lower }}">
-                      <label for="{{ field.id_for_label }}" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                      <label for="{{ field.id_for_label }}" class="u-flex u-items-center u-justify-between u-gap-2">
                         <span>
-                          {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
+                          {% if field.field.required %}<span class="xs-send-notification-1">*</span>{% endif %}
                           {{ field.label }}
                         </span>
 
@@ -892,7 +892,7 @@
                   {% else %}
                     <div class="field" data-name="{{ field.html_name|lower }}">
                       <label for="{{ field.id_for_label }}">
-                        {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
+                        {% if field.field.required %}<span class="xs-send-notification-1">*</span>{% endif %}
                         {{ field.label|default:"الحقل" }}
                       </label>
                       {{ field }}
@@ -928,8 +928,8 @@
           <div class="notif">
             <div class="nt-h">
               <h3 class="nt-title" id="pv_title">عنوان الإشعار</h3>
-              <div id="pv_important" title="هام" style="display:none">
-                <i class="fa-solid fa-circle-exclamation" style="color:#ef4444"></i>
+              <div id="pv_important" title="هام" class="u-hidden">
+                <i class="fa-solid fa-circle-exclamation xs-send-notification-1"></i>
               </div>
             </div>
             <div class="nt-body" id="pv_body">سيظهر نص الإشعار هنا…</div>
@@ -938,10 +938,10 @@
                 <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
                 <span>مرسل: {% firstof request.user.name request.user.phone "الإدارة" %}</span>
               </span>
-              <span class="pill" id="pv_action" style="display:none">
+              <span class="pill u-hidden" id="pv_action">
                 <i class="fa-solid fa-link"></i> يحتوي على رابط إجراء
               </span>
-              <span class="pill" id="pv_expires" style="display:none">
+              <span class="pill u-hidden" id="pv_expires">
                 <i class="fa-solid fa-clock"></i> ينتهي لاحقًا
               </span>
             </div>

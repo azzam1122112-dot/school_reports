@@ -4,7 +4,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .gs-note {
     margin-top: 1.05rem; padding: .6rem .85rem; border-radius: 12px;
     font-size: .82rem; line-height: 1.75;
@@ -56,7 +56,7 @@
     </p>
     <div class="gs-bar">
       <div class="gs-bar__track">
-        <div class="gs-bar__fill" style="width:{{ stats.completion }}%"></div>
+        <div class="gs-bar__fill" data-progress="{{ stats.completion }}"></div>
       </div>
       <div class="gs-bar__n">
         إنجاز التكليفات {{ stats.completion }}%
@@ -146,7 +146,7 @@
         </div>
       </article>
     {% empty %}
-      <p class="asg-card__hint" style="margin:0">لم تُسند إليها تكليفات مجموعة بعد.</p>
+      <p class="asg-card__hint u-m-0">لم تُسند إليها تكليفات مجموعة بعد.</p>
     {% endfor %}
   </section>
 

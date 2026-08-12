@@ -103,7 +103,7 @@ def api_school_departments(request: HttpRequest) -> HttpResponse:
     qs = Department.objects.filter(is_active=True)
 
     # If no school selected (e.g. superuser scope=all), return all active.
-    if selected_school is not None and _model_has_field(Department, "school"):
+    if selected_school is not None:
         qs = qs.filter(Q(school=selected_school) | Q(school__isnull=True))
 
     qs = qs.order_by("name")

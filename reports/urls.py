@@ -35,6 +35,21 @@ urlpatterns = [
     path("profile/", views.my_profile, name="my_profile"),
     # سجل الإجراءات كما يراه صاحبه — متاح لكل مستخدم، ومقيّد بنفسه بحكم البناء.
     path("profile/activity/", views.my_activity_log, name="my_activity_log"),
+    # حقوق صاحب البيانات (نظام حماية البيانات الشخصية): نسخة مقروءة فورية،
+    # وطلب إتلاف مسجَّل ومُتتبَّع.
+    path("profile/my-data/", views.my_data, name="my_data"),
+    path("profile/my-data/download/", views.my_data_download, name="my_data_download"),
+    path("profile/my-data/erasure/", views.request_erasure, name="request_erasure"),
+    # مفاتيح التكامل — لمدير المدرسة وحده.
+    path("integrations/keys/", views.api_keys_list, name="api_keys"),
+    path("integrations/keys/create/", views.api_key_create, name="api_key_create"),
+    path("integrations/keys/<int:pk>/revoke/", views.api_key_revoke, name="api_key_revoke"),
+    # المصادقة الثنائية (TOTP) — إلى جانب Passkeys لا بدلاً منها.
+    path("security/two-factor/", views.totp_settings, name="totp_settings"),
+    path("security/two-factor/start/", views.totp_begin_enrollment, name="totp_begin_enrollment"),
+    path("security/two-factor/confirm/", views.totp_confirm_enrollment, name="totp_confirm_enrollment"),
+    path("security/two-factor/disable/", views.totp_disable, name="totp_disable"),
+    path("login/two-factor/", views.totp_challenge, name="totp_challenge"),
     path("profile/work/", views.my_work_archive, name="my_work_archive"),
     path("profile/passkey/register/options/", views.passkey_register_options, name="passkey_register_options"),
     path("profile/passkey/register/verify/", views.passkey_register_verify, name="passkey_register_verify"),
@@ -67,6 +82,7 @@ urlpatterns = [
     # =========================
     path("reports/add/", views.add_report, name="add_report"),
     path("reports/ai/improve/", views.improve_report_text, name="improve_report_text"),
+    path("reports/ai/voice/", views.transcribe_report_voice, name="transcribe_report_voice"),
     path("reports/my/", views.my_reports, name="my_reports"),
     path("reports/<int:pk>/edit/", views.edit_my_report, name="edit_my_report"),
     path("reports/<int:pk>/delete/", views.delete_my_report, name="delete_my_report"),
@@ -373,6 +389,8 @@ urlpatterns = [
     path("api/department-members/", views.api_department_members, name="api_department_members"),
     path("api/notification-teachers/", views.api_notification_teachers, name="api_notification_teachers"),
     path("api/school-departments/", views.api_school_departments, name="api_school_departments"),
+    # البحث الموحّد — نتائجه محدودة بالمدرسة النشطة وصلاحيات صاحب الطلب.
+    path("api/search/", views.global_search, name="global_search"),
     path("api/dashboard/school/", views.admin_dashboard_data, name="api_admin_dashboard_data"),
     path("api/dashboard/platform/", views.platform_admin_dashboard_data, name="api_platform_dashboard_data"),
     path("api/dashboard/platform/search/", views.platform_admin_dashboard_search, name="api_platform_dashboard_search"),
@@ -468,14 +486,6 @@ urlpatterns = [
         views.moyasar_checkout_cancel,
         name="moyasar_checkout_cancel",
     ),
-    path("subscription/payment/tamara/", views.tamara_checkout_create, name="tamara_checkout_create"),
-    path(
-        "subscription/payment/tamara/<int:payment_id>/cancel/",
-        views.tamara_checkout_cancel,
-        name="tamara_checkout_cancel",
-    ),
-    path("subscription/payment/tamara/return/<str:result>/", views.tamara_return, name="tamara_return"),
-    path("payments/tamara/webhook/", views.tamara_webhook, name="tamara_webhook"),
 
     # =========================
     # إدارة المنصة (Custom Views)

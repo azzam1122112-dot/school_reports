@@ -183,6 +183,8 @@ urlpatterns = [
     path(".well-known/security.txt", security_txt, name="security_txt"),
     path("sw.js", service_worker, name="service_worker"),
     # REST API v1
+    # مبدّل اللغة القياسي: يتحقق من أن اللغة مسموحة ومن أن ``next`` داخلي.
+    path("i18n/", include("django.conf.urls.i18n")),
     path("api/v1/", include("reports.api_urls")),
     path("dashboard/system/", include("maintenance.urls")),
     path("", include("reports.urls")),  # واجهة المشروع الأساسية

@@ -1,0 +1,42 @@
+{% comment %}
+  صندوق البحث الموحّد في الترويسة.
+
+  **combobox لا حقل نص.** النتائج تظهر في قائمة تُتصفَّح بالأسهم وتُختار
+  بـEnter وتُغلق بـEscape — وهو ما يجعل البحث صالحاً لمن يعمل بلوحة المفاتيح
+  أصلاً، وهم جمهور هذه المنصة اليومي (موظفون إداريون ووكلاء).
+
+  ``aria-live`` على عدّاد النتائج مقصود: قارئ الشاشة لا يرى القائمة تنبثق،
+  فيُقال له كم نتيجة وصلت.
+
+  ولا سمة ``style`` ولا معالج حدثٍ مضمَّن هنا: سياسة المحتوى تمنع الأول،
+  والثاني في ``static/js/global-search.js`` بـ``nonce``.
+{% endcomment %}
+<div class="gsearch" data-global-search>
+  <label class="sr-only" for="globalSearchInput">ابحث في المنصة</label>
+  <div class="gsearch__field">
+    <i class="fa-solid fa-magnifying-glass gsearch__icon" aria-hidden="true"></i>
+    <input
+      id="globalSearchInput"
+      class="gsearch__input"
+      type="search"
+      role="combobox"
+      autocomplete="off"
+      aria-expanded="false"
+      aria-controls="globalSearchResults"
+      aria-autocomplete="list"
+      aria-describedby="globalSearchStatus"
+      placeholder="ابحث في التقارير والطلبات والوثائق…"
+      data-search-url="{% url 'reports:global_search' %}"
+      data-min-length="2">
+    <button type="button" class="gsearch__clear" id="globalSearchClear" aria-label="مسح البحث" hidden>
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <p id="globalSearchStatus" class="sr-only" role="status" aria-live="polite"></p>
+
+  <div class="gsearch__panel" id="globalSearchResults" role="listbox" aria-label="نتائج البحث" hidden>
+    <ul class="gsearch__list" id="globalSearchList"></ul>
+    <p class="gsearch__empty" id="globalSearchEmpty" hidden>لا نتائج مطابقة.</p>
+  </div>
+</div>

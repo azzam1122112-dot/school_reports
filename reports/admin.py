@@ -35,6 +35,9 @@ from .models import (
     Payment,
     CustomerComplaint,
     AuditLog,
+    ErasureRequest,
+    SchoolApiKey,
+    TeacherTotpDevice,
 )
 
 # =========================
@@ -887,3 +890,80 @@ class AuditLogAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # فقط السوبر يوزر يمكنه الحذف (اختياري)
         return request.user.is_superuser
+
+
+@admin.register(ErasureRequest)
+class ErasureRequestAdmin(admin.ModelAdmin):
+    """طلبات الإتلاف — لوحة البتّ فيها.
+
+    الطلب حقٌّ نظامي بمدد ردٍّ مقررة، فلا يجوز أن يعيش في بريدٍ يُنسى.
+    وترتيبُ العرض بالأقدم أولاً مقصود: الأقدم هو الأقرب إلى تجاوز المدة.
+    """
+
+    list_display = ("teacher", "status", "created_at", "resolved_at", "resolved_by")
+    list_filter = ("status", "created_at")
+    search_fields = ("teacher__name", "teacher__phone", "reason", "response_note")
+    autocomplete_fields = ("teacher", "resolved_by")
+    readonly_fields = ("teacher", "reason", "created_at")
+    ordering = ("status", "created_at")
+
+    def has_add_permission(self, request):
+        # الطلب يُنشئه صاحبه من شاشته وحده — إنشاؤه من هنا ينتحل إرادته.
+        return False
+
+    def save_model(self, request, obj, form, change):
+        # البتّ يُختم بوقته وصاحبه تلقائياً: تركُ ذلك يدوياً يُنتج سجلاً ناقصاً
+        # في أكثر ما يحتاج إثباتاً.
+        if obj.status in {ErasureRequest.Status.COMPLETED, ErasureRequest.Status.REFUSED}:
+            if obj.resolved_at is None:
+                obj.resolved_at = timezone.now()
+            if obj.resolved_by is None:
+                obj.resolved_by = request.user
+        else:
+            obj.resolved_at = None
+            obj.resolved_by = None
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(SchoolApiKey)
+class SchoolApiKeyAdmin(admin.ModelAdmin):
+    """مفاتيح التكامل — للاطلاع والإبطال، لا للإنشاء.
+
+    الإنشاء من شاشة المدير وحدها لأن السرّ يُعرض مرة واحدة عند التوليد؛ ونموذجُ
+    الأدمن لا يستطيع عرضه، فمفتاحٌ يُنشأ هنا يُولَد ميتاً — لا أحد يعرف قيمته.
+    """
+
+    list_display = ("name", "school", "public_id", "scope", "acting_as", "is_active", "last_used_at")
+    list_filter = ("scope", "is_active", "created_at")
+    search_fields = ("name", "public_id", "school__name", "acting_as__name")
+    autocomplete_fields = ("school", "acting_as", "created_by")
+    # التجزئة والمعرِّف لا يُحرَّران: تغييرهما يفصل الصفَّ عن أي مفتاح موجود.
+    readonly_fields = ("public_id", "key_hash", "last_used_at", "created_at", "created_by")
+
+    def has_add_permission(self, request):
+        return False
+
+
+@admin.register(TeacherTotpDevice)
+class TeacherTotpDeviceAdmin(admin.ModelAdmin):
+    """أجهزة المصادقة الثنائية — للاطلاع والإزالة عند فقد الجهاز.
+
+    السرّ لا يُعرض ولا يُحرَّر: هو مُعمّى في القاعدة، وعرضُه في لوحةٍ يُبطل
+    كونَه عاملاً ثانياً. وما يحتاجه الدعم فعلاً هو **الإزالة** لمن فقد هاتفه
+    واستنفد رموز الاسترجاع — لا الاطلاع.
+    """
+
+    list_display = ("teacher", "is_confirmed", "confirmed_at", "last_used_at")
+    list_filter = ("confirmed_at",)
+    search_fields = ("teacher__name", "teacher__phone")
+    autocomplete_fields = ("teacher",)
+    readonly_fields = ("teacher", "confirmed_at", "last_used_at", "created_at")
+    exclude = ("secret_encrypted", "last_used_counter")
+
+    def has_add_permission(self, request):
+        # التسجيل يمرّ بإثبات رمزٍ عامل. جهازٌ يُنشأ هنا يُقفل صاحبه خارج حسابه.
+        return False
+
+    @admin.display(boolean=True, description="نافذ")
+    def is_confirmed(self, obj):
+        return obj.is_confirmed

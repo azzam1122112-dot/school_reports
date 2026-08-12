@@ -5,7 +5,7 @@
 
 {% block head %}
 {% include "reports/_approval_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .inb-kpis { display: grid; gap: .8rem; margin-top: 1.15rem; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); }
   .inb-kpi {
     background: var(--apr-surface); border: 1px solid var(--apr-line);
@@ -162,7 +162,7 @@
       <div class="inb-head">
         <span class="inb-head__t">
           {% if group.grouper %}
-            <i class="fa-solid fa-gavel" aria-hidden="true" style="color:var(--apr-green)"></i>
+            <i class="fa-solid fa-gavel xs-approval-inbox-1" aria-hidden="true"></i>
             ينتهي القرار عندك
           {% else %}
             <i class="fa-solid fa-eye" aria-hidden="true"></i>
@@ -235,7 +235,7 @@
       </div>
     {% endfor %}
   {% else %}
-    <div class="apr-empty" style="margin-top:1.2rem">
+    <div class="apr-empty u-mt-2xl">
       <div class="apr-empty__icon"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></div>
       <h2>لا شيء ينتظرك</h2>
       <p>

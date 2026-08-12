@@ -19,7 +19,7 @@ from reports.models import (
     SubscriptionPlan,
     Teacher,
 )
-from reports.views.subscriptions import _apply_payment_effects, _archive_pricing
+from reports.views.billing_core import _apply_payment_effects, _archive_pricing
 
 
 def _receipt():

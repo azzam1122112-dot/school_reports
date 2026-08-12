@@ -35,7 +35,7 @@
         {% if has_lab_assets %}
           {% include "reports/_lab_field.html" with field=form.assets %}
         {% else %}
-          <div class="lab-empty" style="padding:1rem">
+          <div class="lab-empty u-p-lg">
             <strong>لا توجد أصناف في العهدة بعد.</strong>
             أضف الأصناف أولاً لتتمكن من ربطها بالتجربة.
             <a class="lab-btn lab-btn--ghost" href="{% url 'reports:lab_assets' %}#new-asset">إضافة صنف للعهدة</a>

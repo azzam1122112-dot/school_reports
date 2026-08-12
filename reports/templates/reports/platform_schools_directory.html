@@ -4,7 +4,7 @@
 
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/consumption-panel.css' %}?v=20260805.1">
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .ps-page{max-width:1120px;margin:0 auto;padding:clamp(12px,2.5vw,22px)}
   .ps-shell{display:grid;gap:14px}
   .ps-hero,.ps-panel{

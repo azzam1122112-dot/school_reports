@@ -4,7 +4,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .prc-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.1rem; }
   .prc-tabs a {
     font-size: .82rem; font-weight: 800; text-decoration: none;
@@ -58,9 +58,9 @@
     <h2 class="asg-card__title">المعروض على المجموعة</h2>
     {% if practices %}
       {% for item in practices %}
-        <article class="asg-item" style="align-items:flex-start">
+        <article class="asg-item u-items-start">
           <div class="asg-item__main">
-            <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+            <div class="u-flex u-gap-06 u-items-center u-wrap">
               <span class="prc-school">{{ item.school.name }}</span>
               <span class="asg-item__title">{{ item.title }}</span>
             </div>

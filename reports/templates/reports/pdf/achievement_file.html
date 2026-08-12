@@ -7,11 +7,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ملف الإنجاز - {{ file.teacher_name }} - {{ file.academic_year }}</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  {% comment %}الخط والأيقونات محلياً: لا طلب لطرف ثالث قبل أول حرف، ولا نطاق خارجي في سياسة المحتوى.{% endcomment %}
+  <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
 
-  <style>
+  <style nonce="{{ CSP_NONCE }}">
     @page { size: A4; margin: 0; }
 
     :root {
@@ -332,6 +332,8 @@
     .general-page .section { margin-top: 7mm; }
     .report-page .report-box { margin-top: 7mm; }
   </style>
+<link rel="stylesheet" href="{% static 'css/utilities.css' %}?v=20260812.1">
+<link rel="stylesheet" href="{% static 'css/extracted.css' %}?v=20260812.1">
 </head>
 
 <body>
@@ -483,7 +485,7 @@
 
     <section class="section">
       <div class="section-h">البيانات المهنية</div>
-      <table class="meta-table" style="margin:0;">
+      <table class="meta-table u-m-0">
         <tr>
           <th>المؤهلات</th>
           <td>{{ file.qualifications|default:"—" }}</td>
@@ -539,8 +541,8 @@
 
         {% with imgs=s.evidence_images.all %}
           {% if imgs %}
-            <div style="margin-top:10px;font-weight:1000;">الشواهد المصورة</div>
-            <div class="images-grid images-grid-4" style="margin-top:8px;">
+            <div class="xs-achievement-file-1">الشواهد المصورة</div>
+            <div class="images-grid images-grid-4 u-mt-2">
               {% for img in imgs|slice:":8" %}
                 <div class="img-box">
                   <img src="{{ img.image.url }}" alt="شاهد" />
@@ -578,7 +580,7 @@
               {% if ev.is_frozen %}<span class="badge">مثبت</span>{% endif %}
             </div>
 
-            <table class="meta-table" style="margin:0 0 10px;">
+            <table class="meta-table xs-achievement-file-2">
               <tr>
                 <th>العنوان</th>
                 <td colspan="3">
@@ -637,7 +639,7 @@
               </tr>
             </table>
 
-            <div style="font-weight:1000; margin:0 0 6px;">الوصف / فكرة التقرير</div>
+            <div class="xs-achievement-file-3">الوصف / فكرة التقرير</div>
             <div class="report-body">
               {% if ev.is_frozen %}
                 {{ ev.frozen_data.idea|default:"—" }}
@@ -648,8 +650,8 @@
               {% endif %}
             </div>
 
-            <div style="margin-top:10px;font-weight:1000;">الصور (حتى 4)</div>
-            <div class="images-grid" style="margin-top:8px;">
+            <div class="xs-achievement-file-1">الصور (حتى 4)</div>
+            <div class="images-grid u-mt-2">
               {% if ev.is_frozen %}
                 {% if ev.archived_image1 %}<div class="img-box"><img src="{{ ev.archived_image1.url }}" alt="صورة 1" /><div class="img-cap">صورة (1)</div></div>{% endif %}
                 {% if ev.archived_image2 %}<div class="img-box"><img src="{{ ev.archived_image2.url }}" alt="صورة 2" /><div class="img-cap">صورة (2)</div></div>{% endif %}
@@ -664,7 +666,7 @@
             </div>
 
             {% if not ev.report and ev.is_frozen and ev.frozen_data.missing %}
-              <div style="margin-top:10px; font-size:12px; color:var(--muted);">
+              <div class="xs-achievement-file-4">
                 ملاحظة: تم حذف التقرير الأصلي من النظام بعد تثبيته.
               </div>
             {% endif %}

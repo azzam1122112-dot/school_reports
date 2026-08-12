@@ -247,7 +247,7 @@ class MoyasarActivationTests(TestCase):
         )
 
     def test_a_paid_invoice_activates_the_subscription(self):
-        with patch("reports.views.subscriptions.fetch_moyasar_invoice", return_value=self._invoice()):
+        with patch("reports.views.billing_gateways.fetch_moyasar_invoice", return_value=self._invoice()):
             response = self._callback()
 
         self.assertEqual(response.status_code, 200)
@@ -263,7 +263,7 @@ class MoyasarActivationTests(TestCase):
         """The gateway amount is re-checked server-side, so a tampered or partial
         capture cannot buy a subscription."""
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice",
+            "reports.views.billing_gateways.fetch_moyasar_invoice",
             return_value=self._invoice(amount=100),
         ):
             response = self._callback()
@@ -275,7 +275,7 @@ class MoyasarActivationTests(TestCase):
 
     def test_a_failed_invoice_does_not_activate(self):
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice",
+            "reports.views.billing_gateways.fetch_moyasar_invoice",
             return_value=self._invoice(status="failed"),
         ):
             self._callback()
@@ -285,7 +285,7 @@ class MoyasarActivationTests(TestCase):
         self.assertFalse(SchoolSubscription.objects.filter(school=self.school).exists())
 
     def test_a_replayed_callback_does_not_extend_the_subscription_twice(self):
-        with patch("reports.views.subscriptions.fetch_moyasar_invoice", return_value=self._invoice()):
+        with patch("reports.views.billing_gateways.fetch_moyasar_invoice", return_value=self._invoice()):
             self._callback()
             first_end = SchoolSubscription.objects.get(school=self.school).end_date
             self._callback()
@@ -293,7 +293,7 @@ class MoyasarActivationTests(TestCase):
         self.assertEqual(SchoolSubscription.objects.get(school=self.school).end_date, first_end)
 
     def test_an_unknown_batch_never_reaches_the_gateway(self):
-        with patch("reports.views.subscriptions.fetch_moyasar_invoice") as fetch:
+        with patch("reports.views.billing_gateways.fetch_moyasar_invoice") as fetch:
             response = self.client.post(
                 reverse("reports:moyasar_callback", args=["nope"]),
                 data="{}",
@@ -360,7 +360,7 @@ class PaymentReconciliationTests(TestCase):
         }
 
     def test_a_lost_callback_is_recovered(self):
-        with patch("reports.views.subscriptions.fetch_moyasar_invoice", return_value=self._invoice()):
+        with patch("reports.views.billing_gateways.fetch_moyasar_invoice", return_value=self._invoice()):
             summary = self._run()
 
         self.assertEqual(summary["activated"], 1)
@@ -370,7 +370,7 @@ class PaymentReconciliationTests(TestCase):
 
     def test_an_unpaid_invoice_stays_pending(self):
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice",
+            "reports.views.billing_gateways.fetch_moyasar_invoice",
             return_value=self._invoice(status="initiated"),
         ):
             summary = self._run()
@@ -381,7 +381,7 @@ class PaymentReconciliationTests(TestCase):
         self.assertEqual(self.payment.status, Payment.Status.PENDING)
 
     def test_reconciling_twice_activates_once(self):
-        with patch("reports.views.subscriptions.fetch_moyasar_invoice", return_value=self._invoice()):
+        with patch("reports.views.billing_gateways.fetch_moyasar_invoice", return_value=self._invoice()):
             self._run()
             end_date = SchoolSubscription.objects.get(school=self.school).end_date
             self._run()
@@ -393,7 +393,7 @@ class PaymentReconciliationTests(TestCase):
             created_at=timezone.now() - timedelta(days=30)
         )
 
-        with patch("reports.views.subscriptions.fetch_moyasar_invoice") as fetch:
+        with patch("reports.views.billing_gateways.fetch_moyasar_invoice") as fetch:
             summary = self._run()
 
         self.assertEqual(summary["checked"], 0)
@@ -401,7 +401,7 @@ class PaymentReconciliationTests(TestCase):
 
     def test_a_gateway_error_is_counted_and_does_not_crash_the_sweep(self):
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice",
+            "reports.views.billing_gateways.fetch_moyasar_invoice",
             side_effect=RuntimeError("gateway down"),
         ):
             summary = self._run()
@@ -420,7 +420,7 @@ class PaymentReconciliationTests(TestCase):
 
     def test_a_rescued_payment_alerts_the_team(self):
         """The rescue is automatic, but the upstream failure must not be silent."""
-        with patch("reports.views.subscriptions.fetch_moyasar_invoice", return_value=self._invoice()),                 patch("reports.telegram_alerts.queue_telegram_alert") as queue:
+        with patch("reports.views.billing_gateways.fetch_moyasar_invoice", return_value=self._invoice()),                 patch("reports.telegram_alerts.queue_telegram_alert") as queue:
             self._run()
 
         alerts = self._recovery_alerts(queue)
@@ -431,7 +431,7 @@ class PaymentReconciliationTests(TestCase):
 
     def test_no_alert_when_nothing_needed_rescuing(self):
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice",
+            "reports.views.billing_gateways.fetch_moyasar_invoice",
             return_value=self._invoice(status="initiated"),
         ), patch("reports.telegram_alerts.queue_telegram_alert") as queue:
             self._run()
@@ -439,14 +439,14 @@ class PaymentReconciliationTests(TestCase):
         self.assertEqual(self._recovery_alerts(queue), [])
 
     def test_a_rescue_is_announced_once_not_on_every_sweep(self):
-        with patch("reports.views.subscriptions.fetch_moyasar_invoice", return_value=self._invoice()),                 patch("reports.telegram_alerts.queue_telegram_alert") as queue:
+        with patch("reports.views.billing_gateways.fetch_moyasar_invoice", return_value=self._invoice()),                 patch("reports.telegram_alerts.queue_telegram_alert") as queue:
             self._run()
             self._run()
 
         self.assertEqual(len(self._recovery_alerts(queue)), 1)
 
     def test_a_broken_alert_channel_does_not_undo_the_recovery(self):
-        with patch("reports.views.subscriptions.fetch_moyasar_invoice", return_value=self._invoice()),                 patch(
+        with patch("reports.views.billing_gateways.fetch_moyasar_invoice", return_value=self._invoice()),                 patch(
                     "reports.telegram_alerts.queue_telegram_alert",
                     side_effect=RuntimeError("telegram down"),
                 ):

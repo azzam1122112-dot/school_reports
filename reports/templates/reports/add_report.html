@@ -7,7 +7,10 @@
 {% if report_ai_enabled %}
 <link rel="stylesheet" href="{% static 'css/report-ai-improver.css' %}?v=20260801.2">
 {% endif %}
-<style>
+{% if voice_report_enabled %}
+<link rel="stylesheet" href="{% static 'css/report-voice.css' %}?v=20260812.1">
+{% endif %}
+<style nonce="{{ CSP_NONCE }}">
   /* 
     ═══════════════════════════════════════════════════════════
     PREMIUM 2026 ADD REPORT DESIGN SYSTEM
@@ -936,14 +939,14 @@
       {{ form.section_selection_enabled }}
       {% if leadership_section %}
         <input type="hidden" name="leadership_section" value="{{ leadership_section.pk }}">
-        <div style="margin-bottom:20px;padding:15px 18px;border:1px solid #d4b16d;border-right:5px solid #0b6238;border-radius:12px;background:#fffaf0;color:#184c35;font-weight:800;line-height:1.8">
+        <div class="xs-add-report-1">
           <i class="fa-solid fa-crown" aria-hidden="true"></i>
           سيُضاف هذا التقرير تلقائيًا إلى ملف الأداء القيادي ضمن محور
           «{{ leadership_section.get_code_display }}» بعد الحفظ.
         </div>
       {% endif %}
 
-      <style>
+      <style nonce="{{ CSP_NONCE }}">
         .draft-banner{background:linear-gradient(135deg,#fff7ed,#fef3c7);border:1.5px solid #fcd34d;border-radius:18px;padding:14px 18px;margin-bottom:22px;display:none;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
         .draft-banner .msg{font-weight:800;color:#92400e;display:flex;align-items:center;gap:10px;font-size:1rem;}
         .draft-banner .msg i{font-size:1.3rem;color:#d97706;}
@@ -1005,10 +1008,10 @@
           <div class="ar-card">
             
             <!-- Top Controls -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+            <div class="xs-add-report-2">
               
               <!-- Category -->
-              <div class="ar-field" data-group="category" style="margin:0">
+              <div class="ar-field u-m-0" data-group="category">
                 <label for="{{ form.category.id_for_label }}"><i class="fa-solid fa-tag"></i> تصنيف التقرير <span class="ar-required-mark">مطلوب</span></label>
                  <select name="{{ form.category.html_name }}" id="{{ form.category.id_for_label }}">
                   <option value="" selected disabled>-- اختر التصنيف --</option>
@@ -1029,7 +1032,7 @@
               </div>
 
               <!-- Title -->
-              <div class="ar-field" data-group="title" style="margin:0">
+              <div class="ar-field u-m-0" data-group="title">
                  <label for="{{ form.title.id_for_label }}"><i class="fa-solid fa-heading"></i> العنوان <span class="ar-required-mark">مطلوب</span></label>
                  {{ form.title }}
                  {% if form.title.errors %}<div class="ar-error-msg">{{ form.title.errors.0 }}</div>{% endif %}
@@ -1038,22 +1041,22 @@
             </div>
 
             <!-- Meta Row -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <div class="xs-add-report-3">
                
-               <div class="ar-field" data-group="report_date" style="margin:0">
+               <div class="ar-field u-m-0" data-group="report_date">
                  <label for="{{ form.report_date.id_for_label }}"><i class="fa-regular fa-calendar"></i> التاريخ <span class="ar-required-mark">مطلوب</span></label>
                  {{ form.report_date }}
-                 <div id="reportDateHijri" aria-live="polite" style="margin-top:6px;font-weight:800;color:#0a5c33;font-size:.95rem;"></div>
+                 <div id="reportDateHijri" aria-live="polite" class="xs-add-report-4"></div>
                  {% if form.report_date.errors %}<div class="ar-error-msg">{{ form.report_date.errors.0 }}</div>{% endif %}
-                 <div class="ar-error-msg" id="futureDateErr" style="display:none">تاريخ مستقبلي غير مسموح</div>
+                 <div class="ar-error-msg u-hidden" id="futureDateErr">تاريخ مستقبلي غير مسموح</div>
                </div>
 
-               <div class="ar-field" style="margin:0">
+               <div class="ar-field u-m-0">
                  <label for="{{ form.day_name.id_for_label }}">اليوم</label>
                  {{ form.day_name }}
                </div>
 
-               <div class="ar-field" data-group="teacher_name" style="margin:0">
+               <div class="ar-field u-m-0" data-group="teacher_name">
                  <label for="id_teacher_name"><i class="fa-solid fa-user"></i> {{ SCHOOL_EXECUTOR_LABEL|default:"المنفّذ" }}</label>
                  <input type="text" id="id_teacher_name" name="teacher_name" 
                         value="{{ request.user.name|default:'' }}" readonly aria-readonly="true">
@@ -1121,6 +1124,7 @@
                     <label class="ar-section-field-head" for="{{ form.idea.id_for_label }}"><i class="fa-solid fa-align-right"></i> تفاصيل التقرير <span class="ar-required-mark">مطلوب عند الاختيار</span></label>
                     {{ form.idea }}
                     {% if form.idea.errors %}<div class="ar-error-msg">{{ form.idea.errors.0 }}</div>{% endif %}
+                    {% if voice_report_enabled %}{% include "reports/partials/report_voice_input.html" with target_id=form.idea.id_for_label %}{% endif %}
                     {% if report_ai_enabled %}{% include "reports/partials/report_ai_improver.html" with target_id=form.idea.id_for_label %}{% endif %}
                   </div>
                 </div>
@@ -1162,13 +1166,13 @@
         <div class="ar-col-side">
           
           <div class="ar-card ar-sticky">
-            <h3 style="margin:0 0 20px; font-size:1.1rem; font-weight:900"><i class="fa-solid fa-images"></i> المرفقات والصور</h3>
+            <h3 class="xs-add-report-5"><i class="fa-solid fa-images"></i> المرفقات والصور</h3>
             
             <div class="ar-img-grid">
                {% for i in "1234" %}
                <label class="ar-drop-zone" for="id_image{{ i }}">
                   <i class="fa-solid fa-camera"></i>
-                  <span style="font-size:0.8rem; font-weight:700; color:var(--ar-text-soft)">صورة {{ i }}</span>
+                  <span class="xs-add-report-6">صورة {{ i }}</span>
                   <input type="file" name="image{{ i }}" id="id_image{{ i }}" accept="image/*" aria-label="إرفاق الصورة {{ i }}">
                </label>
                {% endfor %}
@@ -1181,7 +1185,7 @@
             </button>
             
              {% if form.non_field_errors %}
-               <div class="ar-error-msg" style="margin-top:10px;justify-content:center">
+               <div class="ar-error-msg u-mt-3 u-justify-center">
                  {% for e in form.non_field_errors %}{{ e }}{% endfor %}
                </div>
              {% endif %}
@@ -1219,6 +1223,9 @@
 {% block scripts %}
 {% if report_ai_enabled %}
 <script src="{% static 'js/report-ai-improver.js' %}?v=20260801.2" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
+{% endif %}
+{% if voice_report_enabled %}
+<script src="{% static 'js/report-voice.js' %}?v=20260812.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
 {% endif %}
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   /* Logic preserved and compacted */

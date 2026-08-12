@@ -43,7 +43,7 @@
     </div>
     <div class="lab-stat">
       <span class="lab-stat__l"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> الحالة</span>
-      <span class="lab-stat__v" style="font-size:17px">{{ asset.get_condition_display }}</span>
+      <span class="lab-stat__v xs-lab-asset-detail-1">{{ asset.get_condition_display }}</span>
     </div>
   </section>
 
@@ -93,12 +93,12 @@
               {% endfor %}
             </select>
           </div>
-          <div class="lab-field" style="align-self:end">
+          <div class="lab-field u-self-end">
             <button type="submit" class="lab-btn lab-btn--ghost">حدّث الحالة</button>
           </div>
         </form>
 
-        <hr style="border:0;border-top:1px solid var(--lab-line);margin:1rem 0">
+        <hr class="xs-lab-asset-detail-2">
 
         <form method="post" action="{% url 'reports:lab_asset_action' asset.pk %}">
           {% csrf_token %}
@@ -108,7 +108,7 @@
               <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
               أخرِجه من الجرد
             </button>
-            <p class="helptext" style="margin:.5rem 0 0">
+            <p class="helptext xs-lab-asset-detail-3">
               لا يُحذف الصنف: حذفُه يمحو سجلّ حركته، فيسقط أثر من تسلّمه ومتى.
             </p>
           {% else %}
@@ -132,7 +132,7 @@
       </div>
     </section>
   {% else %}
-    <div class="lab-card" style="margin-bottom:1.1rem">
+    <div class="lab-card xs-lab-asset-detail-4">
       متابعةٌ للاطلاع: التسجيل في العهدة من عمل محضّر المختبر.
     </div>
   {% endif %}

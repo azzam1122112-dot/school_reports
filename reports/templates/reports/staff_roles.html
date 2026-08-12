@@ -4,7 +4,7 @@
 {% block title %}الأدوار والصلاحيات | منصة توثيق{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* ═══════════════════════════════════════════════════════════════════
      الأدوار والصلاحيات — كشفٌ يُبحث فيه، وإسنادٌ بنقرة، وتفويضٌ بمدة جاهزة.
      الرموز مُنطَقة تحت .rol-page كي لا تتسرب.
@@ -424,7 +424,7 @@
         {% endif %}
       </form>
 
-      <div class="rol-filters" style="margin-bottom:1rem">
+      <div class="rol-filters u-mb-lg">
         <a class="rol-filter" {% if not role_filter %}aria-current="true"{% endif %}
            href="?{% if query %}q={{ query|urlencode }}{% endif %}">الكل <b>{{ counts.all }}</b></a>
         <a class="rol-filter" {% if role_filter == 'deputy' %}aria-current="true"{% endif %}
@@ -560,11 +560,10 @@
         {% csrf_token %}
         <input type="hidden" name="action" value="assign_role">
 
-        <div class="rol-field" style="margin-bottom:1rem">
+        <div class="rol-field u-mb-lg">
           <label for="{{ assign_form.member.id_for_label }}">{{ assign_form.member.label }}</label>
-          <input type="search" class="rol-pick" data-picks="{{ assign_form.member.id_for_label }}"
-                 placeholder="اكتب حرفاً من الاسم لتصفية القائمة…" aria-label="تصفية قائمة المنسوبين"
-                 style="margin-bottom:.4rem">
+          <input type="search" class="rol-pick xs-staff-roles-1" data-picks="{{ assign_form.member.id_for_label }}"
+                 placeholder="اكتب حرفاً من الاسم لتصفية القائمة…" aria-label="تصفية قائمة المنسوبين">
           {{ assign_form.member }}
           {% if assign_form.member.errors %}
             <ul class="rol-errors">{% for e in assign_form.member.errors %}<li>{{ e }}</li>{% endfor %}</ul>
@@ -594,7 +593,7 @@
           {% endif %}
         </div>
 
-        <div class="rol-field" style="margin-top:1rem">
+        <div class="rol-field u-mt-lg">
           <label class="rol-switch">
             {{ assign_form.keep_teaching_role }}
             <span>{{ assign_form.keep_teaching_role.label }}</span>
@@ -606,7 +605,7 @@
           <ul class="rol-errors">{% for e in assign_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
         {% endif %}
 
-        <div style="margin-top:1.1rem">
+        <div class="u-mt-xl">
           <button type="submit" class="rol-btn rol-btn--primary">
             <i class="fa-solid fa-user-check" aria-hidden="true"></i>
             إسناد الدور
@@ -614,9 +613,9 @@
         </div>
       </form>
 
-      <div class="rol-card__hint" style="margin:1.2rem 0 0">
+      <div class="rol-card__hint xs-staff-roles-2">
         {% for item in role_help %}
-          <div style="margin-top:.4rem">
+          <div class="xs-staff-roles-3">
             <span class="rol-tag">{{ item.label }}</span> {{ item.text }}
           </div>
         {% endfor %}
@@ -683,9 +682,8 @@
           <label for="{{ delegation_form.delegate.id_for_label }}">
             ① {{ delegation_form.delegate.label }}
           </label>
-          <input type="search" class="rol-pick" data-picks="{{ delegation_form.delegate.id_for_label }}"
-                 placeholder="اكتب حرفاً من الاسم لتصفية القائمة…" aria-label="تصفية قائمة المفوَّض إليهم"
-                 style="margin-bottom:.4rem">
+          <input type="search" class="rol-pick xs-staff-roles-1" data-picks="{{ delegation_form.delegate.id_for_label }}"
+                 placeholder="اكتب حرفاً من الاسم لتصفية القائمة…" aria-label="تصفية قائمة المفوَّض إليهم">
           {{ delegation_form.delegate }}
           {% if delegation_form.delegate.errors %}
             <ul class="rol-errors">{% for e in delegation_form.delegate.errors %}<li>{{ e }}</li>{% endfor %}</ul>
@@ -693,9 +691,9 @@
         </div>
 
         {# ② المدة #}
-        <div class="rol-field" style="margin-top:1.2rem">
+        <div class="rol-field u-mt-2xl">
           <label>② المدة</label>
-          <div class="rol-chips" style="margin-bottom:.7rem">
+          <div class="rol-chips xs-staff-roles-4">
             <button type="button" class="rol-chip rol-chip--gold" data-days="1" aria-pressed="false">يوم واحد</button>
             <button type="button" class="rol-chip rol-chip--gold" data-days="3" aria-pressed="false">٣ أيام</button>
             <button type="button" class="rol-chip rol-chip--gold" data-days="7" aria-pressed="false">أسبوع</button>
@@ -727,14 +725,14 @@
         </div>
 
         {# ③ الصلاحيات #}
-        <div class="rol-field" style="margin-top:1.3rem">
+        <div class="rol-field xs-staff-roles-5">
           <label>③ {{ delegation_form.capabilities.label }}</label>
-          <p class="rol-card__hint" style="margin-bottom:.7rem">
+          <p class="rol-card__hint xs-staff-roles-4">
             ابدأ بتوليفة جاهزة ثم عدّلها. وتُعرض هنا الصلاحيات النافذة فعلاً
             فقط — تفويض صلاحية غير مفعّلة يمنحك طمأنينة كاذبة وقت غيابك.
           </p>
 
-          <div class="rol-preset" style="margin-bottom:.9rem">
+          <div class="rol-preset u-mb-09">
             {% for preset in delegation_presets %}
               <button type="button" class="rol-preset__b" data-preset="{{ preset.capabilities|join:',' }}">
                 <span class="rol-preset__t">
@@ -746,7 +744,7 @@
             {% endfor %}
           </div>
 
-          <div class="rol-chips" style="margin-bottom:.8rem">
+          <div class="rol-chips u-mb-md">
             <button type="button" class="rol-chip" id="capsNone">
               <i class="fa-solid fa-eraser" aria-hidden="true"></i>
               مسح الاختيار
@@ -789,7 +787,7 @@
           <ul class="rol-errors">{% for e in delegation_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
         {% endif %}
 
-        <div style="margin-top:1.1rem">
+        <div class="u-mt-xl">
           <button type="submit" class="rol-btn rol-btn--primary">
             <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i>
             منح التفويض

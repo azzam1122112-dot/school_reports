@@ -1,0 +1,280 @@
+/* مسجّل الإملاء الصوتي — بنفس لغة أداة تحسين الصياغة المجاورة له في الصفحة،
+   ليقرأ الاثنان كأداتين لنظام واحد لا كإضافتين متجاورتين. */
+
+.report-voice {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid rgba(0, 108, 53, .18);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(0, 108, 53, .055), rgba(21, 128, 200, .06));
+}
+
+/* كل مراحل المسجّل تُخفى بسمة ``hidden``، وأغلبها ``display:flex`` أو ``grid``
+   — وهما يغلبان قاعدة المتصفّح الافتراضية لـ ``[hidden]`` فتظهر المرحلة كلها
+   رغم إخفائها. ظهر ذلك في لقطة المتصفّح: صندوق «غير متاح» والمؤقّت معروضين
+   داخل التطبيق المثبَّت. */
+.report-voice [hidden] { display: none !important; }
+
+/* ── الترويسة ─────────────────────────────────────────────────────────── */
+.report-voice-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(0, 108, 53, .16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .72);
+}
+
+.report-voice-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #0a7a45, #05502d);
+  box-shadow: 0 7px 16px rgba(6, 82, 47, .2);
+}
+
+.report-voice-copy strong,
+.report-voice-copy span { display: block; }
+.report-voice-copy strong { color: #183d2c; font-size: .82rem; font-weight: 900; }
+.report-voice-copy span { margin-top: 2px; color: #64736c; font-size: .73rem; font-weight: 700; }
+
+.report-voice-quota { text-align: center; white-space: nowrap; }
+/* الابن المباشر وحده: ``span`` عام هنا كان يجعل رقم المتبقي داخل ``b`` كتلةً
+   فينكسر «٣ من ٣» على ثلاثة أسطر. */
+.report-voice-quota > span { display: block; color: #64736c; font-size: .66rem; font-weight: 800; }
+.report-voice-quota b { color: #087443; font-size: .95rem; font-weight: 950; }
+.report-voice.is-exhausted .report-voice-quota b { color: #b42318; }
+
+/* ── الحالة المقفلة ───────────────────────────────────────────────────── */
+.report-voice-locked {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px dashed rgba(185, 151, 91, .45);
+  border-radius: 12px;
+  background: rgba(251, 248, 241, .8);
+}
+.report-voice-locked i { flex: none; margin-top: 2px; color: #8a6a2b; font-size: 1.05rem; }
+.report-voice-locked p { margin: 0; color: #6d6042; font-size: .79rem; font-weight: 700; line-height: 1.85; }
+
+/* ── مؤشّر الصوت الحيّ ─────────────────────────────────────────────────── */
+.report-voice-meter {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 44px;
+  margin-bottom: 10px;
+  opacity: .35;
+  transition: opacity .2s ease;
+}
+.report-voice.is-recording .report-voice-meter { opacity: 1; }
+.report-voice-meter i {
+  width: 5px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #12a35c, #05502d);
+  transform-origin: bottom;
+  /* الارتفاع يُضبط من الجافاسكربت بقيمة حقيقية من الميكروفون لا برسم زخرفي. */
+  transition: height .08s linear;
+}
+
+.report-voice-timer {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.report-voice-timer span { color: #17251f; font-size: 1.35rem; font-weight: 950; font-variant-numeric: tabular-nums; }
+.report-voice-timer small { color: #64736c; font-size: .74rem; font-weight: 800; }
+.report-voice-timer.is-ending small { color: #b42318; }
+
+/* ── الأزرار ──────────────────────────────────────────────────────────── */
+.report-voice-actions,
+.report-voice-result-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.report-voice-record,
+.report-voice-secondary,
+.report-voice-send,
+.report-voice-accept,
+.report-voice-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 9px 18px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  font: 800 .88rem/1.4 "Cairo", sans-serif;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.report-voice-record,
+.report-voice-send,
+.report-voice-accept {
+  color: #fff;
+  background: linear-gradient(135deg, #0a7a45, #05502d);
+  box-shadow: 0 10px 22px rgba(6, 82, 47, .22);
+}
+.report-voice-record:hover:not(:disabled),
+.report-voice-send:hover:not(:disabled),
+.report-voice-accept:hover:not(:disabled) { transform: translateY(-1px); }
+.report-voice-record:disabled,
+.report-voice-send:disabled { cursor: not-allowed; opacity: .55; box-shadow: none; }
+
+/* أثناء التسجيل يصير الزرّ أحمر — لا لبس بين «ابدأ» و«أوقف». */
+.report-voice.is-recording .report-voice-record {
+  background: linear-gradient(135deg, #d92d20, #912018);
+  box-shadow: 0 0 0 0 rgba(217, 45, 32, .5);
+  animation: report-voice-pulse 1.8s ease-out infinite;
+}
+@keyframes report-voice-pulse {
+  70% { box-shadow: 0 0 0 14px rgba(217, 45, 32, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(217, 45, 32, 0); }
+}
+
+.report-voice-secondary,
+.report-voice-cancel {
+  color: #17251f;
+  background: #fff;
+  border-color: #d8e2dc;
+}
+
+.report-voice-accept.is-replace {
+  color: #05502d;
+  background: rgba(10, 122, 69, .1);
+  border-color: rgba(10, 122, 69, .3);
+  box-shadow: none;
+}
+
+/* ── المراجعة والنتيجة ────────────────────────────────────────────────── */
+.report-voice-review {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #e3ebe7;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .75);
+}
+.report-voice-review audio { width: 100%; height: 40px; }
+
+.report-voice-status {
+  margin: 10px 0 0;
+  min-height: 20px;
+  text-align: center;
+  color: #64736c;
+  font-size: .79rem;
+  font-weight: 700;
+  line-height: 1.8;
+}
+.report-voice-status.is-error { color: #b42318; }
+.report-voice-status.is-success { color: #087443; }
+
+.report-voice-result {
+  margin-top: 12px;
+  border: 1px solid #dfe8e3;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+.report-voice-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf2ef;
+  background: #f4f9f6;
+  color: #087443;
+  font-size: .8rem;
+  font-weight: 900;
+}
+.report-voice-result-head span { color: #64736c; font-size: .71rem; font-weight: 700; }
+.report-voice-result-text {
+  max-height: 280px;
+  overflow: auto;
+  padding: 14px;
+  color: #17251f;
+  white-space: pre-wrap;
+  font-size: .92rem;
+  font-weight: 650;
+  line-height: 1.9;
+}
+.report-voice-result-actions {
+  padding: 10px 12px 12px;
+  border-top: 1px solid #edf2ef;
+  justify-content: flex-start;
+}
+
+.report-voice-note {
+  margin: 10px 0 0;
+  color: #6d7c74;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.85;
+}
+
+/* ── الوضع الداكن ─────────────────────────────────────────────────────── */
+html[data-theme="dark"] .report-voice {
+  border-color: rgba(72, 187, 120, .24);
+  background: linear-gradient(135deg, rgba(16, 92, 57, .2), rgba(21, 128, 200, .1));
+}
+html[data-theme="dark"] .report-voice-head {
+  border-color: rgba(72, 187, 120, .2);
+  background: rgba(13, 34, 26, .58);
+}
+html[data-theme="dark"] .report-voice-copy strong { color: #e6f2eb; }
+html[data-theme="dark"] .report-voice-copy span,
+html[data-theme="dark"] .report-voice-quota span { color: #aebdb5; }
+html[data-theme="dark"] .report-voice-locked {
+  border-color: rgba(214, 197, 157, .32);
+  background: rgba(43, 39, 25, .55);
+}
+html[data-theme="dark"] .report-voice-locked i,
+html[data-theme="dark"] .report-voice-locked p { color: #d6c59d; }
+html[data-theme="dark"] .report-voice-timer span { color: #e7f1ec; }
+html[data-theme="dark"] .report-voice-timer small,
+html[data-theme="dark"] .report-voice-status,
+html[data-theme="dark"] .report-voice-note { color: #aebdb5; }
+html[data-theme="dark"] .report-voice-review,
+html[data-theme="dark"] .report-voice-secondary,
+html[data-theme="dark"] .report-voice-cancel,
+html[data-theme="dark"] .report-voice-result { background: #13251e; border-color: #294238; color: #dcebe3; }
+html[data-theme="dark"] .report-voice-result-head { border-color: #294238; background: #183027; color: #8fe0b2; }
+html[data-theme="dark"] .report-voice-result-head span { color: #aebdb5; }
+html[data-theme="dark"] .report-voice-result-text { color: #e7f1ec; }
+html[data-theme="dark"] .report-voice-result-actions { border-color: #294238; }
+
+@media (max-width: 520px) {
+  .report-voice-head { grid-template-columns: auto minmax(0, 1fr); }
+  .report-voice-quota { grid-column: 2; text-align: start; }
+  .report-voice-record,
+  .report-voice-secondary,
+  .report-voice-send,
+  .report-voice-accept,
+  .report-voice-cancel { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-voice-meter i,
+  .report-voice-record,
+  .report-voice-send,
+  .report-voice-accept { transition: none; animation: none; }
+}

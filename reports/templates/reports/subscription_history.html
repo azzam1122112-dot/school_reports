@@ -38,17 +38,17 @@
         <tbody>
           {% for payment in payments %}
           <tr>
-            <td><span dir="ltr" style="font-weight:900">{{ payment.created_at|date:"Y-m-d" }}</span></td>
-            <td>{{ payment.requested_plan.name|default:"-" }}{% if payment.requested_teacher_limit %}<small style="display:block">سعة {{ payment.requested_teacher_limit }} معلماً</small>{% endif %}</td>
+            <td><span dir="ltr" class="u-fw-900">{{ payment.created_at|date:"Y-m-d" }}</span></td>
+            <td>{{ payment.requested_plan.name|default:"-" }}{% if payment.requested_teacher_limit %}<small class="u-block">سعة {{ payment.requested_teacher_limit }} معلماً</small>{% endif %}</td>
             <td>
               {{ payment.get_payment_method_display }}
               {% if payment.payer_kind == 'group_director' %}
-                <small style="display:block">دفعتها {{ payment.payer_group.name|default:"مجموعة المدارس" }}</small>
+                <small class="u-block">دفعتها {{ payment.payer_group.name|default:"مجموعة المدارس" }}</small>
               {% elif payment.payer_kind == 'platform' %}
-                <small style="display:block">سجّلتها إدارة المنصة</small>
+                <small class="u-block">سجّلتها إدارة المنصة</small>
               {% endif %}
             </td>
-            <td style="font-weight:950">
+            <td class="u-fw-950">
                 {% if payment.amount < 0 %}
                 <span class="royal-status danger" dir="ltr">{{ payment.amount }} SAR</span>
                 {% else %}
@@ -64,17 +64,13 @@
                  <span class="royal-status"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
                {% elif payment.status == 'rejected' %}
                  <span class="royal-status danger"><i class="fa-solid fa-xmark" aria-hidden="true"></i> مرفوض</span>
-               {% elif payment.payment_method == 'tamara' and payment.gateway_status == 'new' %}
-                 <span class="royal-status warn"><i class="fa-solid fa-wallet" aria-hidden="true"></i> بانتظار إكمال الدفع</span>
-               {% elif payment.payment_method == 'tamara' %}
-                 <span class="royal-status warn"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار تأكيد{% if tamara_enabled %} تمارا{% else %} مزود الدفع{% endif %}</span>
                {% elif payment.payment_method == 'moyasar' %}
                  <span class="royal-status warn"><i class="fa-solid fa-wallet" aria-hidden="true"></i> بانتظار إكمال دفع ميّسر</span>
                {% else %}
                  <span class="royal-status warn"><i class="fa-solid fa-clock" aria-hidden="true"></i> قيد المراجعة</span>
                {% endif %}
             </td>
-            <td style="max-width: 340px;line-height:1.8">
+            <td class="xs-subscription-history-1">
                 {{ payment.notes|default:"-"|linebreaksbr }}
             </td>
           </tr>

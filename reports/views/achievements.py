@@ -654,7 +654,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
             rep_qs = Report.objects.select_related("category").filter(teacher=request.user)
             try:
-                if active_school is not None and _model_has_field(Report, "school"):
+                if active_school is not None:
                     rep_qs = rep_qs.filter(school=active_school)
             except Exception:
                 pass

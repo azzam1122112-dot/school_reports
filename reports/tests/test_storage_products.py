@@ -88,7 +88,7 @@ class StorageProductTests(TestCase):
         session.save()
 
     def _approve(self, payment):
-        from reports.views.subscriptions import _apply_payment_effects, _archive_pricing
+        from reports.views.billing_core import _apply_payment_effects, _archive_pricing
 
         from django.db import transaction
 
@@ -172,8 +172,8 @@ class StorageProductTests(TestCase):
         )
 
     def test_archive_space_is_refused_when_the_service_is_not_active(self):
-        from reports.views.subscriptions import _ApprovalError, _archive_pricing
-        from reports.views.subscriptions import _apply_payment_effects
+        from reports.views.billing_core import _ApprovalError, _archive_pricing
+        from reports.views.billing_core import _apply_payment_effects
         from django.db import transaction
 
         payment = Payment.objects.create(

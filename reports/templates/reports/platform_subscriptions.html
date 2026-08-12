@@ -728,7 +728,7 @@
                 <div class="pfsubs-sub">حتى {{ sub.end_date|hijri }} هـ</div>
                 {% if not sub.is_cancelled and not sub.is_expired and sub.plan.days_duration %}
                   <div class="pfsubs-lifebar" data-tone="{% if sub.days_remaining <= urgent_days %}danger{% elif sub.days_remaining <= soon_days %}warn{% else %}ok{% endif %}" aria-hidden="true">
-                    <span style="width:{% widthratio sub.days_remaining sub.plan.days_duration 100 %}%"></span>
+                    <span data-progress="{% widthratio sub.days_remaining sub.plan.days_duration 100 %}"></span>
                   </div>
                 {% endif %}
               </td>

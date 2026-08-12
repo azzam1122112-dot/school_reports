@@ -1,14 +1,14 @@
 {# reports/templates/reports/partials/achievement_report_picker_list.html #}
 
 {% if reports %}
-  <div class="af-report-list" style="display:grid; gap:12px;">
+  <div class="af-report-list u-grid u-gap-4">
     {% for r in reports %}
-      <div class="af-report-item royal-panel" style="padding:14px; display:flex; align-items:flex-start; justify-content:space-between; gap:14px;">
-        <div style="min-width:0; text-align:right;">
-          <div style="font-weight:950; color:var(--ink); line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:620px;">
+      <div class="af-report-item royal-panel xs-achievement-report-picker-list-1">
+        <div class="u-min-w-0 u-text-start">
+          <div class="xs-achievement-report-picker-list-2">
             {{ r.title|default:"(بدون عنوان)" }}
           </div>
-          <div style="margin-top:8px; color:var(--muted); font-weight:800; font-size:0.9rem; display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+          <div class="u-mt-2 u-text-muted-alt u-fw-800 u-fs-md u-flex u-gap-3 u-wrap u-justify-end">
             {% if r.category %}
               <span class="royal-status">{{ r.category.name }}</span>
             {% endif %}
@@ -18,14 +18,14 @@
           </div>
         </div>
 
-        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-start;">
+        <div class="u-flex u-gap-2 u-wrap u-justify-start">
           {% if r.id in already_ids %}
-            <button class="btn btn-outline" type="button" disabled style="opacity:0.66; cursor:not-allowed;">
+            <button class="btn btn-outline xs-achievement-report-picker-list-3" type="button" disabled>
               <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
               مضاف مسبقاً
             </button>
           {% else %}
-            <form method="post" action="{% url 'reports:achievement_file_detail' file.pk %}" style="margin:0">
+            <form method="post" action="{% url 'reports:achievement_file_detail' file.pk %}" class="u-m-0">
               {% csrf_token %}
               <input type="hidden" name="action" value="add_report_evidence" />
               <input type="hidden" name="section_id" value="{{ section.id }}" />
@@ -43,7 +43,7 @@
     {% endfor %}
   </div>
 {% else %}
-  <div class="royal-empty" style="border:1px dashed rgba(185,151,91,.32); border-radius:16px;">
+  <div class="royal-empty xs-achievement-report-picker-list-4">
     لا توجد تقارير مطابقة.
   </div>
 {% endif %}

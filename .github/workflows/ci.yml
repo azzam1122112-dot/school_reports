@@ -275,8 +275,8 @@ jobs:
                bash '$DEPLOY_PATH/deploy/hetzner/remote_deploy.sh'"
 
       # The image is what CI tests; the *configuration* is what the server holds,
-      # and nothing compared the two. A release once shipped with Tamara still
-      # advertised and Moyasar still off — every test green, the site wrong.
+      # and nothing compared the two. A release once shipped advertising a
+      # gateway that was switched off — every test green, the site wrong.
       #
       # production_preflight reads the settings of the container that is actually
       # serving traffic, so it is the only check that can see that gap. It exits 1

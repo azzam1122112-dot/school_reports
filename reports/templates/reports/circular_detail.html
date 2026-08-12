@@ -63,12 +63,12 @@
           <h2 class="cir-panel__head"><i class="fa-solid fa-chart-line"></i> ملخص التنفيذ</h2>
           <div class="cir-stats">
             <div class="cir-stat"><strong>{{ signature_stats.total }}</strong><span>مستلم</span></div>
-            <div class="cir-stat"><strong style="color:var(--cir-success)">{{ signature_stats.signed }}</strong><span>موقّع</span></div>
-            <div class="cir-stat"><strong style="color:var(--cir-danger)">{{ signature_stats.unsigned }}</strong><span>معلّق</span></div>
+            <div class="cir-stat"><strong class="xs-circular-detail-1">{{ signature_stats.signed }}</strong><span>موقّع</span></div>
+            <div class="cir-stat"><strong class="xs-circular-detail-2">{{ signature_stats.unsigned }}</strong><span>معلّق</span></div>
           </div>
           <div class="cir-progress">
             <div class="cir-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ signature_stats.signed_percentage|default:0 }}">
-              <div class="cir-progress__bar" style="width:{{ signature_stats.signed_percentage|default:0 }}%"></div>
+              <div class="cir-progress__bar" data-progress="{{ signature_stats.signed_percentage|default:0 }}"></div>
             </div>
             <div class="cir-progress__label"><span>نسبة اكتمال التوقيع</span><strong>{{ signature_stats.signed_percentage|default:0 }}%</strong></div>
           </div>
@@ -85,7 +85,7 @@
           <h2 class="cir-panel__head"><i class="fa-solid fa-users"></i> سجل المستلمين <span class="cir-status cir-status--signed" id="recipientCount">{{ recipients|length }}</span></h2>
           <div class="cir-search">
             <input class="cir-input" type="search" id="recipientSearch" placeholder="ابحث بالاسم أو الدور…" autocomplete="off">
-            <label class="cir-check" for="onlyUnsigned" style="margin-top:.55rem;width:100%">
+            <label class="cir-check xs-circular-detail-3" for="onlyUnsigned">
               <input type="checkbox" id="onlyUnsigned"> غير الموقّعين فقط
             </label>
           </div>
@@ -100,7 +100,7 @@
                   <td>{% if recipient.signed %}<span class="cir-status cir-status--signed" title="{{ recipient.signed_at }}">موقّع</span>{% else %}<span class="cir-status cir-status--pending">معلّق</span>{% endif %}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="3" style="text-align:center;padding:2rem">لا يوجد مستلمون لهذا التعميم.</td></tr>
+                <tr><td colspan="3" class="xs-circular-detail-4">لا يوجد مستلمون لهذا التعميم.</td></tr>
                 {% endfor %}
               </tbody>
             </table>

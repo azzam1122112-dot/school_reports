@@ -10,6 +10,8 @@ from django.db.models import QuerySet, Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 
+from core.observability import report_degraded as _degraded
+
 from .models import Department, SchoolGroup, SchoolGroupMembership, SchoolMembership, School
 
 # نحاول الاستيراد المرن لعضويات الأقسام
@@ -57,22 +59,28 @@ __all__ = [
 ]
 
 
+def _coerce_school_id(value) -> Optional[int]:
+    """معرّف مدرسة صحيح، أو ``None`` لكل ما ليس كذلك.
+
+    القيمة تصل من الجلسة أو من كائن قد يكون ``None`` — فالتحويل يفشل بـ
+    ``TypeError``/``ValueError`` وحدهما، وهما حالتان متوقَّعتان لا أعطال.
+    """
+    if not value:
+        return None
+    try:
+        return int(value) or None
+    except (TypeError, ValueError):
+        return None
+
+
 def _resolved_school_id(
     *,
     active_school: Optional[School] = None,
     active_school_id: Optional[int] = None,
 ) -> Optional[int]:
-    try:
-        if active_school_id:
-            return int(active_school_id)
-    except Exception:
-        pass
-    try:
-        if active_school is not None:
-            return int(getattr(active_school, "id", None) or 0) or None
-    except Exception:
-        pass
-    return None
+    return _coerce_school_id(active_school_id) or _coerce_school_id(
+        getattr(active_school, "id", None) if active_school is not None else None
+    )
 
 
 def _school_role_labels(active_school: Optional[School]) -> dict[str, str]:
@@ -924,7 +932,9 @@ def get_officer_departments(user, *, active_school: Optional[School] = None) -> 
                     seen.add(d.pk)
                     results.append(d)
         except Exception:
-            pass
+            # قائمةٌ فارغة هنا تعني «لا يرأس قسماً» — فيفقد رئيسُ القسم
+            # صلاحيات قسمه كاملةً. لا يجوز أن يقع ذلك بلا أثر.
+            _degraded("perm.officer_departments", user_id=getattr(user, "pk", None))
 
     return results
 
@@ -963,7 +973,7 @@ def get_member_departments(user, *, active_school: Optional[School] = None) -> L
                     seen.add(d.pk)
                     results.append(d)
         except Exception:
-            pass
+            _degraded("perm.member_departments", user_id=getattr(user, "pk", None))
 
     return results
 
@@ -979,17 +989,11 @@ def is_department_member(user, *, active_school: Optional[School] = None) -> boo
 
 
 def _scope_school_id(*, active_school: Optional[School] = None, report_school: Optional[School] = None) -> Optional[int]:
-    try:
-        if active_school is not None:
-            return int(getattr(active_school, "id", None) or 0) or None
-    except Exception:
-        pass
-    try:
-        if report_school is not None:
-            return int(getattr(report_school, "id", None) or 0) or None
-    except Exception:
-        pass
-    return None
+    return _coerce_school_id(
+        getattr(active_school, "id", None) if active_school is not None else None
+    ) or _coerce_school_id(
+        getattr(report_school, "id", None) if report_school is not None else None
+    )
 
 
 def _build_report_permission_scope(user, *, school_id: Optional[int]) -> dict:
@@ -1261,7 +1265,7 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
                         if code
                     }
         except Exception:
-            pass
+            _degraded("perm.allowed_codes_supervised", user_id=getattr(user, "pk", None))
 
         # ✅ رؤساء الأقسام (OFFICER)
         try:
@@ -1269,7 +1273,7 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
             for d in officer_depts:
                 allowed_codes |= set(c for c in d.reporttypes.values_list("code", flat=True) if c)
         except Exception:
-            pass
+            _degraded("perm.allowed_codes_officer", user_id=getattr(user, "pk", None))
 
         # ✅ أعضاء الأقسام (TEACHER) - عرض فقط
         try:
@@ -1277,10 +1281,13 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
             for d in member_depts:
                 allowed_codes |= set(c for c in d.reporttypes.values_list("code", flat=True) if c)
         except Exception:
-            pass
+            _degraded("perm.allowed_codes_member", user_id=getattr(user, "pk", None))
 
         return allowed_codes
     except Exception:
+        # مجموعةٌ فارغة = «لا يرى أي تصنيف». آمنٌ بحقّ، ومُعطِّلٌ تماماً — فيجب
+        # أن يصل التنبيه لا أن يُقرأ كأنه نتيجة صحيحة.
+        _degraded("perm.allowed_categories", user_id=getattr(user, "pk", None))
         return set()
 
 
@@ -1332,7 +1339,11 @@ def restrict_queryset_for_user(qs: QuerySet[Any], user, active_school: Optional[
             ).exists():
                 return qs
         except Exception:
-            pass
+            _degraded(
+                "perm.restrict_queryset_manager_check",
+                user_id=getattr(user, "pk", None),
+                school_id=getattr(active_school, "pk", None),
+            )
 
     allowed_codes = allowed_categories_for(user, active_school)
     if "all" in allowed_codes:

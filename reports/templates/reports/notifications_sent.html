@@ -5,7 +5,7 @@
 {% block title %}الإشعارات المرسلة{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      الإشعارات المرسلة - تصميم 2026
      تصميم عصري وفخم مع تأثيرات متقدمة
@@ -612,7 +612,7 @@
                 <span class="rate" id="rate-{{ n.id }}">{{ n.stat_rate|default:0 }}%</span>
               </div>
               <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ n.stat_rate|default:0 }}">
-                <div class="bar" style="width:{{ n.stat_rate|default:0 }}%"></div>
+                <div class="bar" data-progress="{{ n.stat_rate|default:0 }}"></div>
               </div>
             </div>
 
@@ -627,7 +627,7 @@
                 </a>
               {% endif %}
 
-              <form method="post" action="{% url 'reports:notification_delete' n.id %}" class="js-delete-form" data-confirm="سيتم حذف هذا الإشعار نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger" style="display:inline">
+              <form method="post" action="{% url 'reports:notification_delete' n.id %}" class="js-delete-form u-inline" data-confirm="سيتم حذف هذا الإشعار نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger">
                 {% csrf_token %}
                 <button class="ns-btn danger" type="submit">
                   <i class="fa-regular fa-trash-can" aria-hidden="true"></i> حذف

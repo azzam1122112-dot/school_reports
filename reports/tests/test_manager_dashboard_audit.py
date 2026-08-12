@@ -200,28 +200,17 @@ class ManagerDashboardAuditTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], reverse("reports:admin_dashboard"))
 
-    def test_weekly_summary_toggle_persists_and_confirms(self):
+    def test_retired_weekly_summary_toggle_post_is_rejected(self):
+        """The toggle is gone; a replayed POST must not resurrect it."""
         self._login()
-        membership = SchoolMembership.objects.get(
-            school=self.school, teacher=self.manager
-        )
 
-        self.client.post(
+        response = self.client.post(
             reverse("reports:admin_dashboard"),
             {"action": "toggle_weekly_summary_email", "weekly_summary_email_enabled": "0"},
         )
-        membership.refresh_from_db()
-        self.assertFalse(membership.weekly_summary_email_enabled)
 
-        response = self.client.get(reverse("reports:admin_dashboard"))
-        self.assertContains(response, "موقّف حاليًا")
-
-        self.client.post(
-            reverse("reports:admin_dashboard"),
-            {"action": "toggle_weekly_summary_email", "weekly_summary_email_enabled": "1"},
-        )
-        membership.refresh_from_db()
-        self.assertTrue(membership.weekly_summary_email_enabled)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("reports:admin_dashboard"))
 
     def test_dashboard_renders_and_exposes_its_payload(self):
         self._login()

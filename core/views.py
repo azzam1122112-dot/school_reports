@@ -166,7 +166,7 @@ def ops_metrics(request):
         infra["db_conn_max_age"] = getattr(connection.settings_dict, "CONN_MAX_AGE", None) or connection.settings_dict.get("CONN_MAX_AGE")
         infra["db_connection_usable"] = bool(connection.is_usable())
     except Exception:
-        pass
+        infra["db_probe"] = "unavailable"
 
     try:
         import os as _os
@@ -175,8 +175,9 @@ def ops_metrics(request):
         infra["process_cpu_seconds"] = round(float(_resource.getrusage(_resource.RUSAGE_SELF).ru_utime), 3)
         infra["process_ram_mb"] = round(float(_resource.getrusage(_resource.RUSAGE_SELF).ru_maxrss) / 1024, 1)
         infra["pid"] = _os.getpid()
-    except Exception:
-        pass
+    except (ImportError, OSError, ValueError):
+        # ``resource`` غير متاح على ويندوز — غيابُ المقياس متوقَّع لا عطل.
+        infra["process_rusage"] = "unavailable"
 
     try:
         import psutil  # type: ignore
@@ -185,7 +186,8 @@ def ops_metrics(request):
         infra["process_cpu_percent"] = proc.cpu_percent(interval=0.0)
         infra["process_rss_mb"] = round(proc.memory_info().rss / (1024 * 1024), 1)
     except Exception:
-        pass
+        # ``psutil`` اعتمادية اختيارية.
+        infra["process_psutil"] = "unavailable"
 
     # ── Redis key estimate (cache DB) ──
     try:
@@ -207,7 +209,7 @@ def ops_metrics(request):
 
         infra["ws_active_connections"] = int(cache.get("ws:gauge:active") or 0)
     except Exception:
-        pass
+        infra["ws_active_connections"] = "unavailable"
 
     # ── Celery queue lengths (best-effort via Redis LLEN) ──
     try:
@@ -219,7 +221,8 @@ def ops_metrics(request):
             for q in ("default", "notifications", "images", "periodic"):
                 infra[f"queue_len_{q}"] = r.llen(q)
     except Exception:
-        pass
+        # طولُ الطابور مقياسٌ تشغيلي: «غير متاح» جوابٌ صادق، والصمت ليس كذلك.
+        infra["queue_lengths"] = "unavailable"
 
     response = JsonResponse({
         "bucket": _opm._now_bucket(),

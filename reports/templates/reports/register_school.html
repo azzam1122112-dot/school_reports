@@ -1,6 +1,6 @@
-{% load static %}
+{% load i18n static %}
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html {% include "reports/partials/html_lang.html" %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -12,11 +12,11 @@
   <title>ابدأ تجربة مدرستك | منصة توثيق</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
   {% include "reports/partials/pwa_install_head.html" %}
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  {% comment %}الخط والأيقونات محلياً: لا طلب لطرف ثالث قبل أول حرف، ولا نطاق خارجي في سياسة المحتوى.{% endcomment %}
+  <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
-  <style>
+  <style nonce="{{ CSP_NONCE }}">
     :root {
       --forest: #071d15;
       --forest-2: #0a3f2b;
@@ -371,16 +371,16 @@
     <aside class="experience-panel" aria-label="مزايا التجربة المجانية">
       <a class="brand" href="{% url 'reports:landing' %}">
         <img src="{% static 'img/brand-mark.svg' %}" alt="" width="44" height="44">
-        <span><strong>منصة توثيق</strong><small>لتشغيل وتوثيق العمل المدرسي</small></span>
+        <span><strong>{% translate "منصة توثيق" %}</strong><small>{% translate "لتشغيل وتوثيق العمل المدرسي" %}</small></span>
       </a>
 
       <div class="experience-copy">
         <span class="trial-label"><i class="fa-solid fa-sparkles"></i> تجربة كاملة لمدة {{ trial_days }} يومًا</span>
-        <h1>ابدأ بمدرستك الحقيقية، لا بنسخة محدودة.</h1>
-        <p>بعد التسجيل ستدخل مباشرة إلى لوحة المدرسة، وتستطيع تجربة مسارات المنصة الأساسية قبل اتخاذ قرار الاشتراك.</p>
+        <h1>{% translate "ابدأ بمدرستك الحقيقية، لا بنسخة محدودة." %}</h1>
+        <p>{% translate "بعد التسجيل ستدخل مباشرة إلى لوحة المدرسة، وتستطيع تجربة مسارات المنصة الأساسية قبل اتخاذ قرار الاشتراك." %}</p>
         <ul class="benefit-list">
-          <li><i class="fa-solid fa-check"></i><span>التقارير وملفات الإنجاز والمخرجات بصيغة PDF</span></li>
-          <li><i class="fa-solid fa-check"></i><span>الطلبات والتذاكر والتعاميم والتوقيعات</span></li>
+          <li><i class="fa-solid fa-check"></i><span>{% translate "التقارير وملفات الإنجاز والمخرجات بصيغة PDF" %}</span></li>
+          <li><i class="fa-solid fa-check"></i><span>{% translate "الطلبات والتذاكر والتعاميم والتوقيعات" %}</span></li>
           <li><i class="fa-solid fa-check"></i><span>إضافة حتى {{ trial_teacher_limit }} من أعضاء الكادر لتجربة العمل الجماعي</span></li>
           <li><i class="fa-solid fa-check"></i><span>أرشيف تجريبي بسعة {{ trial_archive_storage_gb }}GB طوال فترة التجربة</span></li>
         </ul>
@@ -388,7 +388,7 @@
 
       <div class="privacy-note">
         <i class="fa-solid fa-shield-halved"></i>
-        <span>بيانات المدرسة معزولة، ولا تحتاج إلى بطاقة ائتمانية لبدء التجربة.</span>
+        <span>{% translate "بيانات المدرسة معزولة، ولا تحتاج إلى بطاقة ائتمانية لبدء التجربة." %}</span>
       </div>
     </aside>
 
@@ -399,12 +399,12 @@
 
       <header class="form-head">
         <div class="steps" aria-label="خطوات البدء">
-          <span data-step="1">بيانات المدرسة</span><i></i>
-          <span data-step="2">حساب إدارة المدرسة</span><i></i>
-          <span data-step="3">ابدأ التجربة</span>
+          <span data-step="1">{% translate "بيانات المدرسة" %}</span><i></i>
+          <span data-step="2">{% translate "حساب إدارة المدرسة" %}</span><i></i>
+          <span data-step="3">{% translate "ابدأ التجربة" %}</span>
         </div>
-        <h2>أنشئ حساب المدرسة</h2>
-        <p>أدخل البيانات الأساسية فقط. بعد الإنشاء سنعرض لك بيانات الدخول بوضوح في صفحة مستقلة.</p>
+        <h2>{% translate "أنشئ حساب المدرسة" %}</h2>
+        <p>{% translate "أدخل البيانات الأساسية فقط. بعد الإنشاء سنعرض لك بيانات الدخول بوضوح في صفحة مستقلة." %}</p>
       </header>
 
       {% if messages %}
@@ -438,7 +438,7 @@
               {% if form.gender.errors %}<ul class="error-list">{% for error in form.gender.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             </div>
             <div class="form-group full">
-              <label for="id_city">{{ form.city.label }} <span class="optional">اختياري</span></label>
+              <label for="id_city">{{ form.city.label }} <span class="optional">{% translate "اختياري" %}</span></label>
               {{ form.city }}
               {% if form.city.errors %}<ul class="error-list">{% for error in form.city.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             </div>
@@ -456,13 +456,13 @@
             <div class="form-group full">
               <label for="id_manager_phone">{{ form.manager_phone.label }}</label>
               {{ form.manager_phone }}
-              <p class="field-help">سيكون رقم الجوال هو اسم المستخدم عند تسجيل الدخول.</p>
+              <p class="field-help">{% translate "سيكون رقم الجوال هو اسم المستخدم عند تسجيل الدخول." %}</p>
               {% if form.manager_phone.errors %}<ul class="error-list">{% for error in form.manager_phone.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             </div>
             <div class="form-group full">
               <label for="id_manager_email">{{ form.manager_email.label }}</label>
               {{ form.manager_email }}
-              <p class="field-help"> ميس.</p>
+              <p class="field-help"> {% translate "ميس." %}</p>
               {% if form.manager_email.errors %}<ul class="error-list">{% for error in form.manager_email.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             </div>
             <div class="form-group">
@@ -497,7 +497,7 @@
 
         <div class="submit-row">
           <button class="submit-button" type="submit" id="submitButton">
-            <span>إنشاء المدرسة وبدء التجربة</span>
+            <span>{% translate "إنشاء المدرسة وبدء التجربة" %}</span>
             <i class="fa-solid fa-arrow-left"></i>
           </button>
           <span class="login-link">لديك حساب؟ <a href="{% url 'reports:login' %}">سجّل الدخول</a></span>

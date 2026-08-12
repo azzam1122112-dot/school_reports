@@ -392,40 +392,16 @@ class ManagerExperienceTests(TestCase):
         self.assertContains(response, "بيانات المدرسة والسنة الحالية")
         self.assertContains(response, "الأقسام")
 
-    def test_manager_can_toggle_weekly_summary_email_preference_from_dashboard(self):
+    def test_dashboard_has_no_weekly_summary_email_control(self):
+        """The summary is in-app only, so the dashboard offers no send toggle."""
         self._login_manager()
 
         response = self.client.get(reverse("reports:admin_dashboard"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "الملخص الأسبوعي على بريدك")
-        self.assertContains(response, 'name="weekly_summary_email_enabled" value="1"')
-        self.assertContains(response, 'name="weekly_summary_email_enabled" value="0"')
-        self.assertContains(response, "مفعّل حاليًا")
-
-        post_disable = self.client.post(
-            reverse("reports:admin_dashboard"),
-            {"action": "toggle_weekly_summary_email", "weekly_summary_email_enabled": "0"},
-            follow=True,
-        )
-
-        self.assertEqual(post_disable.status_code, 200)
-        self.manager_membership.refresh_from_db()
-        self.assertFalse(self.manager_membership.weekly_summary_email_enabled)
-        self.assertContains(post_disable, "موقّف حاليًا")
-
-        post_enable = self.client.post(
-            reverse("reports:admin_dashboard"),
-            {
-                "action": "toggle_weekly_summary_email",
-                "weekly_summary_email_enabled": "1",
-            },
-            follow=True,
-        )
-
-        self.assertEqual(post_enable.status_code, 200)
-        self.manager_membership.refresh_from_db()
-        self.assertTrue(self.manager_membership.weekly_summary_email_enabled)
+        self.assertNotContains(response, "الملخص الأسبوعي على بريدك")
+        self.assertNotContains(response, "weekly_summary_email_enabled")
+        self.assertNotContains(response, "toggle_weekly_summary_email")
 
     def test_dashboard_period_never_hides_old_open_actionable_ticket(self):
         ticket = Ticket.objects.create(

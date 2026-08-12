@@ -4,7 +4,7 @@
 الاشتراك مقصود: الحالة الواحدة يجب أن تحمل اللون نفسه في الشاشتين، وتكرار
 اللوحة في ملفين يجعل «مُعاد للملاحظة» برتقالياً هنا وأحمرَ هناك عند أول تعديل.
 {% endcomment %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .apr-page {
     --apr-ink: var(--id-ink); --apr-muted: var(--id-muted); --apr-line: var(--id-line);
     --apr-soft: var(--id-surface-2); --apr-surface: var(--id-surface);

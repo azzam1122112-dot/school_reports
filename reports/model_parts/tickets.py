@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from core.observability import report_degraded as _degraded
+
 from .base import *
 from .schools import Department, School, SchoolMembership, Teacher
 
@@ -335,6 +337,7 @@ def ensure_manager_department_and_role(sender, **kwargs):
                 if updates:
                     dep.save(update_fields=updates)
     except Exception:
+        _degraded("migrate.ensure_manager_department")
         # لا نرفع خطأ أثناء post_migrate للحفاظ على استقرار الهجرات
         pass
 

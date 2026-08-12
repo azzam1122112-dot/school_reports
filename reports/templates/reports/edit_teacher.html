@@ -3,7 +3,7 @@
 {% block title %}تعديل بيانات {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      TEACHER EDIT (page-only, scoped)
      - بدون إعادة تعريف .btn / .card
@@ -394,7 +394,7 @@
             <div class="te-hint">اترك الحقل فارغًا للحفاظ على كلمة المرور الحالية</div>
           </div>
 
-          <div class="te-group" style="grid-column: 1 / -1;">
+          <div class="te-group u-span-all">
             <div class="te-switch-row">
               <label class="te-switch" aria-label="تفعيل/تعطيل">
                 {{ form.is_active }}
@@ -402,7 +402,7 @@
               </label>
 
               <div class="te-switch-text">
-                <div style="display:flex;align-items:center;gap:8px;font-weight:950;color:var(--te-ink)">
+                <div class="xs-edit-teacher-1">
                   <i class="fa-solid fa-toggle-on te-icon" aria-hidden="true"></i>
                   نشط
                 </div>

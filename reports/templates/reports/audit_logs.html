@@ -5,7 +5,7 @@
 {% block title %}📜 سجل العمليات - {% if is_platform %}المنصة{% else %}{{ active_school.name }}{% endif %}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      AUDIT LOGS (page-only polish)
      - Scoped داخل .audit-wrap لتجنب تعارضات app.css
@@ -309,7 +309,7 @@
     <div class="audit-hd">
       <div>
         <h1 class="audit-title">
-          <i class="fa-solid fa-clock-rotate-left" style="opacity:.9"></i>
+          <i class="fa-solid fa-clock-rotate-left u-dim-more"></i>
           {% if is_platform %}
             سجل النظام
           {% else %}

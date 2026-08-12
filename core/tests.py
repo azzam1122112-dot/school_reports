@@ -213,7 +213,7 @@ class ContentSecurityPolicyTemplateTests(SimpleTestCase):
         ALLOWED_HOSTS=["testserver"],
         CSP_ENABLED=True,
         CSP_REPORT_ONLY=False,
-        TAMARA_ENABLED=True,
+        MOYASAR_ENABLED=True,
         CONTENT_SECURITY_POLICY=(
             "default-src 'self'; "
             "script-src 'self'; "
@@ -251,7 +251,7 @@ class ContentSecurityPolicyTemplateTests(SimpleTestCase):
         )
         sources = form_action.split()[1:]
         self.assertEqual(sources[0], "'self'")
-        self.assertIn("https://checkout.tamara.co", sources)
+        self.assertIn("https://checkout.moyasar.com", sources)
         self.assertTrue(
             all(source == "'self'" or source.startswith("https://") for source in sources),
             f"مصدر غير آمن في form-action: {form_action}",

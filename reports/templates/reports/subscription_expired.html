@@ -5,7 +5,7 @@
 {% block title %}{% if subscription and subscription.is_cancelled %}الاشتراك ملغي{% else %}الاشتراك منتهي{% endif %}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* صفحة انتهاء الاشتراك — تحسينات محلية بدون لمس .btn / .card */
   .se-wrap{
     --t: var(--t-fast);
@@ -157,13 +157,13 @@
                 <span dir="ltr">{{ subscription.end_date|date:"Y-m-d" }}</span>
               </div>
             {% else %}
-              <div class="se-box-ttl" style="font-weight:850">لا تتوفر تفاصيل اشتراك</div>
+              <div class="se-box-ttl xs-subscription-expired-1">لا تتوفر تفاصيل اشتراك</div>
             {% endif %}
           </div>
 
           {% if subscription and subscription.is_cancelled and subscription.cancel_reason %}
-            <div style="margin-top:10px; font-weight:900; color: var(--ink)">سبب الإلغاء</div>
-            <div style="margin-top:6px; font-weight:850; color: var(--muted); line-height:1.9">
+            <div class="u-mt-3 u-fw-900 u-text-ink">سبب الإلغاء</div>
+            <div class="xs-subscription-expired-2">
               {{ subscription.cancel_reason }}
             </div>
           {% endif %}

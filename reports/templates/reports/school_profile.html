@@ -4,7 +4,7 @@
 {% block title %}بروفايل المدرسة{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      School Profile — Scoped page styles only
      - بدون لمس .btn / .card العامة
@@ -227,7 +227,7 @@
         </div>
       </div>
 
-      <div style="height:14px"></div>
+      <div class="xs-school-profile-1"></div>
 
       <!-- KPIs -->
       <div class="schoolp-kpis" aria-label="مؤشرات سريعة">
@@ -261,7 +261,7 @@
         </div>
       </div>
 
-      <div style="height:14px"></div>
+      <div class="xs-school-profile-1"></div>
 
       <!-- Lists -->
       <div class="schoolp-two">

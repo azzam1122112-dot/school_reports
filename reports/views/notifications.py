@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from core.observability import report_degraded as _degraded, soft_call, soft_fail
+
 from ._helpers import *
 from ._helpers import (
     _is_staff, _is_staff_or_officer, _is_manager_in_school,
@@ -26,11 +28,12 @@ def notifications_create(request: HttpRequest, mode: str = "notification") -> Ht
     is_circular = mode == "circular"
 
     # نربط الإشعارات بمدرسة معيّنة للمدير/الضابط عبر المدرسة النشطة
-    active_school = None
-    try:
-        active_school = _get_active_school(request)
-    except Exception:
-        active_school = None
+    active_school = soft_call(
+        "notifications.active_school",
+        lambda: _get_active_school(request),
+        default=None,
+        user_id=getattr(request.user, "pk", None),
+    )
 
     is_superuser = bool(getattr(request.user, "is_superuser", False))
 
@@ -147,27 +150,43 @@ def notification_delete(request: HttpRequest, pk: int) -> HttpResponse:
         messages.error(request, "تعذّر حذف الإشعار.")
     return redirect(sent_list_url)
 
+def _resync_notification_clients(user) -> None:
+    """يُبطل كاش العدّادات ويطلب من المتصفحات إعادة المزامنة بعد تحديث جماعي.
+
+    ``update`` الجماعي لا يُطلق الإشارات، فالعدّاد المخزَّن والعميل المفتوح
+    يبقيان على الرقم القديم. وتعثّر أيٍّ من الخطوتين لا يُبطل العملية — الصفوف
+    حُدِّثت فعلاً — لكنه يترك المستخدم أمام عدّادٍ لا يتحرّك، فيُسجَّل.
+    """
+    teacher_id = int(getattr(user, "id", 0) or 0)
+    if not teacher_id:
+        return
+
+    with soft_fail("notifications.invalidate_counter_cache", user_id=teacher_id):
+        from ..cache_utils import invalidate_user_notifications
+
+        invalidate_user_notifications(teacher_id)
+
+    with soft_fail("notifications.push_force_resync", user_id=teacher_id):
+        from ..realtime_notifications import push_force_resync
+
+        push_force_resync(teacher_id=teacher_id)
+
+
 def _recipient_is_read(rec) -> tuple[bool, str | None]:
     for flag in ("is_read", "read", "seen", "opened"):
         if hasattr(rec, flag):
-            try:
+            with soft_fail("notifications.recipient_read_flag", field=flag):
                 return (bool(getattr(rec, flag)), None)
-            except Exception:
-                pass
     for dt in ("read_at", "seen_at", "opened_at"):
         if hasattr(rec, dt):
-            try:
+            with soft_fail("notifications.recipient_read_at", field=dt):
                 val = getattr(rec, dt)
                 return (bool(val), getattr(val, "strftime", lambda fmt: None)("%Y-%m-%d %H:%M") if val else None)
-            except Exception:
-                pass
     if hasattr(rec, "status"):
-        try:
+        with soft_fail("notifications.recipient_status"):
             st = str(rec.status or "").lower()
             if st in {"read", "seen", "opened", "done"}:
                 return (True, None)
-        except Exception:
-            pass
     return (False, None)
 
 def _arabic_role_label(role_slug: str, active_school: Optional[School] = None) -> str:
@@ -395,13 +414,13 @@ def notification_sign(request: HttpRequest, pk: int) -> HttpResponse:
     entered_phone = (request.POST.get("phone") or "").strip()
     ack = request.POST.get("ack") in {"1", "on", "true", "yes"}
 
-    # Register an attempt (best-effort)
-    try:
+    # Register an attempt (best-effort).
+    # عدّاد المحاولات هو ما يحدّ من تخمين رقم الجوال في التوقيع — فتعثّر حفظه
+    # يُبطل الحدّ ويجب أن يُرى، لا أن يُبتلع.
+    with soft_fail("notifications.signature_attempt_counter", recipient_id=rec.pk):
         rec.signature_attempt_count = attempts + 1
         rec.signature_last_attempt_at = now
         rec.save(update_fields=["signature_attempt_count", "signature_last_attempt_at"])
-    except Exception:
-        pass
 
     if not ack:
         messages.error(request, "يلزم الموافقة على الإقرار قبل اعتماد التوقيع.")
@@ -643,37 +662,19 @@ def unread_notifications_count(request: HttpRequest) -> HttpResponse:
     qs = NotificationRecipient.objects.filter(teacher=request.user)
 
     # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
-    try:
-        if Notification is not None and hasattr(Notification, "school"):
-            if active_school is not None:
-                qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
-            else:
-                qs = qs.filter(notification__school__isnull=True)
-    except Exception:
-        pass
+    if active_school is not None:
+        qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+    else:
+        qs = qs.filter(notification__school__isnull=True)
 
     # استبعاد المنتهي
-    try:
-        if Notification is not None and hasattr(Notification, "expires_at"):
-            qs = qs.filter(Q(notification__expires_at__gt=now) | Q(notification__expires_at__isnull=True))
-    except Exception:
-        pass
+    qs = qs.filter(Q(notification__expires_at__gt=now) | Q(notification__expires_at__isnull=True))
 
     # unread = unread notifications only (exclude circulars)
-    unread_q = Q(is_read=False)
-    try:
-        if Notification is not None and hasattr(Notification, "requires_signature"):
-            unread_q &= Q(notification__requires_signature=False)
-    except Exception:
-        pass
+    unread_q = Q(is_read=False) & Q(notification__requires_signature=False)
 
     # signatures_pending = unsigned circulars
-    pending_sig_q = Q(pk__in=[])
-    try:
-        if Notification is not None and hasattr(Notification, "requires_signature") and hasattr(NotificationRecipient, "is_signed"):
-            pending_sig_q = Q(notification__requires_signature=True, is_signed=False)
-    except Exception:
-        pending_sig_q = Q(pk__in=[])
+    pending_sig_q = Q(notification__requires_signature=True, is_signed=False)
 
     # count = items needing attention (backward compatible): unread notifications OR pending circular signatures
     attention_q = unread_q | pending_sig_q
@@ -692,10 +693,11 @@ def unread_notifications_count(request: HttpRequest) -> HttpResponse:
     }
 
     if cache_key and ttl > 0:
-        try:
-            cache.set(cache_key, payload, ttl)
-        except Exception:
-            pass
+        soft_call(
+            "notifications.badge_cache_set",
+            lambda: cache.set(cache_key, payload, ttl),
+            default=None,
+        )
 
     return JsonResponse(payload)
 
@@ -715,31 +717,17 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
     )
 
     # فصل: هذه الصفحة للإشعارات فقط (بدون التعاميم)
-    try:
-        if Notification is not None and hasattr(Notification, "requires_signature"):
-            qs = qs.filter(notification__requires_signature=False)
-    except Exception:
-        pass
+    qs = qs.filter(notification__requires_signature=False)
 
     # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
-    try:
-        if Notification is not None and hasattr(Notification, "school"):
-            if active_school is not None:
-                qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
-            else:
-                qs = qs.filter(notification__school__isnull=True)
-    except Exception:
-        pass
+    if active_school is not None:
+        qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+    else:
+        qs = qs.filter(notification__school__isnull=True)
 
-    # إخفاء المنتهية بحسب الحقول المتاحة
+    # إخفاء المنتهية
     now = timezone.now()
-    try:
-        if Notification is not None and hasattr(Notification, "expires_at"):
-            qs = qs.exclude(notification__expires_at__lt=now)
-        elif Notification is not None and hasattr(Notification, "ends_at"):
-            qs = qs.exclude(notification__ends_at__lt=now)
-    except Exception:
-        pass
+    qs = qs.exclude(notification__expires_at__lt=now)
 
     page = Paginator(qs, 12).get_page(request.GET.get("page") or 1)
 
@@ -748,8 +736,9 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
     # أو يضغط "تمت القراءة" لإشعار، أو "تحديد الكل كمقروء". هذا يجعل فلتر
     # "غير المقروء فقط" والعدّاد ذا معنى حقيقي.
 
-    # اسم المرسل + الدور الصحيح (مُوحّد)
-    try:
+    # اسم المرسل + الدور الصحيح (مُوحّد). تعثّرٌ هنا يترك الكشف بلا أسماء
+    # مرسلين — يُقرأ «إشعار مجهول المصدر»، وهو خطأ ظاهر يستحق أثراً.
+    with soft_fail("notifications.sender_labels", user_id=request.user.pk):
         items = list(page.object_list)
         for rr in items:
             n = getattr(rr, "notification", None)
@@ -758,8 +747,6 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
             rr.sender_name = _canonical_sender_name(sender)
             rr.sender_role_label = _canonical_role_label(sender, school_scope)
         page.object_list = items
-    except Exception:
-        pass
     return render(request, "reports/my_notifications.html", {"page_obj": page})
 
 
@@ -785,31 +772,17 @@ def my_circulars(request: HttpRequest) -> HttpResponse:
         return render(request, "reports/my_circulars.html", {"page_obj": Paginator([], 12).get_page(1)})
 
     # فصل: هذه الصفحة للتعاميم فقط
-    try:
-        if Notification is not None and hasattr(Notification, "requires_signature"):
-            qs = qs.filter(notification__requires_signature=True)
-    except Exception:
-        pass
+    qs = qs.filter(notification__requires_signature=True)
 
     # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
-    try:
-        if Notification is not None and hasattr(Notification, "school"):
-            if active_school is not None:
-                qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
-            else:
-                qs = qs.filter(notification__school__isnull=True)
-    except Exception:
-        pass
+    if active_school is not None:
+        qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+    else:
+        qs = qs.filter(notification__school__isnull=True)
 
-    # إخفاء المنتهية بحسب الحقول المتاحة
+    # إخفاء المنتهية
     now = timezone.now()
-    try:
-        if Notification is not None and hasattr(Notification, "expires_at"):
-            qs = qs.exclude(notification__expires_at__lt=now)
-        elif Notification is not None and hasattr(Notification, "ends_at"):
-            qs = qs.exclude(notification__ends_at__lt=now)
-    except Exception:
-        pass
+    qs = qs.exclude(notification__expires_at__lt=now)
 
     try:
         page = Paginator(qs, 12).get_page(request.GET.get("page") or 1)
@@ -866,14 +839,12 @@ def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
     is_circular = bool(getattr(n, "requires_signature", False))
 
     # منع الخلط 100%: إذا كان الرابط من تبويب خاطئ نعيد توجيهه للرابط الصحيح
-    try:
+    with soft_fail("notifications.detail_tab_redirect", recipient_id=r.pk):
         url_name = getattr(getattr(request, "resolver_match", None), "url_name", "") or ""
         if is_circular and url_name == "my_notification_detail":
             return redirect("reports:my_circular_detail", pk=r.pk)
         if (not is_circular) and url_name == "my_circular_detail":
             return redirect("reports:my_notification_detail", pk=r.pk)
-    except Exception:
-        pass
 
     body = (
         getattr(n, "message", None)
@@ -891,25 +862,23 @@ def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
         sender_name = _canonical_sender_name(sender)
         sender_role_label = _canonical_role_label(sender, school_scope)
     except Exception:
+        _degraded("notifications.detail_sender_label", recipient_id=r.pk)
         sender_name = "الإدارة"
         sender_role_label = ""
 
-    # Mark as read on open (best-effort, supports different schemas)
-    try:
+    # Mark as read on open.
+    # فشلٌ هنا يُبقي الإشعار «غير مقروء» بعد فتحه — فيظلّ العدّاد مرتفعاً بلا
+    # سبب مفهوم للمستخدم، وهو أكثر ما يُبلَّغ عنه في هذه الشاشة.
+    with soft_fail("notifications.mark_read_on_open", recipient_id=r.pk):
         updated_fields: list[str] = []
-        if hasattr(r, "is_read") and not bool(getattr(r, "is_read", False)):
+        if not bool(getattr(r, "is_read", False)):
             r.is_read = True
             updated_fields.append("is_read")
-        if hasattr(r, "read_at") and getattr(r, "read_at", None) is None:
+        if getattr(r, "read_at", None) is None:
             r.read_at = timezone.now()
             updated_fields.append("read_at")
         if updated_fields:
-            try:
-                r.save(update_fields=updated_fields)
-            except Exception:
-                r.save()
-    except Exception:
-        pass
+            r.save(update_fields=updated_fields)
 
     # هل انتهى آخر موعد للتوقيع؟ (لإغلاق نموذج التوقيع في الواجهة)
     signing_closed = False
@@ -968,91 +937,49 @@ def notifications_sent(request: HttpRequest, mode: str = "notification") -> Http
 
     # صفحة "المرسلة" تعرض فقط الإشعارات التي أرسلها مستخدم فعلياً.
     # إشعارات النظام (created_by=NULL) مثل التعليقات الخاصة والتنبيهات الآلية لا تظهر هنا.
-    try:
-        if hasattr(Notification, "created_by"):
-            qs = qs.filter(created_by__isnull=False)
-    except Exception:
-        pass
+    qs = qs.filter(created_by__isnull=False)
 
     # فصل التعاميم عن الإشعارات
-    try:
-        if hasattr(Notification, "requires_signature"):
-            qs = qs.filter(requires_signature=True) if is_circular else qs.filter(requires_signature=False)
-    except Exception:
-        pass
+    qs = qs.filter(requires_signature=True) if is_circular else qs.filter(requires_signature=False)
 
     # غير السوبر: لا يرى إلا إشعارات المدرسة النشطة (لا إشعارات عامة)
-    try:
-        if (not request.user.is_superuser) and hasattr(Notification, "school"):
-            qs = qs.filter(school=active_school)
-    except Exception:
-        pass
+    if not request.user.is_superuser:
+        qs = qs.filter(school=active_school)
 
     # صفحة "المرسلة" تعرض ما أرسله المستخدم الحالي فقط، بما في ذلك مدير النظام.
     # كان مدير النظام يرى كل إشعارات المنصة، فتضيع إشعاراته وسط الصفحات ولا تبدو كأنها أُرسلت.
     qs = qs.filter(created_by=request.user)
 
-    qs = qs.select_related("created_by")
-    try:
-        if hasattr(Notification, "school"):
-            qs = qs.select_related("created_by", "school")
-    except Exception:
-        pass
+    qs = qs.select_related("created_by", "school")
     page = Paginator(qs, 20).get_page(request.GET.get("page") or 1)
 
     notif_ids = [n.id for n in page.object_list]
     stats: dict[int, dict] = {}
 
-    # حساب read/total بمرونة على NotificationRecipient
-    if NotificationRecipient is not None and notif_ids:
-        notif_fk_name = None
-        try:
-            for f in NotificationRecipient._meta.get_fields():
-                if getattr(getattr(f, "remote_field", None), "model", None) is Notification:
-                    notif_fk_name = f.name
-                    break
-        except Exception:
-            notif_fk_name = None
-
-        if notif_fk_name:
-            fields = {f.name for f in NotificationRecipient._meta.get_fields()}
-            if "is_read" in fields:
-                read_filter = Q(is_read=True)
-            elif "read_at" in fields:
-                read_filter = Q(read_at__isnull=False)
-            elif "seen_at" in fields:
-                read_filter = Q(seen_at__isnull=False)
-            elif "status" in fields:
-                read_filter = Q(status__in=["read", "seen", "opened", "done"])
-            else:
-                read_filter = Q(pk__in=[])
-
-            fields = {f.name for f in NotificationRecipient._meta.get_fields()}
-            signed_filter = None
-            if "is_signed" in fields:
-                signed_filter = Q(is_signed=True)
-            elif "signed_at" in fields:
-                signed_filter = Q(signed_at__isnull=False)
-
-            ann = {
-                "total": Count("id"),
-                "read": Count("id", filter=read_filter),
-            }
-            if signed_filter is not None:
-                ann["signed"] = Count("id", filter=signed_filter)
-
-            rc = (
-                NotificationRecipient.objects
-                .filter(**{f"{notif_fk_name}_id__in": notif_ids})
-                .values(f"{notif_fk_name}_id")
-                .annotate(**ann)
+    # حساب read/total على NotificationRecipient.
+    #
+    # كانت هذه الكتلة تكتشف اسم المفتاح الأجنبي بالمرور على الميتا، ثم تختار
+    # حقل القراءة من بين أربعة مرشّحين، ثم حقل التوقيع من بين اثنين — وكلّها
+    # فروعٌ لمخطّطات لا وجود لها في هذا المشروع. والثمن أن أي خطأ حقيقي في
+    # الاستعلام كان يسقط في فرع «لا حقل مطابق» فتُعرض النسبة صفراً بلا خطأ:
+    # مديرٌ يقرأ «لم يقرأ أحد تعميمي» وهو مقروء.
+    if notif_ids:
+        rows = (
+            NotificationRecipient.objects
+            .filter(notification_id__in=notif_ids)
+            .values("notification_id")
+            .annotate(
+                total=Count("id"),
+                read=Count("id", filter=Q(is_read=True)),
+                signed=Count("id", filter=Q(is_signed=True)),
             )
-            for row in rc:
-                stats[row[f"{notif_fk_name}_id"]] = {
-                    "total": row.get("total", 0),
-                    "read": row.get("read", 0),
-                    "signed": row.get("signed", 0),
-                }
+        )
+        for row in rows:
+            stats[row["notification_id"]] = {
+                "total": row.get("total", 0),
+                "read": row.get("read", 0),
+                "signed": row.get("signed", 0),
+            }
 
     for n in page.object_list:
         bucket = stats.get(n.id, {})
@@ -1078,29 +1005,17 @@ def notifications_sent(request: HttpRequest, mode: str = "notification") -> Http
 
     for n in page.object_list:
         names_set = set()
-        try:
-            rel = getattr(n, "recipients", None)
-            if rel is not None:
-                for t in rel.all()[:12]:
-                    if t:
-                        nm = _name_of(t)
-                        if nm not in names_set:
-                            names_set.add(nm)
-        except Exception:
-            pass
+        with soft_fail("notifications.sent_recipient_names", notification_id=n.id):
+            for t in n.recipients.all()[:12]:
+                if t:
+                    nm = _name_of(t)
+                    if nm not in names_set:
+                        names_set.add(nm)
         rec_names_map[n.id] = list(names_set)
 
     remaining_ids = [nid for nid, arr in rec_names_map.items() if len(arr) < 5]
-    if remaining_ids and NotificationRecipient is not None:
-        notif_fk_name = None
-        try:
-            for f in NotificationRecipient._meta.get_fields():
-                if getattr(getattr(f, "remote_field", None), "model", None) is Notification:
-                    notif_fk_name = f.name
-                    break
-        except Exception:
-            pass
-
+    if remaining_ids:
+        notif_fk_name = "notification"
         if notif_fk_name:
             thr_qs = NotificationRecipient.objects.filter(**{f"{notif_fk_name}_id__in": remaining_ids})
             for r in thr_qs:
@@ -1168,46 +1083,20 @@ def notifications_mark_all_read(request: HttpRequest) -> HttpResponse:
     qs = qs.filter(Q(notification__expires_at__gt=timezone.now()) | Q(notification__expires_at__isnull=True))
 
     # فصل: هذا الإجراء خاص بالإشعارات فقط (يستبعد التعاميم)
+    qs = qs.filter(notification__requires_signature=False)
+
+    # ``update`` واحد بدل حلقةِ حفظٍ لكل صف. والفشل هنا **لا يُبتلع**: المستخدم
+    # كان يُخبَر «تم تحديد الجميع كمقروءة» ثم يجد العدّاد كما هو — وهو أسوأ من
+    # رسالة فشل صريحة.
     try:
-        if Notification is not None and hasattr(Notification, "requires_signature"):
-            qs = qs.filter(notification__requires_signature=False)
+        qs.filter(is_read=False).update(is_read=True, read_at=timezone.now())
     except Exception:
-        pass
-    try:
-        if "is_read" in {f.name for f in NotificationRecipient._meta.get_fields()}:
-            qs = qs.filter(is_read=False)
-            qs.update(is_read=True, read_at=timezone.now() if hasattr(NotificationRecipient, "read_at") else None)
-        elif "read_at" in {f.name for f in NotificationRecipient._meta.get_fields()}:
-            qs = qs.filter(read_at__isnull=True)
-            qs.update(read_at=timezone.now())
-        else:
-            pass
-    except Exception:
-        for x in qs:
-            try:
-                if hasattr(x, "is_read"):
-                    x.is_read = True
-                if hasattr(x, "read_at"):
-                    x.read_at = timezone.now()
-                x.save()
-            except Exception:
-                continue
+        _degraded("notifications.mark_all_read", user_id=request.user.pk)
+        messages.error(request, "تعذّر تحديد الإشعارات كمقروءة. أعد المحاولة.")
+        return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_notifications")
+
     messages.success(request, "تم تحديد جميع الإشعارات كمقروءة.")
-
-    try:
-        from ..cache_utils import invalidate_user_notifications
-
-        invalidate_user_notifications(int(getattr(request.user, "id", 0) or 0))
-    except Exception:
-        pass
-
-    # Bulk update won't trigger signals; ask clients to resync once.
-    try:
-        from ..realtime_notifications import push_force_resync
-
-        push_force_resync(teacher_id=int(getattr(request.user, "id", 0) or 0))
-    except Exception:
-        pass
+    _resync_notification_clients(request.user)
 
     return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_notifications")
 
@@ -1226,40 +1115,17 @@ def circulars_mark_all_read(request: HttpRequest) -> HttpResponse:
     else:
         qs = qs.filter(notification__school__isnull=True)
     qs = qs.filter(Q(notification__expires_at__gt=timezone.now()) | Q(notification__expires_at__isnull=True))
-    try:
-        if Notification is not None and hasattr(Notification, "requires_signature"):
-            qs = qs.filter(notification__requires_signature=True)
-    except Exception:
-        pass
+    qs = qs.filter(notification__requires_signature=True)
 
     try:
-        if "is_read" in {f.name for f in NotificationRecipient._meta.get_fields()}:
-            qs = qs.filter(is_read=False)
-            qs.update(is_read=True, read_at=timezone.now() if hasattr(NotificationRecipient, "read_at") else None)
-        elif "read_at" in {f.name for f in NotificationRecipient._meta.get_fields()}:
-            qs = qs.filter(read_at__isnull=True)
-            qs.update(read_at=timezone.now())
+        qs.filter(is_read=False).update(is_read=True, read_at=timezone.now())
     except Exception:
-        for x in qs:
-            try:
-                if hasattr(x, "is_read"):
-                    x.is_read = True
-                if hasattr(x, "read_at"):
-                    x.read_at = timezone.now()
-                x.save()
-            except Exception:
-                continue
+        _degraded("notifications.mark_all_circulars_read", user_id=request.user.pk)
+        messages.error(request, "تعذّر تحديد التعاميم كمقروءة. أعد المحاولة.")
+        return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_circulars")
 
     messages.success(request, "تم تحديد جميع التعاميم كمقروءة.")
-    try:
-        from ..cache_utils import invalidate_user_notifications
-        from ..realtime_notifications import push_force_resync
-
-        teacher_id = int(getattr(request.user, "id", 0) or 0)
-        invalidate_user_notifications(teacher_id)
-        push_force_resync(teacher_id=teacher_id)
-    except Exception:
-        pass
+    _resync_notification_clients(request.user)
     return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_circulars")
 
 # تعليم الإشعار كمقروء (حسب رقم الإشعار نفسه لا الـRecipient)

@@ -1,3 +1,4 @@
+{% load static %}
 {% load static hijri_tags %}
 <!doctype html>
 <html lang="ar" dir="rtl">
@@ -6,12 +7,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>محضر اجتماع: {% firstof meeting.title "بدون عنوان" %}</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  {% comment %}الخط والأيقونات محلياً: لا طلب لطرف ثالث قبل أول حرف، ولا نطاق خارجي في سياسة المحتوى.{% endcomment %}
+  <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
+  <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
 
-  <style>
+  <style nonce="{{ CSP_NONCE }}">
     :root {
       --font-body: 'Cairo', Tahoma, Arial, sans-serif;
       --ink: #111;
@@ -211,6 +212,7 @@
       .footer { display: grid; grid-template-columns: 1fr; text-align: center; }
     }
   </style>
+<link rel="stylesheet" href="{% static 'css/utilities.css' %}?v=20260812.1">
 </head>
 <body>
 
@@ -293,14 +295,14 @@
     {% if meeting.purpose %}
       <section class="section">
         <div class="section-h">الغرض من الاجتماع</div>
-        <div class="section-body" style="min-height:0">{{ meeting.purpose }}</div>
+        <div class="section-body u-min-h-0">{{ meeting.purpose }}</div>
       </section>
     {% endif %}
 
     {% if meeting.is_cancelled %}
       <section class="section">
         <div class="section-h">الإلغاء</div>
-        <div class="section-body" style="min-height:0">
+        <div class="section-body u-min-h-0">
           أُلغي هذا الاجتماع.{% if meeting.cancel_reason %} السبب: {{ meeting.cancel_reason }}{% endif %}
         </div>
       </section>
@@ -318,7 +320,7 @@
           {% endfor %}
         </ol>
       {% else %}
-        <div class="section-body" style="min-height:0">لم تُسجَّل بنود لجدول الأعمال.</div>
+        <div class="section-body u-min-h-0">لم تُسجَّل بنود لجدول الأعمال.</div>
       {% endif %}
     </section>
 
@@ -359,7 +361,7 @@
           </tbody>
         </table>
       {% else %}
-        <div class="section-body" style="min-height:0">لم تُسجَّل قرارات.</div>
+        <div class="section-body u-min-h-0">لم تُسجَّل قرارات.</div>
       {% endif %}
     </section>
 

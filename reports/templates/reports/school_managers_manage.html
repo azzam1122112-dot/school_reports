@@ -6,7 +6,7 @@
 
 {% block head %}
 {{ block.super }}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* صفحة إدارة مدراء المدرسة — تحسينات محلية فقط */
   .mgr-wrap{
     --r: 18px;
@@ -175,11 +175,11 @@
     </a>
   </header>
 
-  <div class="mgr-shell" style="margin-top:14px">
+  <div class="mgr-shell u-mt-5">
     <div class="royal-panel mgr-card">
-      <div style="margin-bottom:12px">
+      <div class="u-mb-4">
         <span class="royal-badge mgr-badge">
-          <i class="fa-solid fa-school" style="opacity:.85"></i>
+          <i class="fa-solid fa-school u-dim"></i>
           المدرسة: {{ school.name }}
         </span>
       </div>
@@ -188,7 +188,7 @@
         <!-- المدراء الحاليون -->
         <div>
           <h3 class="mgr-section-title">
-            <i class="fa-solid fa-user-tie" style="opacity:.85"></i> المدراء الحاليون
+            <i class="fa-solid fa-user-tie u-dim"></i> المدراء الحاليون
           </h3>
 
           {% if managers %}
@@ -197,7 +197,7 @@
                 <thead>
                   <tr>
                     <th>{{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}</th>
-                    <th style="width:220px">إجراء</th>
+                    <th class="xs-school-managers-manage-1">إجراء</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -205,7 +205,7 @@
                   <tr>
                     <td data-label="{{ SCHOOL_MANAGER_SHORT_LABEL|default:'المدير' }}"><b>{{ m.name }}</b></td>
                     <td data-label="إجراء">
-                      <form method="post" style="margin:0" class="js-once" data-confirm="هل تريد إزالة {{ SCHOOL_MANAGER_SHORT_LABEL|default:'المدير' }} «{{ m.name|escapejs }}» من المدرسة؟">
+                      <form method="post" class="js-once u-m-0" data-confirm="هل تريد إزالة {{ SCHOOL_MANAGER_SHORT_LABEL|default:'المدير' }} «{{ m.name|escapejs }}» من المدرسة؟">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="remove">
                         <input type="hidden" name="teacher_id" value="{{ m.id }}">
@@ -221,8 +221,8 @@
               </table>
             </div>
 
-            <div class="mgr-muted" style="margin-top:10px">
-              <i class="fa-solid fa-circle-info" style="opacity:.85"></i>
+            <div class="mgr-muted u-mt-3">
+              <i class="fa-solid fa-circle-info u-dim"></i>
               ملاحظة: الإزالة لا تحذف المستخدم، بل تفك ارتباطه بإدارة هذه المدرسة فقط.
             </div>
           {% else %}
@@ -235,7 +235,7 @@
         <!-- إضافة مدير -->
         <div>
           <h3 class="mgr-section-title">
-            <i class="fa-solid fa-user-plus" style="opacity:.85"></i> إضافة حساب إدارة جديد
+            <i class="fa-solid fa-user-plus u-dim"></i> إضافة حساب إدارة جديد
           </h3>
 
           <form method="post" class="mgr-form js-once" id="addManagerForm">
@@ -245,12 +245,12 @@
 
             <div class="mgr-inline">
               <div>
-                <label class="muted" style="font-weight:900;display:block;margin-bottom:6px">بحث</label>
+                <label class="muted u-fw-900 u-block u-mb-6px">بحث</label>
                 <input type="search" id="managerSearch" class="input" placeholder="ابحث باسم {{ SCHOOL_MANAGER_SHORT_LABEL|default:'المدير' }}" autocomplete="off" spellcheck="false">
               </div>
 
               <div class="wide">
-                <label class="muted" style="font-weight:900;display:block;margin-bottom:6px">اختر {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }}</label>
+                <label class="muted u-fw-900 u-block u-mb-6px">اختر {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }}</label>
                 <select name="teacher_id" id="managerSelect" class="input" required>
                   <option value="" disabled selected>اختر {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }} للتعيين كـ {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}...</option>
                   {% for t in teachers %}
@@ -260,17 +260,17 @@
                 <div class="hint">نصيحة: اكتب جزءًا من الاسم لتصفية القائمة.</div>
               </div>
 
-              <div style="flex:0 0 auto">
-                <button type="submit" class="btn btn-primary" style="min-height:44px;border-radius:14px">
+              <div class="u-shrink-0">
+                <button type="submit" class="btn btn-primary xs-school-managers-manage-2">
                   <i class="fa-solid fa-plus"></i> إضافة بصفة {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}
                 </button>
               </div>
             </div>
           </form>
 
-          <div class="royal-note mgr-row" style="margin-top:12px">
+          <div class="royal-note mgr-row u-mt-4">
             <div class="mgr-muted">
-              <i class="fa-solid fa-shield-halved" style="opacity:.85"></i>
+              <i class="fa-solid fa-shield-halved u-dim"></i>
               تلميح أمان: الإضافة/الإزالة تتم عبر POST مع CSRF، وتم منع الإرسال المكرر تلقائيًا.
             </div>
           </div>

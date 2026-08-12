@@ -3,7 +3,7 @@
 {% block title %}إضافة اشتراك جديد{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* ✅ Scoped فقط لهذه الصفحة */
   .subform-scope{
     --sf-brand: var(--brand, #006c35);
@@ -202,12 +202,10 @@
           <div>
             <label for="{{ form.school.id_for_label }}">المدرسة</label>
             
-            <div style="position:relative; margin-bottom:8px">
+            <div class="xs-platform-subscription-add-1">
               <input type="text" id="schoolSearch" 
-                     placeholder="ابحث باسم المدرسة..." 
-                     style="width:100%; padding:10px 12px; padding-inline-end:35px; border:1px solid var(--sf-line); border-radius:8px; font-size:0.95rem; background: var(--bg-surface, #fff);">
-              <i class="fa-solid fa-magnifying-glass" 
-                 style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--sf-muted); pointer-events:none"></i>
+                     placeholder="ابحث باسم المدرسة..." class="xs-platform-subscription-add-2">
+              <i class="fa-solid fa-magnifying-glass xs-platform-subscription-add-3"></i>
             </div>
 
             {{ form.school }}

@@ -6,7 +6,7 @@
 {% block content %}
 <div class="royal-page royal-page--narrow">
   <section class="royal-panel">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div class="u-flex u-items-start u-justify-between u-gap-4 u-wrap">
       <div>
         <span class="royal-kicker">
           <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
@@ -18,17 +18,17 @@
       <div class="royal-badge">طلب #{{ t.id }}</div>
     </div>
 
-    <form method="post" novalidate style="margin-top:16px">
+    <form method="post" novalidate class="u-mt-6">
       {% csrf_token %}
 
       <div class="royal-field full">
         {{ form.body }}
         {% if form.body.errors %}
-          <div class="royal-status danger" style="margin-top:8px">{{ form.body.errors }}</div>
+          <div class="royal-status danger u-mt-2">{{ form.body.errors }}</div>
         {% endif %}
       </div>
 
-      <div class="royal-form-actions" style="margin-top:14px">
+      <div class="royal-form-actions u-mt-5">
         <button type="submit" class="btn btn-primary">
           <i class="fa-solid fa-check" aria-hidden="true"></i>
           حفظ التعديل

@@ -29,7 +29,7 @@
         </p>
         <div class="cons-bar" role="img"
              aria-label="استهلاك مساحة العمل {{ consumption.storage.usage_percent }} بالمئة">
-          <span class="cons-bar__fill" style="width: {{ consumption.storage.usage_percent }}%"></span>
+          <span class="cons-bar__fill" data-progress="{{ consumption.storage.usage_percent }}"></span>
         </div>
         <p class="cons-card__sub">
           <strong>المتبقي {{ consumption.storage.remaining_label }}</strong>
@@ -56,7 +56,7 @@
         </p>
         <div class="cons-bar" role="img"
              aria-label="استهلاك المقاعد {{ consumption.seats.usage_percent }} بالمئة">
-          <span class="cons-bar__fill" style="width: {{ consumption.seats.usage_percent }}%"></span>
+          <span class="cons-bar__fill" data-progress="{{ consumption.seats.usage_percent }}"></span>
         </div>
         <p class="cons-card__sub">
           <strong>المتبقي {{ consumption.seats.remaining_label }} مقعداً</strong>
@@ -81,7 +81,7 @@
         </p>
         <div class="cons-bar" role="img"
              aria-label="استهلاك الأرشفة {{ consumption.archive.usage_percent }} بالمئة">
-          <span class="cons-bar__fill" style="width: {{ consumption.archive.usage_percent }}%"></span>
+          <span class="cons-bar__fill" data-progress="{{ consumption.archive.usage_percent }}"></span>
         </div>
         <p class="cons-card__sub">
           <strong>المتبقي {{ consumption.archive.remaining_label }}</strong>

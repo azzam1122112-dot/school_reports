@@ -4,7 +4,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .cdd-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
   @media (max-width: 900px) { .cdd-grid { grid-template-columns: 1fr; } }
   .cdd-meta { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
@@ -42,9 +42,9 @@
 
   <div class="cdd-grid">
     <div>
-      <section class="asg-card" style="margin-top:1.2rem">
-        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
-          <h2 class="asg-card__title" style="margin:0">نص التعميم</h2>
+      <section class="asg-card u-mt-2xl">
+        <div class="u-flex u-items-center u-gap-sm u-wrap u-mb-09">
+          <h2 class="asg-card__title u-m-0">نص التعميم</h2>
           {% if draft.is_published %}
             <span class="asg-tag asg-tag--done">
               <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
@@ -87,7 +87,7 @@
         {% endif %}
 
         {% if draft.is_published %}
-          <div class="cdd-alert" style="border-inline-start-color:var(--asg-green)">
+          <div class="cdd-alert xs-circular-draft-detail-1">
             نُشر هذا التعميم فعلاً على مستلميه، ويُتابَع اطّلاعهم وتواقيعهم من
             شاشة التعاميم المُرسَلة.
           </div>
@@ -102,7 +102,7 @@
               <strong>{{ step.get_action_display }}</strong>
               · {{ step.actor_display }}{% if step.actor_role %} · {{ step.actor_role }}{% endif %}
               · {{ step.created_at|date:"Y-m-d H:i" }}
-              {% if step.note %}<div style="margin-top:.2rem">{{ step.note }}</div>{% endif %}
+              {% if step.note %}<div class="xs-circular-draft-detail-2">{{ step.note }}</div>{% endif %}
             </div>
           {% endfor %}
         </section>
@@ -110,7 +110,7 @@
     </div>
 
     <div>
-      <section class="asg-card" style="margin-top:1.2rem">
+      <section class="asg-card u-mt-2xl">
         <h2 class="asg-card__title">
           {% if is_owner %}إجراءاتك{% else %}قرارك{% endif %}
         </h2>
@@ -132,7 +132,7 @@
                 <textarea name="note" rows="3" placeholder="ملاحظتك على المسودة…"></textarea>
               </div>
             {% endif %}
-            <div class="cdd-actions" style="margin-top:0">
+            <div class="cdd-actions u-mt-0">
               {% if 'submit' in actions %}
                 <button type="submit" class="asg-btn asg-btn--primary" data-cd="submit">
                   <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
@@ -174,7 +174,7 @@
             })();
           </script>
         {% else %}
-          <p class="asg-card__hint" style="margin:0">
+          <p class="asg-card__hint u-m-0">
             {% if draft.is_published %}
               نُشر هذا التعميم. المسودة محفوظة كسجل لما اعتُمد.
             {% else %}

@@ -4,7 +4,7 @@
 {% block title %}المالية والمدفوعات{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .paylist-scope{
     --pl-brand: var(--brand, #006c35);
     --pl-ink: var(--ink, #0f172a);
@@ -368,7 +368,7 @@
       <table class="rtable">
         <thead>
           <tr>
-            <th style="text-align:right">المدرسة</th>
+            <th class="u-text-start">المدرسة</th>
             <th>المبلغ</th>
             <th>نوع العملية</th>
             <th>التاريخ</th>
@@ -379,7 +379,7 @@
         <tbody>
           {% for payment in payments %}
             <tr>
-              <td data-label="المدرسة" style="text-align:right">
+              <td data-label="المدرسة" class="u-text-start">
                 <div class="school">{% firstof payment.school.name "—" %}</div>
                 <div class="subline">
                   {{ payment.school.code|default:"بدون كود" }}
@@ -423,8 +423,6 @@
                   <span class="badge danger"><i class="fa-solid fa-rotate-left"></i> استرجاع</span>
                 {% elif payment.status == 'approved' %}
                   <span class="badge success"><i class="fa-solid fa-circle-check"></i> مقبول</span>
-                {% elif payment.status == 'pending' and payment.payment_method == 'tamara' %}
-                  <span class="badge warning"><i class="fa-solid fa-clock"></i> بانتظار{% if tamara_enabled %} تمارا{% else %} مزود الدفع{% endif %}</span>
                 {% elif payment.status == 'pending' and payment.payment_method == 'moyasar' %}
                   <span class="badge warning"><i class="fa-solid fa-clock"></i> بانتظار ميّسر</span>
                 {% elif payment.status == 'pending' %}
@@ -438,7 +436,7 @@
                 {% endif %}
               </td>
               <td data-label="إجراء">
-                <div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                <div class="u-inline-flex u-items-center u-gap-2 u-wrap u-justify-end">
                   {% if payment.receipt_image %}
                     <a href="{{ payment.receipt_image.url }}" target="_blank" rel="noopener"
                        class="badge neutral receipt-link" title="عرض إيصال التحويل">
@@ -454,7 +452,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" style="padding:28px;text-align:center" class="muted">
+              <td colspan="6" class="muted xs-platform-payments-1">
                 لا توجد عمليات دفع مطابقة للعرض الحالي.
               </td>
             </tr>

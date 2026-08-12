@@ -473,7 +473,10 @@ class MyRequestsViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "مسح")
-        self.assertContains(response, 'href="?view=list" class="btn-lux btn-ghost"')
+        # المقصود أن زر المسح يعود إلى العرض بلا مرشِّحات. وقائمةُ أصنافه
+        # تفصيلٌ عرضي — تثبيتُها حرفياً كان يُفشل الاختبار عند أي تغيير تنسيقي
+        # لا علاقة له بالسلوك.
+        self.assertContains(response, 'href="?view=list"')
 
     def test_my_requests_invalid_order_falls_back_to_default_safely(self):
         older_ticket = Ticket.objects.create(

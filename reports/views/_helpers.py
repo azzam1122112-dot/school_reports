@@ -146,11 +146,17 @@ from ..forms import (
     TicketNoteEditForm,
 )
 
-# إشعارات (اختياري)
-try:
-    from ..forms import NotificationCreateForm  # type: ignore
-except Exception:
-    NotificationCreateForm = None  # type: ignore
+# ── لماذا لم تعد هذه الاستيرادات «اختيارية» ────────────────────────────────
+# كانت كل واحدة منها ملفوفة بـ ``try/except`` تُسند ``None`` عند الفشل، ومعها
+# في كل موضع استعمال شرطُ ``if X is not None``. والشرط لا يحمي من شيء: النماذج
+# والنماذج الاستمارية جزءٌ من التطبيق نفسه، و117 ترحيلاً تُثبت وجودها. أما
+# الثمن فحقيقي — فشلُ استيرادٍ حقيقي (خطأ نحوي، دورةُ استيراد، حقل محذوف) كان
+# يُقرأ «الميزة غير متوفرة» فتختفي شاشات كاملة بلا خطأ واحد، ويُشخَّص ذلك
+# كعطلٍ في الصلاحيات لا كخطأ استيراد.
+#
+# فالاستيراد الآن مباشر: يفشل التطبيق عند الإقلاع بأثرٍ يقول أين — وهو أرخص
+# ألف مرة من ميزةٍ تختفي صامتة في الإنتاج.
+from ..forms import NotificationCreateForm
 
 # ===== موديلات =====
 from ..models import (
@@ -217,28 +223,13 @@ from ..services_achievement import (
     remove_report_evidence,
 )
 
-# موديلات الإشعارات (اختياري)
-try:
-    from ..models import Notification, NotificationRecipient  # type: ignore
-except Exception:
-    Notification = None  # type: ignore
-    NotificationRecipient = None  # type: ignore
-
-# موديلات مرجعية اختيارية
-try:
-    from ..models import ReportType  # type: ignore
-except Exception:  # pragma: no cover
-    ReportType = None  # type: ignore
-
-try:
-    from ..models import Department  # type: ignore
-except Exception:  # pragma: no cover
-    Department = None  # type: ignore
-
-try:
-    from ..models import DepartmentMembership  # type: ignore
-except Exception:  # pragma: no cover
-    DepartmentMembership = None  # type: ignore
+from ..models import (
+    Department,
+    DepartmentMembership,
+    Notification,
+    NotificationRecipient,
+    ReportType,
+)
 
 # ===== صلاحيات =====
 from ..permissions import (
@@ -253,21 +244,7 @@ from ..permissions import (
     is_school_manager,
     platform_allowed_schools_qs,
 )
-try:
-    from ..permissions import is_officer  # type: ignore
-except Exception:
-    # بديل مرن إن لم تتوفر الدالة في permissions
-    def is_officer(user) -> bool:
-        try:
-            if not getattr(user, "is_authenticated", False):
-                return False
-            from ..models import DepartmentMembership  # import محلي
-            role_type = getattr(DepartmentMembership, "OFFICER", "officer")
-            return DepartmentMembership.objects.filter(
-                teacher=user, role_type=role_type, department__is_active=True
-            ).exists()
-        except Exception:
-            return False
+from ..permissions import is_officer
 
 # ===== خدمات التقارير (تنظيم منطق العرض/التصفية) =====
 from ..services_reports import (
@@ -288,9 +265,11 @@ from ..permissions import (
 )
 
 # ===== إعدادات محلية =====
-HAS_RTYPE: bool = ReportType is not None
-DM_TEACHER = getattr(DepartmentMembership, "TEACHER", "teacher") if DepartmentMembership else "teacher"
-DM_OFFICER = getattr(DepartmentMembership, "OFFICER", "officer") if DepartmentMembership else "officer"
+# ``HAS_RTYPE`` بقي لأن قوالب وعروضاً كثيرة تقرؤه؛ وقيمته صارت ثابتةً صادقة
+# بعد أن صار الاستيراد مباشراً.
+HAS_RTYPE: bool = True
+DM_TEACHER = getattr(DepartmentMembership, "TEACHER", "teacher")
+DM_OFFICER = getattr(DepartmentMembership, "OFFICER", "officer")
 
 # إيقاف/تشغيل الرجوع التلقائي للحالة عند ملاحظة المرسل (افتراضي معطّل)
 AUTO_REOPEN_ON_SENDER_NOTE: bool = getattr(settings, "TICKETS_AUTO_REOPEN_ON_SENDER_NOTE", False)
@@ -350,7 +329,7 @@ def _role_display_map(active_school: Optional[School] = None) -> dict:
     if Department is not None:
         try:
             qs = Department.objects.filter(is_active=True).only("slug", "role_label", "name")
-            if active_school is not None and _model_has_field(Department, "school"):
+            if active_school is not None:
                 qs = qs.filter(Q(school=active_school) | Q(school__isnull=True))
             for d in qs:
                 base[d.slug] = d.role_label or d.name or d.slug

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static hijri_tags %}
+
+{% block title %}المصادقة الثنائية | منصة توثيق{% endblock %}
+
+{% block content %}
+<main class="container u-mt-2xl" id="mainContent">
+  <header class="u-mb-lg">
+    <h1 class="u-m-0">المصادقة الثنائية</h1>
+    <p class="u-text-muted u-mt-2">
+      طبقة ثانية بعد كلمة المرور: رمزٌ من تطبيق على هاتفك يتغيّر كل ثلاثين ثانية.
+      فمن سرق كلمة مرورك لا يدخل بها وحدها.
+    </p>
+  </header>
+
+  {% if new_recovery_codes %}
+    <section class="card u-mb-lg" aria-labelledby="codesHeading">
+      <h2 id="codesHeading" class="u-mt-0">رموز الاسترجاع</h2>
+      <p class="section-degraded" role="status">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        احفظها الآن في مكان آمن. لن تُعرض مرة أخرى، وهي طريقك الوحيد للدخول إن فقدت هاتفك.
+      </p>
+      <ul class="u-mt-3">
+        {% for code in new_recovery_codes %}<li><code>{{ code }}</code></li>{% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <section class="card">
+    {% if device and device.is_confirmed %}
+      <p class="u-fw-700">الحالة: مفعَّلة منذ {{ device.confirmed_at|hijri }}</p>
+      <p class="u-text-muted">
+        رموز الاسترجاع المتبقّية: {{ remaining_recovery_codes }}
+        {% if remaining_recovery_codes < 3 %}
+          — قليلة. أعد التفعيل للحصول على مجموعة جديدة.
+        {% endif %}
+      </p>
+
+      <form method="post" action="{% url 'reports:totp_disable' %}" class="u-mt-lg">
+        {% csrf_token %}
+        <label for="disablePassword" class="u-block u-fw-700 u-mb-2">
+          لإيقافها، أدخل كلمة المرور
+        </label>
+        <input id="disablePassword" name="password" type="password" required
+               autocomplete="current-password" class="u-w-full u-mb-3">
+        <button type="submit" class="btn btn-outline">إيقاف المصادقة الثنائية</button>
+      </form>
+    {% else %}
+      <p class="u-text-muted">
+        غير مفعَّلة. تحتاج تطبيق مصادقة على هاتفك — مثل Google Authenticator
+        أو Microsoft Authenticator.
+      </p>
+      <form method="post" action="{% url 'reports:totp_begin_enrollment' %}" class="u-mt-lg">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+          تفعيل المصادقة الثنائية
+        </button>
+      </form>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

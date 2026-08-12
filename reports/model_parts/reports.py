@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from core.observability import report_degraded as _degraded, soft_fail
+
 from .base import *
 from .approvals import ApprovalMixin
 from .schools import School, Teacher, ReportType
@@ -130,23 +132,19 @@ class Report(ApprovalMixin):
                 1: "الاثنين", 2: "الثلاثاء", 3: "الأربعاء", 4: "الخميس",
                 5: "الجمعة", 6: "السبت", 7: "الأحد"
             }
-            try:
+            with soft_fail("report.derive_day_name", report_id=self.pk):
                 self.day_name = days.get(self.report_date.isoweekday())
-            except Exception:
-                pass
 
         # تجميد اسم المعلّم وقت الإنشاء إن لم يُملأ
         if not self.teacher_name and getattr(self, "teacher_id", None):
-            try:
+            # اسمُ المعلّم لقطةٌ تبقى بعد حذف الحساب. تعثّرُ تجميدها يترك
+            # التقرير بلا صاحبٍ مقروء إلى الأبد.
+            with soft_fail("report.freeze_teacher_name", report_id=self.pk):
                 self.teacher_name = getattr(self.teacher, "name", "") or ""
-            except Exception:
-                pass
 
         if self.academic_year:
-            try:
+            with soft_fail("report.normalize_academic_year", value=str(self.academic_year)[:16]):
                 self.academic_year = _normalize_academic_year_hijri(self.academic_year)
-            except Exception:
-                pass
         elif getattr(self, "school_id", None):
             try:
                 current_year = (getattr(self.school, "current_academic_year", "") or "").strip()
@@ -157,7 +155,8 @@ class Report(ApprovalMixin):
                 if current_year:
                     self.academic_year = _normalize_academic_year_hijri(current_year)
             except Exception:
-                pass
+                # تقريرٌ بلا سنة دراسية يسقط من كل تصنيفٍ وأرشفةٍ لاحقة.
+                _degraded("report.infer_academic_year", report_id=self.pk)
 
         super().save(*args, **kwargs)
 
@@ -249,6 +248,12 @@ class PlatformSettings(models.Model):
         db_index=True,
         help_text="إظهار أداة المساعدة العائمة داخل الصفحات بعد تسجيل الدخول.",
     )
+    voice_report_enabled = models.BooleanField(
+        "إظهار كتابة التقرير بالصوت",
+        default=True,
+        db_index=True,
+        help_text="إظهار مسجّل الصوت في صفحة إضافة تقرير والسماح بتفريغه نصًا.",
+    )
 
     updated_by = models.ForeignKey(
         Teacher,
@@ -277,20 +282,17 @@ class PlatformSettings(models.Model):
 
     def save(self, *args, **kwargs):
         result = super().save(*args, **kwargs)
-        try:
+        # إعداداتٌ لا يُبطَل كاشها = تغييرُ مالك المنصة لا يظهر، فيُعاد حفظه مراراً.
+        with soft_fail("platform.invalidate_settings_caches"):
             from django.core.cache import cache
 
             cache.delete("platform_maintenance_state_v1")
             cache.delete("platform_storage_mb_per_teacher_v1")
             cache.delete("platform_free_storage_mb_v1")
-        except Exception:
-            pass
-        try:
+        with soft_fail("platform.invalidate_ai_feature_cache"):
             from ..ai_features import clear_platform_ai_feature_cache
 
             clear_platform_ai_feature_cache()
-        except Exception:
-            pass
         return result
 
 
@@ -316,8 +318,8 @@ def get_share_link_default_days(school: Optional["School"] = None) -> int:
             school_days = getattr(school, "share_link_default_days", None)
             if school_days is not None:
                 days = int(school_days)
-        except Exception:
-            pass
+        except (TypeError, ValueError):
+            _degraded("share_link.school_default_days", school_id=getattr(school, "pk", None))
     
     # إذا لم يتم تمرير مدرسة أو لم تكن لديها قيمة، نقرأ من settings
     if days == 7:  # لم يتم تعديلها من المدرسة

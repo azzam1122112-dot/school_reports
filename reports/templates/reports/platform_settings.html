@@ -4,7 +4,7 @@
 {% block title %}إعدادات المنصة{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .platform-settings-scope {
     --ps-brand: var(--brand, #006c35);
     --ps-ink: var(--ink, #0f172a);
@@ -410,7 +410,7 @@
 <div class="royal-page royal-page--narrow platform-settings-scope">
   <section class="hero">
     <div>
-      <span class="royal-kicker" style="background:rgba(255,255,255,.16);color:#fff;border-color:rgba(255,255,255,.28)">
+      <span class="royal-kicker xs-platform-settings-1">
         <i class="fa-solid fa-sliders" aria-hidden="true"></i>
         ضبط المنصة
       </span>
@@ -470,7 +470,7 @@
           </label>
           {% for e in form.maintenance_mode_enabled.errors %}<div class="error">{{ e }}</div>{% endfor %}
         </div>
-        <div class="field full" style="grid-column:1 / -1;">
+        <div class="field full u-span-all">
           <label for="{{ form.maintenance_message.id_for_label }}">{{ form.maintenance_message.label }}</label>
           {{ form.maintenance_message }}
           <div class="help">
@@ -539,6 +539,23 @@
             </label>
             {% for e in form.internal_ai_help_enabled.errors %}<div class="error">{{ e }}</div>{% endfor %}
           </article>
+
+          <article class="ai-feature-card {% if form.voice_report_enabled.value %}is-on{% endif %}" data-ai-feature-card>
+            <div class="ai-feature-top">
+              <span class="ai-feature-icon" aria-hidden="true"><i class="fa-solid fa-microphone-lines"></i></span>
+              <span class="ai-feature-state" data-ai-state><i class="fa-solid {% if form.voice_report_enabled.value %}fa-eye{% else %}fa-eye-slash{% endif %}" aria-hidden="true"></i><span>{% if form.voice_report_enabled.value %}ظاهر{% else %}مخفي{% endif %}</span></span>
+            </div>
+            <div class="ai-feature-copy">
+              <h3>كتابة التقرير بالصوت</h3>
+              <p>مسجّل صوتي في صفحة إضافة تقرير يفرّغ إملاء المعلم نصًا. يعمل داخل التطبيق المثبَّت، بثلاث محاولات يوميًا لكل معلم.</p>
+            </div>
+            <label class="archive-switch" for="{{ form.voice_report_enabled.id_for_label }}">
+              {{ form.voice_report_enabled }}
+              <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              <span class="switch-text" data-ai-switch-text>{% if form.voice_report_enabled.value %}مفعّل{% else %}معطّل{% endif %}</span>
+            </label>
+            {% for e in form.voice_report_enabled.errors %}<div class="error">{{ e }}</div>{% endfor %}
+          </article>
         </div>
       </section>
 
@@ -586,7 +603,7 @@
           </div>
         </div>
         {% if storage_ladder %}
-          <div class="help" style="margin-top:.6rem">
+          <div class="help u-mt-sm">
             بالقيمة الحالية، تحصل المدرسة على:
             {% for row in storage_ladder %}<strong>{{ row.seats }} معلماً → {{ row.label }}</strong>{% if not forloop.last %} · {% endif %}{% endfor %}
           </div>

@@ -1,25 +1,23 @@
 from __future__ import annotations
 
-import json
 import logging
 import shutil
 import time as time_module
 from datetime import datetime, time as dt_time, timedelta
-from urllib import error as urlerror
-from urllib import request as urlrequest
-from urllib.parse import urlsplit
 from celery import shared_task
 from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache as django_cache
 from django.core.files import File
 from django.core.exceptions import ValidationError
-from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Count, Q
 from django.template.loader import render_to_string
 from django.utils import timezone
+
+from core.observability import report_degraded as _degraded, soft_fail
 
 from .storage import _compress_image_file
 from .telegram_alerts import TelegramDeliveryError, deliver_telegram_alert
@@ -611,7 +609,9 @@ def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool
                         trace_id=trace_id,
                     )
                 except Exception:
-                    pass
+                    # الإشعار حُفظ فعلاً؛ ما فشل هو الدفع اللحظي. المستلم يراه
+                    # عند التحديث التالي — لكن «لا يصل فوراً» عطلٌ يجب أن يُقاس.
+                    _degraded("realtime.push_batch", count=len(batch_ids))
             total_recipients += len(batch_ids)
             batch_ids = []
 
@@ -629,7 +629,7 @@ def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool
                     trace_id=trace_id,
                 )
             except Exception:
-                pass
+                _degraded("realtime.push_batch_tail", count=len(batch_ids))
         total_recipients += len(batch_ids)
 
     logger.info(
@@ -652,27 +652,6 @@ def _is_valid_email(value: str) -> bool:
         return True
     except ValidationError:
         return False
-
-
-def _normalize_sa_whatsapp_phone(value: str) -> str:
-    """
-    Normalize Saudi phone formats to a WhatsApp-compatible format:
-    - 05XXXXXXXX -> 9665XXXXXXXX
-    - 5XXXXXXXX  -> 9665XXXXXXXX
-    - 9665XXXXXXX -> 9665XXXXXXX
-    Returns empty string when normalization is not possible.
-    """
-    digits = "".join(ch for ch in str(value or "") if ch.isdigit())
-    if not digits:
-        return ""
-
-    if digits.startswith("966") and len(digits) >= 12:
-        return digits
-    if digits.startswith("05") and len(digits) == 10:
-        return f"966{digits[1:]}"
-    if digits.startswith("5") and len(digits) == 9:
-        return f"966{digits}"
-    return ""
 
 
 def _build_school_details_url(school_id: int) -> str:
@@ -702,38 +681,6 @@ def _build_weekly_message(
     )
 
 
-def _build_weekly_email_html(
-    *,
-    manager_name: str,
-    school_name: str,
-    period_text: str,
-    reports_count: int,
-    open_tickets_count: int,
-    closed_tickets_count: int,
-    details_url: str,
-) -> str:
-    site_url = (getattr(settings, "SITE_URL", "") or "").strip().rstrip("/")
-    static_url = (getattr(settings, "STATIC_URL", "/static/") or "/static/").strip()
-    if not static_url.startswith("/"):
-        static_url = f"/{static_url}"
-    logo_url = f"{site_url}{static_url.rstrip('/')}/img/logo1.png" if site_url else ""
-
-    return render_to_string(
-        "reports/emails/weekly_manager_summary.html",
-        {
-            "platform_name": "منصة توثيق",
-            "manager_name": manager_name or "إدارة المدرسة",
-            "school_name": school_name,
-            "period_text": period_text,
-            "reports_count": int(reports_count),
-            "open_tickets_count": int(open_tickets_count),
-            "closed_tickets_count": int(closed_tickets_count),
-            "details_url": details_url,
-            "logo_url": logo_url,
-        },
-    )
-
-
 def _weekly_summary_window(reference_dt=None):
     """Return the weekly reporting window: Sunday 00:00 -> Thursday 16:00 (exclusive)."""
     tz = timezone.get_current_timezone()
@@ -751,72 +698,6 @@ def _weekly_summary_window(reference_dt=None):
     start_date = (end_dt - timedelta(days=4)).date()  # Sunday
     start_dt = timezone.make_aware(datetime.combine(start_date, dt_time.min), tz)
     return start_dt, end_dt
-
-
-def _post_json(url: str, payload: dict, timeout_seconds: float = 10.0, token: str = "") -> bool:
-    if not url:
-        return False
-
-    # ``urlopen`` يفتح ``file://`` و``ftp://`` كما يفتح http، وهذا العنوان يأتي
-    # من متغيّر بيئة يضبطه المشغّل. عنوانٌ أُخطئ في كتابته — أو غُيّر بيد من بلغ
-    # ملف البيئة — يصير قراءةً لملف من القرص تُرسَل إليه ترويسة ``Authorization``
-    # بالتوكن. فالمخطط يُقيَّد صراحةً قبل الفتح، ولا يُترك لصياغة الرابط.
-    #
-    # وhttps وحدها لا http: الحمولة تحمل توكناً وبيانات مدرسة، فإرسالها بنص
-    # صريح ليس خياراً يُترك لمن يكتب المتغيّر.
-    scheme = (urlsplit(url).scheme or "").lower()
-    if scheme != "https":
-        logger.error(
-            "Refusing to POST webhook payload over unsupported scheme=%r", scheme
-        )
-        return False
-
-    headers = {"Content-Type": "application/json; charset=utf-8"}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-
-    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = urlrequest.Request(url, data=data, headers=headers, method="POST")  # noqa: S310 — المخطط مُقيَّد بـ https أعلاه
-    try:
-        with urlrequest.urlopen(req, timeout=float(timeout_seconds)) as resp:  # noqa: S310
-            status = int(getattr(resp, "status", 0) or 0)
-            return 200 <= status < 300
-    except (urlerror.URLError, urlerror.HTTPError, TimeoutError):
-        return False
-
-
-def _send_whatsapp_via_webhook(
-    *,
-    to_phone: str,
-    message_text: str,
-    school_id: int,
-    school_name: str,
-    reports_count: int,
-    open_tickets_count: int,
-    closed_tickets_count: int,
-    report_date_text: str,
-) -> bool:
-    webhook_url = (getattr(settings, "DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_URL", "") or "").strip()
-    webhook_token = (getattr(settings, "DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_TOKEN", "") or "").strip()
-    timeout_seconds = float(getattr(settings, "DAILY_MANAGER_REPORT_WHATSAPP_TIMEOUT_SECONDS", 10.0) or 10.0)
-
-    if not webhook_url:
-        return False
-
-    payload = {
-        "channel": "whatsapp",
-        "to": to_phone,
-        "message": message_text,
-        "school_id": int(school_id),
-        "school_name": school_name,
-        "report_date": report_date_text,
-        "metrics": {
-            "reports_count": int(reports_count),
-            "open_tickets_count": int(open_tickets_count),
-            "closed_tickets_count": int(closed_tickets_count),
-        },
-    }
-    return _post_json(webhook_url, payload, timeout_seconds=timeout_seconds, token=webhook_token)
 
 
 def _send_inapp_notification(
@@ -862,13 +743,11 @@ def _send_inapp_notification(
         push_new_notification_to_teachers = None
 
     if push_new_notification_to_teachers is not None:
-        try:
+        with soft_fail("realtime.push_managers", count=len(manager_ids)):
             push_new_notification_to_teachers(
                 notification=notification,
                 teacher_ids=manager_ids,
             )
-        except Exception:
-            pass
 
     return True
 
@@ -882,9 +761,6 @@ def _daily_summary_for_school(school_id: int) -> dict:
     Ticket = apps.get_model("reports", "Ticket")
 
     inapp_enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_INAPP_ENABLED", True))
-    email_enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_EMAIL_ENABLED", False))
-    whatsapp_enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_WHATSAPP_ENABLED", False))
-    from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
 
     week_start, week_end = _weekly_summary_window()
     period_text = f"{week_start.strftime('%Y-%m-%d')} إلى {week_end.strftime('%Y-%m-%d %H:%M')}"
@@ -895,8 +771,6 @@ def _daily_summary_for_school(school_id: int) -> dict:
         "school_id": school_id,
         "processed": False,
         "inapp_sent": 0,
-        "emails_sent": 0,
-        "whatsapp_sent": 0,
     }
 
     try:
@@ -906,31 +780,16 @@ def _daily_summary_for_school(school_id: int) -> dict:
     if school is None:
         return result
 
-    manager_memberships = (
-        SchoolMembership.objects.select_related("teacher")
-        .filter(school=school, role_type="manager", is_active=True, teacher__is_active=True)
-        .only(
-            "teacher__id",
-            "teacher__name",
-            "teacher__phone",
-            "teacher__email",
-            "weekly_summary_email_enabled",
+    # The summary is delivered in-app, so the managers' ids are all that is
+    # needed — no contact details are read for this task.
+    manager_ids = list(
+        SchoolMembership.objects.filter(
+            school=school, role_type="manager", is_active=True, teacher__is_active=True
         )
+        .values_list("teacher_id", flat=True)
+        .distinct()
     )
-    manager_by_id: dict[int, dict[str, object]] = {}
-    for membership in manager_memberships:
-        manager = getattr(membership, "teacher", None)
-        mid = int(getattr(manager, "id", 0) or 0)
-        if manager is not None and mid and mid not in manager_by_id:
-            manager_by_id[mid] = {
-                "teacher": manager,
-                "weekly_summary_email_enabled": bool(
-                    getattr(membership, "weekly_summary_email_enabled", True)
-                ),
-            }
-
-    managers = list(manager_by_id.values())
-    if not managers:
+    if not manager_ids:
         return result
 
     reports_count = Report.objects.filter(
@@ -957,63 +816,13 @@ def _daily_summary_for_school(school_id: int) -> dict:
     )
     subject = f"الملخص الأسبوعي - {getattr(school, 'name', '') or 'المدرسة'}"
 
-    manager_ids = list(manager_by_id.keys())
-    inapp_recipient_ids: set[int] = set()
-    if inapp_enabled and manager_ids:
+    if inapp_enabled:
         inapp_ok = _send_inapp_notification(
             school=school, manager_ids=manager_ids,
             subject=subject, message_text=message_text,
         )
         if inapp_ok:
-            inapp_recipient_ids.update(manager_ids)
             result["inapp_sent"] += len(manager_ids)
-
-    for manager_item in managers:
-        manager = manager_item.get("teacher")
-        mid = int(getattr(manager, "id", 0) or 0)
-        if not mid:
-            continue
-        manager_email = (getattr(manager, "email", "") or "").strip()
-        manager_phone = (getattr(manager, "phone", "") or "").strip()
-        email_pref_enabled = bool(manager_item.get("weekly_summary_email_enabled", True))
-
-        if email_enabled and email_pref_enabled and _is_valid_email(manager_email):
-            try:
-                email = EmailMultiAlternatives(
-                    subject=subject,
-                    body=message_text,
-                    from_email=from_email,
-                    to=[manager_email],
-                )
-                email.attach_alternative(
-                    _build_weekly_email_html(
-                        manager_name=(getattr(manager, "name", "") or "").strip(),
-                        school_name=getattr(school, "name", "") or "المدرسة",
-                        period_text=period_text,
-                        reports_count=reports_count,
-                        open_tickets_count=ticket_agg["open"],
-                        closed_tickets_count=ticket_agg["closed"],
-                        details_url=details_url,
-                    ),
-                    "text/html",
-                )
-                email.send(fail_silently=False)
-                result["emails_sent"] += 1
-            except Exception:
-                logger.exception("Daily summary email failed school=%s manager=%s", school_id, mid)
-
-        normalized_phone = _normalize_sa_whatsapp_phone(manager_phone)
-        if whatsapp_enabled and normalized_phone:
-            ok = _send_whatsapp_via_webhook(
-                to_phone=normalized_phone, message_text=message_text,
-                school_id=school.id, school_name=getattr(school, "name", "") or "",
-                reports_count=reports_count,
-                open_tickets_count=ticket_agg["open"],
-                closed_tickets_count=ticket_agg["closed"],
-                report_date_text=period_text,
-            )
-            if ok:
-                result["whatsapp_sent"] += 1
 
     result["processed"] = True
     return result
@@ -1024,10 +833,8 @@ def send_daily_manager_summary_task() -> dict:
     """
     Weekly summary dispatcher — fans out to one subtask per active school.
 
-    Channels:
-    - In-app notification (internal)
-    - Email (manager email)
-    - WhatsApp via configurable webhook (manager phone)
+    The summary is delivered as an in-app notification only: it is never
+    emailed and there is no outbound webhook channel.
     """
     import time as _time
     _t0 = _time.monotonic()
@@ -1045,10 +852,6 @@ def send_daily_manager_summary_task() -> dict:
         "schools_without_manager": 0,
         "inapp_sent": 0,
         "inapp_failures": 0,
-        "emails_sent": 0,
-        "email_failures": 0,
-        "whatsapp_sent": 0,
-        "whatsapp_failures": 0,
         "managers_missing_channels": 0,
     }
 
@@ -1100,7 +903,13 @@ def check_subscription_expiry_task() -> dict:
         logger.info("Subscription expiry task skipped: another instance is running.")
         return {"enabled": enabled, "skipped": "lock"}
 
-    email_enabled = bool(getattr(settings, "SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED", False))
+    # A production host still on placeholder SMTP would raise once per manager
+    # per school; skip the channel instead and leave the in-app notice standing.
+    email_enabled = bool(
+        getattr(settings, "SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED", True)
+    ) and _email_delivery_configured()
+    if not email_enabled:
+        logger.info("Subscription expiry reminder: email channel is off or unconfigured.")
     reminder_days = getattr(settings, "SUBSCRIPTION_EXPIRY_REMINDER_DAYS", [14, 7, 3, 1])
     from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
 
@@ -1186,16 +995,22 @@ def check_subscription_expiry_task() -> dict:
             ignore_conflicts=True,
         )
 
-        try:
+        with soft_fail("realtime.push_subscription_notice", count=len(manager_ids)):
             from .realtime_notifications import push_new_notification_to_teachers
             push_new_notification_to_teachers(notification=notification, teacher_ids=manager_ids)
-        except Exception:
-            pass
 
         summary["reminders_sent"] += 1
 
-        # إيميل (اختياري)
+        # إيميل
         if email_enabled:
+            # ``dedup_title`` is the de-duplication key, not a sentence — it
+            # reads "ينتهي خلال 14" with no unit. The subject line is written
+            # for the inbox instead.
+            email_subject = (
+                f"⏰ اشتراك {school_name} ينتهي "
+                + ("غداً" if days_left == 1 else f"خلال {days_left} يوماً")
+                + " - منصة توثيق"
+            )
             Teacher = apps.get_model("reports", "Teacher")
             managers_with_email = Teacher.objects.filter(
                 id__in=manager_ids, is_active=True
@@ -1204,7 +1019,7 @@ def check_subscription_expiry_task() -> dict:
                 if _is_valid_email(mgr.email):
                     try:
                         send_mail(
-                            subject=dedup_title,
+                            subject=email_subject,
                             message=message,
                             from_email=from_email,
                             recipient_list=[mgr.email],
@@ -1341,11 +1156,9 @@ def remind_unsigned_circulars_task() -> dict:
             ignore_conflicts=True,
         )
 
-        try:
+        with soft_fail("realtime.push_signature_reminder", count=len(unsigned_ids)):
             from .realtime_notifications import push_new_notification_to_teachers
             push_new_notification_to_teachers(notification=reminder_notif, teacher_ids=unsigned_ids)
-        except Exception:
-            pass
 
         summary["reminders_sent"] += len(unsigned_ids)
 
@@ -1524,14 +1337,12 @@ def check_archive_addon_expiry_task(self) -> dict:
             ],
             ignore_conflicts=True,
         )
-        try:
+        with soft_fail("realtime.push_storage_threshold_notice", count=len(manager_ids)):
             from .realtime_notifications import push_new_notification_to_teachers
 
             push_new_notification_to_teachers(
                 notification=notification, teacher_ids=manager_ids
             )
-        except Exception:
-            pass
 
         summary["reminders_sent"] += 1
 
@@ -1619,14 +1430,12 @@ def check_storage_thresholds_task(self) -> dict:
             ],
             ignore_conflicts=True,
         )
-        try:
+        with soft_fail("realtime.push_archive_addon_notice", count=len(manager_ids)):
             from .realtime_notifications import push_new_notification_to_teachers
 
             push_new_notification_to_teachers(
                 notification=notification, teacher_ids=manager_ids
             )
-        except Exception:
-            pass
         summary["warnings_sent"] += 1
         return True
 
@@ -2031,22 +1840,19 @@ def build_generated_export_task(self, job_id: int) -> bool:
                     if not persisted:
                         archive.archive_file.delete(save=False)
                 except Exception:
-                    pass
+                    # ملفٌ يتيم في R2 يُحتسب على حصة المدرسة إلى الأبد.
+                    _degraded("storage.orphan_archive_cleanup", archive_id=getattr(archive, "pk", None))
             if (
                 job.kind != GeneratedExportJob.Kind.ARCHIVE_SNAPSHOT
                 and getattr(job.artifact_file, "name", "")
             ):
-                try:
+                with soft_fail("storage.orphan_export_cleanup", job_id=job.pk):
                     job.artifact_file.delete(save=False)
-                except Exception:
-                    pass
             raise
         finally:
             if zip_file is not None:
-                try:
+                with soft_fail("export.close_zip_handle"):
                     zip_file.close()
-                except Exception:
-                    pass
 
 
 @shared_task(ignore_result=True, soft_time_limit=300, time_limit=600)

@@ -1774,7 +1774,7 @@
         <div class="subx-fact__value">{{ storage_overview.used_label }}</div>
         <div class="subx-fact__hint">من {{ storage_overview.limit_label }} · المتبقي {{ storage_overview.remaining_label }}</div>
         {% if not storage_overview.is_unlimited %}
-          <div class="subx-meter" role="img" aria-label="استُهلك {{ storage_overview.usage_percent }} بالمئة من مساحة العمل"><span style="width:{{ storage_overview.usage_percent }}%"></span></div>
+          <div class="subx-meter" role="img" aria-label="استُهلك {{ storage_overview.usage_percent }} بالمئة من مساحة العمل"><span data-progress="{{ storage_overview.usage_percent }}"></span></div>
         {% endif %}
       </div>
     </article>
@@ -2047,7 +2047,7 @@
                   <div class="storage-live-card">
                     <div class="storage-live-head"><span>الاستخدام الحالي</span><strong>{{ storage_overview.usage_percent }}%</strong></div>
                     <div class="storage-live-values"><strong>{{ storage_overview.used_label }}</strong><span>من {{ storage_overview.limit_label }}</span></div>
-                    {% if not storage_overview.is_unlimited %}<div class="archive-progress"><span style="width:{{ storage_overview.usage_percent }}%"></span></div>{% endif %}
+                    {% if not storage_overview.is_unlimited %}<div class="archive-progress"><span data-progress="{{ storage_overview.usage_percent }}"></span></div>{% endif %}
                     <small>المتبقي: {{ storage_overview.remaining_label }}</small>
                     {% if storage_overview.seats %}
                       <small class="storage-live-origin">
@@ -2060,7 +2060,7 @@
                       <div class="storage-second-bucket">
                         <div class="storage-live-head"><span>مساحة الأرشيف السنوي</span><strong>{{ archive_overview.usage_percent }}%</strong></div>
                         <div class="storage-live-values"><strong>{{ archive_overview.used_label }}</strong><span>من {{ archive_overview.limit_label }}</span></div>
-                        <div class="archive-progress"><span style="width:{{ archive_overview.usage_percent }}%"></span></div>
+                        <div class="archive-progress"><span data-progress="{{ archive_overview.usage_percent }}"></span></div>
                         <small>مساحة خدمة الأرشيف وحدها — امتلاؤها يمنع حفظ نسخة جديدة فقط، ولا يوقف عمل {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}.</small>
                       </div>
                     {% else %}
@@ -2132,7 +2132,7 @@
                     {% if archive_overview.is_subscribed %}
                       <div class="storage-live-head"><span>الاستخدام الحالي</span><strong>{{ archive_overview.usage_percent }}%</strong></div>
                       <div class="storage-live-values"><strong>{{ archive_overview.used_label }}</strong><span>من {{ archive_overview.limit_label }}</span></div>
-                      <div class="archive-progress"><span style="width:{{ archive_overview.usage_percent }}%"></span></div>
+                      <div class="archive-progress"><span data-progress="{{ archive_overview.usage_percent }}"></span></div>
                       <small>المتبقي: {{ archive_overview.remaining_label }}</small>
                     {% else %}
                       <div class="storage-live-head"><span>خدمة الأرشفة</span><strong>غير مفعّلة</strong></div>
@@ -2240,24 +2240,8 @@
             </button>
             {% endif %}
 
-            {% if tamara_enabled %}
-            <button type="button" class="payment-method-choice{% if not moyasar_enabled %} is-selected{% endif %}" data-payment-choice="tamara"
-                    aria-pressed="{% if moyasar_enabled %}false{% else %}true{% endif %}" aria-controls="paymentPanelTamara">
-              <span class="payment-method-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span>
-              <span class="payment-method-copy">
-                <strong>قسّمها مع تمارا</strong>
-                <small>أربع دفعات متساوية دون تعقيد</small>
-              </span>
-              <span class="payment-method-status"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
-              <span class="payment-method-brands">
-                <img class="payment-method-gateway-logo" src="{% static 'img/tamara-wordmark-gradient-ar.png' %}" alt="تمارا" width="64" height="21">
-                <span class="payment-mark">4 دفعات</span>
-              </span>
-            </button>
-            {% endif %}
-
-            <button type="button" class="payment-method-choice{% if not moyasar_enabled and not tamara_enabled %} is-selected{% endif %}" data-payment-choice="bank_transfer"
-                    aria-pressed="{% if moyasar_enabled or tamara_enabled %}false{% else %}true{% endif %}" aria-controls="paymentPanelBank">
+            <button type="button" class="payment-method-choice{% if not moyasar_enabled %} is-selected{% endif %}" data-payment-choice="bank_transfer"
+                    aria-pressed="{% if moyasar_enabled %}false{% else %}true{% endif %}" aria-controls="paymentPanelBank">
               <span class="payment-method-icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span>
               <span class="payment-method-copy">
                 <strong>تحويل بنكي</strong>
@@ -2306,62 +2290,8 @@
           </section>
           {% endif %}
 
-          {% if tamara_enabled %}
-          <section class="checkout-checkout payment-method-panel" id="paymentPanelTamara" data-payment-panel="tamara" aria-label="الدفع عبر تمارا"{% if moyasar_enabled %} hidden{% endif %}>
-            <div class="checkout-content">
-              <div class="checkout-brand-row">
-                <span class="checkout-logo-frame">
-                  <img src="{% static 'img/tamara-wordmark-gradient-ar.png' %}" alt="تمارا" width="94" height="31">
-                </span>
-                <span class="checkout-installment-badge"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> 4 دفعات</span>
-                {% if tamara_environment != 'production' %}<span class="checkout-sandbox">بيئة اختبار</span>{% endif %}
-              </div>
-              <h3>قسّم قيمة طلبك إلى أربع دفعات متساوية</h3>
-              <p>اختر خدماتك، ثم أكمل الدفع بأمان في صفحة تمارا.</p>
 
-              <div class="checkout-installment-summary" aria-live="polite">
-                <span>قيمة كل دفعة</span>
-                <strong><span id="tamaraInstallmentAmount">0.00</span> ريال</strong>
-              </div>
-              <div class="checkout-installments" aria-label="تقسيم المبلغ على أربع دفعات">
-                <div class="checkout-installment"><span>01</span><strong data-checkout-installment-amount>0.00 ر.س</strong><small>الدفعة الأولى</small></div>
-                <div class="checkout-installment"><span>02</span><strong data-checkout-installment-amount>0.00 ر.س</strong><small>الدفعة الثانية</small></div>
-                <div class="checkout-installment"><span>03</span><strong data-checkout-installment-amount>0.00 ر.س</strong><small>الدفعة الثالثة</small></div>
-                <div class="checkout-installment"><span>04</span><strong data-checkout-installment-amount>0.00 ر.س</strong><small>الدفعة الرابعة</small></div>
-              </div>
-
-              <details class="checkout-billing-details">
-                <summary>
-                  <span><i class="fa-regular fa-map" aria-hidden="true"></i> إضافة عنوان فوترة</span>
-                  <small>اختياري</small>
-                </summary>
-                <p class="checkout-billing-note">لأن الخدمة رقمية، يمكنك المتابعة دون عنوان. أضفه فقط إذا رغبت في تضمينه ببيانات الطلب.</p>
-                <div class="checkout-fields">
-                  <label>المدينة
-                    <input type="text" name="tamara_city" value="{{ school.city|default:'' }}" maxlength="120" autocomplete="address-level2">
-                  </label>
-                  <label>عنوان الفوترة
-                    <input type="text" name="tamara_address" maxlength="255" autocomplete="street-address" placeholder="الحي، الشارع، رقم المبنى">
-                  </label>
-                </div>
-              </details>
-            </div>
-            <div class="checkout-action">
-              <button type="submit" id="tamaraSubmit" class="checkout-submit" data-payment-method="tamara"
-                      formaction="{% url 'reports:tamara_checkout_create' %}" formmethod="post" formnovalidate disabled aria-disabled="true">
-                <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-                <span>اختر خدمة للدفع عبر تمارا</span>
-              </button>
-              <small class="checkout-action-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> الدفع يتم في صفحة تمارا الآمنة</small>
-              <div class="checkout-commercial-notice">
-                <span><i class="fa-solid fa-receipt" aria-hidden="true"></i> الأسعار نهائية، ولا توجد ضريبة قيمة مضافة أو رسوم خفية.</span>
-                <span><i class="fa-solid fa-file-shield" aria-hidden="true"></i> بالمتابعة توافق على <a href="{% url 'reports:terms_conditions' %}">الشروط والأحكام</a> و<a href="{% url 'reports:refund_policy' %}">سياسة الإلغاء والاسترجاع</a>.</span>
-              </div>
-            </div>
-          </section>
-          {% endif %}
-
-          <section class="bank-transfer-panel payment-method-panel" id="paymentPanelBank" data-payment-panel="bank_transfer" aria-label="التحويل البنكي"{% if moyasar_enabled or tamara_enabled %} hidden{% endif %}>
+          <section class="bank-transfer-panel payment-method-panel" id="paymentPanelBank" data-payment-panel="bank_transfer" aria-label="التحويل البنكي"{% if moyasar_enabled %} hidden{% endif %}>
             <div class="section-header">
               <div class="section-icon"><i class="fa-regular fa-credit-card" aria-hidden="true"></i></div>
               <div class="section-header-text">
@@ -2432,7 +2362,7 @@
               <i class="fa-solid fa-cloud-arrow-up upload-icon" aria-hidden="true"></i>
               <div class="upload-title">اسحب وأفلت الصورة هنا أو اضغط للرفع</div>
               <div class="upload-hint" id="fileLabel">يدعم JPG, PNG, WEBP — الحد الأقصى 10MB</div>
-              <input type="file" name="receipt_image" id="receipt" style="opacity:0;position:absolute;z-index:-1;width:1px;height:1px;" accept="image/*" required>
+              <input type="file" name="receipt_image" id="receipt" accept="image/*" required class="xs-my-subscription-1">
             </label>
 
             <div class="upload-preview" id="uploadPreview">
@@ -2482,7 +2412,7 @@
         <div class="archive-metric">
           <span>مساحة عمل المدرسة</span>
           <strong>{{ storage_overview.used_label }} / {{ storage_overview.limit_label }}</strong>
-          {% if not storage_overview.is_unlimited %}<div class="archive-progress" aria-label="نسبة استخدام مساحة العمل"><span style="width:{{ storage_overview.usage_percent }}%"></span></div>{% endif %}
+          {% if not storage_overview.is_unlimited %}<div class="archive-progress" aria-label="نسبة استخدام مساحة العمل"><span data-progress="{{ storage_overview.usage_percent }}"></span></div>{% endif %}
         </div>
         <div class="archive-metric">
           <span>المتبقي للمدرسة</span>
@@ -2570,17 +2500,6 @@
                 <span class="tbl-badge tbl-badge-neutral"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
               {% elif payment.status == 'rejected' %}
                 <span class="tbl-badge tbl-badge-danger"><i class="fa-solid fa-xmark" aria-hidden="true"></i> مرفوض</span>
-              {% elif payment.payment_method == 'tamara' %}
-                {% if payment.gateway_status == 'new' %}
-                  <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-wallet" aria-hidden="true"></i> بانتظار إكمال الدفع</span>
-                  <form method="post" action="{% url 'reports:tamara_checkout_cancel' payment.id %}" class="checkout-cancel-form">
-                    {% csrf_token %}
-                    {% if acting_on_behalf %}<input type="hidden" name="on_behalf_school" value="{{ school.pk }}">{% endif %}
-                    <button type="submit" class="checkout-cancel-button">إلغاء الطلب غير المدفوع</button>
-                  </form>
-                {% else %}
-                  <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار تأكيد{% if tamara_enabled %} تمارا{% else %} مزود الدفع{% endif %}</span>
-                {% endif %}
               {% elif payment.payment_method == 'moyasar' %}
                 <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-wallet" aria-hidden="true"></i> بانتظار إكمال الدفع الإلكتروني</span>
                 <form method="post" action="{% url 'reports:moyasar_checkout_cancel' payment.id %}" class="checkout-cancel-form">
@@ -2637,7 +2556,6 @@
   const checkout = window.SubscriptionCheckout?.init(pageRoot);
   const form = checkout?.form || document.getElementById('paymentForm');
   const submitBtn = checkout?.receiptSubmit || document.getElementById('submitBtn');
-  const tamaraSubmit = checkout?.tamaraSubmit || document.getElementById('tamaraSubmit');
   const moyasarSubmit = checkout?.moyasarSubmit || document.getElementById('moyasarSubmit');
   const isOn = checkout?.isOn || ((name) => {
     const control = document.querySelector('input[name="' + name + '"]');
@@ -2745,7 +2663,7 @@
   if (form) {
     form.addEventListener('submit', function (e) {
       const paymentMethod = e.submitter?.dataset.paymentMethod || 'bank_transfer';
-      const isElectronic = paymentMethod === 'tamara' || paymentMethod === 'moyasar';
+      const isElectronic = paymentMethod === 'moyasar';
       const anySelected = isOn('include_subscription') || isOn('include_archive_addon') || isOn('include_archive_storage') || isOn('include_archive_space');
       if (!anySelected) {
         e.preventDefault();
@@ -2770,11 +2688,7 @@
         showToast('يرجى إرفاق صورة الإيصال قبل الإرسال', 'error');
         return;
       }
-      const activeSubmit = paymentMethod === 'tamara'
-        ? tamaraSubmit
-        : paymentMethod === 'moyasar'
-          ? moyasarSubmit
-          : submitBtn;
+      const activeSubmit = paymentMethod === 'moyasar' ? moyasarSubmit : submitBtn;
       if (activeSubmit) {
         activeSubmit.classList.add('loading');
         const lbl = activeSubmit.querySelector('span');
@@ -2800,7 +2714,7 @@
   // ما يزال «يرسل».
   window.addEventListener('pageshow', function (event) {
     if (!event.persisted) return;
-    [submitBtn, tamaraSubmit, moyasarSubmit].forEach(function (button) {
+    [submitBtn, moyasarSubmit].forEach(function (button) {
       if (button) button.classList.remove('loading');
     });
     checkout?.recompute?.();

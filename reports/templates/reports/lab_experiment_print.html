@@ -1,4 +1,4 @@
-{% load hijri_tags %}
+{% load static hijri_tags %}
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -9,7 +9,7 @@
   {% comment %}
   صفحة طباعة قائمة بذاتها — بلا طبقة الوضع الداكن، كبقية صفحات الطباعة هنا.
   {% endcomment %}
-  <style>
+  <style nonce="{{ CSP_NONCE }}">
     :root { --ink: #111; --muted: #444; --line: #000; --shade: #f3f3f3; }
     * { box-sizing: border-box; }
     body {
@@ -52,6 +52,7 @@
       @page { size: A4; margin: 12mm; }
     }
   </style>
+<link rel="stylesheet" href="{% static 'css/extracted.css' %}?v=20260812.1">
 </head>
 <body>
 
@@ -126,7 +127,7 @@
     <div>مدير المدرسة<div class="line"></div></div>
   </div>
 
-  <p style="font-size:9.5pt;color:var(--muted);margin-top:14px">
+  <p class="xs-lab-experiment-print-1">
     طُبعت في <span dir="rtl">{{ printed_at|hijri }} هـ</span>
   </p>
   <script nonce="{{ CSP_NONCE }}" data-cfasync="false">

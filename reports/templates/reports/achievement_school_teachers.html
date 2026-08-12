@@ -5,7 +5,7 @@
 {% block title %}ملفات الإنجاز - اعتماد {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      Achievement Manager Approval — page-scoped styling
      - بدون إعادة تعريف .btn / .card العامة
@@ -199,7 +199,7 @@
             <input class="aa-input" name="year" value="{{ year }}" placeholder="مثال: 1447-1448" />
           {% endif %}
 
-          <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+          <div class="u-mt-3 u-flex u-gap-3 u-wrap">
             <button class="btn btn-primary" type="submit">
               <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
               عرض
@@ -226,7 +226,7 @@
               <th>{{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }}</th>
               <th>الهاتف</th>
               <th>الحالة</th>
-              <th style="text-align:left">إجراء</th>
+              <th class="u-text-end">إجراء</th>
             </tr>
           </thead>
 
@@ -257,7 +257,7 @@
                   {% endif %}
                 </td>
 
-                <td style="text-align:left" data-label="إجراء">
+                <td data-label="إجراء" class="u-text-end">
                   {% if row.file %}
                     <div class="aa-actions">
                       <a class="btn" href="{% url 'reports:achievement_file_detail' row.file.pk %}" title="عرض ملف الإنجاز">
@@ -265,7 +265,7 @@
                         عرض
                       </a>
 
-                      <form method="post" class="aa-act-form" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin:0">
+                      <form method="post" class="aa-act-form u-flex u-gap-3 u-wrap u-items-start u-m-0">
                         {% csrf_token %}
                         <input type="hidden" name="file_id" value="{{ row.file.id }}" />
                         <input type="hidden" name="year" value="{{ year }}" />
@@ -292,7 +292,7 @@
                       </form>
                     </div>
                   {% else %}
-                    <form method="post" style="margin:0">
+                    <form method="post" class="u-m-0">
                       {% csrf_token %}
                       <input type="hidden" name="action" value="create" />
                       <input type="hidden" name="teacher_id" value="{{ row.teacher.id }}" />

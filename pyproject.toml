@@ -33,10 +33,21 @@ ignore = [
   # إعدادات، لا أسراراً. الأسرار الحقيقية تُقرأ من البيئة، ويحرسها
   # ``production_preflight`` بفحص قوة ``SECRET_KEY``.
   "S105",
-  # S110/S112: ``except … : pass`` و``continue``. النمط مقصود في مسارات العرض
-  # الثانوية: بطاقةٌ جانبية تسقط لا تُسقط الصفحة. إخضاع مئات المواضع داخل
-  # تغييرٍ أمني يُغرق المراجعة فيما ليس منها.
-  "S110", "S112",
+  # ── S110/S112 لم تعودا مُستثنَيتين ────────────────────────────────────────
+  # كانتا كذلك حين كان في المشروع 286 موضعاً يبتلع استثناءه صامتاً، وإخضاعُها
+  # جميعاً داخل تغييرٍ أمني كان يُغرق المراجعة فيما ليس منها. وقد نُظِّفت
+  # المسارات الساخنة والأمنية والمالية منها بالكامل، فصار المنعُ ممكناً.
+  #
+  # والقرار الأصلي لم يُنقض: بطاقةٌ جانبية تسقط ما زالت لا تُسقط الصفحة. ما
+  # تغيّر أن سقوطها صار **مُعلَناً** — عبر ``core.observability`` التي تُسمّي كل
+  # ابتلاع وتسجّله وتعدّه. فالقاعدة الآن: لا ابتلاع بلا اسم.
+  #
+  # وما بقي من مواضع مُدرَج في ``per-file-ignores`` أدناه — قائمةٌ **تتقلّص**،
+  # ومكانها هناك يعني «لم يُراجَع بعد» لا «مقبول».
+  #
+  # البديل حين يكون الابتلاع صحيحاً حقاً: اصطياد النوع المحدَّد
+  # (``except FieldDoesNotExist``) — فالنوعُ المحدَّد يقول إن الحالة متوقَّعة،
+  # و``Exception`` العارية تقول إن أحداً لم يفكّر فيها.
   # B008: الاستدعاء داخل القيمة الافتراضية — نمط Django معتاد.
   "B008",
   # B023: المتغيّر المُلتقَط في حلقة — مستعمل فوراً في كل مواضعه هنا.
@@ -44,23 +55,70 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+# ── ديْن الابتلاع الصامت المتبقّي (S110/S112) ──────────────────────────────
+# هذه القائمة **دَين مُعلَن**، لا سياسة. كل ملف فيها يحوي مواضع لم تُراجَع بعد،
+# ووجودها هنا يجعل العدد مرئياً في مكان واحد بدل أن يذوب في 107 آلاف سطر.
+#
+# القاعدة عند لمس أي ملف منها: نظّف مواضعه — إمّا باسمٍ عبر
+# ``core.observability`` أو باصطياد النوع المحدَّد — ثم **احذف سطره من هنا**.
+# ولا يُضاف إليها ملف جديد.
+"reports/services_archive.py" = ["S110", "S112"]
+"config/settings.py" = ["S110", "S112"]
+"reports/model_parts/achievements.py" = ["S110", "S112"]
+"reports/model_parts/signals.py" = ["S110", "S112"]
+"reports/model_parts/meetings.py" = ["S110", "S112"]
+"reports/model_parts/plans.py" = ["S110", "S112"]
+"reports/model_parts/schools.py" = ["S110", "S112"]
+"reports/model_parts/approvals.py" = ["S110", "S112"]
+"reports/model_parts/assignments.py" = ["S110", "S112"]
+"reports/model_parts/audit.py" = ["S110", "S112"]
+"reports/model_parts/circular_drafts.py" = ["S110", "S112"]
+"reports/model_parts/documents.py" = ["S110", "S112"]
+"reports/model_parts/lab.py" = ["S110", "S112"]
+"reports/views/achievements.py" = ["S110", "S112"]
+"reports/views/tickets.py" = ["S110", "S112"]
+"reports/views/home.py" = ["S110", "S112"]
+"reports/views/platform.py" = ["S110", "S112"]
+"reports/views/api.py" = ["S110", "S112"]
+"reports/views/_helpers.py" = ["S110", "S112"]
+"reports/ai_features.py" = ["S110", "S112"]
+"reports/apps.py" = ["S110", "S112"]
+"reports/services_export.py" = ["S110", "S112"]
+"reports/services_reports.py" = ["S110", "S112"]
+"reports/services_achievement.py" = ["S110", "S112"]
+"reports/services_meetings.py" = ["S110", "S112"]
+"reports/storage.py" = ["S110", "S112"]
+"reports/pdf_report.py" = ["S110", "S112"]
+"reports/pdf_offload.py" = ["S110", "S112"]
+"reports/realtime_notifications.py" = ["S110", "S112"]
+"reports/consumers.py" = ["S110", "S112"]
+"reports/admin.py" = ["S110", "S112"]
+"reports/api_views.py" = ["S110", "S112"]
+"reports/models.py" = ["S110", "S112"]
+"reports/middleware_single_session.py" = ["S110", "S112"]
+"reports/validators.py" = ["S110", "S112"]
+"reports/context_processors.py" = ["S110", "S112"]
+"core/opmetrics.py" = ["S110", "S112"]
+"core/celery_metrics.py" = ["S110", "S112"]
+"core/trace_context.py" = ["S110", "S112"]
+"deploy/hetzner/apply_runtime_config.py" = ["S110", "S112"]
+
 # الاختبارات: مسارات مؤقتة ثابتة وكلمات مرور تجريبية، وكلاهما بيانات اختبار.
-"reports/tests/*" = ["S106", "S107", "S108"]
+"reports/tests/*" = ["S106", "S107", "S108", "S110", "S112"]
 "maintenance/tests.py" = ["S106", "S107", "S108"]
 "core/tests.py" = ["S106", "S107", "S108"]
 # بيانات أداء اصطناعية: ``random`` هنا لتوليد عيّنات لا لتوليد أسرار.
-"reports/management/commands/seed_perf.py" = ["S311"]
+"reports/management/commands/seed_perf.py" = ["S311", "S110", "S112"]
 # "0.0.0.0" قيمةٌ راجعة تدلّ على «عنوان غير معروف» في حساب حدّ المعدل،
 # لا ربطَ مقبس على كل الواجهات.
-"core/client_ip.py" = ["S104"]
+"core/client_ip.py" = ["S104", "S110", "S112"]
 # بوابات الدفع والتنبيهات: العناوين من الإعدادات لا من المستخدم، وثابتةٌ
 # قواعدُها في وحداتها (https صراحةً، ومهلة على كل نداء).
 # أدوات تشغيلية يدوية: العنوان يأتي من سطر الأوامر الذي يكتبه المشغّل نفسه،
 # ولا تعمل هذه الملفات داخل الخادم ولا تستقبل مدخلاً من مستخدم.
 "scripts/loadtest.py" = ["S310"]
-"scripts/hetzner_server_check.py" = ["S310"]
+"scripts/hetzner_server_check.py" = ["S310", "S110", "S112"]
 "reports/moyasar_gateway.py" = ["S310"]
-"reports/tamara_gateway.py" = ["S310"]
-"reports/telegram_alerts.py" = ["S310"]
+"reports/telegram_alerts.py" = ["S310", "S110", "S112"]
 "reports/mansour_assistant.py" = ["S310"]
 "reports/report_ai.py" = ["S310"]

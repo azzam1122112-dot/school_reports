@@ -6,7 +6,7 @@
 {% block title %}طلباتي{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* ═══════════════════════════════════════════════════════════════════
      الطبقة الأساس لهذه الشاشة — نُقلت من `app.css` الذي يُحمَّل على كل صفحة،
      وهذه الشاشة وحدها تستعملها. ترتيبها أولاً هنا يطابق ترتيبها هناك:
@@ -773,8 +773,8 @@ html[data-theme="dark"] .req-scope .pager .current{
             {% firstof request.user.name request.user.phone "أنا" as display_name %}
             <div class="hero-ava">{{ display_name|slice:":1" }}</div>
             <div>
-                 <div style="font-weight:700; font-size:0.95rem">{{ display_name }}</div>
-                 <div style="font-size:0.8rem; opacity:0.8; margin-top:2px">صاحب الطلب</div>
+                 <div class="u-fw-700 u-fs-95">{{ display_name }}</div>
+                 <div class="xs-my-requests-1">صاحب الطلب</div>
             </div>
                     </div>
         </div>
@@ -816,9 +816,9 @@ html[data-theme="dark"] .req-scope .pager .current{
       <form class="toolbar" method="get">
          <input type="hidden" name="view" value="{{ view_mode|default:'list' }}">
          
-         <div class="tb-row" style="flex:1">
+         <div class="tb-row u-grow">
              <!-- Search -->
-             <div class="field-group" style="flex:1">
+             <div class="field-group u-grow">
                  <label class="field-label" for="myRequestsSearch">البحث</label>
                  <input class="input-lux" id="myRequestsSearch" type="search" name="q" placeholder="ابحث برقم الطلب، العنوان..." value="{{ request.GET.q|default_if_none:'' }}">
              </div>
@@ -845,15 +845,15 @@ html[data-theme="dark"] .req-scope .pager .current{
                  </select>
              </div>
 
-             <div class="field-group" style="justify-content:flex-end">
-                <button type="submit" class="btn-lux btn-primary" style="margin-top:24px">
+             <div class="field-group u-justify-end">
+                <button type="submit" class="btn-lux btn-primary xs-my-requests-2">
                     <i class="fa-solid fa-filter"></i> تطبيق
                 </button>
              </div>
              
              {% if request.GET.q or request.GET.status or request.GET.order %}
-             <div class="field-group" style="justify-content:flex-end">
-                <a href="?view={{ view_mode|default:'list' }}" class="btn-lux btn-ghost" style="margin-top:24px">
+             <div class="field-group u-justify-end">
+                <a href="?view={{ view_mode|default:'list' }}" class="btn-lux btn-ghost xs-my-requests-2">
                     مسح
                 </a>
              </div>
@@ -862,7 +862,7 @@ html[data-theme="dark"] .req-scope .pager .current{
 
          <!-- View Toggles & Actions -->
          <div class="tb-row">
-             <div style="border-left:1px solid var(--c-border); padding-left:24px; display:flex; gap:12px; align-items:center;">
+             <div class="xs-my-requests-3">
                 {% with bq=request.GET.q|urlencode bs=request.GET.status bo=request.GET.order %}
                     <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=list" 
                               class="btn-lux btn-ghost {% if view_mode != 'table' %}btn-active{% endif %}" title="عرض قائمة" aria-label="عرض الطلبات كبطاقات">
@@ -880,7 +880,7 @@ html[data-theme="dark"] .req-scope .pager .current{
       <!-- Content Area -->
       {% if view_mode == "table" %}
         <div class="table-card">
-          <div style="overflow-x:auto">
+          <div class="xs-my-requests-4">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -895,17 +895,17 @@ html[data-theme="dark"] .req-scope .pager .current{
                 <tbody>
                     {% for t in tickets %}
                     <tr>
-                        <td style="font-family:monospace; color:var(--c-muted)">#{{ t.pk }}</td>
+                        <td class="xs-my-requests-5">#{{ t.pk }}</td>
                         <td>
-                            <div style="font-weight:600">{{ t.title }}</div>
-                            <div style="font-size:0.85rem; color:var(--c-muted)">
+                            <div class="u-fw-600">{{ t.title }}</div>
+                            <div class="u-fs-sm u-text-c-muted-2">
                                 المستلم: {% firstof t.assignee.name t.assignee "—" %}
                             </div>
                         </td>
                         <td>{{ t.get_department_display|default:t.department|default:"—" }}</td>
                         <td>
                             <time datetime="{{ t.created_at|date:'c' }}">{{ t.created_at|hijri }} هـ</time><br>
-                            <small style="direction:ltr;display:inline-block;color:var(--c-muted)">{{ t.created_at|date:"Y-m-d H:i" }} م</small>
+                            <small class="xs-my-requests-6">{{ t.created_at|date:"Y-m-d H:i" }} م</small>
                         </td>
                         <td>
                             {% if t.status == 'open' or t.status == 'new' %}
@@ -919,12 +919,12 @@ html[data-theme="dark"] .req-scope .pager .current{
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{% url 'reports:ticket_detail' t.pk %}" class="btn-lux btn-ghost" style="height:32px; font-size:0.85rem; padding:4px 12px">عرض</a>
+                            <a href="{% url 'reports:ticket_detail' t.pk %}" class="btn-lux btn-ghost xs-my-requests-7">عرض</a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" style="padding:40px; text-align:center; color:var(--c-muted)">لا توجد طلبات مطابقة للبحث</td>
+                        <td colspan="6" class="xs-my-requests-8">لا توجد طلبات مطابقة للبحث</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -963,14 +963,14 @@ html[data-theme="dark"] .req-scope .pager .current{
                 {% if t.pub_notes %}
                 <div class="lc-reply">
                     {% for n in t.pub_notes|slice:":1" %}
-                       <i class="fa-solid fa-reply" style="color:var(--c-muted)"></i> 
+                       <i class="fa-solid fa-reply u-text-c-muted-2"></i> 
                        <b>{{ n.author.name }}:</b> {{ n.body|default:"—"|truncatechars:60 }}
                     {% endfor %}
                 </div>
                 {% endif %}
                 
                 <div class="lc-foot">
-                    <div style="font-size:0.85rem; color:var(--c-muted)">
+                    <div class="u-fs-sm u-text-c-muted-2">
                          إلى: {% firstof t.assignee.name t.assignee.username "غير مسند" %}
                     </div>
                     <a href="{% url 'reports:ticket_detail' t.pk %}" class="lc-detail">
@@ -979,10 +979,10 @@ html[data-theme="dark"] .req-scope .pager .current{
                 </div>
             </div>
             {% empty %}
-            <div class="empty-state" style="grid-column: 1/-1">
+            <div class="empty-state u-span-all">
                 <div class="empty-icon"><i class="fa-regular fa-folder-open"></i></div>
                 <h3>لا توجد طلبات حالياً</h3>
-                <p style="color:var(--c-muted)">يمكنك إنشاء طلب جديد للتواصل مع الأقسام المختلفة.</p>
+                <p class="u-text-c-muted-2">يمكنك إنشاء طلب جديد للتواصل مع الأقسام المختلفة.</p>
                 <br>
                 <a href="{% url 'reports:request_create' %}" class="btn-lux btn-primary">إنشاء طلب جديد</a>
             </div>
@@ -992,13 +992,13 @@ html[data-theme="dark"] .req-scope .pager .current{
 
       <!-- Pager -->
       {% if tickets.paginator and tickets.paginator.num_pages > 1 %}
-      <div style="margin-top:32px; display:flex; justify-content:center; gap:8px">
+      <div class="xs-my-requests-9">
         {% with bq=request.GET.q|urlencode bs=request.GET.status bo=request.GET.order %}
           {% if tickets.has_previous %}
             <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view={{ view_mode }}&page={{ tickets.previous_page_number }}" class="btn-lux btn-ghost">السابق</a>
           {% endif %}
           
-          <span style="display:inline-flex; align-items:center; padding:0 16px; font-weight:700; color:var(--c-muted)">
+          <span class="xs-my-requests-10">
               {{ tickets.number }} / {{ tickets.paginator.num_pages }}
           </span>
 

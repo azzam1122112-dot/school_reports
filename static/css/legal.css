@@ -1,3 +1,8 @@
+/* الخصائص المنطقية بدل الفيزيائية: ``margin-inline-end`` لا ``margin-left``،
+   و``text-align: start`` لا ``right``. القيمة المنطقية تنقلب مع اتجاه الصفحة
+   تلقائياً، فتعمل الورقة نفسها في العربية والإنجليزية بلا نسخة ثانية ولا
+   تجاوزات ``[dir=ltr]``. */
+
 .legal-page {
   width: min(1040px, calc(100% - 32px));
   margin: 0 auto;
@@ -65,8 +70,8 @@
 .legal-card h3 { margin: 22px 0 9px; color: #1c4d39; font-size: 1rem; }
 .legal-card p, .legal-card li { color: #52655c; line-height: 1.9; font-size: .88rem; }
 .legal-card p:last-child, .legal-card ul:last-child { margin-bottom: 0; }
-.legal-card ul, .legal-card ol { padding-right: 22px; }
-.legal-note { padding: 16px 18px; border-right: 4px solid #b9975b; border-radius: 11px; color: #526154; background: #fbf7ee; line-height: 1.8; }
+.legal-card ul, .legal-card ol { padding-inline-start: 22px; }
+.legal-note { padding: 16px 18px; border-inline-start: 4px solid #b9975b; border-radius: 11px; color: #526154; background: #fbf7ee; line-height: 1.8; }
 
 .legal-form { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .legal-field { display: grid; gap: 7px; }

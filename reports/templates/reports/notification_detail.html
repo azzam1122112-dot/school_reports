@@ -5,7 +5,7 @@
 {% block title %}{% if n.requires_signature %}تفاصيل التعميم{% else %}تفاصيل الإشعار{% endif %}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      Notification Detail — Premium 2026 Design
      ========================================================= */
@@ -584,7 +584,7 @@
     <!-- ═══ Hero Banner ═══ -->
     <div class="nd-hero">
       <div class="nd-hero-inner">
-        <div style="display:flex;gap:16px;align-items:flex-start;flex:1;min-width:0">
+        <div class="xs-notification-detail-1">
           <div class="nd-hero-icon">
             {% if n.requires_signature %}
               <i class="fa-solid fa-file-signature"></i>
@@ -647,7 +647,7 @@
             {% if body %}
               <div class="nd-msg-body">{{ body|linebreaksbr }}</div>
             {% else %}
-              <div class="nd-empty" style="padding:20px 0 24px">
+              <div class="nd-empty xs-notification-detail-2">
                 <i class="fa-regular fa-comment-dots"></i>
                 <p>لا يوجد محتوى نصي.</p>
               </div>
@@ -694,7 +694,7 @@
                 </a>
               {% endif %}
               {% if n.id %}
-                <form method="post" action="{% url 'reports:notification_delete' n.id %}" id="deleteNotifForm" data-confirm="سيتم حذف هذا الإشعار نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger" style="display:contents">
+                <form method="post" action="{% url 'reports:notification_delete' n.id %}" id="deleteNotifForm" data-confirm="سيتم حذف هذا الإشعار نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger" class="xs-notification-detail-3">
                   {% csrf_token %}
                   <button class="nd-btn danger" type="submit">
                     <i class="fa-solid fa-trash"></i> حذف

@@ -11,7 +11,7 @@
 <div class="complaints-shell" dir="rtl">
   <header class="complaints-hero">
     <div>
-      <span class="complaint-reference" style="color:#fff">{{ complaint.reference }}</span>
+      <span class="complaint-reference xs-platform-complaint-detail-1">{{ complaint.reference }}</span>
       <h1>{{ complaint.subject }}</h1>
       <p>استُلمت في {{ complaint.created_at|date:"Y-m-d H:i" }} · آخر تحديث {{ complaint.updated_at|date:"Y-m-d H:i" }}</p>
     </div>
@@ -77,8 +77,8 @@
       <section class="complaints-card">
         <h2><i class="fa-solid fa-calendar-check"></i> التواريخ</h2>
         <div class="complaint-meta"><span>الاستلام</span><strong>{{ complaint.created_at|date:"Y-m-d H:i" }}</strong></div>
-        <div class="complaint-meta" style="margin-top:.6rem"><span>آخر تحديث</span><strong>{{ complaint.updated_at|date:"Y-m-d H:i" }}</strong></div>
-        <div class="complaint-meta" style="margin-top:.6rem"><span>المعالجة/الإغلاق</span><strong>{{ complaint.resolved_at|date:"Y-m-d H:i"|default:"—" }}</strong></div>
+        <div class="complaint-meta u-mt-sm"><span>آخر تحديث</span><strong>{{ complaint.updated_at|date:"Y-m-d H:i" }}</strong></div>
+        <div class="complaint-meta u-mt-sm"><span>المعالجة/الإغلاق</span><strong>{{ complaint.resolved_at|date:"Y-m-d H:i"|default:"—" }}</strong></div>
       </section>
     </aside>
   </div>

@@ -12,11 +12,12 @@
   {% include "reports/_identity.html" %}
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/circulars-official.css' %}">
+<link rel="stylesheet" href="{% static 'css/extracted.css' %}?v=20260812.1">
 </head>
 <body class="cir-print-body">
   <header class="cir-print-toolbar cir-no-print">
     <div class="cir-print-toolbar__title"><i class="fa-solid fa-file-shield"></i> معاينة تقرير التواقيع الرسمي</div>
-    <div style="display:flex;gap:.55rem">
+    <div class="xs-notification-signatures-print-1">
       <a href="{% url 'reports:notification_detail' n.id %}" class="cir-btn"><i class="fa-solid fa-arrow-right"></i> العودة للسجل</a>
       <button type="button" class="cir-btn cir-btn--primary" id="printReport"><i class="fa-solid fa-print"></i> طباعة / حفظ PDF</button>
     </div>
@@ -38,7 +39,7 @@
     </header>
 
     <div class="cir-report-kicker">محضر متابعة إلكتروني</div>
-    <h1 class="cir-report-title">تقرير الاطلاع والتوقيع<br><span style="font-size:12pt">{{ n.title|default:"تعميم رسمي" }}</span></h1>
+    <h1 class="cir-report-title">تقرير الاطلاع والتوقيع<br><span class="xs-notification-signatures-print-2">{{ n.title|default:"تعميم رسمي" }}</span></h1>
 
     <table class="cir-report-meta">
       <tbody>
@@ -59,19 +60,19 @@
 
     <section class="cir-report-stats" aria-label="ملخص التواقيع">
       <div class="cir-report-stat"><strong>{{ stats.total }}</strong><span>إجمالي المستلمين</span></div>
-      <div class="cir-report-stat" style="border-top-color:#147449"><strong style="color:#147449">{{ stats.signed }}</strong><span>اعتمدوا التوقيع</span></div>
-      <div class="cir-report-stat" style="border-top-color:#b42318"><strong style="color:#b42318">{{ stats.unsigned }}</strong><span>بانتظار التوقيع</span></div>
+      <div class="cir-report-stat xs-notification-signatures-print-3"><strong class="xs-notification-signatures-print-4">{{ stats.signed }}</strong><span>اعتمدوا التوقيع</span></div>
+      <div class="cir-report-stat xs-notification-signatures-print-5"><strong class="xs-notification-signatures-print-6">{{ stats.unsigned }}</strong><span>بانتظار التوقيع</span></div>
     </section>
 
     <table class="cir-report-table">
       <thead>
         <tr>
-          <th style="width:7%;text-align:center">م</th>
+          <th class="xs-notification-signatures-print-7">م</th>
           <th>الاسم</th>
-          <th style="width:18%">الصفة</th>
-          <th style="width:15%">الاطلاع</th>
-          <th style="width:15%">التوقيع</th>
-          <th style="width:21%">وقت التوقيع</th>
+          <th class="xs-notification-signatures-print-8">الصفة</th>
+          <th class="xs-notification-signatures-print-9">الاطلاع</th>
+          <th class="xs-notification-signatures-print-9">التوقيع</th>
+          <th class="xs-notification-signatures-print-10">وقت التوقيع</th>
         </tr>
       </thead>
       <tbody>
@@ -85,7 +86,7 @@
           <td>{% if row.signed_at %}{{ row.signed_at|date:"Y/m/d — H:i" }}{% else %}—{% endif %}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" style="height:30mm;text-align:center">لا توجد سجلات مستلمين لهذا التعميم.</td></tr>
+        <tr><td colspan="6" class="xs-notification-signatures-print-11">لا توجد سجلات مستلمين لهذا التعميم.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -95,7 +96,7 @@
       {% if n.signature_ack_text %}<br><strong>نص الإقرار المعتمد:</strong> {{ n.signature_ack_text|linebreaksbr }}{% endif %}
     </aside>
 
-    <footer style="display:flex;justify-content:space-between;gap:1rem;margin-top:6mm;padding-top:3mm;border-top:1px solid #cfd8d2;color:#68766d;font-size:7pt">
+    <footer class="xs-notification-signatures-print-12">
       <span>طُبع بواسطة: {{ request.user.name|default:request.user.phone }}</span>
       <span>منصة توثيق — سجل إداري إلكتروني</span>
     </footer>

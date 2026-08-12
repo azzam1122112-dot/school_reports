@@ -6,7 +6,7 @@
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
 {% include "reports/_document_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .dc-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); align-items: start; }
   @media (max-width: 980px) { .dc-grid { grid-template-columns: 1fr; } }
   .dc-side { position: sticky; top: 1rem; }
@@ -85,8 +85,8 @@
   <div class="dc-grid">
     <div>
       <section class="asg-card">
-        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
-          <h2 class="asg-card__title" style="margin:0">الملف والبيانات</h2>
+        <div class="u-flex u-items-center u-gap-sm u-wrap u-mb-09">
+          <h2 class="asg-card__title u-m-0">الملف والبيانات</h2>
           {% if document.is_archived %}
             <span class="doc-state" data-s="approved">
               <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
@@ -139,7 +139,7 @@
         <div class="dc-meta">
           <div class="dc-meta__c">
             <div class="dc-meta__l">النوع</div>
-            <div class="dc-meta__v" style="color:var(--k)">{{ document.get_kind_display }}</div>
+            <div class="dc-meta__v xs-document-detail-1">{{ document.get_kind_display }}</div>
           </div>
           <div class="dc-meta__c">
             <div class="dc-meta__l">السنة الدراسية</div>
@@ -241,7 +241,7 @@
           </script>
         {% else %}
           <div class="dc-locked">
-            <i class="fa-solid {% if document.is_archived %}fa-lock{% else %}fa-hourglass-half{% endif %}" aria-hidden="true" style="margin-top:.15rem"></i>
+            <i class="fa-solid {% if document.is_archived %}fa-lock{% else %}fa-hourglass-half{% endif %} xs-document-detail-2" aria-hidden="true"></i>
             <span>
               {% if document.is_archived %}
                 هذه الوثيقة في الأرشيف المعتمَد. لا تُعدَّل ولا تُحذف.

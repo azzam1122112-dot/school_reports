@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}السنوات الدراسية{% endblock %}
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   body { background: linear-gradient(120deg, #e0e7ff 0%, #f0fdfa 100%); min-height: 100vh; }
   .ay-card {
     max-width: 980px; margin: 40px auto 24px auto; background: #fff; border-radius: 28px;
@@ -65,7 +65,7 @@
 <div class="ay-card">
   <div class="ay-head">
     <div class="ay-bc"><a href="{% url 'reports:platform_admin_dashboard' %}"><i class="fa-solid fa-gauge-high"></i> لوحة الآدمن</a> › السنوات الدراسية</div>
-    <h1 class="ay-title"><i class="fa-solid fa-calendar-days" style="-webkit-text-fill-color:#e6cf9a"></i> السنوات الدراسية</h1>
+    <h1 class="ay-title"><i class="fa-solid fa-calendar-days xs-platform-academic-years-1"></i> السنوات الدراسية</h1>
     <p class="ay-sub">المصدر المركزي للسنوات الهجرية التي تظهر للمدارس في إعداداتها. أضف السنوات القادمة، وفعّل أو عطّل أيّها.</p>
   </div>
 
@@ -103,11 +103,11 @@
           {% if it.schools %}<span class="ay-use"><i class="fa-solid fa-school"></i> {{ it.schools }} مدرسة</span>{% endif %}
         </div>
         <div class="ay-actions">
-          <form method="post" style="display:inline">{% csrf_token %}
+          <form method="post" class="u-inline">{% csrf_token %}
             <input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="{{ it.obj.pk }}">
             <button class="ay-mini" type="submit">{% if it.obj.is_active %}<i class="fa-solid fa-toggle-off"></i> تعطيل{% else %}<i class="fa-solid fa-toggle-on"></i> تفعيل{% endif %}</button>
           </form>
-          <form method="post" style="display:inline" data-confirm="حذف السنة «{{ it.obj.value }}» نهائيًا؟">{% csrf_token %}
+          <form method="post" data-confirm="حذف السنة «{{ it.obj.value }}» نهائيًا؟" class="u-inline">{% csrf_token %}
             <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ it.obj.pk }}">
             <button class="ay-mini danger" type="submit"><i class="fa-solid fa-trash-can"></i></button>
           </form>
@@ -117,7 +117,7 @@
     </div>
     {% else %}
     <div class="ay-empty">
-      <i class="fa-solid fa-calendar-days" style="font-size:2.6rem;color:#cbd5e1;display:block;margin-bottom:12px"></i>
+      <i class="fa-solid fa-calendar-days xs-platform-academic-years-2"></i>
       لا توجد سنوات بعد. أضف سنة يدويًا أو استخدم «توليد السنوات القادمة».
     </div>
     {% endif %}

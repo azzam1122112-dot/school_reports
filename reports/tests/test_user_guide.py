@@ -105,13 +105,16 @@ class MobileNavigationRegressionTests(TestCase):
         self.assertIn("transform: translateX(0) !important;", mobile_css)
 
     def test_wide_header_never_wraps_and_collapses_before_space_runs_out(self):
-        template = self._source("reports/templates/base.html")
+        # القواعد نُقلت من ``<style>`` داخل ``base.html`` إلى ``app-shell.css``
+        # مع بقية هيكل التطبيق. والفحص يتبعها — فالمقصود سلوك الترويسة عند
+        # ضيق الشاشة لا الملف الذي يصفه.
+        shell = self._source("static/css/app-shell.css")
 
-        self.assertIn(".site-header .container.hdr { max-width: 1760px; }", template)
-        self.assertIn("flex-wrap: nowrap;", template)
-        self.assertIn("@media (max-width: 1599px)", template)
-        self.assertIn(".hdr-nav { display: none; }", template)
-        self.assertIn("flex-direction: column;", template)
+        self.assertIn(".site-header .container.hdr { max-width: 1760px; }", shell)
+        self.assertIn("flex-wrap: nowrap;", shell)
+        self.assertIn("@media (max-width: 1599px)", shell)
+        self.assertIn(".hdr-nav { display: none; }", shell)
+        self.assertIn("flex-direction: column;", shell)
 
     def test_account_avatar_uses_the_shared_navigation_drawer(self):
         template = self._source("reports/templates/base.html")

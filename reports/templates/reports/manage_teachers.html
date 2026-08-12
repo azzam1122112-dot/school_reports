@@ -195,11 +195,9 @@
                       <form
                         method="post"
                         action="{% url 'reports:delete_teacher' pk=t.id %}?next={{ nxt|urlencode }}"
-                        class="teacher-delete-form"
+                        class="teacher-delete-form u-inline"
                         data-confirm="هل تريد حذف هذا {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}؟"
-                        data-confirm-type="danger"
-                        style="display:inline"
-                      >
+                        data-confirm-type="danger">
                         {% csrf_token %}
                         <button
                           type="submit"

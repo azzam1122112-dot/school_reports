@@ -5,7 +5,7 @@
 {% block title %}تفاصيل عملية الدفع #{{ payment.id }}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* ✅ Scoped فقط لهذه الصفحة (بدون لمس .btn/.card العامة) */
   .pay-detail{
     --pd-brand: var(--brand, #006c35);
@@ -278,9 +278,7 @@
 
         <a
           href="{% url 'reports:platform_payments_list' %}"
-          class="btn btn-outline"
-          style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22);color:#fff"
-        >
+          class="btn btn-outline xs-platform-payment-detail-1">
           <i class="fa-solid fa-arrow-right"></i> عودة للقائمة
         </a>
       </div>
@@ -319,7 +317,7 @@
           {% if payment.status == 'approved' %}
             <span class="badge success"><i class="fa-solid fa-circle-check"></i> مقبول</span>
           {% elif payment.status == 'cancelled' %}
-            <span class="badge" style="background: rgba(100,116,139,.12); color: #475569; border-color: rgba(100,116,139,.25)"><i class="fa-solid fa-ban"></i> ملغي</span>
+            <span class="badge xs-platform-payment-detail-2"><i class="fa-solid fa-ban"></i> ملغي</span>
           {% elif payment.status == 'rejected' %}
             <span class="badge danger"><i class="fa-solid fa-circle-xmark"></i> مرفوض</span>
           {% else %}
@@ -407,7 +405,7 @@
       </div>
     </div>
 
-    <div class="card" style="margin-top:12px">
+    <div class="card u-mt-4">
       <div class="section-title">
         <span><i class="fa-solid fa-image"></i> صورة الإيصال</span>
       </div>
@@ -418,20 +416,20 @@
         </a>
         <div class="help">اضغط على الصورة لفتحها بحجم كامل.</div>
       {% elif payment.payment_method != 'bank_transfer' %}
-        <div class="help" style="padding:14px;text-align:center;font-weight:900">الدفع إلكتروني عبر {{ payment.get_payment_method_display }} ولا يتطلب صورة إيصال.</div>
+        <div class="help u-p-4 u-text-center u-fw-900">الدفع إلكتروني عبر {{ payment.get_payment_method_display }} ولا يتطلب صورة إيصال.</div>
       {% else %}
-        <div class="help" style="padding:14px;text-align:center;font-weight:900">لا توجد صورة مرفقة</div>
+        <div class="help u-p-4 u-text-center u-fw-900">لا توجد صورة مرفقة</div>
       {% endif %}
     </div>
 
-    <div class="card" style="margin-top:12px">
+    <div class="card u-mt-4">
       <div class="section-title">
         <span><i class="fa-solid fa-screwdriver-wrench"></i> إجراءات الإدارة</span>
       </div>
 
       {# إن كان عندك form.errors من الـView سيظهر بشكل لطيف #}
       {% if form and form.errors %}
-        <div class="form-error" role="alert" aria-live="polite" style="margin-bottom:12px">
+        <div class="form-error u-mb-4" role="alert" aria-live="polite">
           تحقق من المدخلات ثم أعد المحاولة.
         </div>
       {% endif %}

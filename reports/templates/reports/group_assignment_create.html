@@ -5,7 +5,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .gnew-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
   .gnew-schools { display: grid; gap: .45rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
   .gnew-schools label { display: flex; gap: .55rem; align-items: flex-start; font-size: .86rem; font-weight: 700; }
@@ -94,7 +94,7 @@
           <span>{{ form.requires_evidence.label }}</span>
         </label>
       </div>
-      <div class="asg-field" style="max-width:220px">
+      <div class="asg-field xs-group-assignment-create-1">
         <label for="{{ form.min_evidence_count.id_for_label }}">{{ form.min_evidence_count.label }}</label>
         {{ form.min_evidence_count }}
       </div>
@@ -111,12 +111,12 @@
         {% for choice in form.schools %}
           <label>{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
         {% empty %}
-          <p class="asg-card__hint" style="margin:0">لا توجد مدارس نشطة في هذه المجموعة.</p>
+          <p class="asg-card__hint u-m-0">لا توجد مدارس نشطة في هذه المجموعة.</p>
         {% endfor %}
       </div>
       {% if form.schools.errors %}<ul class="asg-errors">{% for e in form.schools.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
 
-      <div class="asg-field__help" style="margin-top:.9rem">
+      <div class="asg-field__help xs-group-assignment-create-2">
         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
         المدرسة التي ليس لها مدير نشط لن يصلها التكليف، وسيُنبَّهك باسمها بعد
         الإصدار بدل أن تختفي بصمت.

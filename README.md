@@ -59,12 +59,12 @@ WeasyPrint يحتاج مكتبات Pango/GObject الأصلية. صورة Docker
 
 راجع `.env.example` و`deploy/hetzner/env.production.example` لقائمة المتغيرات كاملة.
 
-### تمارا
+### الدفع
 
-تكامل تمارا معطّل افتراضيًا. ابدأ ببيئة `sandbox`، وضع `TAMARA_API_TOKEN`
-و`TAMARA_NOTIFICATION_TOKEN` في ملف البيئة الفعلي فقط، ثم سجّل Webhook من نوع
-Order على `/payments/tamara/webhook/` لكل أحداث الطلب. لا تنتقل إلى
-`TAMARA_ENVIRONMENT=production` قبل اجتياز قائمة اختبار الإطلاق لدى تمارا.
+بوابة الدفع الإلكتروني الوحيدة هي **ميسر**. ابدأ ببيئة `test`، وضع
+`MOYASAR_SECRET_KEY` في ملف البيئة الفعلي فقط، ثم سجّل مسار الاستدعاء الراجع
+على `/payments/moyasar/callback/<batch_ref>/`. وإلى جانبها التحويل البنكي
+بإرفاق الإيصال.
 
 ## الأمان
 

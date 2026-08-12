@@ -73,3 +73,40 @@ class NotificationListSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = fields
+
+
+class ReportCreateSerializer(serializers.ModelSerializer):
+    """إنشاء تقرير عبر الـAPI.
+
+    **المدرسة والمُعِدّ لا يُقبلان من الحمولة.** كلاهما يُشتقّ من سياق الطلب:
+    المدرسة من المفتاح أو الجلسة، والمُعِدّ من الهوية المصادَق بها. وقبولُهما
+    من العميل كان يعني أن مفتاح مدرسةٍ يكتب في مدرسةٍ أخرى بتغيير رقم في JSON
+    — وهو أسهل اختراقٍ ممكن لعزل المستأجرين.
+
+    ``category`` يُقيَّد بأنواع هذه المدرسة وحدها للسبب نفسه.
+    """
+
+    class Meta:
+        model = Report
+        fields = [
+            "id", "title", "report_date", "category", "idea",
+            "goal", "implementation_method", "results", "recommendations",
+            "beneficiaries_count", "academic_year",
+        ]
+        read_only_fields = ["id"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        school = self.context.get("school")
+        field = self.fields.get("category")
+        if field is not None:
+            from .models import ReportType
+
+            field.queryset = ReportType.objects.filter(
+                is_active=True
+            ).filter(school=school) if school is not None else ReportType.objects.none()
+
+    def create(self, validated_data):
+        validated_data["school"] = self.context["school"]
+        validated_data["teacher"] = self.context["teacher"]
+        return super().create(validated_data)

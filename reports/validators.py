@@ -15,6 +15,8 @@ from typing import Iterable
 
 from django.core.exceptions import ValidationError
 
+from core.observability import report_degraded as _degraded
+
 try:
     from PIL import Image, UnidentifiedImageError
 except ImportError:
@@ -89,18 +91,20 @@ def _get_ext(name: str) -> str:
 
 
 def _read_head(file_obj, n: int = 4096) -> bytes:
+    # ملفٌ غير قابل للإرجاع (stream) حالةٌ مشروعة لا عطل — فتُصطاد بنوعها.
     try:
         file_obj.seek(0)
-    except Exception:
+    except (AttributeError, OSError, ValueError):
         pass
     try:
         head = file_obj.read(n)
     except Exception:
+        _degraded("validators.read_file_head")
         head = b""
     finally:
         try:
             file_obj.seek(0)
-        except Exception:
+        except (AttributeError, OSError, ValueError):
             pass
     return head or b""
 
@@ -115,7 +119,8 @@ def _sniff_mime(file_obj, name: str) -> str:
             head = _read_head(file_obj, 8192)
             return (magic.from_buffer(head, mime=True) or "").lower()
         except Exception:
-            pass
+            # سقوطٌ إلى الاستدلال بالامتداد: أضعف تحققاً، فيجب أن يُعرف أنه وقع.
+            _degraded("validators.magic_sniff_failed")
 
     guessed, _ = mimetypes.guess_type(name or "")
     guessed = (guessed or "").lower()
@@ -172,7 +177,7 @@ def validate_image_file(file_obj) -> None:
     try:
         try:
             file_obj.seek(0)
-        except Exception:
+        except (AttributeError, OSError, ValueError):
             pass
 
         img = Image.open(file_obj)
@@ -182,7 +187,7 @@ def validate_image_file(file_obj) -> None:
     finally:
         try:
             file_obj.seek(0)
-        except Exception:
+        except (AttributeError, OSError, ValueError):
             pass
 
 
