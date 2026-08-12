@@ -753,10 +753,22 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         elif action == "approve" and is_manager:
+            if not manager_notes_form.is_valid():
+                messages.error(request, "تعذر حفظ ملاحظات الاعتماد. راجع النص وحاول مرة أخرى.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+            manager_notes_form.save()
             ach_file.status = TeacherAchievementFile.Status.APPROVED
             ach_file.decided_at = timezone.now()
             ach_file.decided_by = request.user
-            ach_file.save(update_fields=["status", "decided_at", "decided_by", "updated_at"])
+            ach_file.save(
+                update_fields=[
+                    "status",
+                    "decided_at",
+                    "decided_by",
+                    "manager_notes",
+                    "updated_at",
+                ]
+            )
 
             # إشعار المعلم باعتماد ملف الإنجاز
             _notify_achievement_decided(ach_file, "approved", active_school)
@@ -765,8 +777,10 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         elif action == "return" and is_manager:
-            if manager_notes_form.is_valid():
-                manager_notes_form.save()
+            if not manager_notes_form.is_valid():
+                messages.error(request, "تعذر حفظ ملاحظات الإرجاع. راجع النص وحاول مرة أخرى.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+            manager_notes_form.save()
             ach_file.status = TeacherAchievementFile.Status.RETURNED
             ach_file.decided_at = timezone.now()
             ach_file.decided_by = request.user

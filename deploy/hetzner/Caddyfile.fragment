@@ -12,6 +12,12 @@ tawtheeq-ksa.com {
 	encode zstd gzip
 
 	reverse_proxy school-reports-web:8000 {
+		# Hold requests briefly while Compose replaces the web container. Caddy
+		# always retries failed upstream connections when a try duration is set,
+		# which prevents a normal deployment window from surfacing as a 502.
+		lb_try_duration 15s
+		lb_try_interval 250ms
+
 		# {remote_host} هنا هو عنوان حافة Cloudflare لا الزائر، فيجعل كل زوار
 		# مركز بيانات واحد يتشاركون دلواً واحداً في تحديد المعدل. CF-Connecting-IP
 		# هو عنوان الزائر الحقيقي.

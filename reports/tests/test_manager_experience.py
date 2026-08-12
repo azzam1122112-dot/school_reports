@@ -379,6 +379,36 @@ class ManagerExperienceTests(TestCase):
             reverse("reports:ticket_detail", args=[Ticket.objects.get().pk]),
         )
 
+    def test_approving_an_achievement_file_replaces_the_previous_return_note(self):
+        achievement_file = TeacherAchievementFile.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            academic_year="1447-1448",
+            status=TeacherAchievementFile.Status.SUBMITTED,
+            manager_notes="ملاحظة إرجاع قديمة",
+        )
+        self._login_manager()
+
+        response = self.client.post(
+            reverse("reports:achievement_file_detail", args=[achievement_file.pk]),
+            {
+                "action": "approve",
+                "manager_notes": "تم الاستكمال والاعتماد مع الشكر.",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("reports:achievement_file_detail", args=[achievement_file.pk]),
+        )
+        achievement_file.refresh_from_db()
+        self.assertEqual(achievement_file.status, TeacherAchievementFile.Status.APPROVED)
+        self.assertEqual(
+            achievement_file.manager_notes,
+            "تم الاستكمال والاعتماد مع الشكر.",
+        )
+        self.assertEqual(achievement_file.decided_by, self.manager)
+
     def test_dashboard_counts_teachers_without_counting_manager_and_guides_setup(self):
         self._login_manager()
 
