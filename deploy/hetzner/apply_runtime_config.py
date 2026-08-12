@@ -72,6 +72,11 @@ def _parse_args() -> argparse.Namespace:
             "mailto:/https: subject. Values are never printed."
         ),
     )
+    parser.add_argument(
+        "--resend-config-from-stdin",
+        action="store_true",
+        help="Read RESEND_API_KEY and RESEND_WEBHOOK_SECRET from two stdin lines.",
+    )
     return parser.parse_args()
 
 
@@ -142,6 +147,24 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
                 "WEB_PUSH_VAPID_PRIVATE_KEY": private_key,
                 "WEB_PUSH_VAPID_PUBLIC_KEY": public_key,
                 "WEB_PUSH_SUBJECT": subject,
+            }
+        )
+
+    if args.resend_config_from_stdin:
+        lines = sys.stdin.read().splitlines()
+        if len(lines) != 2:
+            raise SystemExit(
+                "Resend configuration requires exactly two stdin lines: API key and webhook secret."
+            )
+        api_key, webhook_secret = (line.strip() for line in lines)
+        if not re.fullmatch(r"re_[A-Za-z0-9_]{16,}", api_key):
+            raise SystemExit("RESEND_API_KEY does not look like a Resend API key.")
+        if not re.fullmatch(r"whsec_[A-Za-z0-9_+/=-]{16,}", webhook_secret):
+            raise SystemExit("RESEND_WEBHOOK_SECRET does not look like a webhook signing secret.")
+        values.update(
+            {
+                "RESEND_API_KEY": api_key,
+                "RESEND_WEBHOOK_SECRET": webhook_secret,
             }
         )
 
