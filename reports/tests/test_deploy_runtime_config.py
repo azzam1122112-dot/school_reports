@@ -30,6 +30,7 @@ class WebPushRuntimeConfigTests(SimpleTestCase):
             "moyasar_key_from_stdin": False,
             "web_push_enabled": "True",
             "web_push_config_from_stdin": True,
+            "resend_config_from_stdin": False,
         }
         values.update(overrides)
         return SimpleNamespace(**values)
@@ -70,3 +71,28 @@ class WebPushRuntimeConfigTests(SimpleTestCase):
         self.assertIn("SECRET_KEY=untouched", content)
         self.assertIn("WEB_PUSH_ENABLED=True", content)
         self.assertEqual(set(changed), {"WEB_PUSH_ENABLED", "WEB_PUSH_SUBJECT"})
+
+    def test_resend_secrets_are_collected_from_exactly_two_lines(self):
+        stdin = io.StringIO("re_platformKey_123456789\nwhsec_platformSecret_123456789\n")
+        with patch("sys.stdin", stdin):
+            values = _collect(
+                self._args(
+                    web_push_enabled=None,
+                    web_push_config_from_stdin=False,
+                    resend_config_from_stdin=True,
+                )
+            )
+        self.assertEqual(values["RESEND_API_KEY"], "re_platformKey_123456789")
+        self.assertEqual(values["RESEND_WEBHOOK_SECRET"], "whsec_platformSecret_123456789")
+
+    def test_invalid_resend_secret_is_rejected(self):
+        stdin = io.StringIO("re_platformKey_123456789\ninvalid-secret\n")
+        with patch("sys.stdin", stdin):
+            with self.assertRaisesMessage(SystemExit, "RESEND_WEBHOOK_SECRET"):
+                _collect(
+                    self._args(
+                        web_push_enabled=None,
+                        web_push_config_from_stdin=False,
+                        resend_config_from_stdin=True,
+                    )
+                )
