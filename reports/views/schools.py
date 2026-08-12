@@ -17,6 +17,8 @@ from ._helpers import (
 from ..context_processors import nav_context
 from ..cache_utils import get_school_dashboard_payload
 from ..gender_labels import school_gender_labels
+from ..guidance import school_readiness
+from ..audit_export import audit_csv_response
 
 
 # ========= دعم الأقسام =========
@@ -1158,42 +1160,13 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             except Exception:
                 departments_count = 0
 
-    setup_steps = []
-    if active_school is not None:
-        profile_ready = bool(
-            (active_school.current_academic_year or "").strip()
-            and (active_school.city or "").strip()
-            and (active_school.phone or "").strip()
-        )
-        setup_steps = [
-            {
-                "title": "بيانات المدرسة والسنة الحالية",
-                "description": "أكمل المدينة والجوال والسنة الدراسية ليظهر التصنيف صحيحًا.",
-                "complete": profile_ready,
-                "url": reverse("reports:school_settings"),
-            },
-            {
-                "title": "فريق المدرسة",
-                "description": "أضف أول مستخدم ليبدأ الفريق في إنشاء التقارير.",
-                "complete": bool(payload_kpis.get("teachers_count")),
-                "url": reverse("reports:bulk_import_teachers"),
-            },
-            {
-                "title": "الأقسام",
-                "description": "أنشئ الأقسام لتنظيم الفريق والصلاحيات.",
-                "complete": bool(departments_count),
-                "url": reverse("reports:departments_list"),
-            },
-            {
-                "title": "أنواع التقارير",
-                "description": "حدد الأنواع التي سيستخدمها الفريق في التوثيق.",
-                "complete": bool(reporttypes_count),
-                "url": reverse("reports:reporttypes_list"),
-            },
-        ]
-    setup_completed = sum(1 for step in setup_steps if step["complete"])
-    setup_total = len(setup_steps)
-    setup_percent = round((setup_completed / setup_total) * 100) if setup_total else 100
+    setup = school_readiness(active_school) if active_school is not None else {
+        "steps": [], "completed": 0, "total": 0, "percent": 100, "next_step": None
+    }
+    setup_steps = setup["steps"]
+    setup_completed = setup["completed"]
+    setup_total = setup["total"]
+    setup_percent = setup["percent"]
 
     # The follow-up chips and the headline number must come from one list, or the
     # hero ends up contradicting the section directly beneath it. nav_context is
@@ -1224,6 +1197,7 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             "setup_completed": setup_completed,
             "setup_total": setup_total,
             "setup_percent": setup_percent,
+            "setup_next_step": setup["next_step"],
             "dashboard_period_payload": json.dumps(dashboard_payload, ensure_ascii=False),
             "reports_labels": json.dumps(payload_charts["reports"]["labels"], ensure_ascii=False),
             "reports_data": json.dumps(payload_charts["reports"]["data"]),
@@ -1348,6 +1322,8 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
     # تصفية/عرض السجلات (لو كانت متاحة)
     teacher_id = _clean_query_value(request.GET.get("teacher"))
     action = _clean_query_value(request.GET.get("action"))
+    model_name = _clean_query_value(request.GET.get("model"))
+    query = _clean_query_value(request.GET.get("q"))[:120]
     start_date = _parse_date_safe(request.GET.get("start_date"))
     end_date = _parse_date_safe(request.GET.get("end_date"))
     allowed_actions = {value for value, _label in AuditLog.Action.choices}
@@ -1361,10 +1337,33 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
             logs_qs = logs_qs.filter(action=action)
         else:
             action = ""
+        available_models = list(
+            logs_qs.order_by("model_name")
+            .values_list("model_name", flat=True)
+            .distinct()
+        )
+        if model_name in available_models:
+            logs_qs = logs_qs.filter(model_name=model_name)
+        else:
+            model_name = ""
+        if query:
+            logs_qs = logs_qs.filter(
+                Q(actor_name__icontains=query)
+                | Q(teacher__name__icontains=query)
+                | Q(teacher__phone__icontains=query)
+                | Q(object_repr__icontains=query)
+                | Q(model_name__icontains=query)
+            )
         if start_date is not None:
             logs_qs = logs_qs.filter(timestamp__date__gte=start_date)
         if end_date is not None:
             logs_qs = logs_qs.filter(timestamp__date__lte=end_date)
+
+        if request.GET.get("export") == "csv":
+            return audit_csv_response(
+                logs_qs.select_related("school", "teacher"),
+                filename=f"school-audit-{active_school.pk}.csv",
+            )
 
         paginator = Paginator(logs_qs, 50)
         page = request.GET.get("page")
@@ -1372,10 +1371,11 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
     else:
         # لا نستخدم QuerySet هنا حتى لا نلمس قاعدة البيانات.
         logs = Paginator([], 50).get_page(1)
+        available_models = []
 
     # ترجمة أسماء الموديلات إلى العربية — نفس الوحدة التي تخدم «سجل أعمالي»،
     # فلا تفترق تسمية الشيء الواحد بين شاشتين.
-    from ..audit_labels import attach_views as _attach_audit_views
+    from ..audit_labels import attach_views as _attach_audit_views, model_filter_choices
 
     _attach_audit_views(logs)
 
@@ -1391,6 +1391,8 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
     params = request.GET.copy()
     if "page" in params:
         params.pop("page")
+    if "export" in params:
+        params.pop("export")
     for key in list(params.keys()):
         cleaned = _clean_query_value(params.get(key))
         if cleaned:
@@ -1405,6 +1407,9 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
         "active_school": active_school,
         "q_teacher": teacher_id,
         "q_action": action,
+        "q_model": model_name,
+        "q": query,
+        "models": model_filter_choices(available_models),
         "q_start": start_date.isoformat() if start_date else "",
         "q_end": end_date.isoformat() if end_date else "",
         "qs": params.urlencode(),
@@ -1462,7 +1467,7 @@ def department_create(request: HttpRequest) -> HttpResponse:
             # حفظ علاقات M2M بعد الحفظ الأولي
             if hasattr(form, "save_m2m"):
                 form.save_m2m()
-            messages.success(request, "✅ تم إنشاء القسم.")
+            messages.success(request, "تم إنشاء القسم.")
             return redirect("reports:departments_list")
         messages.error(request, "تعذّر الحفظ. تحقّق من الحقول.")
     return render(request, "reports/department_form.html", {"form": form, "mode": "create"})
@@ -1509,7 +1514,7 @@ def department_edit(request: HttpRequest, code: str) -> HttpResponse:
     if request.method == "POST":
         if form.is_valid():
             form.save()
-            messages.success(request, f"✏️ تم تحديث قسم «{label}».")
+            messages.success(request, f"تم تحديث قسم «{label}».")
             return redirect("reports:departments_list")
         messages.error(request, "تعذّر الحفظ. تحقّق من الحقول.")
     return render(request, "reports/department_form.html", {"form": form, "mode": "edit", "department": obj})
@@ -1788,7 +1793,7 @@ def department_delete(request: HttpRequest, code: str) -> HttpResponse:
 
     try:
         obj.delete()
-        messages.success(request, f"🗑️ تم حذف قسم «{label}».")
+        messages.success(request, f"تم حذف قسم «{label}».")
     except ProtectedError:
         messages.error(request, f"لا يمكن حذف «{label}» لوجود سجلات مرتبطة به. عطّل القسم أو احذف السجلات المرتبطة أولاً.")
     except Exception:

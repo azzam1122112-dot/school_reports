@@ -213,7 +213,7 @@ def request_create(request: HttpRequest) -> HttpResponse:
             if hasattr(ticket, "school") and active_school is not None:
                 ticket.school = active_school
                 ticket.save(update_fields=["school"])
-            messages.success(request, "✅ تم إرسال الطلب بنجاح.")
+            messages.success(request, "تم إرسال الطلب.")
             return redirect("reports:my_requests")
         messages.error(request, "فضلاً تحقّق من الحقول.")
     else:
@@ -258,7 +258,7 @@ def support_ticket_create(request: HttpRequest) -> HttpResponse:
             if active_school:
                 ticket.school = active_school
             ticket.save()
-            messages.success(request, "✅ تم إرسال طلب الدعم الفني بنجاح.")
+            messages.success(request, "تم إرسال طلب الدعم الفني.")
             return redirect("reports:my_support_tickets")
         messages.error(request, "فضلاً تحقّق من الحقول.")
     else:

@@ -888,6 +888,7 @@
       </div>
 
       <div class="repdash-header-actions">
+        <a class="btn" href="{% url 'reports:report_trash' %}"><i class="fa-solid fa-trash-arrow-up"></i> سلة المحذوفات</a>
         <div class="repdash-count" title="إجمالي التقارير المطابقة">
           <span class="n">{{ reports.paginator.count|default:"0" }}</span>
           <span class="lbl">تقرير</span>
@@ -1032,7 +1033,7 @@
                     {% endif %}
 
                     {% if r.user_can_delete|default:can_delete %}
-                      <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" class="rd-delete-form u-inline" data-confirm="سيتم حذف هذا التقرير نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger">
+                      <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" class="rd-delete-form u-inline" data-confirm="نقل التقرير إلى سلة المحذوفات؟ يمكن استعادته لاحقًا." data-confirm-type="warning">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
                         <button type="submit" class="rd-iconbtn rd-del" title="حذف">
@@ -1122,7 +1123,7 @@
             {% endif %}
 
             {% if r.user_can_delete|default:can_delete %}
-              <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" class="rd-delete-form u-inline u-w-full" data-confirm="سيتم حذف هذا التقرير نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger">
+              <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" class="rd-delete-form u-inline u-w-full" data-confirm="نقل التقرير إلى سلة المحذوفات؟ يمكن استعادته لاحقًا." data-confirm-type="warning">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                 <button type="submit" class="rd-iconbtn rd-del u-w-full">

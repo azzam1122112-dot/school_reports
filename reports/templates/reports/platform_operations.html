@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}مراقبة المنصة | توثيق{% endblock %}
+
+{% block head %}
+<style nonce="{{ CSP_NONCE }}">
+  .ops-page { max-width: 1220px; margin: 0 auto; }
+  .ops-head { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; padding:24px 0 20px; border-bottom:1px solid var(--line); }
+  .ops-head h1 { margin:0 0 6px; color:var(--ink); font-size:1.65rem; letter-spacing:0; }
+  .ops-head p { margin:0; color:var(--muted); }
+  .ops-actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .ops-button { display:inline-flex; min-height:42px; align-items:center; gap:8px; padding:9px 13px; border:1px solid var(--line); border-radius:7px; background:var(--card); color:var(--ink); text-decoration:none; font-weight:900; }
+  .ops-button.is-primary { background:var(--brand, #006c35); color:#fff; border-color:transparent; }
+  .ops-filters { display:flex; align-items:center; gap:8px; padding:16px 0; border-bottom:1px solid var(--line); }
+  .ops-filters span { color:var(--muted); font-weight:800; margin-inline-end:4px; }
+  .ops-filter { padding:7px 12px; border:1px solid var(--line); border-radius:999px; color:var(--ink); text-decoration:none; font-weight:900; }
+  .ops-filter.is-active { color:#fff; background:var(--brand, #006c35); border-color:transparent; }
+  .ops-section { padding:22px 0; border-bottom:1px solid var(--line); }
+  .ops-section h2 { margin:0 0 5px; color:var(--ink); font-size:1.13rem; letter-spacing:0; }
+  .ops-section > p { margin:0 0 14px; color:var(--muted); }
+  .ops-grid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; }
+  .ops-metric { min-height:112px; padding:15px; border:1px solid var(--line); border-radius:8px; background:var(--card); }
+  .ops-metric i { color:var(--brand, #006c35); }
+  .ops-metric strong { display:block; margin:12px 0 3px; color:var(--ink); font-size:1.5rem; }
+  .ops-metric span { color:var(--muted); font-size:.82rem; font-weight:800; }
+  .ops-alerts { display:grid; gap:8px; }
+  .ops-alert { display:flex; align-items:flex-start; gap:10px; padding:12px 14px; border-inline-start:4px solid #16a34a; background:rgba(22,163,74,.08); color:var(--ink); }
+  .ops-alert.warning { border-color:#d97706; background:rgba(217,119,6,.08); }
+  .ops-alert.critical { border-color:#dc2626; background:rgba(220,38,38,.08); }
+  .ops-split { display:grid; grid-template-columns:minmax(0, 1.2fr) minmax(280px, .8fr); gap:24px; }
+  .ops-list { display:grid; gap:8px; }
+  .ops-row { display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); }
+  .ops-row:last-child { border-bottom:0; }
+  .ops-row span { color:var(--ink); font-weight:800; }
+  .ops-row strong { color:var(--brand, #006c35); }
+  .ops-probe { display:grid; grid-template-columns:16px minmax(0,1fr) auto; align-items:center; gap:9px; }
+  .ops-dot { width:10px; height:10px; border-radius:50%; background:#dc2626; }
+  .ops-probe.is-ok .ops-dot { background:#16a34a; }
+  .ops-muted { color:var(--muted) !important; font-size:.8rem; font-weight:700 !important; }
+  @media (max-width:980px) { .ops-grid { grid-template-columns:repeat(3, minmax(0,1fr)); } }
+  @media (max-width:720px) {
+    .ops-head { flex-direction:column; }
+    .ops-split { grid-template-columns:1fr; gap:4px; }
+    .ops-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .ops-grid > .ops-metric:last-child:nth-child(odd) { grid-column:1 / -1; }
+    .ops-actions { width:100%; }
+    .ops-button { justify-content:center; flex:1; }
+  }
+  @media (max-width:420px) { .ops-grid { grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ops-page" dir="rtl">
+  <header class="ops-head">
+    <div>
+      <h1>مراقبة المنصة</h1>
+      <p>الصحة التشغيلية، الأخطاء، زمن الاستجابة، الدخول، واستخدام الميزات.</p>
+    </div>
+    <div class="ops-actions">
+      <a class="ops-button" href="{% url 'reports:platform_audit_logs' %}"><i class="fa-solid fa-clock-rotate-left"></i> سجل النظام</a>
+      <a class="ops-button is-primary" href="?days={{ period }}"><i class="fa-solid fa-rotate"></i> تحديث</a>
+    </div>
+  </header>
+
+  <nav class="ops-filters" aria-label="الفترة">
+    <span>الفترة:</span>
+    <a class="ops-filter {% if period == 1 %}is-active{% endif %}" href="?days=1">24 ساعة</a>
+    <a class="ops-filter {% if period == 7 %}is-active{% endif %}" href="?days=7">7 أيام</a>
+    <a class="ops-filter {% if period == 30 %}is-active{% endif %}" href="?days=30">30 يومًا</a>
+  </nav>
+
+  <section class="ops-section" aria-labelledby="opsLiveTitle">
+    <h2 id="opsLiveTitle">الساعة الحالية</h2>
+    <p>عدادات حية من عقدة التطبيق الحالية، آخر تحديث {{ refreshed_at|date:"H:i:s" }}.</p>
+    <div class="ops-grid">
+      <div class="ops-metric"><i class="fa-solid fa-arrow-pointer"></i><strong>{{ requests_total }}</strong><span>طلبات HTTP</span></div>
+      <div class="ops-metric"><i class="fa-solid fa-gauge-high"></i><strong>{{ average_latency }} ms</strong><span>متوسط الاستجابة</span></div>
+      <div class="ops-metric"><i class="fa-solid fa-triangle-exclamation"></i><strong>{{ responses_4xx }}</strong><span>استجابات 4xx</span></div>
+      <div class="ops-metric"><i class="fa-solid fa-circle-xmark"></i><strong>{{ responses_5xx }}</strong><span>أخطاء خادم 5xx</span></div>
+      <div class="ops-metric"><i class="fa-solid fa-shield-heart"></i><strong>{{ degraded_total }}</strong><span>عمليات متدهورة</span></div>
+    </div>
+  </section>
+
+  <section class="ops-section" aria-labelledby="opsAlertsTitle">
+    <h2 id="opsAlertsTitle">التنبيهات التشغيلية</h2>
+    <p>تنبيهات مشتقة من المؤشرات الحية وفحوص البنية الأساسية.</p>
+    <div class="ops-alerts">
+      {% for alert in alerts %}
+        <div class="ops-alert {{ alert.tone }}"><i class="fa-solid {% if alert.tone == 'healthy' %}fa-circle-check{% else %}fa-triangle-exclamation{% endif %}"></i><span>{{ alert.text }}</span></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="ops-section ops-split">
+    <div>
+      <h2>حركة المستخدمين</h2>
+      <p>من سجل العمليات خلال آخر {{ period }} يوم.</p>
+      <div class="ops-list">
+        <div class="ops-row"><span>تسجيلات الدخول</span><strong>{{ audit_summary.logins }}</strong></div>
+        <div class="ops-row"><span>المستخدمون النشطون</span><strong>{{ audit_summary.unique_users }}</strong></div>
+        <div class="ops-row"><span>إجمالي العمليات المسجلة</span><strong>{{ audit_summary.actions }}</strong></div>
+        <div class="ops-row"><span>التقارير المنشأة</span><strong>{{ created_counts.reports }}</strong></div>
+        <div class="ops-row"><span>الطلبات المنشأة</span><strong>{{ created_counts.tickets }}</strong></div>
+        <div class="ops-row"><span>التكليفات المنشأة</span><strong>{{ created_counts.assignments }}</strong></div>
+        <div class="ops-row"><span>روابط المشاركة / مرات الفتح</span><strong>{{ created_counts.links }} / {{ created_counts.link_opens }}</strong></div>
+      </div>
+    </div>
+    <div>
+      <h2>فحوص الخدمات</h2>
+      <p>اختبار مباشر عند فتح الصفحة.</p>
+      <div class="ops-list">
+        {% for probe in probes %}
+          <div class="ops-row ops-probe {% if probe.ok %}is-ok{% endif %}">
+            <span class="ops-dot" aria-hidden="true"></span>
+            <span>{{ probe.label }}<small class="ops-muted">{{ probe.status }}</small></span>
+            <strong>{% if probe.latency_ms != None %}{{ probe.latency_ms }} ms{% else %}-{% endif %}</strong>
+          </div>
+        {% endfor %}
+      </div>
+      {% if recent_failures %}
+        <h2>مواضع التعثر</h2>
+        <div class="ops-list">
+          {% for failure in recent_failures %}<div class="ops-row"><span>{{ failure.label }}</span><strong>{{ failure.count }}</strong></div>{% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="ops-section" aria-labelledby="opsUsageTitle">
+    <h2 id="opsUsageTitle">استخدام الميزات</h2>
+    <p>عدد العمليات المسجلة لكل مجال خلال الفترة المختارة.</p>
+    <div class="ops-grid">
+      {% for feature in feature_usage %}
+        <div class="ops-metric"><i class="fa-solid fa-chart-column"></i><strong>{{ feature.count }}</strong><span>{{ feature.label }}</span></div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

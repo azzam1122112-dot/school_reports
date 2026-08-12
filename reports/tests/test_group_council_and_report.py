@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import TestCase, override_settings
@@ -364,6 +365,19 @@ class GroupReportTests(CouncilBase):
         self.assertEqual(snapshot["totals"]["assignments"], 1)
         self.assertEqual(snapshot["totals"]["assignments_done"], 0)
 
+    def test_snapshot_explains_risk_and_recommends_a_next_action(self):
+        snapshot = build_group_snapshot(self.group)
+
+        for row in snapshot["rows"]:
+            self.assertIn("risk_score", row)
+            self.assertIn("risk_reasons", row)
+            self.assertIn("recommendations", row)
+            self.assertTrue(row["recommendation_text"])
+        self.assertEqual(
+            snapshot["attention"],
+            sorted(snapshot["rows"], key=lambda row: (-row["risk_score"], row["name"])),
+        )
+
     def test_ranking_puts_the_higher_completion_first(self):
         """المقارنة هي غرض التقرير، وجدولٌ مرتّب أبجدياً يخفيها."""
         first = Assignment.objects.create(
@@ -418,6 +432,7 @@ class GroupReportTests(CouncilBase):
         response = self.client.get(reverse("reports:group_report"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "مقارنة المدارس")
+        self.assertContains(response, "أسباب الخطر والتوصيات")
 
     def test_a_school_manager_cannot_open_the_group_report(self):
         self.client.force_login(self.managers[0])
@@ -432,6 +447,21 @@ class GroupReportTests(CouncilBase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("spreadsheetml", response["Content-Type"])
         self.assertIn("attachment", response["Content-Disposition"])
+
+    @override_settings(PDF_OFFLOAD_ENABLED=False)
+    def test_the_pdf_download_returns_a_rendered_document(self):
+        self._seed()
+        self._enter_director()
+
+        with patch(
+            "reports.pdf_report._generate_report_pdf_weasy",
+            return_value=b"%PDF-1.4\n% tested renderer contract",
+        ):
+            response = self.client.get(reverse("reports:group_report_pdf"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
 
     def test_a_school_manager_cannot_download_the_group_export(self):
         self.client.force_login(self.managers[0])

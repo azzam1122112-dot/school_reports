@@ -635,6 +635,8 @@ class SubscriptionMiddleware:
         if is_manager:
             allowed_paths |= {
                 reverse('reports:my_subscription'),
+                reverse('reports:role_guidance'),
+                reverse('reports:school_health'),
                 reverse('reports:payment_create'),
                 reverse('reports:school_addition_requests'),
                 reverse('reports:school_archive'),

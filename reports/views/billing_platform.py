@@ -27,6 +27,7 @@ from ._helpers import (
     _clean_query_value, _clean_query_params, _parse_date_safe,
 )
 from ..mansour_knowledge import AUDIENCE_LABELS
+from ..audit_export import audit_csv_response
 from ..permissions import executive_director_schools_qs
 from ..utils import create_system_notification
 from ..flexible_pricing import (
@@ -821,6 +822,8 @@ def platform_audit_logs(request: HttpRequest) -> HttpResponse:
 
     teacher_id = _clean_query_value(request.GET.get("teacher"))
     action = _clean_query_value(request.GET.get("action"))
+    model_name = _clean_query_value(request.GET.get("model"))
+    query = _clean_query_value(request.GET.get("q"))[:120]
     start_date = _parse_date_safe(request.GET.get("start_date"))
     end_date = _parse_date_safe(request.GET.get("end_date"))
     allowed_actions = {value for value, _label in AuditLog.Action.choices}
@@ -833,18 +836,46 @@ def platform_audit_logs(request: HttpRequest) -> HttpResponse:
         logs_qs = logs_qs.filter(action=action)
     else:
         action = ""
+    available_models = list(
+        logs_qs.order_by("model_name").values_list("model_name", flat=True).distinct()
+    )
+    if model_name in available_models:
+        logs_qs = logs_qs.filter(model_name=model_name)
+    else:
+        model_name = ""
+    if query:
+        logs_qs = logs_qs.filter(
+            Q(actor_name__icontains=query)
+            | Q(teacher__name__icontains=query)
+            | Q(teacher__phone__icontains=query)
+            | Q(object_repr__icontains=query)
+            | Q(model_name__icontains=query)
+            | Q(school__name__icontains=query)
+        )
     if start_date is not None:
         logs_qs = logs_qs.filter(timestamp__date__gte=start_date)
     if end_date is not None:
         logs_qs = logs_qs.filter(timestamp__date__lte=end_date)
 
+    if request.GET.get("export") == "csv":
+        return audit_csv_response(
+            logs_qs.select_related("school", "teacher"),
+            filename="platform-audit.csv",
+        )
+
     paginator = Paginator(logs_qs, 50)
     page = request.GET.get("page")
     logs = paginator.get_page(page)
 
+    from ..audit_labels import attach_views as _attach_audit_views, model_filter_choices
+
+    _attach_audit_views(logs)
+
     params = request.GET.copy()
     if "page" in params:
         params.pop("page")
+    if "export" in params:
+        params.pop("export")
     for key in list(params.keys()):
         cleaned = _clean_query_value(params.get(key))
         if cleaned:
@@ -867,6 +898,9 @@ def platform_audit_logs(request: HttpRequest) -> HttpResponse:
         "is_platform": True,
         "q_teacher": teacher_id,
         "q_action": action,
+        "q_model": model_name,
+        "q": query,
+        "models": model_filter_choices(available_models),
         "q_start": start_date.isoformat() if start_date else "",
         "q_end": end_date.isoformat() if end_date else "",
         "qs": params.urlencode(),
@@ -2009,7 +2043,7 @@ def platform_academic_years(request: HttpRequest) -> HttpResponse:
                     _, created = AcademicYear.objects.get_or_create(
                         value=value, defaults={"is_active": True, "order": int(start)}
                     )
-                    messages.success(request, "✅ تمت إضافة السنة." if created else "السنة موجودة مسبقًا.")
+                    messages.success(request, "تمت إضافة السنة." if created else "السنة موجودة مسبقًا.")
             return redirect("reports:platform_academic_years")
 
         if action == "generate":
@@ -2051,7 +2085,7 @@ def platform_academic_years(request: HttpRequest) -> HttpResponse:
                     messages.error(request, f"لا يمكن حذف «{obj.value}» لأنها السنة الحالية لـ {used} مدرسة. عطّلها بدلًا من الحذف.")
                 else:
                     obj.delete()
-                    messages.success(request, "🗑️ تم حذف السنة.")
+                    messages.success(request, "تم حذف السنة.")
             return redirect("reports:platform_academic_years")
 
     years = list(AcademicYear.objects.all().order_by("-value"))

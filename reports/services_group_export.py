@@ -113,8 +113,7 @@ def build_group_snapshot(group) -> dict:
         except Exception:
             days_left = None
 
-        rows.append(
-            {
+        row = {
                 "school": school,
                 "name": school.name,
                 "seats": int(seats.get(school.pk) or 0),
@@ -129,7 +128,51 @@ def build_group_snapshot(group) -> dict:
                 "meetings": int(meetings.get(school.pk) or 0),
                 "subscription_days": days_left,
             }
-        )
+
+        risk_score = 0
+        risk_reasons: list[str] = []
+        recommendations: list[str] = []
+        if days_left is None or days_left <= 0:
+            risk_score += 50
+            risk_reasons.append("لا يوجد اشتراك سارٍ")
+            recommendations.append("التنسيق مع مدير المدرسة لتفعيل الاشتراك")
+        elif days_left <= 7:
+            risk_score += 35
+            risk_reasons.append(f"الاشتراك ينتهي خلال {days_left} أيام")
+            recommendations.append("بدء التجديد قبل توقف وصول الفريق")
+        elif days_left <= 30:
+            risk_score += 20
+            risk_reasons.append(f"الاشتراك يقترب من الانتهاء ({days_left} يومًا)")
+            recommendations.append("إدراج التجديد ضمن خطة الشهر")
+        if row["assignments_overdue"]:
+            risk_score += 25
+            risk_reasons.append(f"{row['assignments_overdue']} تكليف متأخر")
+            recommendations.append("مراجعة التكليفات المتأخرة مع مدير المدرسة")
+        if row["reports_pending"]:
+            risk_score += 10
+            risk_reasons.append(f"{row['reports_pending']} تقرير ينتظر الاعتماد")
+            recommendations.append("إغلاق دورة اعتماد التقارير المعلقة")
+        if not row["reports_recent"]:
+            risk_score += 10
+            risk_reasons.append(f"لا تقارير خلال {ACTIVITY_WINDOW_DAYS} يومًا")
+            recommendations.append("التحقق من تفعيل أنواع التقارير واستخدام الفريق")
+        if not row["seats"]:
+            risk_score += 15
+            risk_reasons.append("لا يوجد فريق نشط")
+            recommendations.append("إضافة منسوبي المدرسة وتحديد أدوارهم")
+
+        row["risk_score"] = min(risk_score, 100)
+        row["risk_reasons"] = risk_reasons
+        row["recommendations"] = recommendations
+        row["risk_reasons_text"] = "، ".join(risk_reasons) or "لا توجد مؤشرات خطر"
+        row["recommendation_text"] = recommendations[0] if recommendations else "الاستمرار في المتابعة الدورية"
+        if row["risk_score"] >= 50:
+            row["risk_tone"], row["risk_label"] = "danger", "تحتاج تدخلاً"
+        elif row["risk_score"] >= 20:
+            row["risk_tone"], row["risk_label"] = "warning", "تحتاج متابعة"
+        else:
+            row["risk_tone"], row["risk_label"] = "stable", "مستقرة"
+        rows.append(row)
 
     group_assignments = Assignment.objects.filter(group=group).count()
     group_councils = Meeting.objects.filter(
@@ -149,6 +192,8 @@ def build_group_snapshot(group) -> dict:
         "meetings": sum(row["meetings"] for row in rows),
         "group_assignments": group_assignments,
         "group_councils": group_councils,
+        "schools_at_risk": sum(1 for row in rows if row["risk_score"] >= 50),
+        "schools_to_watch": sum(1 for row in rows if 20 <= row["risk_score"] < 50),
     }
     totals["completion"] = (
         round(totals["assignments_done"] * 100 / totals["assignments"])
@@ -161,11 +206,13 @@ def build_group_snapshot(group) -> dict:
     ranked = sorted(
         rows, key=lambda row: (-row["completion"], row["assignments_overdue"], row["name"])
     )
+    attention = sorted(rows, key=lambda row: (-row["risk_score"], row["name"]))
 
     return {
         "group": group,
         "rows": rows,
         "ranked": ranked,
+        "attention": attention,
         "totals": totals,
         "window_days": ACTIVITY_WINDOW_DAYS,
         "generated_at": timezone.localtime(),
@@ -174,6 +221,10 @@ def build_group_snapshot(group) -> dict:
 
 _COLUMNS = (
     ("المدرسة", "name"),
+    ("حالة الصحة", "risk_label"),
+    ("درجة الخطر / 100", "risk_score"),
+    ("أسباب الخطر", "risk_reasons_text"),
+    ("التوصية الأولى", "recommendation_text"),
     ("المنسوبون", "seats"),
     ("التقارير", "reports_total"),
     (f"تقارير آخر {ACTIVITY_WINDOW_DAYS} يوماً", "reports_recent"),
@@ -217,6 +268,8 @@ def build_group_workbook_bytes(snapshot: dict) -> bytes:
 
     summary = [
         ("عدد المدارس", totals["schools"]),
+        ("مدارس تحتاج تدخلاً", totals["schools_at_risk"]),
+        ("مدارس تحتاج متابعة", totals["schools_to_watch"]),
         ("إجمالي المنسوبين", totals["seats"]),
         ("إجمالي التقارير", totals["reports_total"]),
         (f"تقارير آخر {snapshot['window_days']} يوماً", totals["reports_recent"]),

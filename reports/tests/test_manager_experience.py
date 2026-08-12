@@ -385,9 +385,9 @@ class ManagerExperienceTests(TestCase):
         response = self.client.get(reverse("reports:admin_dashboard"))
 
         self.assertEqual(response.context["teachers_count"], 1)
-        self.assertEqual(response.context["setup_completed"], 2)
-        self.assertEqual(response.context["setup_total"], 4)
-        self.assertEqual(response.context["setup_percent"], 50)
+        self.assertEqual(response.context["setup_completed"], 4)
+        self.assertEqual(response.context["setup_total"], 7)
+        self.assertEqual(response.context["setup_percent"], 57)
         self.assertContains(response, "جاهزية مساحة المدرسة")
         self.assertContains(response, "بيانات المدرسة والسنة الحالية")
         self.assertContains(response, "الأقسام")

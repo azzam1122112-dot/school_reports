@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}صحة المدرسة | {{ active_school.name }}{% endblock %}
+
+{% block head %}
+<style nonce="{{ CSP_NONCE }}">
+  .health-page { max-width: 1180px; margin: 0 auto; }
+  .health-head {
+    display: flex; justify-content: space-between; gap: 20px; align-items: flex-start;
+    padding: 24px 0 20px; border-bottom: 1px solid var(--line);
+  }
+  .health-head h1 { margin: 0 0 6px; font-size: 1.65rem; letter-spacing: 0; color: var(--ink); }
+  .health-head p { margin: 0; color: var(--muted); }
+  .health-back { color: var(--brand, #006c35); font-weight: 900; text-decoration: none; white-space: nowrap; }
+  .health-summary { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 24px; padding: 24px 0; }
+  .health-score { border-inline-start: 5px solid var(--brand, #006c35); padding: 8px 18px; }
+  .health-score strong { display: block; font-size: 2.25rem; color: var(--ink); }
+  .health-score span { color: var(--muted); font-weight: 800; }
+  .health-counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .health-count { padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+  .health-count strong { display: block; color: var(--ink); font-size: 1.35rem; }
+  .health-count span { color: var(--muted); font-size: .82rem; font-weight: 800; }
+  .health-section { padding: 22px 0; border-top: 1px solid var(--line); }
+  .health-section h2 { margin: 0 0 5px; font-size: 1.15rem; letter-spacing: 0; color: var(--ink); }
+  .health-section > p { margin: 0 0 14px; color: var(--muted); }
+  .health-list { display: grid; gap: 10px; }
+  .health-row {
+    display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+    padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--card);
+  }
+  .health-state { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(245, 158, 11, .12); color: #a16207; }
+  .health-row.is-ok .health-state { background: rgba(22, 163, 74, .12); color: #15803d; }
+  .health-row h3 { margin: 0 0 3px; font-size: .98rem; letter-spacing: 0; color: var(--ink); }
+  .health-row p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.65; }
+  .health-impact { color: #a16207 !important; font-weight: 800; margin-top: 4px !important; }
+  .health-row.is-ok .health-impact { display: none; }
+  .health-action { color: var(--brand, #006c35); text-decoration: none; font-weight: 900; white-space: nowrap; }
+  @media (max-width: 800px) {
+    .health-summary { grid-template-columns: 1fr; }
+    .health-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 560px) {
+    .health-head { flex-direction: column; }
+    .health-row { grid-template-columns: 34px minmax(0, 1fr); }
+    .health-action { grid-column: 2; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="health-page" dir="rtl">
+  <header class="health-head">
+    <div>
+      <h1>صحة المدرسة</h1>
+      <p>{{ active_school.name }} - جاهزية الإعداد والمسارات الأساسية.</p>
+    </div>
+    <a class="health-back" href="{% url 'reports:admin_dashboard' %}"><i class="fa-solid fa-arrow-right"></i> لوحة المدرسة</a>
+  </header>
+
+  <section class="health-summary" aria-label="ملخص صحة المدرسة">
+    <div class="health-score">
+      <strong>{{ health.percent }}%</strong>
+      <span>{{ health.completed }} من {{ health.total }} عناصر جاهزة</span>
+    </div>
+    <div class="health-counts">
+      <div class="health-count"><strong>{{ health.counts.team }}</strong><span>أعضاء الفريق</span></div>
+      <div class="health-count"><strong>{{ health.counts.departments }}</strong><span>الأقسام النشطة</span></div>
+      <div class="health-count"><strong>{{ health.counts.report_types }}</strong><span>أنواع التقارير</span></div>
+      <div class="health-count"><strong>{{ health.counts.department_owners }}/{{ health.counts.departments }}</strong><span>أقسام لها مسؤول</span></div>
+    </div>
+  </section>
+
+  <section class="health-section" aria-labelledby="healthChecksTitle">
+    <h2 id="healthChecksTitle">فحوص الجاهزية</h2>
+    <p>كل فحص يوضح أثره على المستخدمين والمسار الذي يعالجه.</p>
+    <div class="health-list">
+      {% for step in health.steps %}
+        <div class="health-row {% if step.complete %}is-ok{% endif %}">
+          <span class="health-state"><i class="fa-solid {% if step.complete %}fa-check{% else %}fa-exclamation{% endif %}" aria-hidden="true"></i></span>
+          <div>
+            <h3>{{ step.title }}</h3>
+            <p>{% if step.complete %}جاهز ويمكن مراجعته عند الحاجة.{% else %}{{ step.description }}{% endif %}</p>
+            {% if step.impact %}<p class="health-impact">الأثر: {{ step.impact }}</p>{% endif %}
+          </div>
+          <a class="health-action" href="{{ step.url }}">{% if step.complete %}مراجعة{% else %}معالجة{% endif %}</a>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

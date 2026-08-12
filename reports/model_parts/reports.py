@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 from core.observability import report_degraded as _degraded, soft_fail
+from django.utils.dateparse import parse_date
 
 from .base import *
 from .approvals import ApprovalMixin
 from .schools import School, Teacher, ReportType
+
+
+class ActiveReportManager(models.Manager):
+    use_in_migrations = True
+
+    def get_queryset(self):
+        return super().get_queryset().filter(trashed_at__isnull=True)
 
 
 class Report(ApprovalMixin):
@@ -94,8 +102,21 @@ class Report(ApprovalMixin):
     # حجم ملفات هذا السجل (بايت) — يُحدّث تلقائيًا لتتبّع التخزين بلا قراءة شبكية عند الفحص
     storage_bytes = models.PositiveBigIntegerField(default=0, editable=False)
 
+    trashed_at = models.DateTimeField("نُقل إلى سلة المحذوفات في", null=True, blank=True, db_index=True)
+    trashed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="trashed_reports",
+        verbose_name="نُقل إلى السلة بواسطة",
+    )
+
 
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True, db_index=True)
+
+    objects = ActiveReportManager()
+    all_objects = models.Manager()
 
     class Meta:
         ordering = ["-created_at"]
@@ -115,6 +136,8 @@ class Report(ApprovalMixin):
         ]
         verbose_name = "تقرير"
         verbose_name_plural = "التقارير"
+        default_manager_name = "objects"
+        base_manager_name = "all_objects"
 
     def __str__(self):
         display_name = self.teacher_name.strip() if self.teacher_name else getattr(self.teacher, "name", "")
@@ -125,6 +148,23 @@ class Report(ApprovalMixin):
     def teacher_display_name(self) -> str:
         return (self.teacher_name or getattr(self.teacher, "name", "") or "").strip()
 
+    def move_to_trash(self, *, by=None) -> None:
+        if self.trashed_at is not None:
+            return
+        self.trashed_at = timezone.now()
+        self.trashed_by = by
+        self.save(update_fields=["trashed_at", "trashed_by"])
+        # A public link must never outlive the report's visible lifecycle.
+        # Restoration intentionally keeps links disabled until the owner opts in again.
+        self.share_links.filter(is_active=True).update(is_active=False)
+
+    def restore_from_trash(self) -> None:
+        if self.trashed_at is None:
+            return
+        self.trashed_at = None
+        self.trashed_by = None
+        self.save(update_fields=["trashed_at", "trashed_by"])
+
     def save(self, *args, **kwargs):
         # اليوم باللغة العربية
         if self.report_date and not self.day_name:
@@ -133,7 +173,11 @@ class Report(ApprovalMixin):
                 5: "الجمعة", 6: "السبت", 7: "الأحد"
             }
             with soft_fail("report.derive_day_name", report_id=self.pk):
-                self.day_name = days.get(self.report_date.isoweekday())
+                report_date = self.report_date
+                if isinstance(report_date, str):
+                    report_date = parse_date(report_date)
+                if report_date is not None:
+                    self.day_name = days.get(report_date.isoweekday())
 
         # تجميد اسم المعلّم وقت الإنشاء إن لم يُملأ
         if not self.teacher_name and getattr(self, "teacher_id", None):
@@ -385,6 +429,7 @@ class ShareLink(models.Model):
 
     is_active = models.BooleanField("مفعّل", default=True, db_index=True)
     expires_at = models.DateTimeField("ينتهي في", db_index=True)
+    access_count = models.PositiveBigIntegerField("عدد مرات الفتح", default=0)
     last_accessed_at = models.DateTimeField("آخر وصول", null=True, blank=True)
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True)
 

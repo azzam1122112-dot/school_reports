@@ -95,6 +95,7 @@
         {% if request.user.is_authenticated %}
           {% if request.user.is_superuser %}
             <a class="tab {% if active == 'platform_admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">نظرة عامة</a>
+            <a class="tab {% if active == 'platform_operations' %}is-active{% endif %}" href="{% url 'reports:platform_operations' %}">المراقبة</a>
             <a class="tab {% if active == 'schools_admin_list' or active == 'platform_schools_directory' or active == 'school_profile' or active == 'school_create' or active == 'school_update' %}is-active{% endif %}" href="{% url 'reports:schools_admin_list' %}">المدارس</a>
             <a class="tab {% if active == 'platform_executive_directors' or active == 'platform_executive_director_add' or active == 'platform_executive_director_edit' %}is-active{% endif %}" href="{% url 'reports:platform_executive_directors' %}">المدراء التنفيذيون</a>
             <a class="tab {% if active == 'platform_subscriptions_list' or active == 'platform_subscription_detail' or active == 'platform_subscription_add' %}is-active{% endif %}" href="{% url 'reports:platform_subscriptions_list' %}">الاشتراكات</a>
@@ -741,6 +742,14 @@
             <span>سجل النظام</span>
             <i class="fa-solid fa-clock-rotate-left"></i>
           </a>
+          <a class="{% if active == 'platform_operations' %}is-active{% endif %}" href="{% url 'reports:platform_operations' %}">
+            <span>مراقبة المنصة</span>
+            <i class="fa-solid fa-heart-pulse"></i>
+          </a>
+          <a class="{% if active == 'role_guidance' %}is-active{% endif %}" href="{% url 'reports:role_guidance' %}">
+            <span>مركز إرشاد دوري</span>
+            <i class="fa-solid fa-route"></i>
+          </a>
           <a class="{% if active == 'platform_settings' or active == 'platform_plans_list' %}is-active{% endif %}" href="{% url 'reports:platform_settings' %}">
             <span>الإعدادات</span>
             <i class="fa-solid fa-sliders"></i>
@@ -872,6 +881,11 @@
         <a class="{% if active == 'my_profile' %}is-active{% endif %}" href="{% url 'reports:my_profile' %}">
           <span>حسابي</span>
           <i class="fa-solid fa-user"></i>
+        </a>
+
+        <a class="{% if active == 'role_guidance' %}is-active{% endif %}" href="{% url 'reports:role_guidance' %}">
+          <span>مركز إرشاد دوري</span>
+          <i class="fa-solid fa-route"></i>
         </a>
 
         {# نفس شرط تبويب الاعتماد أعلاه: من يراجع يجد بابه في القائمتين معاً. #}
@@ -1082,6 +1096,7 @@
           <h4><i class="fa-solid fa-book"></i> الموارد</h4>
           <ul class="footer-links">
             <li><a href="{% url 'reports:user_guide' %}"><i class="fa-solid fa-chevron-left"></i> دليل الاستخدام</a></li>
+            {% if request.user.is_authenticated %}<li><a href="{% url 'reports:role_guidance' %}"><i class="fa-solid fa-chevron-left"></i> مركز إرشاد دوري</a></li>{% endif %}
             <li><a href="{% url 'reports:faq' %}"><i class="fa-solid fa-chevron-left"></i> الأسئلة الشائعة</a></li>
             {% if IS_SCHOOL_MANAGER or request.user.is_superuser %}
               <li><a href="{% url 'reports:support_ticket_create' %}"><i class="fa-solid fa-chevron-left"></i> الدعم الفني</a></li>
@@ -1243,14 +1258,26 @@
     (function(){
       const bar = document.getElementById('scrollProgress');
       const header = document.getElementById('siteHeader');
+      // ارتفاع الترويسة يتغيّر بالمقاس وبالتمرير وبوضع التطبيق المثبَّت، فلا
+      // يمكن تثبيته في CSS. تنشره الصفحة رمزاً لتتموضع تحته الطبقات العائمة
+      // — التنبيهات أولاً — بدل أن تغطّي زر القائمة.
+      const publishHeaderHeight = ()=>{
+        if(!header) return;
+        const height = Math.round(header.getBoundingClientRect().height);
+        if(height > 0) document.documentElement.style.setProperty('--header-h', height + 'px');
+      };
       const onScroll = ()=>{
         const h = document.documentElement;
         const sc = h.scrollTop;
         const max = h.scrollHeight - h.clientHeight;
         if(bar) bar.style.width = (max ? (sc/max)*100 : 0) + '%';
         if(header) header.classList.toggle('scrolled', window.scrollY > 4);
+        publishHeaderHeight();
       };
       window.addEventListener('scroll', onScroll, {passive:true});
+      window.addEventListener('resize', publishHeaderHeight, {passive:true});
+      window.addEventListener('orientationchange', publishHeaderHeight, {passive:true});
+      if(header && 'ResizeObserver' in window) new ResizeObserver(publishHeaderHeight).observe(header);
       onScroll();
     })();
 

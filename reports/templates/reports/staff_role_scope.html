@@ -17,7 +17,7 @@
   }
 
   .scp-hero {
-    position: relative; overflow: hidden; border-radius: 20px; padding: 1.6rem 1.5rem;
+    position: relative; overflow: hidden; border-radius: 8px; padding: 1.6rem 1.5rem;
     background: linear-gradient(135deg, #08643b 0%, #0a7a48 55%, #075334 100%);
     color: #fff; box-shadow: 0 18px 40px -22px rgba(8,100,59,.75);
   }
@@ -32,16 +32,26 @@
 
   .scp-card {
     background: var(--scp-surface); border: 1px solid var(--scp-line);
-    border-radius: 16px; padding: 1.15rem 1.2rem; margin-top: 1.2rem;
+    border-radius: 8px; padding: 1.15rem 1.2rem; margin-top: 1.2rem;
     box-shadow: 0 10px 26px -24px rgba(16,35,26,.75);
   }
   .scp-card__title { font-size: 1rem; font-weight: 900; margin: 0 0 .3rem; }
   .scp-card__hint { font-size: .83rem; color: var(--scp-muted); line-height: 1.8; margin: 0 0 1rem; }
 
+  .scp-summary { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+  .scp-summary__group { border: 1px solid var(--scp-line); border-radius: 8px; padding: .85rem; }
+  .scp-summary__group h3 { margin: 0 0 .65rem; font-size: .88rem; letter-spacing: 0; }
+  .scp-summary__group ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .45rem; }
+  .scp-summary__group li { display: flex; gap: .45rem; align-items: flex-start; font-size: .79rem; line-height: 1.65; }
+  .scp-summary__group li[hidden] { display: none; }
+  .scp-summary__group--yes h3, .scp-summary__group--yes i { color: var(--scp-green); }
+  .scp-summary__group--no h3, .scp-summary__group--no i { color: var(--scp-danger); }
+  .scp-summary__empty { color: var(--scp-muted); }
+
   /* ── القوالب ──────────────────────────────────────────────── */
   .scp-templates { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
   .scp-template {
-    border: 1px solid var(--scp-line); border-radius: 13px; padding: .85rem .9rem;
+    border: 1px solid var(--scp-line); border-radius: 8px; padding: .85rem .9rem;
     background: var(--scp-surface); display: flex; flex-direction: column; gap: .45rem;
   }
   .scp-template.is-current { border-color: var(--scp-green); background: var(--scp-soft); }
@@ -52,7 +62,7 @@
   .scp-field { margin-top: 1rem; }
   .scp-field > label { display: block; font-size: .8rem; font-weight: 800; color: var(--scp-muted); margin-bottom: .4rem; }
   .scp-field select {
-    width: 100%; max-width: 340px; padding: .55rem .7rem; border-radius: 10px;
+    width: 100%; max-width: 340px; padding: .55rem .7rem; border-radius: 8px;
     border: 1px solid var(--scp-line); background: var(--scp-surface);
     color: var(--scp-ink); font-family: inherit; font-size: .88rem;
   }
@@ -70,7 +80,7 @@
   }
   .scp-cap {
     display: flex; gap: .6rem; align-items: flex-start;
-    padding: .6rem .7rem; border-radius: 11px; border: 1px solid transparent;
+    padding: .6rem .7rem; border-radius: 8px; border: 1px solid transparent;
   }
   .scp-cap:hover { background: var(--scp-soft); }
   .scp-cap.is-pending { opacity: .72; }
@@ -85,7 +95,7 @@
 
   .scp-btn {
     display: inline-flex; align-items: center; gap: .4rem;
-    padding: .55rem 1.1rem; border-radius: 10px;
+    padding: .55rem 1.1rem; border-radius: 8px;
     font-size: .85rem; font-weight: 800; font-family: inherit;
     text-decoration: none; cursor: pointer; border: 1px solid transparent;
   }
@@ -100,8 +110,9 @@
 
   @media (max-width: 640px) {
     .scp-page { padding: .85rem; }
-    .scp-hero { padding: 1.3rem 1.1rem; border-radius: 16px; }
+    .scp-hero { padding: 1.3rem 1.1rem; border-radius: 8px; }
     .scp-hero__title { font-size: 1.2rem; }
+    .scp-summary { grid-template-columns: 1fr; }
   }
 </style>
 {% endblock %}
@@ -117,6 +128,37 @@
     <h1 class="scp-hero__title">نطاق {{ membership.teacher.name }}</h1>
     <p class="scp-hero__meta">{{ membership.get_role_type_display }} — {{ active_school.name }}</p>
   </header>
+
+  <section class="scp-card" aria-labelledby="scopeSummaryTitle">
+    <h2 class="scp-card__title" id="scopeSummaryTitle">ملخص واضح للصلاحيات</h2>
+    <p class="scp-card__hint">يتحدث الملخص مباشرة عند اختيار الصلاحيات، ويعرض الحدود الثابتة لهذا الدور.</p>
+    <div class="scp-summary">
+      <div class="scp-summary__group scp-summary__group--yes">
+        <h3>يستطيع</h3>
+        <ul id="scopeAllowedList">
+          {% for item in capability_summary %}
+            <li data-capability="{{ item.code }}" {% if not item.allowed %}hidden{% endif %}>
+              <i class="fa-solid fa-check" aria-hidden="true"></i><span>{{ item.label }}</span>
+            </li>
+          {% endfor %}
+          <li class="scp-summary__empty" id="scopeAllowedEmpty" {% if capability_summary|length and scope.capabilities %}hidden{% endif %}>لا توجد صلاحيات إضافية محددة.</li>
+        </ul>
+      </div>
+      <div class="scp-summary__group scp-summary__group--no">
+        <h3>لا يستطيع</h3>
+        <ul id="scopeDeniedList">
+          {% for item in capability_summary %}
+            <li data-capability="{{ item.code }}" {% if item.allowed %}hidden{% endif %}>
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i><span>{{ item.label }}</span>
+            </li>
+          {% endfor %}
+          {% for boundary in fixed_boundaries %}
+            <li><i class="fa-solid fa-lock" aria-hidden="true"></i><span>{{ boundary }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </section>
 
   {# ═══ القوالب المعتمدة ════════════════════════════════════ #}
   <section class="scp-card">
@@ -234,4 +276,31 @@
   </form>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+  (function () {
+    var checks = Array.prototype.slice.call(document.querySelectorAll('input[name="capabilities"]'));
+    var allowed = document.getElementById('scopeAllowedList');
+    var denied = document.getElementById('scopeDeniedList');
+    var empty = document.getElementById('scopeAllowedEmpty');
+    if (!checks.length || !allowed || !denied) return;
+
+    function refreshSummary() {
+      var selected = 0;
+      checks.forEach(function (check) {
+        var yes = allowed.querySelector('[data-capability="' + check.value + '"]');
+        var no = denied.querySelector('[data-capability="' + check.value + '"]');
+        if (yes) yes.hidden = !check.checked;
+        if (no) no.hidden = check.checked;
+        if (check.checked) selected += 1;
+      });
+      if (empty) empty.hidden = selected > 0;
+    }
+
+    checks.forEach(function (check) { check.addEventListener('change', refreshSummary); });
+    refreshSummary();
+  }());
+</script>
 {% endblock %}

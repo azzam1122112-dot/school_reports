@@ -322,6 +322,9 @@
       </div>
 
       <div class="audit-actions">
+        <a class="btn btn-primary" href="?{% if qs %}{{ qs }}&{% endif %}export=csv">
+          <i class="fa-solid fa-file-csv"></i> تصدير CSV
+        </a>
         <a class="btn btn-ghost" href="{% if is_platform %}{% url 'reports:platform_admin_dashboard' %}{% else %}{% url 'reports:admin_dashboard' %}{% endif %}">
           <i class="fa-solid fa-arrow-right"></i> عودة
         </a>
@@ -334,6 +337,11 @@
     <!-- Filters -->
     <form method="get" class="audit-filter">
       <div class="audit-grid">
+        <div class="ig">
+          <label for="auditQuery">بحث</label>
+          <input id="auditQuery" type="search" name="q" value="{{ q }}" class="inp" maxlength="120" placeholder="اسم المستخدم أو السجل">
+        </div>
+
         <div class="ig">
           <label>المستخدم</label>
           <select name="teacher" class="inp">
@@ -350,6 +358,16 @@
             <option value="">الكل</option>
             {% for val, label in actions %}
               <option value="{{ val }}" {% if q_action == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="ig">
+          <label>نوع السجل</label>
+          <select name="model" class="inp">
+            <option value="">الكل</option>
+            {% for model in models %}
+              <option value="{{ model.value }}" {% if q_model == model.value %}selected{% endif %}>{{ model.label }}</option>
             {% endfor %}
           </select>
         </div>

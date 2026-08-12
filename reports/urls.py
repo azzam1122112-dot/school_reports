@@ -11,6 +11,7 @@ urlpatterns = [
     path("", views.platform_landing, name="landing"),
     path("assistant/mansour/", views.mansour_assistant_reply, name="mansour_assistant_reply"),
     path("guide/", views.user_guide, name="user_guide"),
+    path("guide/my-role/", views.role_guidance_center, name="role_guidance"),
     path("guide/download/", views.user_guide_download, name="user_guide_download"),
     path("guide/download/pdf/", views.user_guide_download_pdf, name="user_guide_download_pdf"),
     path("login/", views.login_view, name="login"),
@@ -86,12 +87,15 @@ urlpatterns = [
     path("reports/my/", views.my_reports, name="my_reports"),
     path("reports/<int:pk>/edit/", views.edit_my_report, name="edit_my_report"),
     path("reports/<int:pk>/delete/", views.delete_my_report, name="delete_my_report"),
+    path("reports/trash/", views.report_trash, name="report_trash"),
+    path("reports/trash/<int:pk>/restore/", views.report_restore, name="report_restore"),
 
     # الطباعة والتصدير
     path("reports/<int:pk>/print/", views.report_print, name="report_print"),
 
     # مشاركة التقرير (اختياري للمعلم)
     path("reports/<int:pk>/share/", views.report_share_manage, name="report_share_manage"),
+    path("share-links/", views.share_links_dashboard, name="share_links_dashboard"),
 
     # =========================
     # تقارير الإدارة (Staff/Manager)
@@ -292,6 +296,7 @@ urlpatterns = [
     path("staff/select-school/", views.select_school, name="select_school"),
     path("staff/switch-school/", views.switch_school, name="switch_school"),
     path("staff/my-school/", views.school_settings, name="school_settings"),
+    path("staff/school-health/", views.school_health, name="school_health"),
     path("staff/schools/", views.schools_admin_list, name="schools_admin_list"),
     path("staff/schools/add/", views.school_create, name="school_create"),
     path("staff/schools/<int:pk>/profile/", views.school_profile, name="school_profile"),
@@ -310,6 +315,7 @@ urlpatterns = [
         name="platform_school_addition_request_review",
     ),
     path("platform/audit-logs/", views.platform_audit_logs, name="platform_audit_logs"),
+    path("platform/operations/", views.platform_operations, name="platform_operations"),
     path("platform-dashboard/", views.platform_admin_dashboard, name="platform_admin_dashboard"),
 
     # =========================

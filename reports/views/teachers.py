@@ -509,7 +509,7 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                                 reactivated_count += 1
 
             if created_count > 0:
-                messages.success(request, f"✅ تم إنشاء {created_count} من حسابات {labels['teachers_object']}.")
+                messages.success(request, f"تم إنشاء {created_count} من حسابات {labels['teachers_object']}.")
             if updated_count > 0:
                 messages.info(request, f"تم تحديث بيانات {updated_count} من حسابات {labels['teachers_object']}.")
             if reactivated_count > 0:
@@ -1139,7 +1139,7 @@ def edit_teacher(request: HttpRequest, pk: int) -> HttpResponse:
             try:
                 with transaction.atomic():
                     form.save(commit=True)
-                messages.success(request, "✏️ تم تحديث بيانات المستخدم بنجاح.")
+                messages.success(request, "تم تحديث بيانات المستخدم بنجاح.")
                 next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
                 return redirect(next_url or "reports:manage_teachers")
             except Exception:
@@ -1194,10 +1194,10 @@ def delete_teacher(request: HttpRequest, pk: int) -> HttpResponse:
                     teacher=teacher,
                     role_type__in=SchoolMembership.STAFF_ROLES,
                 ).delete()
-                messages.success(request, "🗑️ تم إزالة المستخدم من المدرسة الحالية.")
+                messages.success(request, "تمت إزالة المستخدم من المدرسة الحالية.")
             else:
                 teacher.delete()
-                messages.success(request, "🗑️ تم حذف المستخدم.")
+                messages.success(request, "تم حذف المستخدم.")
     except Exception:
         logger.exception("delete_teacher failed")
         messages.error(request, "تعذّر حذف المستخدم. حاول لاحقًا.")

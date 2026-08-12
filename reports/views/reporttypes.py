@@ -72,7 +72,7 @@ def reporttype_create(request: HttpRequest) -> HttpResponse:
             obj.save()
             if hasattr(form, "save_m2m"):
                 form.save_m2m()
-            messages.success(request, "✅ تم إضافة نوع التقرير.")
+            messages.success(request, "تمت إضافة نوع التقرير.")
             return redirect("reports:reporttypes_list")
         messages.error(request, "تعذّر الحفظ. تحقّق من الحقول.")
     return render(request, "reports/reporttype_form.html", {"form": form, "mode": "create"})
@@ -110,7 +110,7 @@ def reporttype_update(request: HttpRequest, pk: int) -> HttpResponse:
     if request.method == "POST":
         if form.is_valid():
             form.save()
-            messages.success(request, "✏️ تم تعديل نوع التقرير.")
+            messages.success(request, "تم تعديل نوع التقرير.")
             return redirect("reports:reporttypes_list")
         messages.error(request, "تعذّر الحفظ. تحقّق من الحقول.")
     return render(request, "reports/reporttype_form.html", {"form": form, "mode": "edit", "obj": obj})
@@ -153,7 +153,7 @@ def reporttype_delete(request: HttpRequest, pk: int) -> HttpResponse:
 
     try:
         obj.delete()
-        messages.success(request, f"🗑️ تم حذف «{obj.name}».")
+        messages.success(request, f"تم حذف «{obj.name}».")
     except Exception:
         logger.exception("reporttype_delete failed")
         messages.error(request, "تعذّر حذف نوع التقرير.")

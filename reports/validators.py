@@ -144,15 +144,28 @@ def _sniff_mime(file_obj, name: str) -> str:
 
 def _validate_size(file_obj, *, max_bytes: int, label_ar: str) -> None:
     if getattr(file_obj, "size", 0) > max_bytes:
-        raise ValidationError(f"حجم {label_ar} يتجاوز {max_bytes // (1024 * 1024)}MB.")
+        actual_mb = getattr(file_obj, "size", 0) / (1024 * 1024)
+        limit_mb = max_bytes // (1024 * 1024)
+        raise ValidationError(
+            f"حجم {label_ar} {actual_mb:.1f} ميجابايت، والحد الأقصى {limit_mb} ميجابايت. "
+            "اختر ملفًا أصغر ثم أعد المحاولة."
+        )
 
 
 def _validate_ext(name: str, *, allowed_exts: Iterable[str], label_ar: str) -> None:
     ext = _get_ext(name)
+    allowed = tuple(allowed_exts)
+    allowed_label = "، ".join(item.lstrip(".").upper() for item in allowed)
     if ext in BLOCKED_EXTS:
-        raise ValidationError("امتداد الملف غير مسموح.")
-    if ext and ext not in tuple(allowed_exts):
-        raise ValidationError(f"نوع {label_ar} غير مسموح.")
+        raise ValidationError(
+            f"صيغة {ext.lstrip('.').upper()} غير مسموحة لأسباب أمنية. "
+            f"الصيغ المسموحة: {allowed_label}."
+        )
+    if ext and ext not in allowed:
+        raise ValidationError(
+            f"صيغة {label_ar} {ext.lstrip('.').upper()} غير مدعومة. "
+            f"الصيغ المسموحة: {allowed_label}."
+        )
 
 
 def validate_image_file(file_obj) -> None:
