@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}رسالة جديدة | بريد توثيق{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/platform-email.css' %}">{% endblock %}
+{% block content %}
+<div class="mail-shell mail-shell--narrow" dir="rtl">
+  <header class="mail-page-head">
+    <div><a href="{% url 'reports:platform_email_inbox' %}"><i class="fa-solid fa-arrow-right"></i> البريد</a><h1>{% if forwarded %}إعادة توجيه الرسالة{% else %}رسالة جديدة{% endif %}</h1><p>ستظهر للمستلم باسم {{ email_config.sender_name }} ومن العنوان <span dir="ltr">{{ email_config.sender_email }}</span>.</p></div>
+    <span class="mail-page-head__icon"><i class="fa-solid fa-pen-to-square"></i></span>
+  </header>
+  <form class="mail-compose" method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="mail-form-error">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="mail-field"><label for="{{ form.to.id_for_label }}">إلى</label>{{ form.to }}{% for error in form.to.errors %}<small class="mail-error">{{ error }}</small>{% endfor %}<small>يمكن فصل عدة عناوين بفاصلة.</small></div>
+    <details class="mail-extra-recipients"><summary>نسخة ونسخة مخفية</summary><div class="mail-two-fields"><div class="mail-field"><label for="{{ form.cc.id_for_label }}">نسخة</label>{{ form.cc }}{{ form.cc.errors }}</div><div class="mail-field"><label for="{{ form.bcc.id_for_label }}">نسخة مخفية</label>{{ form.bcc }}{{ form.bcc.errors }}</div></div></details>
+    <div class="mail-field"><label for="{{ form.subject.id_for_label }}">الموضوع</label>{{ form.subject }}{% for error in form.subject.errors %}<small class="mail-error">{{ error }}</small>{% endfor %}</div>
+    <div class="mail-field mail-field--body"><label for="{{ form.body.id_for_label }}">نص الرسالة</label>{{ form.body }}{% for error in form.body.errors %}<small class="mail-error">{{ error }}</small>{% endfor %}</div>
+    <div class="mail-attachment-field"><div><i class="fa-solid fa-paperclip"></i><label for="{{ form.attachments.id_for_label }}">إضافة مرفقات</label><small>حتى 5 ملفات، 10 ميجابايت للملف و20 ميجابايت إجمالًا.</small></div>{{ form.attachments }}</div>
+    <footer class="mail-compose__footer"><a class="mail-button" href="{% url 'reports:platform_email_inbox' %}">إلغاء</a><button class="mail-button is-primary" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال الرسالة</button></footer>
+  </form>
+</div>
+{% endblock %}

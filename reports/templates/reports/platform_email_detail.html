@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ email.subject }} | بريد توثيق{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/platform-email.css' %}">{% endblock %}
+{% block content %}
+<div class="mail-shell mail-shell--detail" dir="rtl">
+  <header class="mail-detail-head">
+    <div><a href="{% url 'reports:platform_email_inbox' %}"><i class="fa-solid fa-arrow-right"></i> العودة للبريد</a><div class="mail-detail-title"><span class="mail-status {{ email.status }}">{{ email.get_status_display }}</span><h1>{{ email.subject }}</h1></div><p>محادثة من {{ thread.count }} رسالة</p></div>
+    <div class="mail-detail-actions">
+      <form method="post" action="{% url 'reports:platform_email_action' email.pk %}">{% csrf_token %}<input type="hidden" name="action" value="star"><button class="mail-icon-button" title="{% if email.is_starred %}إزالة التمييز{% else %}تمييز{% endif %}" aria-label="تمييز"><i class="{% if email.is_starred %}fa-solid{% else %}fa-regular{% endif %} fa-star"></i></button></form>
+      <form method="post" action="{% url 'reports:platform_email_action' email.pk %}">{% csrf_token %}<input type="hidden" name="action" value="archive"><button class="mail-icon-button" title="{% if email.is_archived %}إعادة من الأرشيف{% else %}أرشفة{% endif %}" aria-label="أرشفة"><i class="fa-solid fa-box-archive"></i></button></form>
+      <a class="mail-icon-button" href="{% url 'reports:platform_email_compose' %}?forward={{ email.pk }}" title="إعادة توجيه" aria-label="إعادة توجيه"><i class="fa-solid fa-share"></i></a>
+    </div>
+  </header>
+
+  <main class="mail-thread">
+    {% for item in thread %}
+    <article class="mail-message {% if item.pk == email.pk %}is-current{% endif %}">
+      <header><span class="mail-row__avatar">{% if item.direction == 'inbound' %}{{ item.display_sender|slice:':1'|upper }}{% else %}<i class="fa-solid fa-check"></i>{% endif %}</span><div><strong>{{ item.display_sender }}</strong><span>{% if item.direction == 'inbound' %}إلى {{ item.primary_recipient }}{% else %}إلى {{ item.to_emails|join:', ' }}{% endif %}</span></div><time>{{ item.activity_at|date:'Y-m-d H:i' }}</time></header>
+      <div class="mail-message__body">{{ item.text_body|default:item.snippet|linebreaksbr }}</div>
+      {% if item.attachments.count %}<div class="mail-attachments">{% for attachment in item.attachments.all %}<a {% if item.direction == 'inbound' %}href="{% url 'reports:platform_email_attachment_download' item.pk attachment.pk %}"{% else %}aria-disabled="true"{% endif %}><i class="fa-solid fa-file"></i><span>{{ attachment.filename }}<small>{% if attachment.size %}{{ attachment.size|filesizeformat }} · {% endif %}{{ attachment.content_type|default:'ملف مرفق' }}</small></span>{% if item.direction == 'inbound' %}<i class="fa-solid fa-download"></i>{% endif %}</a>{% endfor %}</div>{% endif %}
+      {% if item.failure_reason %}<div class="mail-failure"><i class="fa-solid fa-triangle-exclamation"></i>{{ item.failure_reason }}</div>{% endif %}
+      {% if item.direction == 'outbound' %}<footer class="mail-delivery"><span><i class="fa-solid fa-paper-plane"></i> {{ item.get_status_display }}</span>{% if item.delivered_at %}<span><i class="fa-solid fa-check-double"></i> {{ item.delivered_at|date:'Y-m-d H:i' }}</span>{% endif %}{% if item.opened_count %}<span><i class="fa-regular fa-eye"></i> فتح {{ item.opened_count }}</span>{% endif %}{% if item.clicked_count %}<span><i class="fa-solid fa-arrow-pointer"></i> نقر {{ item.clicked_count }}</span>{% endif %}</footer>{% endif %}
+    </article>
+    {% endfor %}
+  </main>
+
+  {% if email.direction == 'inbound' %}
+  <form class="mail-reply" method="post">{% csrf_token %}<input type="hidden" name="action" value="reply"><label for="{{ reply_form.body.id_for_label }}">الرد على {{ email.display_sender }}</label>{{ reply_form.body }}{{ reply_form.body.errors }}<footer><span>سيصل الرد من هوية منصة توثيق الرسمية.</span><button class="mail-button is-primary" type="submit"><i class="fa-solid fa-reply"></i> إرسال الرد</button></footer></form>
+  {% endif %}
+</div>
+{% endblock %}

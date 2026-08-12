@@ -92,6 +92,8 @@ def platform_operations(request: HttpRequest) -> HttpResponse:
         "Notification": "الإشعارات والتعاميم",
         "SchoolMembership": "إدارة المستخدمين",
         "StaffScope": "الصلاحيات",
+        "PlatformEmail": "بريد المنصة",
+        "PlatformEmailConfiguration": "إعدادات البريد",
     }
     feature_counts = {
         row["model_name"]: row["total"]

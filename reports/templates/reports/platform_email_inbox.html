@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}بريد المنصة | مركز التشغيل{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/platform-email.css' %}">{% endblock %}
+
+{% block content %}
+<div class="mail-shell" dir="rtl">
+  <header class="mail-hero">
+    <div class="mail-hero__identity">
+      <span class="mail-hero__mark"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i></span>
+      <div><p>مركز الاتصال الرسمي</p><h1>بريد توثيق</h1><span>{{ email_config.inbound_email }}</span></div>
+    </div>
+    <div class="mail-hero__actions">
+      <a class="mail-button is-primary" href="{% url 'reports:platform_email_compose' %}"><i class="fa-solid fa-pen" aria-hidden="true"></i> رسالة جديدة</a>
+      <a class="mail-icon-button" href="{% url 'reports:platform_email_settings' %}" title="إعدادات البريد" aria-label="إعدادات البريد"><i class="fa-solid fa-sliders" aria-hidden="true"></i></a>
+    </div>
+  </header>
+
+  {% if not api_configured or not webhook_configured or not email_config.is_sending_enabled or not email_config.is_receiving_enabled %}
+  <section class="mail-setup" aria-label="حالة الربط">
+    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+    <div><strong>إعداد البريد يحتاج إكمالًا</strong><span>أكمل مفاتيح Resend والتفعيل من الإعدادات قبل بدء التشغيل الفعلي.</span></div>
+    <a href="{% url 'reports:platform_email_settings' %}">مراجعة الإعدادات</a>
+  </section>
+  {% endif %}
+
+  <section class="mail-kpis" aria-label="مؤشرات البريد">
+    <article><span>غير مقروء</span><strong>{{ mail_stats.unread }}</strong><i class="fa-solid fa-envelope" aria-hidden="true"></i></article>
+    <article><span>الوارد</span><strong>{{ mail_stats.inbox }}</strong><i class="fa-solid fa-inbox" aria-hidden="true"></i></article>
+    <article><span>تم تسليمها خلال 7 أيام</span><strong>{{ mail_stats.delivered_7d }}</strong><i class="fa-solid fa-circle-check" aria-hidden="true"></i></article>
+    <article class="{% if mail_stats.failed_7d %}is-danger{% endif %}"><span>تحتاج انتباهًا</span><strong>{{ mail_stats.failed_7d }}</strong><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></article>
+  </section>
+
+  <div class="mail-workspace">
+    <aside class="mail-sidebar" aria-label="مجلدات البريد">
+      <nav>
+        <a class="{% if folder == 'inbox' %}is-active{% endif %}" href="?folder=inbox"><i class="fa-solid fa-inbox"></i><span>الوارد</span><b>{{ mail_stats.inbox }}</b></a>
+        <a class="{% if folder == 'sent' %}is-active{% endif %}" href="?folder=sent"><i class="fa-regular fa-paper-plane"></i><span>المرسل</span><b>{{ mail_stats.sent }}</b></a>
+        <a class="{% if folder == 'starred' %}is-active{% endif %}" href="?folder=starred"><i class="fa-regular fa-star"></i><span>المميزة</span><b>{{ mail_stats.starred }}</b></a>
+        <a class="{% if folder == 'archive' %}is-active{% endif %}" href="?folder=archive"><i class="fa-solid fa-box-archive"></i><span>الأرشيف</span><b>{{ mail_stats.archived }}</b></a>
+        <a class="{% if folder == 'all' %}is-active{% endif %}" href="?folder=all"><i class="fa-solid fa-layer-group"></i><span>كل البريد</span></a>
+      </nav>
+      <div class="mail-health">
+        <strong>جاهزية الخدمة</strong>
+        <span class="{% if api_configured %}is-ok{% endif %}"><i></i> مفتاح API</span>
+        <span class="{% if webhook_configured %}is-ok{% endif %}"><i></i> توقيع Webhook</span>
+        <span class="{% if email_config.is_sending_enabled %}is-ok{% endif %}"><i></i> الإرسال</span>
+        <span class="{% if email_config.is_receiving_enabled %}is-ok{% endif %}"><i></i> الاستقبال</span>
+      </div>
+    </aside>
+
+    <main class="mail-list-panel">
+      <div class="mail-toolbar">
+        <form method="get" class="mail-search">
+          <input type="hidden" name="folder" value="{{ folder }}">
+          <label><i class="fa-solid fa-magnifying-glass"></i><input type="search" name="q" value="{{ search_query }}" placeholder="ابحث بالمرسل أو المستلم أو الموضوع أو المحتوى..."></label>
+          <select name="status" aria-label="حالة الرسالة">
+            <option value="">كل الحالات</option>
+            {% for value,label in status_choices %}<option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <button class="mail-icon-button" type="submit" title="بحث" aria-label="بحث"><i class="fa-solid fa-arrow-left"></i></button>
+        </form>
+        <form method="post" action="{% url 'reports:platform_email_sync' %}">{% csrf_token %}<button class="mail-icon-button" type="submit" title="مزامنة الوارد" aria-label="مزامنة الوارد"><i class="fa-solid fa-rotate"></i></button></form>
+      </div>
+
+      <div class="mail-list" role="list">
+        {% for item in emails %}
+        <a class="mail-row {% if item.direction == 'inbound' and not item.is_read %}is-unread{% endif %}" href="{% url 'reports:platform_email_detail' item.pk %}" role="listitem">
+          <span class="mail-row__avatar">{% if item.direction == 'inbound' %}{{ item.display_sender|slice:':1'|upper }}{% else %}<i class="fa-regular fa-paper-plane"></i>{% endif %}</span>
+          <span class="mail-row__party">{% if item.direction == 'inbound' %}{{ item.display_sender }}{% else %}إلى: {{ item.primary_recipient }}{% endif %}<small dir="ltr">{% if item.direction == 'inbound' %}{{ item.from_email }}{% else %}{{ item.from_email }}{% endif %}</small></span>
+          <span class="mail-row__content"><strong>{{ item.subject }}</strong><small>{{ item.snippet|default:'لا توجد معاينة نصية لهذه الرسالة.' }}</small></span>
+          <span class="mail-row__meta"><time>{{ item.activity_at|date:'Y-m-d H:i' }}</time><span class="mail-status {{ item.status }}">{{ item.get_status_display }}</span>{% if item.attachments.count %}<i class="fa-solid fa-paperclip" title="تحتوي مرفقات"></i>{% endif %}{% if item.is_starred %}<i class="fa-solid fa-star is-gold" title="مميزة"></i>{% endif %}</span>
+        </a>
+        {% empty %}
+        <div class="mail-empty"><i class="fa-regular fa-envelope-open"></i><h2>لا توجد رسائل هنا</h2><p>غيّر المجلد أو البحث، أو ابدأ رسالة جديدة من أعلى الصفحة.</p></div>
+        {% endfor %}
+      </div>
+      {% include "reports/_pagination.html" %}
+    </main>
+  </div>
+</div>
+{% endblock %}
