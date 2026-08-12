@@ -441,7 +441,7 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
             messages.warning(request, "الطلب مغلق. استخدم زر «إعادة فتح الطلب» قبل تغيير حالته.")
             status_val = ""
 
-        is_locked_now_or_will_be = (t.status in locked_statuses) or (status_val in locked_statuses)
+        is_currently_locked = t.status in locked_statuses
 
         # إضافة ملاحظة (المرسل أو من يملك الصلاحية)
         # يسمح للمرسل بإضافة ملاحظات (للتواصل) ولكن لا يملك صلاحية تغيير الحالة إلا إذا كان من ضمن المستلمين/الإدارة
@@ -449,10 +449,10 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
         if is_owner or can_act:
             can_comment = True
 
-        if note_txt and can_comment and is_locked_now_or_will_be:
+        if note_txt and can_comment and is_currently_locked:
             messages.warning(request, "لا يمكن إضافة ملاحظة عندما تكون حالة الطلب مكتمل أو مرفوض.")
 
-        if note_txt and can_comment and (not is_locked_now_or_will_be):
+        if note_txt and can_comment and (not is_currently_locked):
             try:
                 with transaction.atomic():
                     TicketNote.objects.create(

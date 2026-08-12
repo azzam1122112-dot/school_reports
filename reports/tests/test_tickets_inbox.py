@@ -457,3 +457,25 @@ class TicketsInboxViewTests(TestCase):
         self.assertEqual(ticket.status, Ticket.Status.OPEN)
         self.assertContains(response, "أُعيد فتح الطلب")
         self.assertTrue(ticket.notes.filter(body__startswith="إعادة فتح الطلب:").exists())
+
+    def test_closing_ticket_saves_resolution_note_in_same_request(self):
+        ticket = Ticket.objects.create(
+            creator=self.user,
+            assignee=self.user,
+            school=self.school,
+            is_platform=False,
+            title="طلب مفتوح مع خلاصة حل",
+            body="يختبر حفظ الملاحظة عند إكمال الطلب.",
+            status=Ticket.Status.IN_PROGRESS,
+        )
+        self._enter_school()
+
+        self.client.post(
+            reverse("reports:ticket_detail", args=[ticket.pk]),
+            {"status": Ticket.Status.DONE, "note": "تم تنفيذ الحل والتحقق منه."},
+            follow=True,
+        )
+
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.status, Ticket.Status.DONE)
+        self.assertTrue(ticket.notes.filter(body="تم تنفيذ الحل والتحقق منه.").exists())
