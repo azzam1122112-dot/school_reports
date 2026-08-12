@@ -3,7 +3,7 @@
 {% block title %}{% if addon %}تعديل ملحق الأرشيف{% else %}تفعيل ملحق الأرشيف{% endif %}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .addon-form-scope {
     direction: rtl;
   }

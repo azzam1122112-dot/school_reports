@@ -2,7 +2,7 @@
 {% load static %}
 {% block title %}ملف الأداء القيادي{% endblock %}
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .lp-shell{--lp-green:#075b36;--lp-deep:#043d25;--lp-gold:#b58a46;--lp-ink:#17211c;--lp-muted:#647269;max-width:1180px;margin:0 auto;padding:28px 18px 64px;color:var(--lp-ink)}
   .lp-hero{position:relative;overflow:hidden;display:grid;grid-template-columns:1fr auto;gap:32px;align-items:end;min-height:280px;padding:42px;border-radius:8px;background:#073f29;color:#fff}
   .lp-hero:before{content:"";position:absolute;inset:0;background:linear-gradient(125deg,rgba(255,255,255,.04),transparent 55%),repeating-linear-gradient(90deg,transparent 0 54px,rgba(255,255,255,.025) 55px 56px)}

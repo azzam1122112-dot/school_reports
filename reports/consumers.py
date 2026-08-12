@@ -16,6 +16,7 @@ import time
 
 from .models import NotificationRecipient
 from core import opmetrics
+from core.observability import report_degraded as _degraded, soft_call, soft_fail
 
 
 logger = logging.getLogger(__name__)
@@ -147,10 +148,8 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             )
             # Accept first so we can send a proper close frame, otherwise the
             # browser receives a raw TCP drop and logs 1006 instead of 1011.
-            try:
+            with soft_fail("ws.accept_before_close"):
                 await self.accept()
-            except Exception:
-                pass
             self._remember_close_reason("group_add_failed")
             await self.close(code=1011)
             return
@@ -181,18 +180,17 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 await watchdog
         group = getattr(self, "group_name", "")
         if group:
-            try:
+            # مجموعةٌ لا يُنسحب منها تُبقي قناةً ميتة تتلقّى البثّ إلى الأبد.
+            with soft_fail("ws.group_discard", group=group):
                 await self.channel_layer.group_discard(group, self.channel_name)
-            except Exception:
-                pass
         # Release connection-cap slot
-        try:
+        # عدّادٌ لا يُنقَص عند الفصل يستنفد سقفَ اتصالات المستخدم تدريجياً
+        # حتى يعجز عن الاتصال أصلاً.
+        with soft_fail("ws.release_connection_slot", user_id=getattr(self, "user_id", None)):
             uid = getattr(self, "user_id", None)
             if uid is not None:
                 cap_key = f"ws:conn_cap:{uid}"
                 cache.decr(cap_key)
-        except Exception:
-            pass
         uid = getattr(self, "user_id", None)
         if uid is not None:
             _safe_cache_delta(_gauge_key("active"), -1)
@@ -251,7 +249,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 )
             opmetrics.timing("ws.notifications.connection.duration", duration_ms)
         except Exception:
-            pass
+            _degraded("ws.record_disconnect_metrics")
 
     async def receive_json(self, content: Dict[str, Any], **kwargs):
         await database_sync_to_async(close_old_connections)()
@@ -259,11 +257,9 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
         opmetrics.increment("ws.notifications.messages.received")
         msg_type = (content or {}).get("type")
         if msg_type in {"keepalive", "ping"}:
-            try:
+            with soft_fail("ws.send_pong", user_id=getattr(self, "user_id", None)):
                 await self.send_json({"type": "pong"})
                 opmetrics.increment("ws.notifications.messages.sent")
-            except Exception:
-                pass
             return
         if msg_type == "resync":
             # Throttle resyncs: max once per 5 seconds to avoid DB hammering
@@ -307,17 +303,15 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
         uid = getattr(self, "user_id", 0)
         sid = getattr(self, "active_school_id", None) or 0
         ck = f"ws:counts:{uid}:{sid}"
-        try:
-            cached = cache.get(ck)
-            if cached is not None:
-                return cached
-        except Exception:
-            pass
+        cached = soft_call("ws.counts_cache_get", lambda: cache.get(ck), default=None)
+        if cached is not None:
+            return cached
         result = await self._compute_counts()
-        try:
-            cache.set(ck, result, COUNTS_CACHE_TTL_SECONDS)
-        except Exception:
-            pass
+        soft_call(
+            "ws.counts_cache_set",
+            lambda: cache.set(ck, result, COUNTS_CACHE_TTL_SECONDS),
+            default=None,
+        )
         return result
 
     @database_sync_to_async
@@ -408,10 +402,11 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
         for item in (self.scope.get("headers") or []):
             try:
                 k, v = item
-                if k == needle:
-                    return v.decode("utf-8", errors="ignore")
-            except Exception:
+            except (TypeError, ValueError):
+                # ترويسةٌ مشوّهة في النطاق: تُتخطّى، ولا تُخفي غيرها.
                 continue
+            if k == needle:
+                return v.decode("utf-8", errors="ignore")
         return "-"
 
     def _scope_session_key(self) -> str:

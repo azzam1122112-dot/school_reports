@@ -5,7 +5,7 @@
 
 {% block head %}
 {% include "reports/_meeting_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .mtg-list-head { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .2rem; }
   .mtg-list-head .asg-card__title { margin: 0; }
   .mtg-count {
@@ -34,8 +34,8 @@
       {% endif %}
     </p>
     {% if can_organize %}
-      <div style="margin-top:1.1rem">
-        <a class="asg-btn" href="{% url 'reports:meeting_create' %}" style="background:#fff;color:#08643b">
+      <div class="u-mt-xl">
+        <a class="asg-btn xs-meeting-list-1" href="{% url 'reports:meeting_create' %}">
           <i class="fa-solid fa-plus" aria-hidden="true"></i>
           اجتماع جديد
         </a>
@@ -155,7 +155,7 @@
   {% endif %}
 
   {% if not upcoming and not held %}
-    <div class="asg-empty" style="margin-top:1.2rem">
+    <div class="asg-empty u-mt-2xl">
       <div class="asg-empty__icon"><i class="fa-solid fa-users-rectangle" aria-hidden="true"></i></div>
       <h2>لا اجتماعات بعد</h2>
       <p>
@@ -168,7 +168,7 @@
         {% endif %}
       </p>
       {% if can_organize %}
-        <div style="margin-top:1rem">
+        <div class="u-mt-lg">
           <a class="asg-btn asg-btn--primary" href="{% url 'reports:meeting_create' %}">
             <i class="fa-solid fa-plus" aria-hidden="true"></i>
             نظّم أول اجتماع

@@ -5,7 +5,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .dtl-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
   @media (max-width: 900px) { .dtl-grid { grid-template-columns: 1fr; } }
 
@@ -75,7 +75,7 @@
     <p class="asg-hero__meta">
       المكلَّف: {{ target.assignee.name }} · من {{ assignment.issuer_name|default:"—" }}
     </p>
-    <div style="margin-top:.9rem;display:flex;gap:.5rem;flex-wrap:wrap">
+    <div class="xs-assignment-detail-1">
       <a class="asg-hero__eyebrow" href="{% url 'reports:assignment_view' assignment.pk %}">
         <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
         التكليف كاملاً
@@ -92,9 +92,9 @@
 
     {# ═══ العمود الأول ═══════════════════════════════════ #}
     <div>
-      <section class="asg-card" style="margin-top:1.2rem">
-        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
-          <h2 class="asg-card__title" style="margin:0">تفاصيل التكليف</h2>
+      <section class="asg-card u-mt-2xl">
+        <div class="u-flex u-items-center u-gap-sm u-wrap u-mb-09">
+          <h2 class="asg-card__title u-m-0">تفاصيل التكليف</h2>
           <span class="asg-tag">{{ target.get_approval_state_display }}</span>
           {% if target.is_overdue %}
             <span class="asg-tag asg-tag--late">متأخر</span>
@@ -220,13 +220,12 @@
             {% endfor %}
           </div>
         {% else %}
-          <p class="asg-card__hint" style="margin:0">لم تُرفع شواهد بعد.</p>
+          <p class="asg-card__hint u-m-0">لم تُرفع شواهد بعد.</p>
         {% endif %}
 
         {% if is_assignee and not target.is_final and not assignment.is_cancelled %}
           <form method="post" enctype="multipart/form-data"
-                action="{% url 'reports:assignment_target_action' target.pk %}"
-                style="margin-top:1rem">
+                action="{% url 'reports:assignment_target_action' target.pk %}" class="u-mt-lg">
             {% csrf_token %}
             <input type="hidden" name="target_action" value="add_evidence">
             <div class="asg-field">
@@ -276,7 +275,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          <p class="asg-card__hint" style="margin:0">لم تبدأ دورة المراجعة بعد.</p>
+          <p class="asg-card__hint u-m-0">لم تبدأ دورة المراجعة بعد.</p>
         {% endif %}
       </section>
     </div>
@@ -284,7 +283,7 @@
     {# ═══ العمود الثاني ══════════════════════════════════ #}
     <div>
       {% if is_assignee and not target.is_final and not assignment.is_cancelled %}
-        <section class="asg-card" style="margin-top:1.2rem">
+        <section class="asg-card u-mt-2xl">
           <h2 class="asg-card__title">تقدّمك</h2>
           <p class="asg-card__hint">
             النسبة تنزل كما تصعد — عملٌ ظُنّ منجزاً ثم تبيّن نقصه يجب أن يعود
@@ -321,7 +320,7 @@
             {% endif %}
           </div>
 
-          <form method="post" action="{% url 'reports:assignment_target_action' target.pk %}" style="margin-top:1rem">
+          <form method="post" action="{% url 'reports:assignment_target_action' target.pk %}" class="u-mt-lg">
             {% csrf_token %}
             <input type="hidden" name="target_action" value="clarify">
             <div class="asg-field">
@@ -354,7 +353,7 @@
               </div>
             {% endif %}
 
-            <div class="dtl-actions" style="margin-top:0">
+            <div class="dtl-actions u-mt-0">
               {% if 'submit' in actions %}
                 <button type="submit" class="asg-btn asg-btn--primary" data-asg="submit">
                   <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
@@ -397,7 +396,7 @@
             })();
           </script>
         {% else %}
-          <p class="asg-card__hint" style="margin:0">
+          <p class="asg-card__hint u-m-0">
             {% if assignment.is_cancelled %}
               أُلغي هذا التكليف؛ لا توجد إجراءات مطلوبة أو متاحة عليه.
             {% elif target.is_final %}

@@ -10,6 +10,8 @@ from django.contrib import messages
 import secrets
 from urllib.parse import urlsplit
 
+from core.observability import report_degraded as _degraded, soft_fail
+
 
 
 import threading
@@ -70,12 +72,10 @@ def is_force_password_change_required(request) -> bool:
 
     # Fast path: if we already verified password is NOT default in this session,
     # skip the bcrypt call.
-    try:
+    with soft_fail("auth.password_verified_fast_path"):
         if request.session.get(_PASSWORD_VERIFIED_OK_SESSION_KEY):
             request.force_password_change_required = False
             return False
-    except Exception:
-        pass
 
     required = has_default_phone_password(user)
     try:
@@ -86,19 +86,19 @@ def is_force_password_change_required(request) -> bool:
             request.session.pop(FORCE_PASSWORD_CHANGE_SESSION_KEY, None)
             request.session[_PASSWORD_VERIFIED_OK_SESSION_KEY] = True
     except Exception:
-        pass
+        _degraded("auth.persist_password_change_flag")
 
     request.force_password_change_required = required
     return required
 
 
 def clear_force_password_change_flag(request) -> None:
-    try:
+    # علمٌ لا يُمسح يُبقي المستخدم محبوساً في شاشة تغيير كلمة المرور بعد أن
+    # غيّرها فعلاً.
+    with soft_fail("auth.clear_password_change_flag"):
         request.session.pop(FORCE_PASSWORD_CHANGE_SESSION_KEY, None)
         # Clear cached verification so next request re-checks with bcrypt.
         request.session.pop(_PASSWORD_VERIFIED_OK_SESSION_KEY, None)
-    except Exception:
-        pass
     request.force_password_change_required = False
 
 
@@ -113,7 +113,8 @@ def _log_denial(request, *, reason: str) -> None:
             request.session.get("active_school_id") if hasattr(request, "session") else None,
         )
     except Exception:
-        pass
+        # سطرُ سجلٍّ يتعثّر لا يُسقط الطلب، لكنه يعني ضياع أثر منعٍ أمني.
+        logger.exception("failed to log tenant denial")
 
 class AuditLogMiddleware:
     def __init__(self, get_response):
@@ -198,11 +199,9 @@ class MaintenanceModeMiddleware:
         except Exception:
             return state
 
-        try:
+        with soft_fail("maintenance.cache_state"):
             if cache is not None:
                 cache.set(self.CACHE_KEY, state, self.CACHE_TIMEOUT)
-        except Exception:
-            pass
         return state
 
     def _wants_json(self, request) -> bool:
@@ -400,13 +399,11 @@ class IdleLogoutMiddleware:
             return self.get_response(request)
 
         # لا نطبق فحص الخمول على صفحة تسجيل الدخول/الخروج لتجنب أي حلقات
-        try:
+        with soft_fail("auth.resolve_login_logout_paths"):
             login_path = reverse("reports:login")
             logout_path = reverse("reports:logout")
             if request.path in {login_path, logout_path}:
                 return self.get_response(request)
-        except Exception:
-            pass
 
         now_ts = timezone.now().timestamp()
         last_ts = request.session.get(self.SESSION_KEY)
@@ -421,6 +418,7 @@ class IdleLogoutMiddleware:
                         return JsonResponse({"detail": "session_expired"}, status=401)
                     return redirect(settings.LOGIN_URL)
             except Exception:
+                _degraded("auth.idle_logout_check")
                 # في حال كانت القيمة غير صالحة لأي سبب، نعيد ضبطها
                 pass
 
@@ -491,73 +489,84 @@ class ActiveSchoolGuardMiddleware:
 
         try:
             sid = int(sid_raw)
-        except Exception:
-            try:
-                request.session.pop(self.SESSION_KEY, None)
-            except Exception:
-                pass
+        except (TypeError, ValueError):
+            self._clear_active_school(request)
             request.active_school = None
             return self.get_response(request)
 
-        # Import lazily to avoid circular imports at startup.
-        try:
-            from .models import School, SchoolMembership
-        except Exception:
-            School = None  # type: ignore
-            SchoolMembership = None  # type: ignore
+        from .models import School, SchoolMembership
 
         # ── Fetch the school once and cache on request ──
-        school_obj = None
+        # تعثّرُ الجلب لا يُقرأ «المدرسة غير موجودة»: الأول عطلٌ عابر والثاني
+        # قرارُ منع. وخلطُهما كان يمسح المدرسة النشطة من جلسة المستخدم لأن
+        # القاعدة تلعثمت لحظة.
         try:
-            if School is not None:
-                school_obj = School.objects.filter(id=sid, is_active=True).first()
+            school_obj = School.objects.filter(id=sid, is_active=True).first()
         except Exception:
-            school_obj = None
+            _degraded("tenant.load_active_school", school_id=sid, user_id=getattr(user, "pk", None))
+            request.active_school = None
+            return self._deny(request, reason="active_school_lookup_failed")
 
         # If the school itself is not active/doesn't exist, clear.
         if school_obj is None:
-            try:
-                if self._wants_json(request):
-                    _log_denial(request, reason="active_school_invalid")
-                    return JsonResponse({"detail": "invalid_active_school"}, status=403)
-                request.session.pop(self.SESSION_KEY, None)
-            except Exception:
-                pass
+            request.active_school = None
+            if self._wants_json(request):
+                _log_denial(request, reason="active_school_invalid")
+                return JsonResponse({"detail": "invalid_active_school"}, status=403)
+            self._clear_active_school(request)
             return self.get_response(request)
 
         # Normal user: must have an active membership in that school.
+        #
+        # ── لماذا يُصفَّر ``active_school`` في كل مسار فشل ────────────────────
+        # كانت الدالة تنتهي بـ ``request.active_school = school_obj`` **مهما
+        # كان مسار الفحص**. فمن لا عضوية له — أو من تعثّر فحص عضويته — كان
+        # يُمسح مفتاحُه من الجلسة ثم يُكمل الطلبَ نفسه ومعه ``active_school``
+        # لمدرسة ليست له.
+        #
+        # وهذا يناقض العقد المكتوب في ``config/settings.py``: «ActiveSchoolGuard
+        # قد خوّل وأرفق ``request.active_school``» — وعليه بُني إسقاطُ
+        # ``SchoolRateLimitMiddleware`` لاستعلامه، وعليه تعتمد عروضٌ تقرأ
+        # ``request.active_school`` بوصفه مُخوَّلاً.
+        #
+        # فالقاعدة الآن واحدة ولا استثناء لها: **لا يُرفَق إلا ما ثبتت عضويته.**
         try:
-            if SchoolMembership is None:
-                if self._wants_json(request):
-                    _log_denial(request, reason="active_school_membership_backend_missing")
-                    return JsonResponse({"detail": "invalid_active_school"}, status=403)
-                request.session.pop(self.SESSION_KEY, None)
-                return self.get_response(request)
             membership = SchoolMembership.objects.filter(
                 teacher=user,
                 school_id=sid,
                 is_active=True,
             ).select_related("school").first()
-            if membership is None:
-                if self._wants_json(request):
-                    _log_denial(request, reason="active_school_membership_forbidden")
-                    return JsonResponse({"detail": "forbidden"}, status=403)
-                request.session.pop(self.SESSION_KEY, None)
-            else:
-                # Cache membership for SubscriptionMiddleware downstream
-                request._active_membership = membership
         except Exception:
-            try:
-                if self._wants_json(request):
-                    _log_denial(request, reason="active_school_membership_exception")
-                    return JsonResponse({"detail": "forbidden"}, status=403)
-                request.session.pop(self.SESSION_KEY, None)
-            except Exception:
-                pass
+            _degraded("tenant.membership_check", school_id=sid, user_id=getattr(user, "pk", None))
+            request.active_school = None
+            return self._deny(request, reason="active_school_membership_exception")
+
+        if membership is None:
+            request.active_school = None
+            return self._deny(request, reason="active_school_membership_forbidden")
+
+        # Cache membership for SubscriptionMiddleware downstream
+        request._active_membership = membership
 
         # ── Cache the resolved school on the request for downstream reuse ──
         request.active_school = school_obj
 
+        return self.get_response(request)
+
+    def _clear_active_school(self, request) -> None:
+        """يزيل المدرسة النشطة من الجلسة دون أن يُسقط الطلب."""
+        with soft_fail("tenant.clear_session_school"):
+            request.session.pop(self.SESSION_KEY, None)
+
+    def _deny(self, request, *, reason: str):
+        """يمنع الوصول للمستأجر: 403 لطلبات JSON، ومسحٌ للجلسة لغيرها.
+
+        ولا يُرفَق ``active_school`` في الحالتين — المُستدعي صفّره قبل النداء.
+        """
+        _log_denial(request, reason=reason)
+        if self._wants_json(request):
+            return JsonResponse({"detail": "forbidden"}, status=403)
+        self._clear_active_school(request)
         return self.get_response(request)
 
 class SubscriptionMiddleware:
@@ -697,7 +706,7 @@ class ForcePasswordChangeMiddleware:
             if sec_fetch_mode == "navigate" or sec_fetch_dest == "document":
                 return True
         except Exception:
-            pass
+            _degraded("http.detect_navigation_request")
         return False
 
     def __call__(self, request):
@@ -782,7 +791,6 @@ class ContentSecurityPolicyMiddleware:
     # page. Every gateway that can be switched on must be listed.
     PAYMENT_CHECKOUT_ORIGINS = (
         ("MOYASAR_ENABLED", "https://checkout.moyasar.com"),
-        ("TAMARA_ENABLED", "https://checkout.tamara.co"),
     )
 
     @classmethod
@@ -861,8 +869,30 @@ class ContentSecurityPolicyMiddleware:
         if checkout_origins:
             form_action = f"{form_action} " + " ".join(checkout_origins)
 
-        # Default policy: safe baseline with current template constraints.
-        # NOTE: style-src keeps 'unsafe-inline' because templates use inline style="...".
+        # Default policy: safe baseline.
+        #
+        # ── ``style-src`` أُغلقت ─────────────────────────────────────────────
+        # كانت تحمل ``'unsafe-inline'`` سنواتٍ، وسببُها مكتوبٌ هنا: «القوالب
+        # تستعمل ``style="..."``». وكان في القوالب 806 سمة، فالإذن باقٍ ما بقيت
+        # واحدة — لأن الإذن مفتوحٌ أو مغلق، لا درجة بينهما. ومعناه أن أي حقن
+        # HTML (حقلٌ لم يُهرَّب، أو رسالة خطأ تُردّد مدخل المستخدم) يستطيع حقن
+        # أنماط: إخفاءُ زرٍّ حقيقي، أو رسمُ نموذج دخولٍ فوق الصفحة.
+        #
+        # وقد أُزيلت السمات كلها على أربع دفعات:
+        #   * ما له مقابل مباشر → أصناف ``static/css/utilities.css``.
+        #   * ما كان تركيبة إعلانات → قائمة أصناف (كلٌّ أو لا شيء لكل سمة).
+        #   * نِسَبُ أشرطة التقدّم → ``data-progress`` يقرؤها الجافاسكربت ويضبط
+        #     العرض عبر CSSOM، ومسارُ CSSOM لا يحكمه ``style-src``.
+        #   * الباقي الفريد لكل صفحة → ``static/css/extracted.css``.
+        #
+        # وكل عنصر ``<style>`` في القوالب صار يحمل ``nonce`` — وهو ما يجعل
+        # الإغلاق ممكناً أصلاً، إذ أن الـ nonce يغطّي العنصر ولا يغطّي السمة.
+        #
+        # يحرس ذلك ``reports/tests/test_inline_style_budget.py``: أي سمة جديدة
+        # تُفشل الاختبار قبل أن تصل الإنتاج وتكسر الصفحة.
+        #
+        # والنطاقات الخارجية زالت كذلك: الخط صار محلياً، وFont Awesome كان
+        # مُستضافاً محلياً أصلاً بينما تُحمّله بعض القوالب من cdnjs بلا سبب.
         base = [
             "default-src 'self'",
             "base-uri 'self'",
@@ -875,9 +905,18 @@ class ContentSecurityPolicyMiddleware:
             # الـ nonce عبره. وChart.js صار مُستضافاً في ``static/js/vendor/``.
             f"script-src 'self' 'nonce-{nonce}'{seal_script_source}",
             f"script-src-elem 'self' 'nonce-{nonce}'{seal_script_source}",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
-            "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+            f"style-src 'self' 'nonce-{nonce}'",
+            f"style-src-elem 'self' 'nonce-{nonce}'",
+            # ``style-src-attr 'none'`` صريحةً: المتصفّحات التي تدعمها تمنع
+            # سمة ``style`` نهائياً حتى لو عاد ``'unsafe-inline'`` سهواً إلى
+            # ``style-src``. حزامٌ فوق الحمّالة.
+            "style-src-attr 'none'",
+            "font-src 'self' data:",
             "img-src 'self' data: blob: https:",
+            # التسجيل الصوتي يُراجَع قبل إرساله، وعنصر ``audio`` يقرأه من
+            # ``blob:`` في الذاكرة. وبلا هذا التوجيه يرثه من ``default-src``
+            # فيُحجب الاستماع ويبقى الزرّ بلا وظيفة.
+            "media-src 'self' blob:",
             "connect-src 'self'",
             frame_src,
             "upgrade-insecure-requests",
@@ -914,18 +953,14 @@ class ContentSecurityPolicyMiddleware:
             return response
 
         # Avoid spending time on static/media responses
-        try:
+        with soft_fail("csp.skip_static_paths"):
             if request.path.startswith("/static/") or request.path.startswith("/media/"):
                 return response
-        except Exception:
-            pass
 
         header_name = "Content-Security-Policy"
-        try:
+        with soft_fail("csp.read_report_only_flag"):
             if bool(getattr(settings, "CSP_REPORT_ONLY", False)):
                 header_name = "Content-Security-Policy-Report-Only"
-        except Exception:
-            pass
 
         # Don't override if already set by upstream/proxy
         if header_name not in response:

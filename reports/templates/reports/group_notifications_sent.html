@@ -4,7 +4,7 @@
 {% block title %}تعاميم المجموعة المرسلة | منصة توثيق{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .gs-page {
     --gs-ink: #10231a; --gs-muted: #607067; --gs-line: #dfe8e2;
     --gs-soft: #f3f8f5; --gs-surface: #ffffff; --gs-green: #08643b; --gs-gold: #b68a42;
@@ -100,7 +100,7 @@
             {% if row.batch.requires_signature %} · {{ row.signed|intcomma }} وقّعوا{% endif %}
           </span>
           <span class="gs-item__bar">
-            <span class="gs-item__track"><span class="gs-item__fill" style="width: {{ row.read_percent }}%"></span></span>
+            <span class="gs-item__track"><span class="gs-item__fill" data-progress="{{ row.read_percent }}"></span></span>
             <span class="gs-item__pct">{{ row.read_percent }}%</span>
           </span>
         </a>

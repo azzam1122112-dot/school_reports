@@ -346,6 +346,56 @@ except (TypeError, ValueError):
     REPORT_AI_TIMEOUT_SECONDS = 25.0
 
 
+# ----------------- Voice dictation for reports -----------------
+# التسجيل يصل في الذاكرة ولا يُكتب على القرص ولا يُخزَّن، ويُفرَّغ ثم يُنسى.
+VOICE_REPORT_ENABLED = _env_bool("VOICE_REPORT_ENABLED", bool(OPENAI_API_KEY))
+VOICE_REPORT_MODEL = (os.getenv("VOICE_REPORT_MODEL") or "gpt-4o-mini-transcribe").strip()
+# نموذج مرحلة الترقيم والتنسيق. يتبع نموذج تحسين التقارير ما لم يُضبط صراحةً.
+VOICE_REPORT_POLISH_MODEL = (os.getenv("VOICE_REPORT_POLISH_MODEL") or REPORT_AI_MODEL).strip()
+
+# القيد الفعلي على الخادم هو الحجم؛ أما المدة فيفرضها المسجّل في المتصفّح
+# بإيقافٍ تلقائي، لأن قياس مدة مقطع مضغوط خادمياً يحتاج فكّ ترميز كامل.
+try:
+    VOICE_REPORT_MAX_SECONDS = max(30, min(600, int(os.getenv("VOICE_REPORT_MAX_SECONDS", "180"))))
+except (TypeError, ValueError):
+    VOICE_REPORT_MAX_SECONDS = 180
+
+try:
+    VOICE_REPORT_MAX_BYTES = max(
+        200_000,
+        min(25 * 1024 * 1024, int(os.getenv("VOICE_REPORT_MAX_BYTES", str(10 * 1024 * 1024)))),
+    )
+except (TypeError, ValueError):
+    VOICE_REPORT_MAX_BYTES = 10 * 1024 * 1024
+
+try:
+    VOICE_REPORT_DAILY_LIMIT = max(0, min(20, int(os.getenv("VOICE_REPORT_DAILY_LIMIT", "3"))))
+except (TypeError, ValueError):
+    VOICE_REPORT_DAILY_LIMIT = 3
+
+# رفعُ صوتٍ ثم تفريغه أبطأ من نداء نصّي، فمهلته أوسع.
+try:
+    VOICE_REPORT_TIMEOUT_SECONDS = max(
+        15.0,
+        min(120.0, float(os.getenv("VOICE_REPORT_TIMEOUT_SECONDS", "60"))),
+    )
+except (TypeError, ValueError):
+    VOICE_REPORT_TIMEOUT_SECONDS = 60.0
+
+try:
+    VOICE_REPORT_MAX_OUTPUT_TOKENS = max(
+        300,
+        min(2000, int(os.getenv("VOICE_REPORT_MAX_OUTPUT_TOKENS", "1200"))),
+    )
+except (TypeError, ValueError):
+    VOICE_REPORT_MAX_OUTPUT_TOKENS = 1200
+
+# قصرُ الميزة على التطبيق المثبَّت قرارٌ منتَجي لا حاجزٌ أمني: الترويسة التي
+# يرسلها العميل يمكن تزويرها. الحدّ الذي يحمي التكلفة فعلاً هو الحصة اليومية
+# المحسوبة على الخادم. اضبطه False لإتاحتها في المتصفّح العادي أيضاً.
+VOICE_REPORT_PWA_ONLY = _env_bool("VOICE_REPORT_PWA_ONLY", True)
+
+
 # ----------------- Notifications: Local fallback (no broker) -----------------
 NOTIFICATIONS_LOCAL_FALLBACK_ENABLED = _env_bool("NOTIFICATIONS_LOCAL_FALLBACK_ENABLED", True)
 NOTIFICATIONS_LOCAL_FALLBACK_THREAD = _env_bool("NOTIFICATIONS_LOCAL_FALLBACK_THREAD", True)
@@ -596,6 +646,10 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    # موضعُها إلزامي: بعد الجلسة لأنها تقرأ لغة المستخدم منها، وقبل
+    # ``CommonMiddleware`` لأن الأخيرة قد تُعيد التوجيه قبل أن تُضبط اللغة
+    # فتصل الصفحة بلغةٍ غير المطلوبة.
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "reports.middleware.CanonicalHostMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -635,6 +689,9 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
+                # يوفّر ``LANGUAGE_CODE`` و``LANGUAGE_BIDI`` للقوالب، وعليهما
+                # يُبنى اتجاه الصفحة — راجع ``partials/html_lang.html``.
+                "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "reports.context_processors.nav_context",
@@ -914,7 +971,21 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # ----------------- I18N / TZ -----------------
+# ── اللغات ──────────────────────────────────────────────────────────────
+# العربية هي الأصل ولغةُ الاحتياط: المنصة تخدم مدارس سعودية، وكل شاشة عملٍ
+# فيها عربية. والإنجليزية مضافة **للطبقة العامة وحدها** — صفحةُ الهبوط
+# والدخول والتسجيل والسياسات — أي ما يراه من يقرّر الاشتراك قبل أن يملك حساباً،
+# ومن بينهم المدارس العالمية العاملة في المملكة.
+#
+# ولم تُترجم شاشات العمل الداخلية: ثلاثة ميغابايت من القوالب، وترجمتُها بلا
+# طلبٍ حقيقي تُنتج نصّاً يشيخ بلا أن يقرأه أحد. والتوسّع متاحٌ متى ظهر الطلب،
+# فالبنية كلها قائمة الآن.
 LANGUAGE_CODE = "ar"
+LANGUAGES = [
+    ("ar", "العربية"),
+    ("en", "English"),
+]
+LOCALE_PATHS = [BASE_DIR / "locale"]
 TIME_ZONE = "Asia/Riyadh"
 USE_I18N = True
 USE_TZ = True
@@ -1049,9 +1120,10 @@ except (TypeError, ValueError):
 
 # ----------------- Daily Manager Report -----------------
 DAILY_MANAGER_REPORT_ENABLED = _env_bool("DAILY_MANAGER_REPORT_ENABLED", True)
+# The weekly summary is an in-app notification only — it is never emailed and
+# has no outbound webhook channel, so this is the only delivery switch.
+# See reports/tasks.py::_daily_summary_for_school.
 DAILY_MANAGER_REPORT_INAPP_ENABLED = _env_bool("DAILY_MANAGER_REPORT_INAPP_ENABLED", True)
-DAILY_MANAGER_REPORT_EMAIL_ENABLED = _env_bool("DAILY_MANAGER_REPORT_EMAIL_ENABLED", True)
-DAILY_MANAGER_REPORT_WHATSAPP_ENABLED = _env_bool("DAILY_MANAGER_REPORT_WHATSAPP_ENABLED", False)
 
 try:
     DAILY_MANAGER_REPORT_HOUR = int((os.getenv("DAILY_MANAGER_REPORT_HOUR", "16") or "16").strip())
@@ -1071,16 +1143,6 @@ if DAILY_MANAGER_REPORT_DAY_OF_WEEK in {"thursday", "thur", "khamis"}:
 if DAILY_MANAGER_REPORT_DAY_OF_WEEK in {"*", "all", "daily"}:
     DAILY_MANAGER_REPORT_DAY_OF_WEEK = "*"
 
-DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_URL = (os.getenv("DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_URL") or "").strip()
-DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_TOKEN = (os.getenv("DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_TOKEN") or "").strip()
-
-try:
-    DAILY_MANAGER_REPORT_WHATSAPP_TIMEOUT_SECONDS = float(
-        (os.getenv("DAILY_MANAGER_REPORT_WHATSAPP_TIMEOUT_SECONDS", "10") or "10").strip()
-    )
-except Exception:
-    DAILY_MANAGER_REPORT_WHATSAPP_TIMEOUT_SECONDS = 10.0
-
 
 # ----------------- Subscription Expiry Reminders -----------------
 SUBSCRIPTION_EXPIRY_REMINDER_ENABLED = _env_bool("SUBSCRIPTION_EXPIRY_REMINDER_ENABLED", True)
@@ -1091,7 +1153,10 @@ try:
     ]
 except Exception:
     SUBSCRIPTION_EXPIRY_REMINDER_DAYS = [14, 7, 3, 1]
-SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED = _env_bool("SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED", False)
+# An expiring subscription is the one notice a manager cannot afford to miss:
+# the service stops. The in-app notice only lands if they happen to log in, so
+# email is on by default here — unlike the weekly summary, which is in-app only.
+SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED = _env_bool("SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED", True)
 
 # The archive add-on lapsing is more disruptive than a subscription lapsing:
 # the storage limit falls back to the free tier while the stored data stays, so
@@ -1356,6 +1421,13 @@ if ENV == "production":
     SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
     CSRF_COOKIE_SAMESITE = os.getenv("CSRF_COOKIE_SAMESITE", "Lax")
 
+    # كوكي اللغة يضعه ``set_language`` — تفضيلٌ لا سرّ، لكنه يُشدّ كبقيّة
+    # الكوكيز: لا يُقرأ من JavaScript ولا يُرسل على HTTP، فلا يصير ثغرةً
+    # صغيرةً في صفحةٍ عامة.
+    LANGUAGE_COOKIE_SECURE = True
+    LANGUAGE_COOKIE_HTTPONLY = True
+    LANGUAGE_COOKIE_SAMESITE = os.getenv("LANGUAGE_COOKIE_SAMESITE", "Lax")
+
     CSP_ENABLED = _env_bool("CSP_ENABLED", True)
     CSP_REPORT_ONLY = _env_bool("CSP_REPORT_ONLY", False)
     CONTENT_SECURITY_POLICY = (os.getenv("CONTENT_SECURITY_POLICY") or "").strip()
@@ -1421,7 +1493,10 @@ else:
 
 # ----------------- Django REST Framework -----------------
 REST_FRAMEWORK = {
+    # ترتيب المصادقة مقصود: مفتاح التكامل أولاً لأنه يُعرَّف بترويسة صريحة
+    # ويُثبّت المدرسة النشطة على الطلب؛ ثم الجلسة لعملاء المتصفّح.
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "reports.api_auth.SchoolApiKeyAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
@@ -1430,12 +1505,16 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
     "DEFAULT_THROTTLE_CLASSES": [
+        "reports.api_auth.ApiKeyRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
         "rest_framework.throttling.AnonRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
         "user": "120/min",
         "anon": "30/min",
+        # حدُّ التكامل أعلى من حدّ الإنسان وأقل من اللانهاية: نظامٌ يزامن
+        # دفعةً كبيرة سلوكُه مشروع، لكن مفتاحاً مسرَّباً يجب أن يصطدم بسقف.
+        "api_key": "600/min",
     },
 }
 
@@ -1501,39 +1580,6 @@ if ENV == "production" and PRODUCTION_STRICT_MODE:
             "Public business disclosure is incomplete in production: "
             + ", ".join(_business_disclosure_missing)
         )
-
-# ----------------- Tamara payments -----------------
-# Keep disabled until Sandbox credentials and the notification webhook are configured.
-TAMARA_ENABLED = _env_bool("TAMARA_ENABLED", False)
-TAMARA_ENVIRONMENT = (os.getenv("TAMARA_ENVIRONMENT") or "sandbox").strip().lower()
-TAMARA_API_TOKEN = (os.getenv("TAMARA_API_TOKEN") or "").strip()
-TAMARA_NOTIFICATION_TOKEN = (os.getenv("TAMARA_NOTIFICATION_TOKEN") or "").strip()
-if TAMARA_ENVIRONMENT not in {"sandbox", "production"}:
-    raise ImproperlyConfigured("TAMARA_ENVIRONMENT must be either sandbox or production.")
-if TAMARA_ENABLED:
-    _tamara_missing = [
-        name
-        for name, value in (
-            ("TAMARA_API_TOKEN", TAMARA_API_TOKEN),
-            ("TAMARA_NOTIFICATION_TOKEN", TAMARA_NOTIFICATION_TOKEN),
-        )
-        if not value
-    ]
-    if _tamara_missing:
-        raise ImproperlyConfigured(
-            "Tamara is enabled but required credentials are missing: "
-            + ", ".join(_tamara_missing)
-        )
-    if ENV == "production" and PRODUCTION_STRICT_MODE and TAMARA_ENVIRONMENT != "production":
-        raise ImproperlyConfigured(
-            "TAMARA_ENVIRONMENT must be production when Tamara is enabled in strict production mode."
-        )
-TAMARA_API_BASE_URL = (
-    os.getenv("TAMARA_API_BASE_URL")
-    or ("https://api.tamara.co" if TAMARA_ENVIRONMENT == "production" else "https://api-sandbox.tamara.co")
-).strip().rstrip("/")
-TAMARA_INSTALMENTS = int(os.getenv("TAMARA_INSTALMENTS", "4"))
-TAMARA_REQUEST_TIMEOUT = int(os.getenv("TAMARA_REQUEST_TIMEOUT", "15"))
 
 # ----------------- Moyasar payments -----------------
 # Keep test mode isolated from strict production. The secret key is server-only;

@@ -3,6 +3,7 @@ from urllib.parse import urlsplit
 from unittest.mock import patch
 
 from django.core import mail
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -17,6 +18,10 @@ from reports.models import Teacher
 )
 class PasswordRecoveryTests(TestCase):
     def setUp(self):
+        # The view is rate-limited to 5 POSTs per IP per 10 minutes and the
+        # counter lives in the shared cache; without this the last tests to run
+        # get a 403 instead of exercising what they assert.
+        cache.clear()
         self.user = Teacher.objects.create_user(
             phone="0558000001",
             name="مستخدم الاستعادة",
@@ -55,7 +60,7 @@ class PasswordRecoveryTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(
             mail.outbox[0].subject,
-            "استعادة كلمة المرور في منصة توثيق",
+            "🔐 استعادة كلمة المرور - منصة توثيق",
         )
         self.assertIn(
             reverse(
@@ -64,6 +69,36 @@ class PasswordRecoveryTests(TestCase):
             ).rsplit("/", 3)[0],
             mail.outbox[0].body,
         )
+
+    def test_recovery_email_is_branded_html_with_a_plain_text_part(self):
+        """A bare-text recovery mail reads like a phishing attempt."""
+        self._request_reset(self.user.email)
+        sent = mail.outbox[0]
+
+        # The plain-text part still carries the link, for clients that show it.
+        self.assertIn("منصة توثيق", sent.body)
+        self.assertIn("مستخدم الاستعادة", sent.body)
+        self.assertIn("ساعة واحدة", sent.body)
+        self.assertIn("://testserver/password-reset/confirm/", sent.body)
+
+        self.assertEqual(len(sent.alternatives), 1)
+        html, content_type = sent.alternatives[0]
+        self.assertEqual(content_type, "text/html")
+        self.assertIn("منصة توثيق", html)
+        self.assertIn("تعيين كلمة مرور جديدة", html)
+        self.assertIn("#006c35", html)  # هوية المنصة اللونية
+        self.assertIn("/static/img/logo1.png", html)
+        self.assertIn("support@tawtheeq-ksa.com", html)
+        # The button and the copyable fallback both carry the same link.
+        reset_path = self._reset_path_from_email()
+        self.assertEqual(html.count(reset_path), 2)
+
+    @override_settings(PASSWORD_RESET_TIMEOUT=7200)
+    def test_stated_validity_follows_the_configured_timeout(self):
+        self._request_reset(self.user.email)
+
+        self.assertIn("ساعتين", mail.outbox[0].body)
+        self.assertIn("ساعتين", mail.outbox[0].alternatives[0][0])
 
     def test_unknown_email_has_same_public_result_without_sending(self):
         response = self._request_reset("unknown@example.com")

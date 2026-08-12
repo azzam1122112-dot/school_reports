@@ -152,14 +152,28 @@ class PwaInstallExperienceTests(TestCase):
             self.assertEqual(self._png_size(relative_path), declared)
 
     def test_installed_app_header_respects_the_status_bar_safe_area(self):
-        template = self._source("reports/templates/base.html")
+        # القاعدة كانت مكتوبة في ``<style>`` داخل ``base.html``؛ ونُقلت إلى
+        # ``app-shell.css`` مع بقية هيكل التطبيق. والفحص يتبع القاعدة إلى
+        # موضعها الجديد — فالمقصود سلوكُ الترويسة لا ملفُّها.
+        shell = self._source("static/css/app-shell.css")
 
         self.assertIn(
             "@media (display-mode: standalone), (display-mode: fullscreen)",
-            template,
+            shell,
         )
-        self.assertIn("height: calc(72px + var(--safe-top));", template)
-        self.assertIn("padding-top: var(--safe-top);", template)
+        self.assertIn("height: calc(72px + var(--safe-top));", shell)
+        self.assertIn("padding-top: var(--safe-top);", shell)
+
+    def test_base_template_carries_no_stylesheet_of_its_own(self):
+        """القالب يصف البنية، والأنماط في ملفاتها.
+
+        كان ``base.html`` يحمل 928 سطراً من CSS داخل ``<style>``: تُعاد على كل
+        طلب بلا كاش متصفح، ولا تصلها أي أداة تحليل، ويُجهل وجودُها أصلاً لأن
+        الملف قالبٌ لا صفحةَ أنماط.
+        """
+        template = self._source("reports/templates/base.html")
+
+        self.assertNotIn("<style", template)
 
     def test_service_worker_uses_private_safe_offline_strategy(self):
         worker = self._source("static/sw.js")

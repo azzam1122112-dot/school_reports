@@ -4,7 +4,7 @@
 {% block title %}طلب مدرسي جديد{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
     /*
        DESIGN SYSTEM 2026
        هوية المنصة: أخضر سعودي (#006c35) + ذهبي (#b9975b)
@@ -486,7 +486,7 @@
                     </div>
 
                     {% if form.non_field_errors %}
-                        <div class="field-error" style="margin-bottom:16px">
+                        <div class="field-error u-mb-6">
                             {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}
                         </div>
                     {% endif %}
@@ -523,21 +523,21 @@
                         {% for e in form.recipients.errors %}<div class="field-error">⚠️ {{ e }}</div>{% endfor %}
                     </div>
 
-                    <hr style="border:0; border-top:1px solid var(--c-border); margin: 24px 0;">
+                    <hr class="xs-request-create-1">
 
                     <div class="form-group">
                         <label class="form-label">المرفقات (اختياري)</label>
                         <input id="id_images" name="images" type="file" accept="image/*" multiple hidden>
                         <label for="id_images" class="upload-box">
                             <span class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
-                            <div style="font-weight:600; font-size:0.9rem">إرفاق صور</div>
-                            <div class="field-help" style="margin-top:4px">بحد أقصى 4 صور</div>
+                            <div class="u-fw-600 u-fs-md">إرفاق صور</div>
+                            <div class="field-help u-mt-1">بحد أقصى 4 صور</div>
                         </label>
                          {% if form.errors.images %}<div class="field-error">{{ form.errors.images.0 }}</div>{% endif %}
                         <div class="previews-grid" id="previews"></div>
                     </div>
 
-                    <div id="dynamic-msg" class="status-msg" aria-live="polite" style="margin: 16px 0; text-align: center; font-weight: 600;"></div>
+                    <div id="dynamic-msg" class="status-msg xs-request-create-2" aria-live="polite"></div>
 
                     <button type="submit" class="submit-btn" id="submitBtn">
                         <span>إرسال الطلب</span>
@@ -679,7 +679,7 @@
     title.style.gap = '8px';
     title.style.alignItems = 'center';
     
-    title.innerHTML = '<span class="txt">اختر المستلمين</span><span class="count" style="color:var(--c-brand);font-weight:700"></span>';
+    title.innerHTML = '<span class="txt">اختر المستلمين</span><span class="count xs-request-create-3"></span>';
 
     const caret = document.createElement('span');
     caret.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
@@ -762,7 +762,7 @@
 
     setRecipientsDisabled(true);
     // Show spinner in box
-    recipientsBox.innerHTML = '<div style="padding:10px;text-align:center;color:var(--c-text-light)">...جاري تحميل الموظفين</div>';
+    recipientsBox.innerHTML = '<div class="xs-request-create-4">...جاري تحميل الموظفين</div>';
 
     try{
       const baseUrl = "{% url 'reports:api_department_members' %}";

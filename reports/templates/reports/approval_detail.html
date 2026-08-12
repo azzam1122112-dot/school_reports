@@ -5,7 +5,7 @@
 
 {% block head %}
 {% include "reports/_approval_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .det-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); align-items: start; }
   @media (max-width: 980px) { .det-grid { grid-template-columns: 1fr; } }
 
@@ -92,8 +92,8 @@
     {# ═══ العمود الأول: التقرير ═════════════════════════════ #}
     <div>
       <section class="apr-card">
-        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
-          <h2 class="apr-card__title" style="margin:0">تفاصيل التقرير</h2>
+        <div class="u-flex u-items-center u-gap-sm u-wrap u-mb-09">
+          <h2 class="apr-card__title u-m-0">تفاصيل التقرير</h2>
           <span class="apr-state" data-tone="{{ report.approval_tone }}">
             {{ report.get_approval_state_display }}
           </span>
@@ -197,7 +197,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          <p class="apr-card__hint" style="margin:0">
+          <p class="apr-card__hint u-m-0">
             لم تبدأ دورة الاعتماد بعد. ستظهر الخطوات هنا فور إرسال التقرير للمراجعة.
           </p>
         {% endif %}
@@ -206,7 +206,7 @@
 
     {# ═══ العمود الثاني: الإجراءات ══════════════════════════ #}
     <div>
-      <section class="apr-card det-side" style="margin-top:0">
+      <section class="apr-card det-side u-mt-0">
         <h2 class="apr-card__title">
           {% if is_owner %}إجراءاتك على تقريرك{% else %}قرارك{% endif %}
         </h2>
@@ -311,7 +311,7 @@
             })();
           </script>
         {% else %}
-          <p class="apr-card__hint" style="margin:0">
+          <p class="apr-card__hint u-m-0">
             {% if report.is_final %}
               هذا التقرير معتمد. لا يُعدَّل ولا يُحذف بعد اعتماده.
             {% else %}

@@ -1506,7 +1506,7 @@ html[data-theme="dark"] .mr-page{
     <div class="mr-card">
       <div class="mr-hd">
         <h1 class="mr-title">
-          <i class="fa-solid fa-list-ul" style="opacity:.85"></i>
+          <i class="fa-solid fa-list-ul u-dim"></i>
           سجل تقاريري
         </h1>
 
@@ -1552,7 +1552,7 @@ html[data-theme="dark"] .mr-page{
             <tr>
               <th>التاريخ</th>
               <th>التقرير</th>
-              <th style="text-align:center">{{ SCHOOL_BENEFICIARIES_LABEL|default:"المستفيدون" }}</th>
+              <th class="u-text-center">{{ SCHOOL_BENEFICIARIES_LABEL|default:"المستفيدون" }}</th>
               <th>الوصف</th>
               <th>الصور</th>
               <th>الإجراءات</th>
@@ -1575,7 +1575,7 @@ html[data-theme="dark"] .mr-page{
                   </div>
                 </td>
 
-                <td style="text-align:center; font-weight:950">{{ report.beneficiaries_count|default:"0" }}</td>
+                <td class="u-text-center u-fw-950">{{ report.beneficiaries_count|default:"0" }}</td>
 
                 <td>
                   <div class="mr-idea" title="{{ report.idea|default:'' }}">{{ report.idea }}</div>
@@ -1672,7 +1672,7 @@ html[data-theme="dark"] .mr-page{
                   <i class="fa-solid fa-eye"></i>
                 </a>
 
-                <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form" data-confirm="حذف التقرير نهائيًا؟" data-confirm-type="danger" style="display:inline">
+                <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form u-inline" data-confirm="حذف التقرير نهائيًا؟" data-confirm-type="danger">
                   {% csrf_token %}
                   <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
                     <i class="fa-solid fa-trash"></i>
@@ -1682,11 +1682,11 @@ html[data-theme="dark"] .mr-page{
             </div>
           </div>
         {% empty %}
-          <div class="mr-empty" style="padding: 22px 10px;">
+          <div class="mr-empty xs-my-reports-1">
             <div class="ico"><i class="fa-solid fa-folder-open"></i></div>
             <h3>لا توجد تقارير</h3>
             <p>ابدأ الآن بإضافة أول تقرير.</p>
-            <div style="margin-top:12px">
+            <div class="u-mt-4">
               <a href="{% url 'reports:add_report' %}" class="btn btn-primary">
                 <i class="fa-solid fa-plus"></i> إضافة تقرير
               </a>
@@ -1715,7 +1715,7 @@ html[data-theme="dark"] .mr-page{
     <div class="mr-modal" id="mrImageModal" role="dialog" aria-modal="true" aria-label="عرض الصورة">
       <div class="mr-modal-inner">
         <div class="mr-modal-top">
-          <div style="color:#fff; font-weight:900; opacity:.9" id="mrModalCounter"></div>
+          <div id="mrModalCounter" class="xs-my-reports-2"></div>
           <button type="button" class="mr-modal-close" id="mrModalClose" aria-label="إغلاق">✕</button>
         </div>
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load i18n static %}
 
 {% block robots %}index,follow,max-snippet:-1{% endblock %}
 {% block head %}<link rel="stylesheet" href="{% static 'css/legal.css' %}?v=20260802.1">{% endblock %}
@@ -7,18 +7,19 @@
 {% block content %}
 <main class="legal-page">
   <header class="legal-hero">
-    <p class="legal-hero__eyebrow">سياسات منصة توثيق</p>
+    {% include "reports/partials/language_switcher.html" %}
+    <p class="legal-hero__eyebrow">{% translate "سياسات منصة توثيق" %}</p>
     <h1>{% block legal_title %}{% endblock %}</h1>
     <p>{% block legal_intro %}{% endblock %}</p>
-    <span class="legal-updated">آخر تحديث: 2 أغسطس 2026م</span>
+    <span class="legal-updated">{% blocktranslate %}آخر تحديث: 2 أغسطس 2026م{% endblocktranslate %}</span>
   </header>
 
-  <nav class="legal-nav" aria-label="سياسات المتجر الإلكتروني">
-    <a href="{% url 'reports:terms_conditions' %}" {% block terms_current %}{% endblock %}>الشروط والأحكام</a>
-    <a href="{% url 'reports:privacy_policy' %}" {% block privacy_current %}{% endblock %}>الخصوصية</a>
-    <a href="{% url 'reports:refund_policy' %}" {% block refund_current %}{% endblock %}>الإلغاء والاسترجاع</a>
-    <a href="{% url 'reports:service_delivery_policy' %}" {% block delivery_current %}{% endblock %}>تقديم الخدمة</a>
-    <a href="{% url 'reports:complaints_policy' %}" {% block complaints_current %}{% endblock %}>الشكاوى والمقترحات</a>
+  <nav class="legal-nav" aria-label="{% translate 'سياسات المنصة' %}">
+    <a href="{% url 'reports:terms_conditions' %}" {% block terms_current %}{% endblock %}>{% translate "الشروط والأحكام" %}</a>
+    <a href="{% url 'reports:privacy_policy' %}" {% block privacy_current %}{% endblock %}>{% translate "الخصوصية" %}</a>
+    <a href="{% url 'reports:refund_policy' %}" {% block refund_current %}{% endblock %}>{% translate "الإلغاء والاسترجاع" %}</a>
+    <a href="{% url 'reports:service_delivery_policy' %}" {% block delivery_current %}{% endblock %}>{% translate "تقديم الخدمة" %}</a>
+    <a href="{% url 'reports:complaints_policy' %}" {% block complaints_current %}{% endblock %}>{% translate "الشكاوى والمقترحات" %}</a>
   </nav>
 
   {% include "reports/partials/business_disclosure.html" with disclosure_variant="legal" %}

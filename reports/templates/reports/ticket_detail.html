@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
 /* =========================================================
    Neo-Professional 2026 Ticket Detail System
    - Luxuriously clean, distinct, and unambiguous.
@@ -415,7 +415,7 @@
                           <img src="{{ t.attachment.url }}" alt="مرفق الطلب">
                         </a>
                       {% else %}
-                        <a href="{{ t.attachment.url }}" target="_blank" rel="noopener" class="gallery-item" aria-label="فتح مرفق الطلب في نافذة جديدة" style="display:flex;align-items:center;justify-content:center;background:var(--c-surface-alt);color:var(--c-text-muted);text-decoration:none;">
+                        <a href="{{ t.attachment.url }}" target="_blank" rel="noopener" class="gallery-item xs-ticket-detail-1" aria-label="فتح مرفق الطلب في نافذة جديدة">
                           <i class="fa-solid fa-paperclip fa-2x"></i>
                         </a>
                       {% endif %}
@@ -450,7 +450,7 @@
                     <span class="note-author">
                       <i class="fa-solid fa-user-circle"></i> {{ n.author.name|default:"مسؤول النظام" }}
                       {% if n.author.display_role_label %}
-                        <span style="opacity:0.7;font-weight:400">({{ n.author.display_role_label }})</span>
+                        <span class="xs-ticket-detail-2">({{ n.author.display_role_label }})</span>
                       {% endif %}
                     </span>
                     <span>{{ n.created_at|hijri }} هـ · {{ n.created_at|date:"Y-m-d H:i" }} م</span>
@@ -458,8 +458,8 @@
                   <div class="note-content">{{ n.body|ticket_note_ar|default:""|linebreaksbr }}</div>
                   
                   {% if n.author_id == request.user.id and t.status != 'done' and t.status != 'rejected' %}
-                    <div style="margin-top:8px;border-top:1px dashed rgba(0,0,0,0.1);padding-top:4px;text-align:left;">
-                        <a href="{% url 'reports:ticket_note_edit' n.id %}?next={{ request.get_full_path|urlencode }}" style="font-size:0.8rem;color:var(--c-brand);text-decoration:none;">
+                    <div class="xs-ticket-detail-3">
+                        <a href="{% url 'reports:ticket_note_edit' n.id %}?next={{ request.get_full_path|urlencode }}" class="xs-ticket-detail-4">
                             <i class="fa-solid fa-pen"></i> تعديل
                         </a>
                     </div>
@@ -468,8 +468,8 @@
               {% endfor %}
             </div>
           {% else %}
-            <div style="text-align:center;padding:20px;color:var(--c-text-muted);">
-              <i class="fa-regular fa-comment-dots fa-2x" style="margin-bottom:8px;opacity:0.5"></i>
+            <div class="xs-ticket-detail-5">
+              <i class="fa-regular fa-comment-dots fa-2x xs-ticket-detail-6"></i>
               <p>لا توجد ملاحظات أو ردود حتى الآن.</p>
             </div>
           {% endif %}
@@ -478,9 +478,9 @@
 
       <!-- Action Forms -->
       {% if can_act and form %}
-        <section class="lux-card" style="border-color:var(--c-brand);">
-          <div class="lux-card-header" style="background:var(--c-brand-light);">
-            <h3 class="lux-card-title" style="color:var(--c-brand);">
+        <section class="lux-card xs-ticket-detail-7">
+          <div class="lux-card-header xs-ticket-detail-8">
+            <h3 class="lux-card-title xs-ticket-detail-9">
               {% if t.status == 'done' or t.status == 'rejected' %}
                 <i class="fa-solid fa-lock"></i> الطلب مغلق
               {% else %}
@@ -490,7 +490,7 @@
           </div>
           <div class="lux-card-body">
             {% if t.status == 'done' or t.status == 'rejected' %}
-              <p style="margin:0 0 16px;color:var(--c-text-muted);line-height:1.8;">
+              <p class="xs-ticket-detail-10">
                 لا يمكن تعديل الحالة أو إضافة ردود إلى طلب مغلق. إذا عاد الطلب للعمل، أعد فتحه أولاً ثم سجّل التحديث المطلوب.
               </p>
               <form method="post">
@@ -503,8 +503,8 @@
             {% else %}
               <form method="post" novalidate>
                 {% csrf_token %}
-                <div style="margin-bottom:16px;">
-                  <label class="dl-label" for="ticketStatus" style="display:block;margin-bottom:8px;">تحديث الحالة:</label>
+                <div class="u-mb-6">
+                  <label class="dl-label u-block u-mb-2" for="ticketStatus">تحديث الحالة:</label>
                   <select id="ticketStatus" name="status" class="lux-select">
                       {% for value,label in form.fields.status.choices %}
                       <option value="{{ value }}" {% if value == t.status %}selected{% endif %}>{{ label }}</option>
@@ -512,8 +512,8 @@
                   </select>
                 </div>
 
-                <div style="margin-bottom:16px;">
-                    <label class="dl-label" for="ticketActionNote" style="display:block;margin-bottom:8px;">إضافة رد أو ملاحظة:</label>
+                <div class="u-mb-6">
+                    <label class="dl-label u-block u-mb-2" for="ticketActionNote">إضافة رد أو ملاحظة:</label>
                     <textarea id="ticketActionNote" name="note" class="lux-textarea" rows="4" placeholder="اكتب ردّك هنا..."></textarea>
                 </div>
 
@@ -533,8 +533,8 @@
             <div class="lux-card-body">
               <form method="post" novalidate>
                 {% csrf_token %}
-                <div style="margin-bottom:16px;">
-                  <label class="dl-label" for="ticketOwnerNote" style="display:block;margin-bottom:8px;">معلومات إضافية</label>
+                <div class="u-mb-6">
+                  <label class="dl-label u-block u-mb-2" for="ticketOwnerNote">معلومات إضافية</label>
                   <textarea id="ticketOwnerNote" name="note" class="lux-textarea" rows="4" placeholder="هل تود إضافة معلومات أخرى؟"></textarea>
                 </div>
                 <button type="submit" class="action-btn primary">
@@ -554,26 +554,26 @@
         <div class="lux-card-header">
           <h3 class="lux-card-title"><i class="fa-solid fa-circle-info"></i> معلومات</h3>
         </div>
-        <div class="lux-card-body" style="padding:0;">
-          <div style="padding:16px; border-bottom:1px solid var(--c-border);">
-            <div class="dl-label" style="margin-bottom:4px">الجهة/المدرسة</div>
-            <div style="font-weight:600;">
+        <div class="lux-card-body xs-ticket-detail-11">
+          <div class="xs-ticket-detail-12">
+            <div class="dl-label u-mb-1">الجهة/المدرسة</div>
+            <div class="u-fw-600">
               {% if t.is_platform %}
-                <span style="color:var(--c-platform);">إدارة المنصة</span>
+                <span class="xs-ticket-detail-13">إدارة المنصة</span>
               {% else %}
                 {{ t.school.name|default:"—" }}
               {% endif %}
             </div>
-            {% if t.school.city %}<div style="font-size:0.85rem;color:var(--c-text-muted);">{{ t.school.city }}</div>{% endif %}
+            {% if t.school.city %}<div class="u-fs-sm u-text-c-muted">{{ t.school.city }}</div>{% endif %}
           </div>
           
           {% if not t.is_platform %}
-          <div style="padding:16px; border-bottom:1px solid var(--c-border);">
-             <div class="dl-label" style="margin-bottom:4px">المستلمون</div>
-             <div style="font-size:0.9rem;">
+          <div class="xs-ticket-detail-12">
+             <div class="dl-label u-mb-1">المستلمون</div>
+             <div class="u-fs-md">
                 {% if t.recipients.exists %}
                     {% for u in t.recipients.all %}
-                    <div style="margin-bottom:2px;"><i class="fa-solid fa-check-double" style="color:var(--s-don);font-size:0.7em;"></i> {{ u.name }}</div>
+                    <div class="xs-ticket-detail-14"><i class="fa-solid fa-check-double xs-ticket-detail-15"></i> {{ u.name }}</div>
                     {% endfor %}
                 {% else %}
                     {% firstof t.assignee.name t.assignee "—" %}
@@ -582,17 +582,17 @@
           </div>
           {% endif %}
           
-          <div style="padding:16px;">
-            <div class="dl-label" style="margin-bottom:4px">رابط مباشر</div>
+          <div class="u-p-5">
+            <div class="dl-label u-mb-1">رابط مباشر</div>
             <label class="sr-only" for="ticketDirectLink">الرابط المباشر للطلب</label>
-            <input type="text" id="ticketDirectLink" readonly value="{{ request.build_absolute_uri }}" class="lux-input" style="font-size:0.8rem; color:var(--c-text-muted);">
+            <input type="text" id="ticketDirectLink" readonly value="{{ request.build_absolute_uri }}" class="lux-input u-fs-xs u-text-c-muted">
           </div>
         </div>
       </section>
 
       <!-- Quick Actions -->
       <section>
-        <div style="margin-bottom:8px;font-weight:700;color:var(--c-text-muted);font-size:0.85rem;padding-right:4px;">إجراءات سريعة</div>
+        <div class="xs-ticket-detail-16">إجراءات سريعة</div>
         
         <a href="{% url 'reports:ticket_print' t.id %}" target="_blank" class="action-btn">
           <i class="fa-solid fa-print"></i> طباعة الطلب

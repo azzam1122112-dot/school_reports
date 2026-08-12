@@ -31,10 +31,9 @@ docker compose --env-file deploy/hetzner/env.production -f compose.hetzner.yaml 
 
 ## الدفع
 
-بوابة الإطلاق هي **ميسر** وحدها. وتمارا مؤجَّلة حتى تصدر موافقتها، ومخفيّة
-بالكامل حتى ذلك الحين — اسماً وشعاراً — في صفحة الهبوط وصفحة الاشتراك وسجلّ
-المدفوعات وسياسة الخصوصية. يكفي `TAMARA_ENABLED=False` لإخفائها في هذه المواضع
-جميعاً، ويحرس ذلك `reports/tests/test_payment_brand_marks.py`.
+بوابة الدفع الإلكتروني هي **ميسر** وحدها، وإلى جانبها التحويل البنكي. ولا يجوز
+أن يظهر في الواجهة اسمُ أو شعارُ وسيلة دفع لا تقبلها المنصة فعلاً — يحرس ذلك
+`reports/tests/test_payment_brand_marks.py`.
 
 ### ميسر (البوابة المفعَّلة)
 
@@ -52,16 +51,5 @@ docker compose --env-file deploy/hetzner/env.production -f compose.hetzner.yaml 
 - التحقق من أن مهمة `reconcile_pending_gateway_payments_task` تعمل (كل ٢٠ دقيقة)
   وأنها تُنهي الطلبات المعلّقة التي حُصِّلت فعلاً.
 
-### تمارا (مؤجَّلة — لا تُفعَّل ولا يُذكر اسمها)
-
-- اجتياز طلب كامل في Sandbox: إنشاء الطلب، `order_approved`، الاعتماد، التحصيل، ثم `order_captured`.
-- تسجيل Webhook من نوع Order على `https://tawtheeq-ksa.com/payments/tamara/webhook/` لأحداث `order_approved` و`order_authorised` و`order_captured` و`order_refunded` و`order_canceled` و`order_declined` و`order_expired`.
-- وضع `TAMARA_API_TOKEN` و`TAMARA_NOTIFICATION_TOKEN` في ملف بيئة الخادم فقط، ثم ضبط `TAMARA_ENVIRONMENT=production` و`TAMARA_ENABLED=True` بعد اعتماد الإطلاق من تمارا.
-- تنفيذ عملية إنتاج منخفضة القيمة مصرح بها، ثم التحقق من أن الدفع أصبح `approved` وحالة البوابة `fully_captured` وأن `effects_applied_at` غير فارغ والباقة والتواريخ مفعلة للمدرسة.
-- إعادة إرسال Webhook نفسه والتأكد من عدم تمديد الاشتراك أو تطبيق أي أثر مرتين، ثم اختبار الاسترجاع والتسوية.
-
-لا يكفي وصول العميل إلى صفحة النجاح؛ التفعيل يعتمد حصريًا على Webhook موثّق وتحصيل كامل من تمارا.
-
-### ميسر
-
-ربط ميسر مؤجل إلى يوم الربط المتفق عليه. لا يُفعّل استقبال دفعات حقيقية قبل اختبار الإنشاء، الرجوع، webhook، التوقيع، منع التكرار، الاسترداد، وتسوية المبلغ في بيئة مزود الدفع.
+لا يكفي وصول العميل إلى صفحة النجاح؛ التفعيل يعتمد حصريًا على التحقق من الفاتورة
+لدى البوابة وتحصيلها كاملاً.

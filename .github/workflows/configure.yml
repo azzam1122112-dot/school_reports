@@ -14,11 +14,6 @@ name: Configure production runtime
 on:
   workflow_dispatch:
     inputs:
-      tamara_enabled:
-        description: "TAMARA_ENABLED — keep False until Tamara approves the account"
-        type: choice
-        options: ["False", "True"]
-        default: "False"
       moyasar_enabled:
         description: "MOYASAR_ENABLED — the active launch gateway"
         type: choice
@@ -95,8 +90,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          FLAGS="--tamara-enabled '${{ inputs.tamara_enabled }}'"
-          FLAGS="$FLAGS --moyasar-enabled '${{ inputs.moyasar_enabled }}'"
+          FLAGS="--moyasar-enabled '${{ inputs.moyasar_enabled }}'"
           FLAGS="$FLAGS --moyasar-environment '${{ inputs.moyasar_environment }}'"
           FLAGS="$FLAGS --pdf-offload-enabled '${{ inputs.pdf_offload_enabled }}'"
 

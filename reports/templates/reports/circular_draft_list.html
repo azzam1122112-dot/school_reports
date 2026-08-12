@@ -4,7 +4,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .cd-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; }
   @media (max-width: 900px) { .cd-grid { grid-template-columns: 1fr; } }
   .cd-check { display: flex; gap: .55rem; align-items: flex-start; font-size: .86rem; font-weight: 700; }
@@ -57,7 +57,7 @@
         {% endif %}
 
         {% for draft in drafts %}
-          <article class="asg-item" style="align-items:flex-start">
+          <article class="asg-item u-items-start">
             <div class="asg-item__main">
               <div class="asg-item__title">
                 <a href="{% url 'reports:circular_draft_detail' draft.pk %}">{{ draft.title }}</a>
@@ -71,7 +71,7 @@
                 <div class="cd-excerpt">{{ draft.body|truncatechars:180 }}</div>
               {% endif %}
             </div>
-            <div class="asg-item__side" style="align-self:flex-start">
+            <div class="asg-item__side u-self-start">
               {% if draft.is_published %}
                 <span class="asg-tag asg-tag--done">
                   <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>

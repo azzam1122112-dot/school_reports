@@ -676,57 +676,6 @@
     white-space: nowrap;
   }
 
-  /* ── مفتاح الملخص الأسبوعي ──────────────────────────────────────── */
-  .manager-toggle {
-    display: grid;
-    gap: 12px;
-    padding: 15px;
-    border: 1px solid var(--id-line-soft);
-    border-radius: var(--id-r3);
-    background: var(--mg-soft);
-  }
-  .manager-toggle__copy { display: grid; gap: 4px; }
-  .manager-toggle__copy strong { font-size: .89rem; font-weight: 950; }
-  .manager-toggle__copy small { color: var(--mg-muted); font-size: .78rem; font-weight: 700; }
-  .manager-toggle__state {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    justify-self: start;
-    margin-top: 4px;
-    padding: 3px 11px;
-    border-radius: var(--id-pill);
-    font-size: .74rem;
-    font-weight: 900;
-  }
-  .manager-toggle__state.is-on { background: var(--id-tone-approved-wash); color: var(--id-tone-approved); }
-  .manager-toggle__state.is-off { background: var(--id-tone-draft-wash); color: var(--id-tone-draft); }
-  .manager-toggle__buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    padding: 4px;
-    border-radius: var(--id-pill);
-    background: var(--id-line-soft);
-  }
-  .manager-toggle__button {
-    padding: 9px 12px;
-    border: 0;
-    border-radius: var(--id-pill);
-    background: transparent;
-    color: var(--mg-muted);
-    font-family: inherit;
-    font-size: .83rem;
-    font-weight: 900;
-    cursor: pointer;
-    transition: background var(--id-fast) var(--id-ease), color var(--id-fast) var(--id-ease), box-shadow var(--id-fast) var(--id-ease);
-  }
-  .manager-toggle__button.is-selected {
-    background: var(--mg-card);
-    color: var(--mg-green);
-    box-shadow: var(--id-e1);
-  }
-
   /* ── أداء المدرسة ───────────────────────────────────────────────── */
   .manager-analytics {
     padding: clamp(18px, 2.2vw, 26px);
@@ -1050,9 +999,6 @@
   .manager-workspace { padding: 22px; }
   .manager-workspace__head { padding-bottom: 15px; border-bottom: 1px solid var(--mg-line); }
   .manager-workspace__head > i { width: 46px; height: 46px; }
-  .manager-toggle__button.is-selected { display: none; }
-  .manager-toggle__buttons { grid-template-columns: 1fr; }
-  .manager-toggle__button:not(.is-selected)::before { content: "تغيير إلى "; font-size: .68rem; opacity: .72; }
 
   .manager-resource-drawer { margin-bottom: 26px; border: 1px solid var(--mg-line); border-radius: var(--id-r4); background: var(--mg-card); box-shadow: var(--id-e2); overflow: clip; }
   .manager-resource-drawer > summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 14px; align-items: center; min-height: 84px; padding: 16px 20px; cursor: pointer; list-style: none; }
@@ -1145,8 +1091,7 @@
     .manager-hero__actions,
     .manager-jumpbar,
     .manager-periods,
-    .manager-refresh,
-    .manager-toggle__buttons { display: none; }
+    .manager-refresh { display: none; }
     .manager-kpi,
     .manager-focus,
     .manager-workspace,
@@ -1369,7 +1314,7 @@
           <span>{{ setup_completed }} من {{ setup_total }}</span>
         </div>
         <div class="manager-setup__track" aria-label="نسبة اكتمال الإعداد">
-          <span style="width:{{ setup_percent }}%"></span>
+          <span data-progress="{{ setup_percent }}"></span>
         </div>
       </div>
       <div class="manager-setup__steps">
@@ -1496,26 +1441,6 @@
             <i class="fa-solid fa-gear" aria-hidden="true"></i>
             <div><h3>الاشتراك والدعم</h3><p>إدارة خدمة المدرسة والتواصل مع فريق المنصة.</p></div>
           </header>
-          <form class="manager-toggle" method="post" action="{% url 'reports:admin_dashboard' %}">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="toggle_weekly_summary_email">
-            <div class="manager-toggle__copy">
-              <strong>الملخص الأسبوعي على بريدك</strong>
-              <small>يصلك كل خميس بعد الساعة 4:00 مساءً.</small>
-              <span class="manager-toggle__state {% if weekly_summary_email_enabled %}is-on{% else %}is-off{% endif %}">
-                <i class="fa-solid {% if weekly_summary_email_enabled %}fa-circle-check{% else %}fa-circle-pause{% endif %}" aria-hidden="true"></i>
-                {% if weekly_summary_email_enabled %}مفعّل حاليًا{% else %}موقّف حاليًا{% endif %}
-              </span>
-            </div>
-            <div class="manager-toggle__buttons" role="group" aria-label="تفضيل الملخص الأسبوعي">
-              <button type="submit" name="weekly_summary_email_enabled" value="1"
-                      class="manager-toggle__button {% if weekly_summary_email_enabled %}is-selected{% endif %}"
-                      aria-pressed="{% if weekly_summary_email_enabled %}true{% else %}false{% endif %}">تفعيل</button>
-              <button type="submit" name="weekly_summary_email_enabled" value="0"
-                      class="manager-toggle__button {% if not weekly_summary_email_enabled %}is-selected{% endif %}"
-                      aria-pressed="{% if not weekly_summary_email_enabled %}true{% else %}false{% endif %}">إيقاف</button>
-            </div>
-          </form>
           <div class="manager-workspace__links">
             <a class="manager-workspace__link" href="{% url 'reports:school_audit_logs' %}"><span>سجل عمليات المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:my_subscription' %}"><span>اشتراك المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
@@ -1551,7 +1476,7 @@
     <section class="manager-section manager-analytics" id="managerPerformance" aria-labelledby="analyticsTitle">
       <div class="manager-analytics__toolbar">
         <div>
-          <div class="manager-section__head" style="margin:0">
+          <div class="manager-section__head u-m-0">
             <div>
               <h2 id="analyticsTitle">أداء المدرسة</h2>
               <p>غيّر الفترة لمقارنة النشاط، دون مغادرة الصفحة.</p>
@@ -1559,7 +1484,7 @@
           </div>
           <span class="manager-live-status" id="schoolDashboardStatus" aria-live="polite">آخر تحديث: الآن</span>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
+        <div class="u-flex u-wrap u-gap-06 u-items-center">
           <div class="manager-periods" role="group" aria-label="الفترة الزمنية">
             <button class="manager-period {% if initial_period == 'all' %}is-active{% endif %}" type="button" data-school-period="all" aria-pressed="{% if initial_period == 'all' %}true{% else %}false{% endif %}">الكل</button>
             <button class="manager-period {% if initial_period == 'year' %}is-active{% endif %}" type="button" data-school-period="year" aria-pressed="{% if initial_period == 'year' %}true{% else %}false{% endif %}">هذا العام</button>
@@ -1584,16 +1509,29 @@
           <article class="manager-insight">
             <h3>إنجاز طلبات المدرسة</h3>
             <strong class="manager-insight__number" id="ticketCompletionRate">{{ ticket_completion_rate }}%</strong>
-            <div class="manager-progress" aria-hidden="true"><span id="ticketCompletionProgress" style="width:{{ ticket_completion_rate }}%"></span></div>
+            <div class="manager-progress" aria-hidden="true"><span id="ticketCompletionProgress" data-progress="{{ ticket_completion_rate }}"></span></div>
             <p><span id="schoolTicketsDone">{{ tickets_done|intcomma }}</span> طلبات مكتملة من أصل <span id="schoolTicketsTotal">{{ tickets_total|intcomma }}</span>.</p>
           </article>
           <article class="manager-insight">
             <h3>توزيع التقارير حسب النوع</h3>
-            <div class="manager-chart__canvas" id="categoriesChartBox" style="height:210px">
+            <div class="manager-chart__canvas xs-admin-dashboard-1" id="categoriesChartBox">
               <canvas id="categoriesChart" role="img" aria-label="رسم يوضح توزيع تقارير المدرسة حسب النوع"></canvas>
             </div>
           </article>
-          {% if recent_activities %}
+          {% comment %}
+            القسم يُعرض في ثلاث حالات لا حالتين. «فارغ» و«متعثّر» كانا يظهران
+            شيئاً واحداً — أي لا شيء — فيقرأ المدير العطلَ سكوناً. والحالة
+            الثالثة تقول صراحةً إن البيانات لم تصل، وتُبقي زر إعادة المحاولة.
+          {% endcomment %}
+          {% if recent_activities_failed %}
+            <article class="manager-insight">
+              <h3>آخر النشاطات</h3>
+              <p class="section-degraded" role="status">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                تعذّر تحميل آخر النشاطات. سُجّلت المشكلة تلقائياً — أعد تحميل الصفحة بعد قليل.
+              </p>
+            </article>
+          {% elif recent_activities %}
             <article class="manager-insight">
               <h3>آخر النشاطات</h3>
               <div class="manager-activity-list">

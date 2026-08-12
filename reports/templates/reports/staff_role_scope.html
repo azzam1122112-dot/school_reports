@@ -3,7 +3,7 @@
 {% block title %}نطاق {{ membership.teacher.name }} | منصة توثيق{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .scp-page {
     --scp-ink: #10231a; --scp-muted: #607067; --scp-line: #dfe8e2;
     --scp-soft: #f3f8f5; --scp-surface: #ffffff;
@@ -177,7 +177,7 @@
         {% for choice in form.departments %}
           <label>{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
         {% empty %}
-          <p class="scp-card__hint" style="margin:0">
+          <p class="scp-card__hint u-m-0">
             لا توجد أقسام في هذه المدرسة بعد.
             <a href="{% url 'reports:departments_list' %}">أنشئ قسماً أولاً</a>.
           </p>

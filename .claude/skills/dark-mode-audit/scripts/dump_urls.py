@@ -24,7 +24,7 @@ from django.urls import get_resolver, reverse, NoReverseMatch  # noqa: E402
 
 SKIP_NAME = ('logout', 'export', 'download', 'delete', 'pdf', 'print', 'api',
              'webhook', 'dismiss', 'toggle', 'execute', 'search', 'stream',
-             'signatures', 'moyasar', 'tamara', 'callback', 'manifest')
+             'signatures', 'moyasar', 'callback', 'manifest')
 SKIP_PATH = ('/api/',)
 
 

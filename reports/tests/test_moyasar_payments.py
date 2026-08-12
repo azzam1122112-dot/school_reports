@@ -66,7 +66,7 @@ class MoyasarPaymentTests(TestCase):
         MOYASAR_ENVIRONMENT="test",
         MOYASAR_SECRET_KEY="sk_test_example",
     )
-    def test_moyasar_option_is_marked_as_test_without_hiding_tamara(self):
+    def test_moyasar_option_is_marked_as_a_test_environment(self):
         response = self.client.get(reverse("reports:my_subscription"))
 
         self.assertContains(response, 'id="moyasarSubmit"')
@@ -76,7 +76,6 @@ class MoyasarPaymentTests(TestCase):
         self.assertContains(response, "Samsung Pay")
         self.assertNotContains(response, "الدفع عبر ميّسر")
         self.assertContains(response, "بيئة اختبار")
-        self.assertNotContains(response, 'id="tamaraSubmit"')
 
     @override_settings(
         MOYASAR_ENABLED=True,
@@ -124,7 +123,7 @@ class MoyasarPaymentTests(TestCase):
         MOYASAR_ENVIRONMENT="test",
         MOYASAR_SECRET_KEY="sk_test_example",
     )
-    @patch("reports.views.subscriptions.create_moyasar_invoice")
+    @patch("reports.views.billing_gateways.create_moyasar_invoice")
     def test_checkout_uses_server_price_and_creates_pending_invoice_payment(
         self, create_invoice_mock
     ):
@@ -161,7 +160,7 @@ class MoyasarPaymentTests(TestCase):
         MOYASAR_ENVIRONMENT="test",
         MOYASAR_SECRET_KEY="sk_test_example",
     )
-    @patch("reports.views.subscriptions.create_moyasar_invoice")
+    @patch("reports.views.billing_gateways.create_moyasar_invoice")
     def test_unsafe_checkout_url_creates_no_local_payment(self, create_invoice_mock):
         create_invoice_mock.return_value = {
             "id": "11111111-1111-1111-1111-111111111111",
@@ -186,7 +185,7 @@ class MoyasarPaymentTests(TestCase):
         MOYASAR_ENVIRONMENT="test",
         MOYASAR_SECRET_KEY="sk_test_example",
     )
-    @patch("reports.views.subscriptions.fetch_moyasar_invoice")
+    @patch("reports.views.billing_gateways.fetch_moyasar_invoice")
     def test_paid_callback_fulfils_invoice_once(self, fetch_invoice_mock):
         invoice_id = "22222222-2222-2222-2222-222222222222"
         batch_ref = "moyasar-paid"
@@ -233,7 +232,7 @@ class MoyasarPaymentTests(TestCase):
         MOYASAR_ENVIRONMENT="test",
         MOYASAR_SECRET_KEY="sk_test_example",
     )
-    @patch("reports.views.subscriptions.fetch_moyasar_invoice")
+    @patch("reports.views.billing_gateways.fetch_moyasar_invoice")
     def test_callback_rejects_amount_mismatch(self, fetch_invoice_mock):
         invoice_id = "33333333-3333-3333-3333-333333333333"
         batch_ref = "moyasar-mismatch"

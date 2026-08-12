@@ -58,7 +58,7 @@ worker-media: ... -Q images,periodic      (concurrency tuned)
 
 **التغيير**: تم تقسيم `send_daily_manager_summary_task` إلى:
 1. **Dispatcher** (`send_daily_manager_summary_task`): يجلب قائمة المدارس النشطة ويرسل subtask لكل مدرسة
-2. **Per-school worker** (`_daily_summary_for_school`): يعالج مدرسة واحدة (إشعارات + بريد + واتساب)
+2. **Per-school worker** (`_daily_summary_for_school`): يعالج مدرسة واحدة (إشعار داخلي فقط — أُلغيت قناتا البريد والواتساب)
 
 ### الفوائد:
 - كل مدرسة تُعالج بشكل مستقل بحدود وقت خاصة (60s soft / 120s hard)

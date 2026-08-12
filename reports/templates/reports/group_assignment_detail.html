@@ -4,7 +4,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .gd-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
   @media (max-width: 900px) { .gd-grid { grid-template-columns: 1fr; } }
 
@@ -68,9 +68,9 @@
 
   <div class="gd-grid">
     <div>
-      <section class="asg-card" style="margin-top:1.2rem">
-        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
-          <h2 class="asg-card__title" style="margin:0">ردّ المدرسة</h2>
+      <section class="asg-card u-mt-2xl">
+        <div class="u-flex u-items-center u-gap-sm u-wrap u-mb-09">
+          <h2 class="asg-card__title u-m-0">ردّ المدرسة</h2>
           <span class="asg-tag">{{ target.get_approval_state_display }}</span>
           {% if target.is_overdue %}<span class="asg-tag asg-tag--late">متأخر</span>{% endif %}
           {% if assignment.is_cancelled %}<span class="asg-tag asg-tag--late">ملغى</span>{% endif %}
@@ -132,7 +132,7 @@
             </div>
           {% endfor %}
         {% else %}
-          <p class="asg-card__hint" style="margin:0">لم ترفع المدرسة شواهد بعد.</p>
+          <p class="asg-card__hint u-m-0">لم ترفع المدرسة شواهد بعد.</p>
         {% endif %}
       </section>
 
@@ -159,13 +159,13 @@
             {% endfor %}
           </ul>
         {% else %}
-          <p class="asg-card__hint" style="margin:0">لم ترفع المدرسة ردّها بعد.</p>
+          <p class="asg-card__hint u-m-0">لم ترفع المدرسة ردّها بعد.</p>
         {% endif %}
       </section>
     </div>
 
     <div>
-      <section class="asg-card" style="margin-top:1.2rem">
+      <section class="asg-card u-mt-2xl">
         <h2 class="asg-card__title">قرارك</h2>
         <p class="asg-card__hint">
           تعتمد هذا الردّ بصفتك مَن أصدر التكليف — لا بصلاحية داخل المدرسة.
@@ -181,7 +181,7 @@
               <textarea name="note" class="gd-note" placeholder="ملاحظتك على ردّ المدرسة…"></textarea>
             </div>
 
-            <div class="gd-actions" style="margin-top:0">
+            <div class="gd-actions u-mt-0">
               {% if 'start_review' in actions %}
                 <button type="submit" class="asg-btn asg-btn--ghost" data-grp="start_review">بدء المراجعة</button>
               {% endif %}
@@ -212,7 +212,7 @@
             })();
           </script>
         {% else %}
-          <p class="asg-card__hint" style="margin:0">
+          <p class="asg-card__hint u-m-0">
             {% if target.is_final %}
               اعتُمد ردّ هذه المدرسة. لا يُعدَّل بعد اعتماده.
             {% else %}

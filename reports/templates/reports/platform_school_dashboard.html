@@ -5,7 +5,7 @@
 
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/consumption-panel.css' %}?v=20260805.1">
-<style>
+<style nonce="{{ CSP_NONCE }}">
     /* Clean platform view */
     .platform-container {
         padding: 2rem;

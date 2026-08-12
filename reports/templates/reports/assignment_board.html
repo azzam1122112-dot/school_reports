@@ -20,9 +20,8 @@
         ما أصدرتَه من تكليفات ضمن نطاق إشرافك.
       {% endif %}
     </p>
-    <div style="margin-top:1.1rem">
-      <a class="asg-btn asg-btn--primary" href="{% url 'reports:assignment_create' %}"
-         style="background:#fff;color:#08643b">
+    <div class="u-mt-xl">
+      <a class="asg-btn asg-btn--primary xs-assignment-board-1" href="{% url 'reports:assignment_create' %}">
         <i class="fa-solid fa-plus" aria-hidden="true"></i>
         تكليف جديد
       </a>
@@ -47,7 +46,7 @@
   {# ═══ المتأخرات ═══════════════════════════════════════════ #}
   {% if overdue %}
     <section class="asg-card">
-      <h2 class="asg-card__title" style="color:var(--asg-danger)">
+      <h2 class="asg-card__title u-text-asg-danger">
         <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
         الأعمال المتأخرة
       </h2>
@@ -93,19 +92,19 @@
             <div class="asg-item__title">
               <a href="{% url 'reports:assignment_view' row.assignment.pk %}">{{ row.assignment.title }}</a>
               {% if row.assignment.is_cancelled %}
-                <span class="asg-tag" style="margin-inline-start:.4rem">ملغى</span>
+                <span class="asg-tag xs-assignment-board-2">ملغى</span>
               {% endif %}
             </div>
             <div class="asg-item__sub">
               {{ row.total }} مكلَّف · يستحق {{ row.assignment.due_at|date:"Y-m-d" }}
               {% if row.assignment.department %} · {{ row.assignment.department.name }}{% endif %}
-              {% if row.overdue %} · <strong style="color:var(--asg-danger)">{{ row.overdue }} متأخر</strong>{% endif %}
+              {% if row.overdue %} · <strong class="u-text-asg-danger">{{ row.overdue }} متأخر</strong>{% endif %}
             </div>
           </div>
 
           <div class="asg-bar">
             <div class="asg-bar__track">
-              <div class="asg-bar__fill" style="width:{{ row.percent }}%"></div>
+              <div class="asg-bar__fill" data-progress="{{ row.percent }}"></div>
             </div>
             <div class="asg-bar__label">{{ row.done }} / {{ row.total }}</div>
           </div>
@@ -145,7 +144,7 @@
           التكليف يحمل المطلوب وموعده والشواهد اللازمة، ويتيح متابعة نسبة الإنجاز
           واعتماد التنفيذ لكل مكلَّف على حدة.
         </p>
-        <div style="margin-top:1rem">
+        <div class="u-mt-lg">
           <a class="asg-btn asg-btn--primary" href="{% url 'reports:assignment_create' %}">
             <i class="fa-solid fa-plus" aria-hidden="true"></i>
             أصدر أول تكليف

@@ -73,7 +73,7 @@ Django check --deploy                     : 1 warning فقط (مفتاح الف�
 | Workers | `worker-core` (default+notifications)، `worker-media` (images+periodic)، `beat` |
 | Auth Model | `AUTH_USER_MODEL = reports.Teacher` (مخصص) + WebAuthn/Passkeys |
 | Tenant Model | `School` ← `SchoolMembership` ← `StaffScope`/`Delegation`؛ ومجموعات `SchoolGroup` فوقها |
-| Payments | Moyasar (مفعّل)، Tamara (معطّل) — كلاهما hosted checkout بتحقق من جهة الخادم |
+| Payments | Moyasar — hosted checkout بتحقق من جهة الخادم |
 | Monitoring | Sentry (اختياري)، `opmetrics`، تنبيهات Telegram، `/ops/metrics/` (superuser فقط) |
 
 ---
@@ -723,7 +723,7 @@ f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net{seal_script_source}
 المتبقي: من يخمّن `batch_ref` يجبر الخادم على نداء خارجي، وفرق الاستجابة بين `502` و`{"ok": true}` يكشف وجود المرجع. `batch_ref` هو `uuid4().hex[:16]` (64 بت) فالتخمين غير عملي، والحدّ 60/دقيقة/IP قائم.
 
 **Recommended Fix**
-أضف توكنًا مشتركًا في المسار وقارنه بـ `hmac.compare_digest` — كما هو مطبَّق بالفعل ومصحّح في `tamara_webhook` ([reports/tamara_gateway.py:230](reports/tamara_gateway.py#L230)). ووحّد رمز الاستجابة إلى `200` دائمًا لمنع الاستكشاف.
+أضف توكنًا مشتركًا في المسار وقارنه بـ `hmac.compare_digest`. ووحّد رمز الاستجابة إلى `200` دائمًا لمنع الاستكشاف.
 
 ---
 
@@ -892,7 +892,7 @@ cache.add(key, 1, timeout=None)   # school_dashboard:version:{school_id}
 - `CSRF_FAILURE_VIEW` مخصّص لتجربة مفهومة.
 - `form-action 'self' https://checkout.moyasar.com` — CSP تحرس سلسلة إعادة التوجيه كاملة، والتعليق في [middleware.py:777-782](reports/middleware.py#L777-L782) يوثّق أن بوابة مفعّلة بلا أصلها هنا يُحجب دفعها صامتًا.
 - `@csrf_exempt` في **موضع واحد فقط**: `mansour_assistant_reply` — راجع SEC-009.
-- الويب هوك (`tamara_webhook`, `moyasar_callback`) خارج CSRF بحكم طبيعتها، ومحميّة بالتوكن/إعادة الاشتقاق.
+- الاستدعاء الراجع (`moyasar_callback`) خارج CSRF بحكم طبيعته، ومحميّ بإعادة الاشتقاق من البوابة.
 
 ---
 

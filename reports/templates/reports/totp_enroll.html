@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تفعيل المصادقة الثنائية | منصة توثيق{% endblock %}
+
+{% block content %}
+<main class="container u-mt-2xl" id="mainContent">
+  <h1 class="u-m-0">خطوتان لتفعيل المصادقة الثنائية</h1>
+
+  <section class="card u-mt-lg">
+    <h2 class="u-mt-0">١ — أضف الحساب إلى تطبيق المصادقة</h2>
+
+    <p class="u-text-muted">
+      <strong>من هاتفك:</strong> انقر الرابط أدناه ليفتح تطبيق المصادقة ويضيف الحساب تلقائياً.
+    </p>
+    <p><a class="btn btn-primary" href="{{ otpauth_uri }}">فتح تطبيق المصادقة</a></p>
+
+    <p class="u-text-muted u-mt-lg">
+      <strong>من الحاسوب:</strong> افتح التطبيق في هاتفك، اختر «إضافة حساب» ثم
+      «إدخال المفتاح يدوياً»، وأدخل هذا المفتاح:
+    </p>
+    <pre class="u-p-4 u-radius-sm u-w-full">{{ secret }}</pre>
+  </section>
+
+  <section class="card u-mt-lg">
+    <h2 class="u-mt-0">٢ — أكّد بالرمز</h2>
+    <p class="u-text-muted">أدخل الرمز المعروض في التطبيق الآن، لنتأكّد أن الإعداد صحيح قبل تفعيله.</p>
+
+    <form method="post" action="{% url 'reports:totp_confirm_enrollment' %}">
+      {% csrf_token %}
+      <label for="totpCode" class="u-block u-fw-700 u-mb-2">الرمز (٦ أرقام)</label>
+      <input id="totpCode" name="code" type="text" inputmode="numeric" pattern="[0-9]*"
+             maxlength="6" required autocomplete="one-time-code" autofocus
+             class="u-w-full u-mb-3">
+      <button type="submit" class="btn btn-primary">تأكيد وتفعيل</button>
+    </form>
+  </section>
+</main>
+{% endblock %}

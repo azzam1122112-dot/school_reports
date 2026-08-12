@@ -5,7 +5,7 @@
 {% block title %}طلبات دعم المنصة{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* ===== Scoped: Support Tickets (لا يلمس .btn/.card العامة) ===== */
   .support-scope .wrap{max-width:1100px;margin:0 auto;padding:20px 12px}
 
@@ -335,7 +335,7 @@
         {% endif %}
 
         <div class="meta" aria-label="إحصاءات">
-          <span>الإجمالي: <b style="color:var(--ink)">{{ page_obj.paginator.count }}</b></span>
+          <span>الإجمالي: <b class="u-text-ink">{{ page_obj.paginator.count }}</b></span>
         </div>
       </form>
 

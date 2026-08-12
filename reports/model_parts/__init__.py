@@ -15,6 +15,9 @@ from .meetings import *
 from .plans import *
 from .scopes import *
 from .audit import *
+from .data_rights import *
+from .api_keys import *
+from .totp import *
 
 # Import last so model signal receivers are registered after all models exist.
 from . import signals as signals  # noqa: F401

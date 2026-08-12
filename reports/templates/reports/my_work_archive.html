@@ -5,7 +5,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .wa-years { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: 1.1rem; }
   .wa-years a {
     font-size: .82rem; font-weight: 800; text-decoration: none;
@@ -42,7 +42,7 @@
     <h1 class="asg-hero__title">أرشيف أعمالي</h1>
     <p class="asg-hero__meta">
       كل ما أنتجتَه في {{ active_school.name }}، مقسّماً بالسنة الدراسية.
-      و<a href="{% url 'reports:my_activity_log' %}" style="color:#fff;text-decoration:underline">سجل أعمالي</a>
+      و<a href="{% url 'reports:my_activity_log' %}" class="xs-my-work-archive-1">سجل أعمالي</a>
       يعرض ما فعلتَه كأحداث — وهذه الصفحة تعرض ما أنتجتَه كأعمال.
     </p>
 
@@ -183,7 +183,7 @@
   {% endif %}
 
   {% if not reports and not targets and not documents and not achievements and not initiatives %}
-    <div class="asg-empty" style="margin-top:1.2rem">
+    <div class="asg-empty u-mt-2xl">
       <div class="asg-empty__icon"><i class="fa-solid fa-box-archive" aria-hidden="true"></i></div>
       <h2>{% if q_year %}لا أعمال في هذه السنة{% else %}أرشيفك فارغ{% endif %}</h2>
       <p>

@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -230,7 +230,7 @@ class PlatformAdminExperienceTests(TestCase):
             file_path = Path(temp_dir) / "mansour_knowledge_content.json"
             file_path.write_text("{}", encoding="utf-8")
 
-            with patch("reports.views.subscriptions.MANSOUR_KNOWLEDGE_CONTENT_PATH", file_path):
+            with patch("reports.views.billing_platform.MANSOUR_KNOWLEDGE_CONTENT_PATH", file_path):
                 with patch("reports.mansour_assistant.reload_mansour_knowledge_runtime") as reload_mock:
                     response = self.client.post(
                         reverse("reports:platform_mansour_content"),
@@ -260,3 +260,30 @@ class PlatformAdminExperienceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "هذا الحقل مطلوب")
         self.assertFalse(Teacher.objects.filter(phone="0551234511").exists())
+
+
+class MansourKnowledgeFileSafetyTests(SimpleTestCase):
+    """ملف معرفة «منصور» هدفُ كتابة، فلا يجوز أن يُشير إلى المستودع في الاختبار.
+
+    السبب حادثةٌ وقعت فعلاً: نُقل ثابتُ المسار إلى وحدة أخرى أثناء تقسيم وحدة
+    الفوترة، وبقي ترقيعُ الاختبار مشيراً إلى مكانه القديم. فكتب الاختبار في ملف
+    المستودع الحقيقي — ومسح منه 800 سطر — ثم مرّ «ناجحاً».
+
+    والترقيع في الاختبار وحده ليس حراسة: يكفي أن ينساه اختبارٌ قادم واحد. فبيئةُ
+    الاختبار توجّه المسار إلى مجلد مؤقّت، وهذا الفحص يقفل ذلك التوجيه.
+    """
+
+    def test_content_path_never_points_inside_the_repository(self):
+        from pathlib import Path
+
+        from django.conf import settings
+
+        from reports.views.billing_platform import MANSOUR_KNOWLEDGE_CONTENT_PATH
+
+        repo_root = Path(settings.BASE_DIR).resolve()
+        resolved = Path(MANSOUR_KNOWLEDGE_CONTENT_PATH).resolve()
+
+        self.assertFalse(
+            resolved.is_relative_to(repo_root),
+            f"مسار محتوى منصور يشير داخل المستودع أثناء الاختبار: {resolved}",
+        )

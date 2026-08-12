@@ -4,7 +4,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .new-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
   .new-check { display: flex; gap: .55rem; align-items: flex-start; font-size: .86rem; font-weight: 700; }
   .new-check input { margin-top: .2rem; }
@@ -197,7 +197,7 @@
         </label>
       </div>
 
-      <div class="asg-field" style="max-width:220px" id="evidenceCount">
+      <div class="asg-field xs-assignment-create-1" id="evidenceCount">
         <label for="{{ form.min_evidence_count.id_for_label }}">{{ form.min_evidence_count.label }}</label>
         {{ form.min_evidence_count }}
         {% if form.min_evidence_count.errors %}<ul class="asg-errors">{% for e in form.min_evidence_count.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}

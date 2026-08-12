@@ -5,7 +5,7 @@
 
 {% block head %}
 {% include "reports/_meeting_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .mt-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; }
   @media (max-width: 900px) { .mt-grid { grid-template-columns: 1fr; } }
 
@@ -153,9 +153,9 @@
   <div class="mt-grid">
     <div>
       {# ═══ الحالة والغرض ═══════════════════════════════ #}
-      <section class="asg-card" style="margin-top:0">
-        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
-          <h2 class="asg-card__title" style="margin:0">الاجتماع</h2>
+      <section class="asg-card u-mt-0">
+        <div class="u-flex u-items-center u-gap-sm u-wrap u-mb-09">
+          <h2 class="asg-card__title u-m-0">الاجتماع</h2>
           <span class="asg-tag {% if meeting.is_held %}asg-tag--done{% elif meeting.is_cancelled %}asg-tag--late{% endif %}">
             {{ meeting.get_status_display }}
           </span>
@@ -182,12 +182,12 @@
         </div>
 
         {% if meeting.purpose %}
-          <div class="mt-readonly" style="margin-top:1rem">{{ meeting.purpose }}</div>
+          <div class="mt-readonly u-mt-lg">{{ meeting.purpose }}</div>
         {% endif %}
 
         {% if meeting.is_cancelled and meeting.cancel_reason %}
-          <div class="mt-note" style="margin-top:1rem;margin-bottom:0;border-color:var(--asg-danger)">
-            <i class="fa-solid fa-ban" aria-hidden="true" style="color:var(--asg-danger)"></i>
+          <div class="mt-note xs-meeting-detail-1">
+            <i class="fa-solid fa-ban u-text-asg-danger" aria-hidden="true"></i>
             <span><strong>سبب الإلغاء:</strong> {{ meeting.cancel_reason }}</span>
           </div>
         {% endif %}
@@ -221,7 +221,7 @@
             {% endif %}
           </div>
         {% empty %}
-          <p class="asg-card__hint" style="margin:0">لم تُضف بنود بعد.</p>
+          <p class="asg-card__hint u-m-0">لم تُضف بنود بعد.</p>
         {% endfor %}
 
         {% if is_organizer and not meeting.is_cancelled %}
@@ -256,8 +256,8 @@
       {# ═══ المحضر ═════════════════════════════════════ #}
       {% if minutes %}
         <section class="asg-card mt-minutes">
-          <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.5rem">
-            <h2 class="asg-card__title" style="margin:0">المحضر</h2>
+          <div class="u-flex u-items-center u-gap-sm u-wrap u-mb-05">
+            <h2 class="asg-card__title u-m-0">المحضر</h2>
             <span class="asg-tag {% if minutes.is_final %}asg-tag--done{% endif %}">
               {{ minutes.get_approval_state_display }}
             </span>
@@ -280,7 +280,7 @@
               {% csrf_token %}
               <input type="hidden" name="meeting_action" value="save_minutes">
               {{ minutes_form.body }}
-              <button type="submit" class="mtg-iconbtn" style="margin-top:.8rem">
+              <button type="submit" class="mtg-iconbtn u-mt-md">
                 <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
                 حفظ المحضر
               </button>
@@ -288,7 +288,7 @@
           {% elif minutes.body %}
             <div class="mt-readonly">{{ minutes.body }}</div>
           {% else %}
-            <p class="asg-card__hint" style="margin:0">لم يُكتب المحضر بعد.</p>
+            <p class="asg-card__hint u-m-0">لم يُكتب المحضر بعد.</p>
           {% endif %}
 
           {% if minutes_timeline %}
@@ -312,15 +312,14 @@
           {% endif %}
 
           {% if minutes_actions %}
-            <form method="post" action="{% url 'reports:minutes_approval_action' meeting.pk %}"
-                  style="margin-top:1rem">
+            <form method="post" action="{% url 'reports:minutes_approval_action' meeting.pk %}" class="u-mt-lg">
               {% csrf_token %}
               <input type="hidden" name="approval_action" id="mtAction" value="">
               <div class="asg-field">
                 <label for="mtApprovalNote">ملاحظتك على المحضر (اختياري)</label>
                 <textarea id="mtApprovalNote" name="note" rows="3" placeholder="تُحفظ في مسار الاعتماد أعلاه…"></textarea>
               </div>
-              <div class="mt-actions" style="margin-top:0">
+              <div class="mt-actions u-mt-0">
                 {% if 'issue' in minutes_actions %}
                   <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid" data-mt="issue">
                     <i class="fa-solid fa-stamp" aria-hidden="true"></i>
@@ -402,7 +401,7 @@
               {% if row.decision.body %}<div class="mt-row__sub">{{ row.decision.body }}</div>{% endif %}
             </div>
 
-            <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
+            <div class="u-flex u-gap-05 u-wrap u-items-center">
               {% if row.state == 'done' %}
                 <span class="asg-tag asg-tag--done">نُفِّذ</span>
               {% elif row.state == 'late' %}
@@ -432,7 +431,7 @@
             </div>
           </div>
         {% empty %}
-          <p class="asg-card__hint" style="margin:0">لم تُسجَّل قرارات بعد.</p>
+          <p class="asg-card__hint u-m-0">لم تُسجَّل قرارات بعد.</p>
         {% endfor %}
 
         {% if is_organizer and meeting.is_held %}
@@ -488,13 +487,13 @@
     {# ═══ العمود الثاني ══════════════════════════════ #}
     <div>
       {% if is_organizer and not meeting.is_cancelled %}
-        <section class="asg-card" style="margin-top:0">
+        <section class="asg-card u-mt-0">
           <h2 class="asg-card__title">إدارة الاجتماع</h2>
           {% if not meeting.is_held %}
             <p class="asg-card__hint">
               سجّل الانعقاد بعد انتهاء الجلسة ليُفتح المحضر للكتابة.
             </p>
-            <div class="mt-actions" style="margin-top:0">
+            <div class="mt-actions u-mt-0">
               <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}"
                     data-confirm="تسجيل انعقاد الاجتماع؟ سيُفتح المحضر للكتابة، ولن يمكن حذف بنود جدول الأعمال بعدها.">
                 {% csrf_token %}
@@ -514,7 +513,7 @@
               <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
               انعقد في {{ meeting.held_at|hijri }} هـ — {{ meeting.held_at|time:"H:i" }}
             </div>
-            <p class="asg-card__hint" style="margin:.7rem 0 0">
+            <p class="asg-card__hint xs-meeting-detail-2">
               اكتب المحضر وسجّل القرارات، ثم أرسل المحضر للاعتماد.
             </p>
           {% endif %}
@@ -522,8 +521,8 @@
       {% endif %}
 
       <section class="asg-card" {% if not is_organizer or meeting.is_cancelled %}style="margin-top:0"{% endif %}>
-        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.3rem">
-          <h2 class="asg-card__title" style="margin:0">الحضور</h2>
+        <div class="xs-meeting-detail-3">
+          <h2 class="asg-card__title u-m-0">الحضور</h2>
           <span class="asg-tag">{{ attendance.present }} / {{ attendance.total }}</span>
         </div>
 
@@ -547,10 +546,10 @@
                 </div>
               </div>
             {% empty %}
-              <p class="asg-card__hint" style="margin:0">لا مدعوين.</p>
+              <p class="asg-card__hint u-m-0">لا مدعوين.</p>
             {% endfor %}
             {% if attendees %}
-              <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid" style="margin-top:.6rem">
+              <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid u-mt-sm">
                 <i class="fa-solid fa-user-check" aria-hidden="true"></i>
                 حفظ الحضور
               </button>
@@ -565,7 +564,7 @@
               </span>
             </div>
           {% empty %}
-            <p class="asg-card__hint" style="margin:0">لا مدعوين.</p>
+            <p class="asg-card__hint u-m-0">لا مدعوين.</p>
           {% endfor %}
         {% endif %}
       </section>
@@ -583,7 +582,7 @@
         لا يُحذف الاجتماع — تبقى دعوته ومدعووه في السجل، ويُسجَّل سبب الإلغاء
         معها ليُقرأ لاحقاً.
       </p>
-      <div class="asg-field" style="margin-bottom:0">
+      <div class="asg-field u-mb-0">
         <label for="mtCancelReason">سبب الإلغاء</label>
         <input type="text" id="mtCancelReason" name="reason" maxlength="255"
                placeholder="مثال: تعارض مع زيارة إشرافية">

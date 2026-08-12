@@ -5,7 +5,7 @@
 {% block title %}التعاميم المرسلة{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
 	/* =========================================================
 		 التعاميم المرسلة - تصميم 2026
 		 تصميم عصري وفخم مع تأثيرات متقدمة
@@ -596,7 +596,7 @@
 								</a>
 							{% endif %}
 
-							<form method="post" action="{% url 'reports:notification_delete' n.id %}" class="js-delete-form" data-confirm="هل تريد حذف هذا التعميم نهائيًا؟" data-confirm-type="danger" style="display:inline">
+							<form method="post" action="{% url 'reports:notification_delete' n.id %}" class="js-delete-form u-inline" data-confirm="هل تريد حذف هذا التعميم نهائيًا؟" data-confirm-type="danger">
 								{% csrf_token %}
 								<button class="ns-btn danger" type="submit">
 									<i class="fa-regular fa-trash-can" aria-hidden="true"></i> حذف

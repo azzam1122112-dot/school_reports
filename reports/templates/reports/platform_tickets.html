@@ -3,7 +3,7 @@
 {% block title %}تذاكر الدعم الفني (المنصة){% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* 
      PLATFORM TICKETS 2026 — NEO-PROFESSIONAL
      Theme: Corporate Blue & Clean White
@@ -422,7 +422,7 @@
                             </td>
 
                             <td>
-                                <a href="{% url 'reports:ticket_detail' ticket.id %}" class="btn btn-sm btn-outline" style="border-radius:8px;">
+                                <a href="{% url 'reports:ticket_detail' ticket.id %}" class="btn btn-sm btn-outline u-radius-sm">
                                     <i class="fa-solid fa-eye" aria-hidden="true"></i> عرض
                                 </a>
                             </td>

@@ -9,6 +9,7 @@ from rest_framework.routers import DefaultRouter
 
 from .api_views import (
     NotificationViewSet,
+    openapi_schema,
     ReportTypeViewSet,
     ReportViewSet,
     SchoolViewSet,
@@ -23,5 +24,7 @@ router.register("tickets", TicketViewSet, basename="ticket")
 router.register("notifications", NotificationViewSet, basename="notification")
 
 urlpatterns = [
+    # الوثيقة قبل الموجِّه: مسارٌ ثابت لا يلتبس بمورد.
+    path("schema/", openapi_schema, name="openapi_schema"),
     path("", include(router.urls)),
 ]

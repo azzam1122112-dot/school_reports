@@ -1,6 +1,6 @@
-{% load static %}
+{% load i18n static %}
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html {% include "reports/partials/html_lang.html" %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -13,12 +13,12 @@
   {% include "reports/partials/pwa_install_head.html" %}
 
   <!-- Typography & Icons -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  {% comment %}الخط والأيقونات محلياً: لا طلب لطرف ثالث قبل أول حرف، ولا نطاق خارجي في سياسة المحتوى.{% endcomment %}
+  <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
+  <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
 
-  <style>
+  <style nonce="{{ CSP_NONCE }}">
     /* === Login — light mint identity, matching the public site === */
     :root {
       --brand: #0f7a56;
@@ -438,7 +438,8 @@
   {% include "reports/_identity.html" %}
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
-  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260808.1">
+  <link rel="stylesheet" href="{% static 'css/language-switcher.css' %}?v=20260812.1">
+<link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260808.1">
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 <body>
@@ -482,7 +483,7 @@
           <div class="messages-area">
             <div class="msg error">
                 <i class="fa-solid fa-circle-xmark"></i>
-                <span>اسم المستخدم أو كلمة المرور غير صحيحة.</span>
+                <span>{% translate "اسم المستخدم أو كلمة المرور غير صحيحة." %}</span>
             </div>
           </div>
         {% endif %}
@@ -494,7 +495,7 @@
           <input type="hidden" name="next" value="{{ next|default:'' }}">
 
           <div class="form-group">
-            <label for="identifier" class="form-label">رقم الجوال </label>
+            <label for="identifier" class="form-label">{% translate "رقم الجوال" %} </label>
             <div class="input-wrapper">
               {% comment %}
                 "webauthn" lets the browser surface a saved passkey inside the
@@ -507,7 +508,7 @@
           </div>
 
           <div class="form-group">
-            <label for="password" class="form-label">كلمة المرور</label>
+            <label for="password" class="form-label">{% translate "كلمة المرور" %}</label>
             <div class="input-wrapper">
               <input type="password" name="password" id="password" class="form-input" 
                      placeholder="••••••••" required autocomplete="current-password">
@@ -531,8 +532,8 @@
             <div class="passkey-panel__head">
               <span class="passkey-panel__icon" aria-hidden="true"><i class="fa-solid fa-fingerprint"></i></span>
               <div>
-                <strong>دخول بلا كلمة مرور</strong>
-                <small>أكّد هويتك ببصمتك أو Face ID أو قفل الشاشة — لا شيء يُكتب ولا شيء يُنسى.</small>
+                <strong>{% translate "دخول بلا كلمة مرور" %}</strong>
+                <small>{% translate "أكّد هويتك ببصمتك أو Face ID أو قفل الشاشة — لا شيء يُكتب ولا شيء يُنسى." %}</small>
               </div>
             </div>
             <button
@@ -560,6 +561,7 @@
   </div>
 
   <footer class="auth-footer">
+    {% include "reports/partials/language_switcher.html" %}
     &copy; {% now "Y" %} جميع الحقوق محفوظة — منصة توثيق
   </footer>
 

@@ -5,7 +5,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .vw-body { font-size: .9rem; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
   .vw-meta { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 1rem; }
   .vw-meta__l { font-size: .73rem; color: var(--asg-muted); font-weight: 700; }
@@ -46,13 +46,12 @@
       {% if assignment.is_cancelled %} · <strong>ملغى</strong>{% endif %}
     </p>
     <div class="vw-actions">
-      <a class="asg-btn asg-btn--primary" style="background:#fff;color:#08643b"
+      <a class="asg-btn asg-btn--primary xs-assignment-view-1"
          href="{% url 'reports:assignment_print' assignment.pk %}" target="_blank" rel="noopener">
         <i class="fa-solid fa-print" aria-hidden="true"></i>
         خطاب التكليف للطباعة
       </a>
-      <button type="button" class="asg-btn asg-btn--ghost" id="shareBtn"
-              style="color:#fff;border-color:rgba(255,255,255,.45)"
+      <button type="button" class="asg-btn asg-btn--ghost xs-assignment-view-2" id="shareBtn"
               data-url="{{ share_url }}" data-title="{{ assignment.title }}">
         <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
         مشاركة
@@ -106,11 +105,11 @@
     {% if assignment.description %}
       <div class="vw-body">{{ assignment.description }}</div>
     {% else %}
-      <p class="asg-card__hint" style="margin:0">لم يُكتب تفصيل للمطلوب.</p>
+      <p class="asg-card__hint u-m-0">لم يُكتب تفصيل للمطلوب.</p>
     {% endif %}
 
     {% if assignment.requires_evidence %}
-      <p class="asg-card__hint" style="margin:.9rem 0 0">
+      <p class="asg-card__hint xs-assignment-view-3">
         <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
         يشترط هذا التكليف {{ assignment.min_evidence_count }} شاهداً على الأقل،
         ولا يُقبل إرسال التنفيذ للمراجعة قبل استيفائها.
@@ -118,7 +117,7 @@
     {% endif %}
 
     {% if assignment.is_cancelled %}
-      <p class="asg-card__hint" style="margin:.9rem 0 0;color:var(--asg-danger)">
+      <p class="asg-card__hint xs-assignment-view-4">
         أُلغي هذا التكليف{% if assignment.cancel_reason %} — {{ assignment.cancel_reason }}{% endif %}.
         ويبقى ظاهراً في السجل بسبب إلغائه.
       </p>
@@ -153,14 +152,14 @@
                 <td class="vw-table__name">
                   <a href="{% url 'reports:assignment_detail' target.pk %}">{{ target.assignee.name }}</a>
                   {% if target.is_overdue %}
-                    <span class="asg-tag asg-tag--late" style="margin-inline-start:.35rem">متأخر</span>
+                    <span class="asg-tag asg-tag--late xs-assignment-view-5">متأخر</span>
                   {% endif %}
                 </td>
                 <td>{{ target.get_approval_state_display }}</td>
                 <td>
                   <div class="asg-bar vw-mini">
                     <div class="asg-bar__track">
-                      <div class="asg-bar__fill" style="width:{{ target.progress_percent }}%"></div>
+                      <div class="asg-bar__fill" data-progress="{{ target.progress_percent }}"></div>
                     </div>
                     <div class="asg-bar__label">{{ target.progress_percent }}%</div>
                   </div>
@@ -176,7 +175,7 @@
         </table>
       </div>
     {% else %}
-      <p class="asg-card__hint" style="margin:0">لم يُسند هذا التكليف إلى أحد.</p>
+      <p class="asg-card__hint u-m-0">لم يُسند هذا التكليف إلى أحد.</p>
     {% endif %}
   </section>
 
@@ -191,7 +190,7 @@
       </div>
 
       {% if not assignment.is_cancelled %}
-        <form method="post" action="{% url 'reports:assignment_cancel' assignment.pk %}" style="margin-top:1rem">
+        <form method="post" action="{% url 'reports:assignment_cancel' assignment.pk %}" class="u-mt-lg">
           {% csrf_token %}
           <div class="asg-field">
             <label for="cancelReason">سبب الإلغاء</label>

@@ -4,7 +4,7 @@
 {% block title %}تتبّع التعميم | منصة توثيق{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .gr-page {
     --gr-ink: #10231a;
     --gr-muted: #607067;
@@ -129,7 +129,7 @@
       </p>
     </div>
 
-    <div class="gr-ring" style="--pct: {{ totals.read_percent }}" role="img"
+    <div class="gr-ring" data-progress-var="--pct" data-progress-value="{{ totals.read_percent }}" role="img"
          aria-label="نسبة الاطّلاع {{ totals.read_percent }} بالمئة">
       <span class="gr-ring__inner">
         <span class="gr-ring__pct">{{ totals.read_percent }}%</span>
@@ -167,7 +167,7 @@
           <small>{{ row.read }} من {{ row.total }} اطّلعوا{% if batch.requires_signature %} · {{ row.signed }} وقّعوا{% endif %}</small>
         </span>
         <span class="gr-bar">
-          <span class="gr-bar__track"><span class="gr-bar__fill" style="width: {{ row.read_percent }}%"></span></span>
+          <span class="gr-bar__track"><span class="gr-bar__fill" data-progress="{{ row.read_percent }}"></span></span>
           <span class="gr-bar__pct">{{ row.read_percent }}%</span>
         </span>
         <i class="fa-solid fa-chevron-down gr-caret" aria-hidden="true"></i>

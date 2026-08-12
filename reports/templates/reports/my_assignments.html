@@ -70,7 +70,7 @@
 
           <div class="asg-bar">
             <div class="asg-bar__track">
-              <div class="asg-bar__fill" style="width:{{ t.progress_percent }}%"></div>
+              <div class="asg-bar__fill" data-progress="{{ t.progress_percent }}"></div>
             </div>
             <div class="asg-bar__label">{{ t.progress_percent }}%</div>
           </div>
@@ -98,7 +98,7 @@
       {% endfor %}
     </section>
   {% else %}
-    <div class="asg-empty" style="margin-top:1.2rem">
+    <div class="asg-empty u-mt-2xl">
       <div class="asg-empty__icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
       <h2>لا تكليفات مفتوحة</h2>
       <p>ليس عليك شيء الآن. ستظهر هنا التكليفات فور إسنادها إليك، ومعها موعد كل واحد.</p>

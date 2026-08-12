@@ -25,6 +25,8 @@ from django.db.models import Q
 from django.utils.text import slugify
 from django.utils import timezone
 
+from core.observability import report_degraded as _degraded, soft_fail
+
 from .validators import validate_circular_attachment_file
 from .gender_labels import school_gender_labels
 from .staff_assignments import assignment_cards, assignment_choices, get_assignment
@@ -248,7 +250,7 @@ class MyPasswordChangeForm(PasswordChangeForm):
                 else:
                     f.widget.attrs.setdefault("autocomplete", "new-password")
             except Exception:
-                pass
+                _degraded("forms.password_autocomplete_hint", field=name)
 
         self.fields["old_password"].widget.attrs.setdefault("placeholder", "أدخل كلمة المرور الحالية")
         self.fields["new_password1"].widget.attrs.setdefault("placeholder", "أدخل كلمة مرور جديدة قوية")
@@ -666,6 +668,7 @@ class ReportForm(forms.ModelForm):
                     self.files[field_name] = compressed
                 img = compressed
             except Exception:
+                _degraded("forms.compress_image_upload", field=field_name)
                 # في حال فشل الضغط نستخدم الملف كما هو مع فحص الحجم فقط
                 pass
 
@@ -1017,7 +1020,8 @@ class TeacherEditForm(forms.ModelForm):
                 if m is not None and getattr(m, "job_title", None):
                     self.fields["job_title"].initial = m.job_title
         except Exception:
-            pass
+            # المسمّى الوظيفي يظهر فارغاً فيُحفظ فارغاً — بيانات تضيع بصمت.
+            _degraded("forms.load_job_title", teacher_id=getattr(self.instance, "pk", None))
 
     def clean_national_id(self):
         nid = (self.cleaned_data.get("national_id") or "").strip()
@@ -1048,7 +1052,8 @@ class TeacherEditForm(forms.ModelForm):
                             role_type__in=SchoolMembership.STAFF_ROLES,
                         ).update(job_title=jt)
             except Exception:
-                pass
+                # المدير يرى «تم الحفظ» والمسمّى لم يُحفظ.
+                _degraded("forms.save_job_title", teacher_id=getattr(instance, "pk", None))
         return instance
 
 
@@ -1136,7 +1141,7 @@ class ManagerCreateForm(forms.ModelForm):
         if self._require_email:
             self.fields["email"].required = True
             self.fields["email"].widget.attrs["required"] = "required"
-            self.fields["email"].help_text = "إجباري لمدير المدرسة لاستقبال الملخص الأسبوعي."
+            self.fields["email"].help_text = "إجباري لمدير المدرسة لاستعادة كلمة المرور وتنبيهات الأمان."
 
         if self.instance and self.instance.pk:
             self.fields["password"].required = False
@@ -1453,10 +1458,8 @@ class TicketCreateForm(forms.ModelForm):
 
         # حالة افتراضية إن وُجدت في الموديل
         if not getattr(obj, "status", None):
-            try:
+            with soft_fail("forms.default_ticket_status"):
                 obj.status = Ticket.Status.OPEN  # type: ignore[attr-defined]
-            except Exception:
-                pass
 
         # تعيين assignee كمرجع/مسؤول رئيسي للتوافق الخلفي (أول مستلم)
         try:
@@ -1642,7 +1645,7 @@ class DepartmentForm(forms.ModelForm):
             from unidecode import unidecode  # type: ignore
 
             text = unidecode(text or "")
-        except Exception:
+        except ImportError:
             # fallback: بدون تحويل
             pass
         return slugify(text or "", allow_unicode=False)
@@ -1711,7 +1714,8 @@ class ReportTypeForm(forms.ModelForm):
             from unidecode import unidecode  # type: ignore
 
             text = unidecode(text or "")
-        except Exception:
+        except ImportError:
+            # حزمةٌ اختيارية بحقّ: بدونها يُشتقّ المعرّف من النص كما هو.
             pass
         return slugify(text or "", allow_unicode=False)
 
@@ -1896,10 +1900,8 @@ class NotificationCreateForm(forms.Form):
 
             # التعميم دائمًا يتطلب توقيعًا (والـ view يفرضه كذلك)
             if "requires_signature" in self.fields:
-                try:
+                with soft_fail("forms.circular_signature_default"):
                     self.fields["requires_signature"].initial = True
-                except Exception:
-                    pass
 
         qs = Teacher.objects.filter(is_active=True).order_by("name")
 
@@ -1927,7 +1929,9 @@ class NotificationCreateForm(forms.Form):
                     try:
                         qs = qs.filter(school_memberships__school_id=int(school_id)).distinct()
                     except ValueError:
-                        pass
+                        # معرّفُ مدرسةٍ غير رقمي: القائمة تبقى بلا حصر بالمدرسة،
+                        # فيرى المُرسل مرشّحين أوسع مما قصد. يُسجَّل ليُصلَح المصدر.
+                        _degraded("forms.invalid_target_school", value=str(school_id)[:32])
 
             # مدير المدرسة: يرسل التعميمات للمعلمين ضمن مدرسته فقط
             else:
@@ -1964,7 +1968,8 @@ class NotificationCreateForm(forms.Form):
                         | models.Q(dept_memberships__department__slug__in=codes)
                     ).distinct()
         except Exception:
-            pass
+            # فلترةٌ لم تُطبَّق تعني قائمةَ مستلمين **أوسع** من المقصود.
+            _degraded("forms.recipient_scope_filter")
 
         # تقليص حسب المدرسة النشطة للمدير/الضابط
         if active_school is not None:
@@ -1992,7 +1997,7 @@ class NotificationCreateForm(forms.Form):
                         school_memberships__school_id=int(school_id),
                     ).distinct()
                 except ValueError:
-                    pass
+                    _degraded("forms.invalid_target_school_admin", value=str(school_id)[:32])
 
         self.fields["teachers"].queryset = qs
 
@@ -2156,13 +2161,11 @@ class NotificationCreateForm(forms.Form):
                     push_new_notification_to_teachers(notification=n, teacher_ids=teacher_ids)
                 except Exception:
                     logger.exception("Immediate realtime notification dispatch failed for notification %s", n.pk)
-                try:
+                with soft_fail("forms.invalidate_recipient_caches", count=len(teacher_ids)):
                     from .cache_utils import invalidate_user_notifications
 
                     for tid in teacher_ids:
                         invalidate_user_notifications(int(tid))
-                except Exception:
-                    pass
             except Exception:
                 logger.exception("Immediate notification recipient creation failed for notification %s", n.pk)
 
@@ -2205,19 +2208,16 @@ class NotificationCreateForm(forms.Form):
             def _release_lock() -> None:
                 if cache is None:
                     return
-                try:
+                # قفلٌ لا يُحرَّر يمنع كل إرسالٍ لاحق حتى ينتهي عمره.
+                with soft_fail("notifications.release_dispatch_lock", key=lock_key):
                     cache.delete(lock_key)
-                except Exception:
-                    pass
 
             def _run_local(*, warn_seconds: float, is_debug: bool) -> bool:
                 started = time.monotonic()
 
-                try:
+                with soft_fail("notifications.close_stale_connections"):
                     from django.db import close_old_connections
                     close_old_connections()
-                except Exception:
-                    pass
 
                 ok = False
                 try:
@@ -2312,7 +2312,9 @@ class NotificationCreateForm(forms.Form):
                         ).start()
                         return
                     except Exception:
-                        pass
+                        # خيطٌ لم يبدأ يعني إشعاراً لم يُرسَل. لا نسقط الطلب —
+                        # يسقط إلى المسار المتزامن أدناه — لكن الأثر يُسجَّل.
+                        _degraded("notifications.start_local_dispatch_thread")
 
                 ok = False
                 try:
@@ -2415,7 +2417,7 @@ class NotificationCreateForm(forms.Form):
                     ).start()
                     return
                 except Exception:
-                    pass
+                    _degraded("notifications.start_local_dispatch_thread_fallback")
 
             ok = False
             try:
@@ -2629,7 +2631,8 @@ class SchoolSubscriptionForm(forms.ModelForm):
                 if (not self._allow_plan_change) and "plan" in self.fields:
                     self.fields["plan"].disabled = True
         except Exception:
-            pass
+            # حقلٌ كان يجب أن يُقفل فبقي مفتوحاً: تعديلٌ مسموح لا يجوز.
+            _degraded("forms.lock_subscription_fields")
 
     def clean_school(self):
         # تحصين: حتى مع التلاعب بالـ POST لا نسمح بتغيير المدرسة للاشتراك الموجود.
@@ -2702,7 +2705,7 @@ class SchoolArchiveAddonForm(forms.ModelForm):
             if getattr(self.instance, "pk", None):
                 self.fields["school"].disabled = True
         except Exception:
-            pass
+            _degraded("forms.lock_addon_school_field")
 
     def clean_school(self):
         if getattr(self.instance, "pk", None):
@@ -2722,6 +2725,7 @@ class PlatformSettingsForm(forms.ModelForm):
             "mansour_public_enabled",
             "report_ai_enabled",
             "internal_ai_help_enabled",
+            "voice_report_enabled",
             "archive_addon_annual_price",
             "archive_included_storage_gb",
             "storage_mb_per_teacher",
@@ -2732,6 +2736,7 @@ class PlatformSettingsForm(forms.ModelForm):
             "mansour_public_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "report_ai_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "internal_ai_help_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "voice_report_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "maintenance_message": forms.Textarea(
                 attrs={
                     "class": "form-control",
@@ -2750,6 +2755,7 @@ class PlatformSettingsForm(forms.ModelForm):
             "mansour_public_enabled": "المساعد منصور",
             "report_ai_enabled": "تحسين التقارير",
             "internal_ai_help_enabled": "المساعدة داخل النظام",
+            "voice_report_enabled": "كتابة التقرير بالصوت",
             "archive_addon_annual_price": "سعر الأرشفة السنوي",
             "archive_included_storage_gb": "المساحة المضمنة مع الأرشفة (GB)",
             "storage_mb_per_teacher": "مساحة عمل المدرسة لكل معلم (ميجابايت)",

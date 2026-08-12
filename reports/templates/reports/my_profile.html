@@ -4,7 +4,7 @@
 {% block title %}حسابي{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* ========== Premium 2026 Design System - My Profile Template ========== */
   
   /* رموز هذه الشاشة — مقصورة على حاويتها ومشتقّة من جذر الهوية. كانت معلنة
@@ -1169,7 +1169,7 @@
         {% else %}
           <div class="profile-empty-schools">
             <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
-            <p style="margin: 0.5rem 0 0 0;">لا توجد مدارس مسندة لهذا الحساب.</p>
+            <p class="xs-my-profile-1">لا توجد مدارس مسندة لهذا الحساب.</p>
           </div>
         {% endif %}
       </div>
@@ -1436,7 +1436,7 @@
             <div class="profile-passkey-status" id="profilePasskeyStatus" role="status" aria-live="polite"></div>
           {% endif %}
 
-          <div class="profile-passkey-copy" style="font-size:.84rem">
+          <div class="profile-passkey-copy xs-my-profile-2">
             <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
             بصمتك أو صورة وجهك لا تصل إلى المنصة ولا تُحفظ فيها؛ تبقى داخل جهازك، ونحفظ المفتاح العام اللازم للتحقق فقط.
           </div>
@@ -1472,7 +1472,7 @@
                 </li>
               {% endfor %}
             </ul>
-            <p class="profile-passkey-copy" style="font-size:.84rem">
+            <p class="profile-passkey-copy xs-my-profile-2">
               فقدت جهازًا أو غيّرته؟ ألغِه من هنا فورًا؛ لن يعود قادرًا على الدخول لحسابك.
             </p>
           {% endif %}

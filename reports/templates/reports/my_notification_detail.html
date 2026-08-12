@@ -4,7 +4,7 @@
 {% block title %}{% if n.requires_signature %}تفاصيل التعميم{% else %}تفاصيل الإشعار{% endif %}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      My Notification Detail — Premium 2026 Design
      ========================================================= */
@@ -477,7 +477,7 @@
     <!-- ═══ Hero Banner ═══ -->
     <div class="mnd-hero">
       <div class="mnd-hero-inner">
-        <div style="display:flex;gap:16px;align-items:flex-start;flex:1;min-width:0">
+        <div class="xs-my-notification-detail-1">
           <div class="mnd-hero-icon">
             {% if n.requires_signature %}
               <i class="fa-solid fa-file-signature"></i>
@@ -511,9 +511,9 @@
             محتوى الرسالة
           </div>
           {% if r.is_read %}
-            <span class="mnd-pill read"><i class="fa-solid fa-check-double" style="font-size:.75em"></i> مقروء</span>
+            <span class="mnd-pill read"><i class="fa-solid fa-check-double xs-my-notification-detail-2"></i> مقروء</span>
           {% else %}
-            <span class="mnd-pill"><i class="fa-regular fa-circle" style="font-size:.75em"></i> غير مقروء</span>
+            <span class="mnd-pill"><i class="fa-regular fa-circle xs-my-notification-detail-2"></i> غير مقروء</span>
           {% endif %}
         </div>
         <div class="mnd-card-bd">
@@ -533,9 +533,9 @@
           {% if body %}
             <div class="mnd-msg-body">{{ body|linebreaksbr }}</div>
           {% else %}
-            <div style="padding:28px 0;text-align:center;color:var(--mnd-muted)">
-              <i class="fa-regular fa-comment-dots" style="font-size:2rem;opacity:.35;display:block;margin-bottom:10px"></i>
-              <span style="font-size:.9rem">لا يوجد محتوى نصي.</span>
+            <div class="xs-my-notification-detail-3">
+              <i class="fa-regular fa-comment-dots xs-my-notification-detail-4"></i>
+              <span class="u-fs-md">لا يوجد محتوى نصي.</span>
             </div>
           {% endif %}
 
@@ -567,7 +567,7 @@
               {% if n.signature_deadline_at and not r.is_signed %}
                 <div class="mnd-meta-item">
                   <span class="mnd-meta-label"><i class="fa-solid fa-hourglass-half"></i> آخر موعد للتوقيع</span>
-                  <span class="mnd-meta-value" style="color:var(--mnd-warn)">{{ n.signature_deadline_at|date:"Y-m-d H:i" }}</span>
+                  <span class="mnd-meta-value xs-my-notification-detail-5">{{ n.signature_deadline_at|date:"Y-m-d H:i" }}</span>
                 </div>
               {% endif %}
             {% endif %}
@@ -629,7 +629,7 @@
 
                 <div>
                   <label class="mnd-field-label" for="sig_phone">
-                    <i class="fa-solid fa-mobile-screen-button" style="color:var(--mnd-brand)"></i>
+                    <i class="fa-solid fa-mobile-screen-button xs-my-notification-detail-6"></i>
                     رقم الجوال المسجل
                   </label>
                   <input class="mnd-input" id="sig_phone" name="phone"

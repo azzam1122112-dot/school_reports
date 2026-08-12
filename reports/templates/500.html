@@ -4,7 +4,7 @@
 {% block title %}خطأ في الخادم (500){% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* 500 — Page-only polish (RTL + متوافق مع base/app.css) */
   .e500-wrap{ max-width: 860px; margin: 0 auto; padding: 28px 0; }
   .e500-card{
@@ -98,11 +98,11 @@
   <section class="royal-panel e500-card">
     <div class="e500-top">
       <div class="royal-status danger e500-badge">
-        <i class="fa-solid fa-triangle-exclamation" style="opacity:.95"></i>
+        <i class="fa-solid fa-triangle-exclamation u-opacity-95"></i>
         حدث خطأ غير متوقع
       </div>
 
-      <div style="color:var(--muted); font-weight:900; font-size:.95rem">
+      <div class="u-text-muted-alt u-fw-900 u-fs-95">
         سيتم تسجيل الخطأ تلقائياً
       </div>
     </div>
@@ -116,7 +116,7 @@
 
       {% if error and request.user.is_superuser %}
         <div class="e500-debug" dir="ltr">
-          <h4><i class="fa-solid fa-bug" style="opacity:.85"></i> Debug Info</h4>
+          <h4><i class="fa-solid fa-bug u-dim"></i> Debug Info</h4>
           <pre>{{ error }}</pre>
         </div>
       {% endif %}

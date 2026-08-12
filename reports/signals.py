@@ -19,6 +19,7 @@ from reports.models import (
     Ticket,
 )
 from reports.cache_utils import invalidate_school, invalidate_user_notifications
+from core.observability import report_degraded as _degraded, soft_call, soft_fail
 from .middleware import get_current_request
 
 User = get_user_model()
@@ -194,26 +195,30 @@ def _infer_school_for_audit(request, user) -> School | None:
     except Exception:
         sid = None
 
-    try:
-        if sid:
-            school = School.objects.filter(pk=sid, is_active=True).first()
-            if school is not None:
-                return school
-    except Exception:
-        pass
+    if sid:
+        school = soft_call(
+            "audit.school_from_session",
+            lambda: School.objects.filter(pk=sid, is_active=True).first(),
+            default=None,
+            school_id=sid,
+        )
+        if school is not None:
+            return school
 
-    try:
+    def _sole_membership_school():
         schools = (
             School.objects.filter(memberships__teacher=user, memberships__is_active=True, is_active=True)
             .distinct()
             .only("id", "name")
         )
-        if schools.count() == 1:
-            return schools.first()
-    except Exception:
-        pass
+        return schools.first() if schools.count() == 1 else None
 
-    return None
+    return soft_call(
+        "audit.school_from_sole_membership",
+        _sole_membership_school,
+        default=None,
+        user_id=getattr(user, "pk", None),
+    )
 
 
 @receiver(user_logged_in)
@@ -242,24 +247,21 @@ def _single_session_on_login(sender, request, user, **kwargs):
         old_key = ""
 
     if old_key and new_key and old_key != new_key:
-        try:
+        # الجلسةُ القديمة التي لا تُحذف تعني بقاء الجهاز السابق مسجَّلاً —
+        # أي **إبطال قاعدة الجلسة الواحدة** بلا أن يعلم أحد.
+        with soft_fail("auth.delete_previous_session", user_id=getattr(user, "pk", None)):
             # Support both DB-backed and cache-backed session engines.
-            from django.contrib.sessions.backends.base import SessionBase
             from importlib import import_module
             from django.conf import settings as _settings
 
             engine = import_module(_settings.SESSION_ENGINE)
             store = engine.SessionStore(old_key)
             store.delete()
-        except Exception:
-            pass
 
-    try:
+    with soft_fail("auth.persist_session_key", user_id=getattr(user, "pk", None)):
         if getattr(user, "current_session_key", "") != new_key:
             user.current_session_key = new_key
             user.save(update_fields=["current_session_key"])
-    except Exception:
-        pass
 
     # Audit: login
     try:
@@ -276,8 +278,9 @@ def _single_session_on_login(sender, request, user, **kwargs):
             user_agent=(request.META.get("HTTP_USER_AGENT", "")[:500] if request else ""),
         )
     except Exception:
-        # لا نكسر تسجيل الدخول بسبب فشل سجل العمليات
-        pass
+        # لا نكسر تسجيل الدخول بسبب فشل سجل العمليات — لكن سجلّ تدقيقٍ ينقصه
+        # دخولٌ ليس سجلاً، وغيابه يُكتشف بعد الحادثة لا قبلها.
+        _degraded("audit.login_entry", user_id=getattr(user, "pk", None))
 
 
 @receiver(user_logged_out)
@@ -291,12 +294,10 @@ def _single_session_on_logout(sender, request, user, **kwargs):
     except Exception:
         sk = ""
 
-    try:
+    with soft_fail("auth.clear_session_key", user_id=getattr(user, "pk", None)):
         if sk and getattr(user, "current_session_key", "") == sk:
             user.current_session_key = ""
             user.save(update_fields=["current_session_key"])
-    except Exception:
-        pass
 
     # Audit: logout
     try:
@@ -313,7 +314,7 @@ def _single_session_on_logout(sender, request, user, **kwargs):
             user_agent=(request.META.get("HTTP_USER_AGENT", "")[:500] if request else ""),
         )
     except Exception:
-        pass
+        _degraded("audit.logout_entry", user_id=getattr(user, "pk", None))
 
 
 # =========================
@@ -410,7 +411,7 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
                     trace_id=trace_id,
                 )
         except Exception:
-            pass
+            _degraded("realtime.delta_new_recipient", user_id=teacher_id)
         return
 
     # Updates: read/signature state change
@@ -420,6 +421,7 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
         old_requires_signature = getattr(instance, "_sr_old_requires_signature", requires_signature)
         old_school_id = getattr(instance, "_sr_old_notification_school_id", notif_school_id)
     except Exception:
+        _degraded("realtime.read_previous_state", user_id=teacher_id)
         old_is_read = None
         old_is_signed = None
         old_requires_signature = requires_signature
@@ -428,10 +430,8 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
     # If schema/instance didn't have old values, do a safe resync.
     if old_is_read is None and old_is_signed is None:
         if push_force_resync is not None:
-            try:
+            with soft_fail("realtime.force_resync", user_id=teacher_id):
                 push_force_resync(teacher_id=teacher_id, trace_id=trace_id)
-            except Exception:
-                pass
         return
 
     # Circulars: count depends on is_signed only.
@@ -455,7 +455,7 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
                     trace_id=trace_id,
                 )
         except Exception:
-            pass
+            _degraded("realtime.delta_signature_change", user_id=teacher_id)
         return
 
     # Normal notifications: count depends on is_read.
@@ -478,7 +478,7 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
                 trace_id=trace_id,
             )
     except Exception:
-        pass
+        _degraded("realtime.delta_read_change", user_id=teacher_id)
 
 # =========================
 # System Notifications Logic (Added for System Manager)
@@ -541,6 +541,7 @@ def notify_admin_on_subscription(sender, instance, created, **kwargs):
                     teacher_ids=[i for i in new_ids if i],
                 )
     except Exception:
+        _degraded("notifications.fanout_recipients", notification_id=getattr(notification, "pk", None))
         # تجنب كسر العملية الأساسية في حال خطأ في الإشعارات
         pass
 
@@ -562,12 +563,12 @@ def _invalidate_school_on_report(sender, instance, **kwargs):
     if kwargs.get("raw"):
         return
 
-    try:
+    # كاشٌ لا يُبطَل يعني لوحةً تعرض أرقاماً قديمة بثقة — وهو أسوأ من لوحة
+    # بطيئة، لأن لا شيء فيها يدلّ على أنها قديمة.
+    with soft_fail("cache.invalidate_school_on_report", report_id=instance.pk):
         sid = getattr(instance, "school_id", None)
         if sid:
             invalidate_school(sid)
-    except Exception:
-        pass
 
 
 @receiver(post_save, sender=Ticket)
@@ -576,12 +577,10 @@ def _invalidate_school_on_ticket(sender, instance, **kwargs):
     if kwargs.get("raw"):
         return
 
-    try:
+    with soft_fail("cache.invalidate_school_on_ticket", ticket_id=instance.pk):
         sid = getattr(instance, "school_id", None)
         if sid:
             invalidate_school(sid)
-    except Exception:
-        pass
 
 
 @receiver(post_save, sender=NotificationRecipient)
@@ -590,12 +589,11 @@ def _invalidate_user_notif_cache(sender, instance, **kwargs):
     if kwargs.get("raw"):
         return
 
-    try:
+    # عدّادٌ لا يُبطَل يبقى مرتفعاً بعد القراءة — أكثر ما يُبلَّغ عنه.
+    with soft_fail("cache.invalidate_user_notifications", recipient_id=instance.pk):
         tid = getattr(instance.teacher, "id", None)
         if tid:
             invalidate_user_notifications(tid)
-    except Exception:
-        pass
 
 
 @receiver(post_save, sender=NotificationRecipient)

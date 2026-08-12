@@ -6,7 +6,7 @@
 {% block title %}إرسال تعميم رسمي{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   :root {
     --c-primary: #006c35;
     --c-primary-dark: #006c35;
@@ -811,7 +811,7 @@
     <header class="page-header">
       <div class="header-content">
         <h1>
-          <i class="fa-solid fa-feather-pointed" style="color:var(--c-primary)"></i>
+          <i class="fa-solid fa-feather-pointed u-text-c-primary"></i>
           <span>إرسال تعميم رسمي</span>
         </h1>
         <div class="header-subtitle">
@@ -850,7 +850,7 @@
                 {% endif %}
                 
                 {% if form.non_field_errors %}
-                  <div class="error-list" style="margin-bottom:1.5rem;padding:1rem;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;">
+                  <div class="error-list xs-send-circular-1">
                     {{ form.non_field_errors }}
                   </div>
                 {% endif %}
@@ -874,9 +874,9 @@
                   <!-- Optional Filters (Department / School) -->
                    {% if form.target_department %}
                     <div class="full-width form-group" data-name="target_department">
-                        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:0.5rem">
+                        <div class="xs-send-circular-2">
                           <label class="form-label">{{ form.target_department.label }}</label>
-                          <button type="button" id="clearAllDepartments" class="btn-link" style="font-size:0.85rem">
+                          <button type="button" id="clearAllDepartments" class="btn-link u-fs-sm">
                             مسح الأقسام
                           </button>
                         </div>
@@ -900,16 +900,16 @@
                         {{ form.attachment }}
                         <div class="form-hint">يسمح بملف PDF أو صورة، بحد أقصى 5 ميجابايت.</div>
                         {% if form.attachment.errors %}<div class="error-list">{{ form.attachment.errors }}</div>{% endif %}
-                        <div id="attachPreview" class="attach-preview" style="display:none" aria-live="polite"></div>
+                        <div id="attachPreview" class="attach-preview u-hidden" aria-live="polite"></div>
                     </div>
                   {% endif %}
                   
                   <!-- Important Toggle -->
-                  <div class="full-width" style="margin-block:0.5rem">
+                  <div class="full-width xs-send-circular-3">
                     {% if form.is_important %}
                       <label class="imp-toggle-row" for="{{ form.is_important.id_for_label }}">
                          <span class="imp-toggle-text">
-                           <span class="t"><i class="fa-solid fa-fire" style="color:#ef4444"></i> تعميم هام وعاجل</span>
+                           <span class="t"><i class="fa-solid fa-fire xs-send-circular-4"></i> تعميم هام وعاجل</span>
                            <small>يُبرز التعميم بشارة حمراء للمستلمين.</small>
                          </span>
                          {{ form.is_important }}
@@ -921,11 +921,11 @@
                   {% if form.teachers %}
                   <div class="full-width field" data-name="teachers">
                      <div class="form-group">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
+                        <div class="u-flex u-justify-between u-items-center u-mb-05">
                            <label class="form-label">
                               {{ form.teachers.label }}
                            </label>
-                           <span class="text-sm" style="color:var(--c-primary); font-weight:700">
+                           <span class="text-sm u-text-c-primary u-fw-700">
                              أفراد محددون: <span id="selCount">0</span>
                            </span>
                         </div>
@@ -939,15 +939,15 @@
                         <div class="teacher-selector">
                            <div class="teacher-tools">
                               <input type="search" id="teacherSearch" class="teacher-search" placeholder="ابحث باسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}...">
-                              <button type="button" id="selectAllTeachers" class="btn-link" style="color:var(--c-primary); font-size:0.85rem" title="اختيار جميع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}">
-                                <i class="fa-solid fa-check-double" style="margin-inline-end:4px"></i>الكل
+                              <button type="button" id="selectAllTeachers" class="btn-link u-text-c-primary u-fs-sm" title="اختيار جميع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}">
+                                <i class="fa-solid fa-check-double xs-send-circular-5"></i>الكل
                               </button>
-                              <button type="button" id="clearAllTeachers" class="btn-link" style="color:#ef4444; font-size:0.85rem" title="إلغاء تحديد الكل">
-                                <i class="fa-solid fa-xmark" style="margin-inline-end:4px"></i>إلغاء
+                              <button type="button" id="clearAllTeachers" class="btn-link xs-send-circular-6" title="إلغاء تحديد الكل">
+                                <i class="fa-solid fa-xmark xs-send-circular-5"></i>إلغاء
                               </button>
                            </div>
-                           <p style="font-size:0.8rem;color:#64748b;margin:0 0 0.6rem;padding:0 0.25rem">
-                             <i class="fa-solid fa-circle-info" style="color:var(--c-primary);margin-inline-end:4px"></i>
+                           <p class="xs-send-circular-7">
+                             <i class="fa-solid fa-circle-info xs-send-circular-8"></i>
                              اضغط على اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} لتحديده، أو اضغط "<strong>الكل</strong>" لتحديد الجميع دفعةً واحدة.
                            </p>
                            
@@ -1035,7 +1035,7 @@
                     <div class="doc-title" id="pv_title">عنوان التعميم</div>
                 </div>
                 <!-- Logo Placehoder -->
-                <div style="opacity:0.15">
+                <div class="xs-send-circular-9">
                     <i class="fa-solid fa-school fa-3x"></i>
                 </div>
              </div>
@@ -1046,10 +1046,10 @@
                      <i class="fa-solid fa-user-tie"></i>
                      <span>من: {% firstof request.user.name request.user.phone "الإدارة المدرسية" %}</span>
                  </span>
-                <span class="doc-tag" id="pv_att" style="display:none">
+                <span class="doc-tag u-hidden" id="pv_att">
                   <i class="fa-solid fa-paperclip"></i> يوجد مرفق
                 </span>
-                 <span class="doc-tag" id="pv_imp" style="display:none; color:#dc2626; border-color:#fecaca; background:#fef2f2">
+                 <span class="doc-tag xs-send-circular-10" id="pv_imp">
                      <i class="fa-solid fa-fire"></i> هام وعاجل
                  </span>
              </div>
@@ -1062,7 +1062,7 @@
              <!-- Footer -->
              <div class="doc-footer">
                 <div>
-                   <span id="pv_deadline_box" style="display:none">
+                   <span id="pv_deadline_box" class="u-hidden">
                      <i class="fa-regular fa-clock"></i> ينتهي التوقيع: <b id="pv_deadline">--</b>
                    </span>
                 </div>
@@ -1072,7 +1072,7 @@
              </div>
           </div>
           
-          <div style="text-align:center; margin-top:1.5rem; opacity:0.7; font-size:0.9rem">
+          <div class="xs-send-circular-11">
              <i class="fa-solid fa-eye"></i> معاينة حية لشكل المستند
           </div>
       </aside>
@@ -1311,7 +1311,7 @@
          const fieldName = 'teachers';
          
          if(results.length === 0){
-            html = '<div style="padding:1rem;text-align:center;color:#64748b">لا يوجد مستلمون مطابقون.</div>';
+            html = '<div class="xs-send-circular-12">لا يوجد مستلمون مطابقون.</div>';
          } else {
              results.forEach(t => {
                 // Generates structure compatible with CSS: label > input

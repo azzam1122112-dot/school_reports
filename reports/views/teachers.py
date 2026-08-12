@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from core.observability import report_degraded as _degraded, soft_call, soft_fail
+
 from ._helpers import *
 from ._helpers import (
     _safe_next_url, _model_has_field,
@@ -126,7 +128,9 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
                 school_job_title=Subquery(title_sq),
             )
         except Exception:
-            pass
+            # بلا هذه التعليقات يفقد الكشف عمودَ الدور والمسمّى الوظيفي —
+            # ويقرأ المدير كشفاً ناقصاً بلا ما يدلّ على نقصه.
+            _degraded("teachers.annotate_membership_columns")
 
     # ✅ منع N+1: Prefetch عضويات الأقسام مرة واحدة وبحقول أقل
     if DepartmentMembership is not None:
@@ -136,7 +140,7 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
             .only("id", "teacher_id", "role_type", "department__id", "department__name", "department__slug")
             .order_by("department__name")
         )
-        if active_school is not None and _model_has_field(Department, "school"):
+        if active_school is not None:
             dm_qs = dm_qs.filter(Q(department__school=active_school) | Q(department__school__isnull=True))
 
         qs = qs.prefetch_related(Prefetch("dept_memberships", queryset=dm_qs))
@@ -184,13 +188,26 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
         messages.error(request, "فضلاً اختر مدرسة أولاً.")
         return redirect("reports:select_school")
 
-    # Defense-in-depth: تأكد أن المدير يملك صلاحية على المدرسة النشطة
+    # Defense-in-depth: تأكد أن المدير يملك صلاحية على المدرسة النشطة.
+    #
+    # ``except Exception: pass`` هنا كان يُلغي الفحص نفسه: تعثّرُ استعلام
+    # المدارس يُقرأ «لا مانع» فيمضي غيرُ المدير إلى استيراد جماعي يُنشئ عضويات
+    # في مدرسة ليست له. وفحصٌ يفشل مفتوحاً ليس فحصاً — فيُقلب مغلقاً.
     try:
-        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
-            messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
-            return redirect("reports:select_school")
+        is_manager_here = request.user.is_superuser or (
+            active_school in _user_manager_schools(request.user)
+        )
     except Exception:
-        pass
+        _degraded(
+            "teachers.manager_scope_check",
+            user_id=request.user.pk,
+            school_id=getattr(active_school, "pk", None),
+        )
+        is_manager_here = False
+
+    if not is_manager_here:
+        messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
+        return redirect("reports:select_school")
 
     # الاستيراد يُنشئ عضويات TEACHER؛ نتحقق من وجود اشتراك فعّال لتجنب ValidationError العام
     sub = getattr(active_school, "subscription", None)
@@ -255,7 +272,7 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                     if digits.startswith("5") and len(digits) == 10:
                         digits = "0" + digits[-9:]
                 except Exception:
-                    pass
+                    _degraded("teachers.normalize_phone")
                 return digits
 
             def _normalize_national_id(v) -> str:
@@ -411,12 +428,10 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                         changed_fields: list[str] = []
 
                         # ✅ تحديث الاسم إذا اختلف
-                        try:
+                        with soft_fail("teachers.import_update_name", row=row_idx):
                             if name_s and (getattr(teacher, "name", "") or "").strip() != name_s:
                                 teacher.name = name_s
                                 changed_fields.append("name")
-                        except Exception:
-                            pass
 
                         # ✅ تحديث رقم الهوية (إن وُجد)
                         if nat_s:
@@ -434,7 +449,7 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                                         )
                                         continue
                             except Exception:
-                                pass
+                                _degraded("teachers.import_update_national_id", row=row_idx)
 
                         # ✅ تحديث رقم الجوال إذا تم العثور على المعلم عبر الهوية (أو اختلاف الجوال)
                         try:
@@ -445,18 +460,18 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                                     teacher.phone = phone_s
                                     changed_fields.append("phone")
                                     # لو تغير الجوال نحدّث كلمة المرور الافتراضية لتبقى متوافقة (اختياري)
-                                    try:
+                                    # كلمةُ مرورٍ لم تُحدَّث بعد تغيير الجوال
+                                    # تعني معلّماً يعجز عن الدخول بالافتراضية.
+                                    with soft_fail("teachers.import_reset_default_password", row=row_idx):
                                         teacher.password = make_password(phone_s)
                                         changed_fields.append("password")
-                                    except Exception:
-                                        pass
                                 else:
                                     errors.append(
                                         f"الصف {row_idx}: رقم الجوال مرتبط بمستخدم آخر، لا يمكن تحديثه تلقائياً."
                                     )
                                     continue
                         except Exception:
-                            pass
+                            _degraded("teachers.import_update_phone", row=row_idx)
 
                         if changed_fields:
                             try:
@@ -485,13 +500,13 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
 
                     if not created:
                         # إن كانت العضوية موجودة لكنها غير نشطة، فعّلها
-                        try:
-                            if hasattr(membership, "is_active") and not bool(getattr(membership, "is_active", True)):
+                        # عضويةٌ لم تُفعَّل تعني معلّماً مستورَداً لا يظهر في
+                        # مدرسته — وهو أكثر ما يُبلَّغ عنه بعد الاستيراد.
+                        with soft_fail("teachers.import_reactivate_membership", row=row_idx):
+                            if not bool(getattr(membership, "is_active", True)):
                                 membership.is_active = True
                                 membership.save(update_fields=["is_active"])
                                 reactivated_count += 1
-                        except Exception:
-                            pass
 
             if created_count > 0:
                 messages.success(request, f"✅ تم إنشاء {created_count} من حسابات {labels['teachers_object']}.")

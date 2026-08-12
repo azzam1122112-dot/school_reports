@@ -4,7 +4,7 @@
 {% block title %}إضافات الأرشيف{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .addons-scope {
     --ad-brand: var(--brand, #006c35);
     --ad-ink: var(--ink, #0f172a);
@@ -114,7 +114,7 @@
 <div class="royal-page addons-scope">
   <section class="hero">
     <div>
-      <span class="royal-kicker" style="background:rgba(255,255,255,.16);color:#fff;border-color:rgba(255,255,255,.28)">
+      <span class="royal-kicker xs-platform-archive-addons-1">
         <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
         إضافات مستقلة
       </span>
@@ -178,7 +178,7 @@
       <table class="royal-table rtable">
         <thead>
           <tr>
-            <th style="text-align:right">المدرسة</th>
+            <th class="u-text-start">المدرسة</th>
             <th>الفترة</th>
             <th>مساحة النسخ السنوية</th>
             <th>القيمة</th>
@@ -189,7 +189,7 @@
         <tbody>
           {% for addon in addons %}
             <tr>
-              <td data-label="المدرسة" style="text-align:right">
+              <td data-label="المدرسة" class="u-text-start">
                 <div class="school">{{ addon.school.name }}</div>
                 <div class="subline">{{ addon.school.code|default:"بدون كود" }}</div>
               </td>
@@ -239,7 +239,7 @@
               </td>
             </tr>
           {% empty %}
-            <tr><td colspan="6" style="padding:28px;text-align:center" class="label">لا توجد إضافات أرشيف بعد.</td></tr>
+            <tr><td colspan="6" class="label xs-platform-archive-addons-2">لا توجد إضافات أرشيف بعد.</td></tr>
           {% endfor %}
         </tbody>
       </table>

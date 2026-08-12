@@ -7,9 +7,19 @@ active school stored in the user's session.
 """
 from __future__ import annotations
 
-from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
+from rest_framework import mixins, viewsets, permissions, status  # noqa: F401
+from rest_framework.decorators import (
+    action,
+    api_view,
+    authentication_classes,
+    permission_classes,
+    throttle_classes,
+)
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
+
+from .api_auth import HasWriteScope
+from .api_schema import build_openapi_schema
 
 from django.db import models as db_models
 
@@ -31,6 +41,7 @@ from .permissions import (
 )
 from .serializers import (
     NotificationListSerializer,
+    ReportCreateSerializer,
     ReportListSerializer,
     ReportTypeSerializer,
     SchoolSerializer,
@@ -82,10 +93,29 @@ class SchoolViewSet(viewsets.ReadOnlyModelViewSet):
         ).distinct()
 
 
-class ReportViewSet(viewsets.ReadOnlyModelViewSet):
-    """Reports scoped to the active school."""
-    serializer_class = ReportListSerializer
-    permission_classes = [permissions.IsAuthenticated, IsTenantMember]
+class ReportViewSet(
+    mixins.CreateModelMixin,
+    viewsets.ReadOnlyModelViewSet,
+):
+    """التقارير ضمن المدرسة النشطة — قراءةً، وإنشاءً بمفتاحٍ يملك نطاق الكتابة.
+
+    الإنشاء هو أول مسار كتابة في هذا الـAPI، واختير أولاً لأنه ما تحتاجه
+    التكاملات فعلاً: نظامٌ خارجي يرفع ما وثّقه بدل أن يُعاد إدخاله يدوياً.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsTenantMember, HasWriteScope]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return ReportCreateSerializer
+        return ReportListSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        # المدرسة من السياق لا من الحمولة — راجع تعليل ``ReportCreateSerializer``.
+        context["school"] = _active_school(self.request)
+        context["teacher"] = self.request.user
+        return context
 
     def get_queryset(self):
         school = _active_school(self.request)
@@ -169,3 +199,17 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
             notification__school=school,
         ).count()
         return Response({"count": count})
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([permissions.AllowAny])
+@throttle_classes([AnonRateThrottle])
+def openapi_schema(request):
+    """وثيقة OpenAPI — عامة عمداً.
+
+    الوصفُ ليس سرّاً: هو ما يحتاجه المتكامل قبل أن يملك مفتاحاً، وحجبُه خلف
+    مصادقةٍ يجعل التكامل يبدأ بمراسلة الدعم. والبيانات كلها خلف المفتاح، وهذه
+    الوثيقة لا تحوي منها شيئاً — تحوي أسماء الحقول وقواعد العزل فقط.
+    """
+    return Response(build_openapi_schema())

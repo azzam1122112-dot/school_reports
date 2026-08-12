@@ -22,7 +22,6 @@ def _b64(value: bytes) -> str:
 class WebPushRuntimeConfigTests(SimpleTestCase):
     def _args(self, **overrides):
         values = {
-            "tamara_enabled": None,
             "moyasar_enabled": None,
             "moyasar_environment": None,
             "pdf_offload_enabled": None,

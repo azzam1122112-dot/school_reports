@@ -2,7 +2,7 @@
 {% block title %}إرسال إشعار{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .pn-page{max-width:980px;margin:0 auto;padding:clamp(12px,2.5vw,22px)}
   .pn-panel{
     background:var(--card);border:1px solid var(--line-2);border-radius:18px;
@@ -184,7 +184,7 @@
           <div class="pn-schools" id="schoolsList">
             {{ form.selected_schools }}
           </div>
-          {% if form.selected_schools.help_text %}<div class="pn-muted" style="margin-top:8px">{{ form.selected_schools.help_text }}</div>{% endif %}
+          {% if form.selected_schools.help_text %}<div class="pn-muted u-mt-2">{{ form.selected_schools.help_text }}</div>{% endif %}
           {% if form.selected_schools.errors %}<div class="pn-error">{{ form.selected_schools.errors }}</div>{% endif %}
         </div>
 
@@ -196,7 +196,7 @@
 
         <div class="pn-field">
           <label class="pn-label">{{ form.is_important.label }}</label>
-          <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:900;color:var(--ink)">
+          <label class="xs-platform-school-notify-1">
             {{ form.is_important }}
             <span>تمييز الإشعار كمهم</span>
           </label>
@@ -257,7 +257,7 @@
       textSpan.title = textStr;
       const checkIcon = document.createElement('span');
       checkIcon.className = 'sn-check';
-      checkIcon.innerHTML = '<i class="fa-solid fa-check" style="pointer-events:none"></i>';
+      checkIcon.innerHTML = '<i class="fa-solid fa-check xs-platform-school-notify-2"></i>';
       // Clear label content and rebuild
       label.innerHTML = '';
       label.appendChild(input);

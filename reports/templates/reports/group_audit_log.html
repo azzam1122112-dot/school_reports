@@ -4,7 +4,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .gal-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.1rem; }
   .gal-tabs a {
     font-size: .82rem; font-weight: 800; text-decoration: none;
@@ -61,7 +61,7 @@
   <section class="asg-card">
     <form method="get" class="gal-filters">
       <input type="hidden" name="group" value="{{ group.pk }}">
-      <div class="asg-field" style="margin:0">
+      <div class="asg-field u-m-0">
         <label for="f-school">المدرسة</label>
         <select id="f-school" name="school">
           <option value="">كل المدارس</option>
@@ -70,7 +70,7 @@
           {% endfor %}
         </select>
       </div>
-      <div class="asg-field" style="margin:0">
+      <div class="asg-field u-m-0">
         <label for="f-action">نوع الإجراء</label>
         <select id="f-action" name="action">
           <option value="">كل الإجراءات</option>
@@ -79,7 +79,7 @@
           {% endfor %}
         </select>
       </div>
-      <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+      <div class="u-flex u-gap-05 u-wrap">
         <button type="submit" class="asg-btn asg-btn--primary">
           <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
           تطبيق
@@ -90,7 +90,7 @@
       </div>
     </form>
 
-    <div style="margin-top:1.1rem">
+    <div class="u-mt-xl">
       {% for log in page_obj %}
         <div class="gal-row" data-tone="{{ log.ui.tone }}">
           <span class="gal-dot" aria-hidden="true"><i class="fa-solid {{ log.ui.icon }}"></i></span>
@@ -118,7 +118,7 @@
         {% if page_obj.has_previous %}
           <a class="asg-btn asg-btn--ghost asg-btn--sm" href="?page={{ page_obj.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">الأحدث</a>
         {% endif %}
-        <span style="font-size:.8rem;font-weight:700;color:var(--asg-muted)">
+        <span class="xs-group-audit-log-1">
           صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}
         </span>
         {% if page_obj.has_next %}

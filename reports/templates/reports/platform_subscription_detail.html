@@ -4,7 +4,7 @@
 {% block title %}تفاصيل الاشتراك{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .subdetail-scope {
     --sd-brand: var(--brand, #006c35);
     --sd-ink: var(--ink, #0f172a);
@@ -492,40 +492,38 @@
         <table class="rtable">
           <thead>
             <tr>
-              <th style="text-align:right">رقم العملية</th>
-              <th style="text-align:right">التاريخ</th>
-              <th style="text-align:right">المبلغ</th>
-              <th style="text-align:right">طريقة الدفع</th>
-              <th style="text-align:right">الحالة</th>
-              <th style="text-align:right">الخطة</th>
-              <th style="text-align:right">الإجراء</th>
+              <th class="u-text-start">رقم العملية</th>
+              <th class="u-text-start">التاريخ</th>
+              <th class="u-text-start">المبلغ</th>
+              <th class="u-text-start">طريقة الدفع</th>
+              <th class="u-text-start">الحالة</th>
+              <th class="u-text-start">الخطة</th>
+              <th class="u-text-start">الإجراء</th>
             </tr>
           </thead>
           <tbody>
             {% for payment in payments %}
               <tr>
-                <td data-label="رقم العملية" style="text-align:right">#{{ payment.id }}</td>
-                <td data-label="التاريخ" style="text-align:right">{{ payment.payment_date|hijri }} هـ</td>
-                <td data-label="المبلغ" style="text-align:right">{{ payment.amount|floatformat:0|intcomma }} ريال</td>
-                <td data-label="طريقة الدفع" style="text-align:right">{{ payment.get_payment_method_display }}</td>
-                <td data-label="الحالة" style="text-align:right">
+                <td data-label="رقم العملية" class="u-text-start">#{{ payment.id }}</td>
+                <td data-label="التاريخ" class="u-text-start">{{ payment.payment_date|hijri }} هـ</td>
+                <td data-label="المبلغ" class="u-text-start">{{ payment.amount|floatformat:0|intcomma }} ريال</td>
+                <td data-label="طريقة الدفع" class="u-text-start">{{ payment.get_payment_method_display }}</td>
+                <td data-label="الحالة" class="u-text-start">
                   {% if payment.status == 'approved' %}
                     <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> مقبول</span>
                   {% elif payment.status == 'rejected' %}
                     <span class="badge danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> مرفوض</span>
                   {% elif payment.status == 'cancelled' %}
                     <span class="badge warning"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
-                  {% elif payment.payment_method == 'tamara' %}
-                    <span class="badge warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار{% if tamara_enabled %} تمارا{% else %} مزود الدفع{% endif %}</span>
                   {% elif payment.payment_method == 'moyasar' %}
                     <span class="badge warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار ميّسر</span>
                   {% else %}
                     <span class="badge warning"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> قيد المراجعة</span>
                   {% endif %}
                 </td>
-                <td data-label="الخطة" style="text-align:right">{{ payment.requested_plan.name|default:subscription.plan.name }}{% if payment.requested_teacher_limit %}<small style="display:block">سعة {{ payment.requested_teacher_limit }} معلماً</small>{% endif %}</td>
-                <td data-label="الإجراء" style="text-align:right">
-                  <a href="{% url 'reports:platform_payment_detail' payment.id %}" class="btn btn-outline" style="min-height:34px;padding:6px 10px;border-radius:10px;">
+                <td data-label="الخطة" class="u-text-start">{{ payment.requested_plan.name|default:subscription.plan.name }}{% if payment.requested_teacher_limit %}<small class="u-block">سعة {{ payment.requested_teacher_limit }} معلماً</small>{% endif %}</td>
+                <td data-label="الإجراء" class="u-text-start">
+                  <a href="{% url 'reports:platform_payment_detail' payment.id %}" class="btn btn-outline xs-platform-subscription-detail-1">
                     <i class="fa-solid fa-eye" aria-hidden="true"></i>
                     عرض العملية
                   </a>
@@ -533,7 +531,7 @@
               </tr>
             {% empty %}
               <tr>
-                <td colspan="7" style="text-align:center; padding: 2rem;" class="muted">
+                <td colspan="7" class="muted xs-platform-subscription-detail-2">
                   لا توجد عمليات مالية مرتبطة بهذا الاشتراك حتى الآن.
                 </td>
               </tr>

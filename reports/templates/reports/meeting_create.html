@@ -4,7 +4,7 @@
 
 {% block head %}
 {% include "reports/_meeting_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .mnew-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
 
   /* الترقيم يجعل الصفحة رحلة من ثلاث محطات لا استمارةً طويلة. */

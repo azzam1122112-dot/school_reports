@@ -4,7 +4,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .ini-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; }
   @media (max-width: 900px) { .ini-grid { grid-template-columns: 1fr; } }
   .ini-body { font-size: .84rem; line-height: 1.9; color: var(--asg-muted); margin-top: .35rem; white-space: pre-wrap; }
@@ -31,13 +31,13 @@
 
   <div class="ini-grid">
     <div>
-      <section class="asg-card" style="margin-top:1.2rem">
+      <section class="asg-card u-mt-2xl">
         <h2 class="asg-card__title">
           {% if is_manager %}المبادرات ومتابعتها{% else %}مبادراتي{% endif %}
         </h2>
 
         {% for row in rows %}
-          <article class="asg-item" style="align-items:flex-start">
+          <article class="asg-item u-items-start">
             <div class="asg-item__main">
               <div class="asg-item__title">{{ row.initiative.title }}</div>
               <div class="asg-item__sub">
@@ -49,7 +49,7 @@
                 <div class="ini-body">{{ row.initiative.summary|truncatechars:260 }}</div>
               {% endif %}
               {% if row.initiative.review_note %}
-                <div class="ini-body" style="color:var(--asg-gold)">
+                <div class="ini-body xs-initiative-list-1">
                   <strong>ملاحظة:</strong> {{ row.initiative.review_note }}
                 </div>
               {% endif %}
@@ -59,8 +59,7 @@
                   {% csrf_token %}
                   <input type="hidden" name="initiative_action" class="ini-field" value="">
                   {% if not row.mine %}
-                    <input type="text" name="note" placeholder="ملاحظتك…"
-                           style="flex:1;min-width:150px;padding:.4rem .6rem;border-radius:9px;border:1px solid var(--asg-line);background:var(--asg-surface);color:var(--asg-ink);font-family:inherit;font-size:.8rem">
+                    <input type="text" name="note" placeholder="ملاحظتك…" class="xs-initiative-list-2">
                   {% endif %}
                   {% if 'submit' in row.actions %}
                     <button type="submit" class="asg-btn asg-btn--primary asg-btn--sm" data-ini="submit">إرسال للاعتماد</button>
@@ -84,7 +83,7 @@
               {% endif %}
             </div>
 
-            <div class="asg-item__side" style="align-self:flex-start">
+            <div class="asg-item__side u-self-start">
               <span class="asg-tag {% if row.initiative.is_final %}asg-tag--done{% endif %}">
                 {{ row.initiative.get_approval_state_display }}
               </span>
@@ -124,7 +123,7 @@
     </div>
 
     <div>
-      <section class="asg-card" style="margin-top:1.2rem">
+      <section class="asg-card u-mt-2xl">
         <h2 class="asg-card__title">اقتراح مبادرة</h2>
         <p class="asg-card__hint">تُحفظ مسودةً، وترسلها للاعتماد حين تكتمل.</p>
 

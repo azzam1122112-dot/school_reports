@@ -4,7 +4,7 @@
 
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .mnew-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
   .mnew-people { display: grid; gap: .45rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
   .mnew-people label { display: flex; gap: .5rem; align-items: flex-start; font-size: .85rem; font-weight: 700; }
@@ -69,7 +69,7 @@
         {% for choice in form.schools %}
           <label>{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
         {% empty %}
-          <p class="asg-card__hint" style="margin:0">لا مدارس نشطة في هذه المجموعة.</p>
+          <p class="asg-card__hint u-m-0">لا مدارس نشطة في هذه المجموعة.</p>
         {% endfor %}
       </div>
       {% if form.schools.errors %}<ul class="asg-errors">{% for e in form.schools.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}

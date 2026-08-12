@@ -1,0 +1,2087 @@
+# English translation of the Tawtheeq public layer.
+# The source language is Arabic; internal work screens stay Arabic by design.
+# Copyright (C) 2026 Tawtheeq
+# This file is distributed under the same license as the Tawtheeq package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: tawtheeq\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-12 09:45+0300\n"
+"PO-Revision-Date: 2026-08-12 09:45+0300\n"
+"Last-Translator: Tawtheeq <support@tawtheeq.sa>\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: .\reports\templates\reports\complaints_policy.html:15
+msgid "قنوات الاستقبال ومدد الخدمة"
+msgstr "Intake channels and service timelines"
+
+#: .\reports\templates\reports\complaints_policy.html:17
+msgid "نموذج الشكوى الإلكتروني أدناه، وهو متاح دون تسجيل دخول."
+msgstr "The online complaint form below, available without signing in."
+
+#: .\reports\templates\reports\complaints_policy.html:19
+msgid ""
+"نؤكد الاستلام خلال يومي عمل، ونستهدف معالجة الشكوى خلال سبعة أيام عمل. إذا "
+"كانت الحالة معقدة، نبلغ العميل بسبب التمديد والموعد المتوقع. تحفظ تفاصيل "
+"الشكوى للمتابعة وتحسين الخدمة وفق سياسة الخصوصية."
+msgstr "We acknowledge receipt within two business days and aim to resolve complaints within seven business days. For complex cases we inform the customer of the reason for the extension and the expected date. Complaint details are retained for follow-up and service improvement in line with the Privacy Policy."
+
+#: .\reports\templates\reports\complaints_policy.html:23
+msgid "تقديم شكوى إلكترونية"
+msgstr "Submit an online complaint"
+
+#: .\reports\templates\reports\complaints_policy.html:39
+msgid "إرسال الشكوى"
+msgstr "Send complaint"
+
+#: .\reports\templates\reports\complaints_policy.html:40
+msgid ""
+"بإرسال النموذج توافق على معالجة البيانات لغرض متابعة الشكوى وفق سياسة "
+"الخصوصية."
+msgstr "By submitting this form you consent to your data being processed for the purpose of handling the complaint, in line with the Privacy Policy."
+
+#: .\reports\templates\reports\complaints_policy.html:46
+msgid "التصعيد"
+msgstr "Escalation"
+
+#: .\reports\templates\reports\complaints_policy.html:47
+msgid ""
+"إذا لم تُحل الشكوى عبر قنواتنا، يحق للعميل تقديم بلاغ إلى وزارة التجارة عبر "
+"الرقم 1900 أو تطبيق «بلاغ تجاري»، أو اللجوء إلى الجهة المختصة، دون أن يؤثر "
+"ذلك في أي حق نظامي."
+msgstr "If a complaint is not resolved through our channels, the customer may file a report with the Ministry of Commerce on 1900 or via the “Balagh Tijari” app, or approach the competent authority — without prejudice to any statutory right."
+
+#: .\reports\templates\reports\faq.html:259
+msgid "إجابات لأكثر الأسئلة شيوعاً حول منصة توثيق"
+msgstr "Answers to the most common questions about Tawtheeq"
+
+#: .\reports\templates\reports\faq.html:263
+msgid "البحث في الأسئلة الشائعة"
+msgstr "Search the FAQ"
+
+#: .\reports\templates\reports\faq.html:272
+msgid "ما هي منصة توثيق؟"
+msgstr "What is Tawtheeq?"
+
+#: .\reports\templates\reports\faq.html:282
+msgid "هل المنصة مناسبة لمدرسة واحدة فقط؟"
+msgstr "Is the platform suitable for a single school?"
+
+#: .\reports\templates\reports\faq.html:286
+msgid ""
+"لا، تدعم المنصة مدرسة واحدة أو عدة مدارس في نفس الوقت، مع عزل واضح للبيانات "
+"بين كل مدرسة. كل مدرسة لها بياناتها وصلاحياتها وكادرها التعليمي المستقل."
+msgstr "No — the platform supports one school or several at once, with strict data isolation between them. Each school has its own data, permissions and teaching staff."
+
+#: .\reports\templates\reports\faq.html:302
+msgid "هل المنصة آمنة وتحمي بيانات المدرسة؟"
+msgstr "Is the platform secure, and does it protect school data?"
+
+#: .\reports\templates\reports\faq.html:306
+msgid ""
+"نعم، المنصة مبنية على أحدث معايير الأمان. تتضمن: تشفير البيانات، جلسة واحدة "
+"لكل مستخدم، تسجيل خروج تلقائي بعد الخمول، وسجل تدقيق كامل لجميع العمليات "
+"الحساسة."
+msgstr "Yes. The platform is built on current security standards: encrypted data, a single active session per user, automatic sign-out after inactivity, and a full audit log of every sensitive action."
+
+#: .\reports\templates\reports\faq.html:316
+msgid "كم صورة يمكنني إرفاقها في التقرير؟"
+msgstr "How many images can I attach to a report?"
+
+#: .\reports\templates\reports\faq.html:320
+msgid ""
+"يمكنك إرفاق حتى 4 صور في كل تقرير. ستظهر الصور في التقرير المطبوع بتنسيق "
+"احترافي."
+msgstr "Up to 4 images per report. They appear in the printed report in a polished layout."
+
+#: .\reports\templates\reports\faq.html:326
+msgid "هل يمكنني تعديل التقرير بعد حفظه؟"
+msgstr "Can I edit a report after saving it?"
+
+#: .\reports\templates\reports\faq.html:336
+msgid "كيف يمكنني طباعة التقرير؟"
+msgstr "How do I print a report?"
+
+#: .\reports\templates\reports\faq.html:346
+msgid "هل يمكن تخصيص أنواع التقارير حسب احتياجات المدرسة؟"
+msgstr "Can report types be tailored to the school’s needs?"
+
+#: .\reports\templates\reports\faq.html:360
+msgid "ما الفرق بين التقرير والطلب؟"
+msgstr "What is the difference between a report and a request?"
+
+#: .\reports\templates\reports\faq.html:364
+msgid ""
+"التقرير هو توثيق لحدث أو نشاط قمت به. أما الطلب فهو طلب تحتاج فيه لإجراء من "
+"قسم معين (مثل طلب صيانة، طلب احتياج، أو استفسار)."
+msgstr "A report documents an event or activity you carried out. A request asks a specific department to act — maintenance, supplies, or an enquiry."
+
+#: .\reports\templates\reports\faq.html:370
+msgid "كيف أتابع حالة طلبي؟"
+msgstr "How do I track my request?"
+
+#: .\reports\templates\reports\faq.html:380
+msgid "هل يمكنني إرفاق ملفات أو صور مع الطلب؟"
+msgstr "Can I attach files or images to a request?"
+
+#: .\reports\templates\reports\faq.html:384
+msgid ""
+"نعم، يمكنك إرفاق صور أو ملفات داعمة مع طلبك لتوضيح المشكلة أو الاحتياج بشكل "
+"أفضل."
+msgstr "Yes — attach supporting images or files to make the issue or need clearer."
+
+#: .\reports\templates\reports\faq.html:390
+msgid "من يتلقى الطلبات؟"
+msgstr "Who receives requests?"
+
+#: .\reports\templates\reports\faq.html:404
+msgid "هل يمكن استخراج ملف إنجاز PDF؟"
+msgstr "Can I export an achievement portfolio as PDF?"
+
+#: .\reports\templates\reports\faq.html:408
+msgid ""
+"نعم، المنصة تولد ملف PDF احترافي لملف الإنجاز يحتوي على جميع بياناتك "
+"والشواهد (الصور) المرفقة، مع شعار المدرسة وتنسيق احترافي جاهز للطباعة."
+msgstr "Yes. The platform generates a polished PDF portfolio containing your data and attached evidence images, with the school logo and a print-ready layout."
+
+#: .\reports\templates\reports\faq.html:414
+msgid "كم عدد الشواهد (الصور) التي يمكن إضافتها لكل محور؟"
+msgstr "How many evidence images can I add per section?"
+
+#: .\reports\templates\reports\faq.html:418
+msgid ""
+"يمكنك إضافة حتى 8 صور لكل محور من محاور ملف الإنجاز (التخطيط، التنفيذ، "
+"التقويم، التنمية المهنية، المسؤوليات الإضافية)."
+msgstr "Up to 8 images for each portfolio section (planning, delivery, assessment, professional development, additional responsibilities)."
+
+#: .\reports\templates\reports\faq.html:424
+msgid "هل توجد مشاركة خارجية لملف الإنجاز؟"
+msgstr "Can a portfolio be shared outside the platform?"
+
+#: .\reports\templates\reports\faq.html:428
+msgid ""
+"نعم، يمكنك إنشاء رابط مؤقت لمشاركة ملف الإنجاز مع الجهات المعنية أو المهتمين "
+"خارج المنصة. الرابط قابل للتفعيل والتعطيل ويمكن تحديد مدة صلاحيته."
+msgstr "Yes. You can create a temporary link to share a portfolio with interested parties outside the platform. The link can be enabled, disabled, and given an expiry."
+
+#: .\reports\templates\reports\faq.html:448
+msgid "كيف أعرف أن لدي إشعار جديد؟"
+msgstr "How do I know I have a new notification?"
+
+#: .\reports\templates\reports\faq.html:452
+msgid ""
+"ستظهر علامة حمراء على أيقونة الإشعارات في أعلى الصفحة عند وصول إشعار جديد لم "
+"تقرأه بعد."
+msgstr "A red badge appears on the notifications icon at the top of the page whenever an unread notification arrives."
+
+#: .\reports\templates\reports\faq.html:458
+msgid "ماذا يحدث إذا لم أوقع على التعميم في الوقت المحدد؟"
+msgstr "What happens if I miss a circular’s signing deadline?"
+
+#: .\reports\templates\reports\faq.html:462
+msgid ""
+"بعض التعاميم لها موعد نهائي للتوقيع. عدم التوقيع قبل الموعد قد يظهر في "
+"تقارير الإدارة. احرص على مراجعة التعاميم والتوقيع عليها في الوقت المناسب."
+msgstr "Some circulars carry a signing deadline. Missing it may show in management reports, so review and sign circulars in good time."
+
+#: .\reports\templates\reports\faq.html:468
+msgid "هل يمكن للمدير معرفة من قرأ ووقع على التعميم؟"
+msgstr "Can the principal see who read and signed a circular?"
+
+#: .\reports\templates\reports\faq.html:482
+msgid "كيف يمكن إضافة حسابات جديدة للكادر التعليمي؟"
+msgstr "How do I add accounts for teaching staff?"
+
+#: .\reports\templates\reports\faq.html:492
+msgid "لا أرى لوحة المدرسة، لماذا؟"
+msgstr "I can’t see the school dashboard — why?"
+
+#: .\reports\templates\reports\faq.html:509
+msgid ""
+"نعم. تُنشئ داخل مدرستك أقساماً حسب حاجتك، وتُعيّن لكل قسم مسؤولاً يطّلع على تقارير "
+"أنواع قسمه دون غيرها، وتُسند إليه الطلبات الواردة ومتابعتها. كما تحدّد لكل "
+"منسوب مسمّاه الوظيفي داخل المدرسة."
+msgstr "Yes. Create as many departments as you need, assign each a lead who sees only their department’s report types and handles its incoming requests, and set a job title for every staff member."
+
+#: .\reports\templates\reports\faq.html:515
+msgid "لم تجد إجابة لسؤالك؟"
+msgstr "Didn’t find your answer?"
+
+#: .\reports\templates\reports\faq.html:516
+msgid "فريق الدعم الفني جاهز لمساعدتك"
+msgstr "Our support team is ready to help"
+
+#: .\reports\templates\reports\landing.html:133
+#: .\reports\templates\reports\landing.html:1143
+#: .\reports\templates\reports\register_school.html:375
+msgid "منصة توثيق"
+msgstr "Tawtheeq"
+
+#: .\reports\templates\reports\landing.html:133
+#: .\reports\templates\reports\landing.html:1143
+msgid "للعمل المدرسي"
+msgstr "for school operations"
+
+#: .\reports\templates\reports\landing.html:164
+msgid "استكشف منصة توثيق"
+msgstr "Explore Tawtheeq"
+
+#: .\reports\templates\reports\landing.html:192
+msgid "تبدأ من صورة واضحة."
+msgstr "It starts with a clear picture."
+
+#: .\reports\templates\reports\landing.html:193
+msgid "وتنتهي بقرار واثق."
+msgstr "It ends with a confident decision."
+
+#: .\reports\templates\reports\landing.html:196
+msgid ""
+"اجمع تشغيل المدرسة وتوثيقها في منصة واحدة تمنحك ما يحتاج انتباهك الآن، وما "
+"أُنجز، ومن المسؤول — دون مطاردة رسائل أو البحث بين ملفات متفرقة."
+msgstr "Bring school operations and documentation into one platform that shows what needs your attention now, what is done, and who owns it — without chasing messages or hunting through scattered files."
+
+#: .\reports\templates\reports\landing.html:222
+msgid "قرارك مبني على منتج تراه وتجرّبه"
+msgstr "Decide on a product you can see and try"
+
+#: .\reports\templates\reports\landing.html:223
+msgid "شاشات فعلية، سعر منشور، وتجربة كاملة قبل أي التزام مالي."
+msgstr "Real screens, published pricing, and a full trial before any financial commitment."
+
+#: .\reports\templates\reports\landing.html:242
+msgid "اعرف أين تتدخل"
+msgstr "Know where to step in"
+
+#: .\reports\templates\reports\landing.html:242
+msgid "أولوية، مسؤول، وإجراء تالٍ"
+msgstr "Priority, owner, and next action"
+
+#: .\reports\templates\reports\landing.html:246
+msgid "وثائق تليق باسم المدرسة"
+msgstr "Documents worthy of your school’s name"
+
+#: .\reports\templates\reports\landing.html:246
+msgid "PDF منظم للطباعة والمشاركة"
+msgstr "Structured PDF for print and sharing"
+
+#: .\reports\templates\reports\landing.html:253
+msgid "يومًا كاملة دون بطاقة"
+msgstr "full days, no card required"
+
+#: .\reports\templates\reports\landing.html:254
+msgid "لقطات حقيقية من النظام"
+msgstr "Real screenshots from the system"
+
+#: .\reports\templates\reports\landing.html:255
+msgid "سعر واضح حسب عدد المعلمين"
+msgstr "Clear pricing based on teacher count"
+
+#: .\reports\templates\reports\landing.html:256
+msgid "صلاحيات وتدقيق وتوثيق رسمي"
+msgstr "Permissions, auditing and formal records"
+
+#: .\reports\templates\reports\landing.html:264
+msgid "اختر دورك داخل المدرسة"
+msgstr "Choose your role in the school"
+
+#: .\reports\templates\reports\landing.html:265
+msgid "واجهة واحدة، لكن كل شخص يبدأ مما يعنيه"
+msgstr "One interface — but everyone starts where it matters to them"
+
+#: .\reports\templates\reports\landing.html:266
+msgid ""
+"مدير المدرسة ينشئ الحساب ويقود التشغيل، بينما يدخل المعلم والموظف الإداري "
+"بدعوة وصلاحيات محددة، ويرى المدير التنفيذي الصورة الموحّدة لمجموعته."
+msgstr "The principal creates the account and leads operations; teachers and administrative staff join by invitation with scoped permissions; the executive director sees the unified picture across their group."
+
+#: .\reports\templates\reports\landing.html:273
+msgid "مدير المدرسة"
+msgstr "School principal"
+
+#: .\reports\templates\reports\landing.html:273
+msgid "قيادة واعتماد"
+msgstr "Leadership and approvals"
+
+#: .\reports\templates\reports\landing.html:277
+msgid "المعلم"
+msgstr "Teacher"
+
+#: .\reports\templates\reports\landing.html:277
+msgid "إنجاز وشواهد"
+msgstr "Achievements and evidence"
+
+#: .\reports\templates\reports\landing.html:281
+msgid "المدير التنفيذي"
+msgstr "Executive director"
+
+#: .\reports\templates\reports\landing.html:281
+msgid "متابعة مجموعة"
+msgstr "Group oversight"
+
+#: .\reports\templates\reports\landing.html:285
+msgid "الموظف الإداري"
+msgstr "Administrative staff"
+
+#: .\reports\templates\reports\landing.html:285
+msgid "تنفيذ ومتابعة"
+msgstr "Delivery and follow-up"
+
+#: .\reports\templates\reports\landing.html:293
+msgid "ابدأ يومك بما يحتاج قرارك، لا بما يحتاج بحثك"
+msgstr "Start your day with what needs a decision, not what needs a search"
+
+#: .\reports\templates\reports\landing.html:294
+msgid ""
+"ترى الأولويات والاعتمادات والتقارير والطلبات من لوحة قيادة واحدة، ثم تنتقل "
+"للإجراء مباشرةً دون مطاردة الفريق بين القنوات."
+msgstr "See priorities, approvals, reports and requests on one dashboard, then act directly without chasing your team across channels."
+
+#: .\reports\templates\reports\landing.html:301
+msgid "لوحة قيادة يومية"
+msgstr "A daily command dashboard"
+
+#: .\reports\templates\reports\landing.html:301
+msgid "الأولوية والمسؤول والإجراء التالي"
+msgstr "Priority, owner, and next action"
+
+#: .\reports\templates\reports\landing.html:302
+msgid "اعتمادات في مكان واحد"
+msgstr "Approvals in one place"
+
+#: .\reports\templates\reports\landing.html:302
+msgid "اعتماد أو إعادة أو رفض بسبب موثّق"
+msgstr "Approve, return, or reject with a recorded reason"
+
+#: .\reports\templates\reports\landing.html:303
+msgid "ذاكرة مدرسية ثابتة"
+msgstr "A durable school memory"
+
+#: .\reports\templates\reports\landing.html:303
+msgid "تقارير ووثائق وأرشيف قابل للرجوع"
+msgstr "Reports, documents and a retrievable archive"
+
+#: .\reports\templates\reports\landing.html:310
+msgid "وثّق عملك مرة واحدة، وابنِ إنجازك طوال العام"
+msgstr "Document your work once, and build your portfolio all year"
+
+#: .\reports\templates\reports\landing.html:311
+msgid ""
+"ارفع التقرير والصور من الجوال، أضف الشواهد إلى ملف إنجازك، وتابع التكليفات "
+"والطلبات والاجتماعات والتعاميم من مساحة عمل قصيرة وواضحة."
+msgstr "Upload reports and images from your phone, add evidence to your portfolio, and track assignments, requests, meetings and circulars from one short, clear workspace."
+
+#: .\reports\templates\reports\landing.html:318
+msgid "تقارير من الجوال"
+msgstr "Reports from your phone"
+
+#: .\reports\templates\reports\landing.html:318
+msgid "صور وبيانات ومخرج PDF بهوية المدرسة"
+msgstr "Images, data, and a PDF in the school’s identity"
+
+#: .\reports\templates\reports\landing.html:319
+msgid "ملف إنجاز يتراكم تلقائياً"
+msgstr "A portfolio that builds itself"
+
+#: .\reports\templates\reports\landing.html:319
+msgid "محاور وشواهد ومراجعة واعتماد"
+msgstr "Sections, evidence, review and approval"
+
+#: .\reports\templates\reports\landing.html:320
+msgid "كل ما يخصك أمامك"
+msgstr "Everything that concerns you, in front of you"
+
+#: .\reports\templates\reports\landing.html:320
+msgid "تكليفات وطلبات واجتماعات وتعاميم"
+msgstr "Assignments, requests, meetings and circulars"
+
+#: .\reports\templates\reports\landing.html:327
+msgid "قارن مدارس مجموعتك واتخذ قرارك من مستوى واحد"
+msgstr "Compare your group’s schools and decide from one level"
+
+#: .\reports\templates\reports\landing.html:328
+msgid ""
+"لوحة موحّدة للمؤشرات والتقارير والتكليفات والمجالس والتعاميم والتدقيق، مع "
+"بقاء بيانات واشتراك كل مدرسة مستقلين."
+msgstr "A unified board for indicators, reports, assignments, councils, circulars and auditing — while each school’s data and subscription stay separate."
+
+#: .\reports\templates\reports\landing.html:335
+msgid "مؤشرات المدارس جنبًا إلى جنب"
+msgstr "School indicators side by side"
+
+#: .\reports\templates\reports\landing.html:335
+msgid "اعرف من يتقدم ومن يحتاج تدخلك"
+msgstr "See who is ahead and who needs you"
+
+#: .\reports\templates\reports\landing.html:336
+msgid "تقرير موحّد للمجموعة"
+msgstr "A unified group report"
+
+#: .\reports\templates\reports\landing.html:336
+msgid "Excel وPDF للعرض والمراجعة"
+msgstr "Excel and PDF for presentation and review"
+
+#: .\reports\templates\reports\landing.html:337
+msgid "حوكمة دون خلط البيانات"
+msgstr "Governance without mixing data"
+
+#: .\reports\templates\reports\landing.html:337
+msgid "نطاق مستقل لكل مدرسة وسجل تدقيق"
+msgstr "A separate scope per school, plus an audit log"
+
+#: .\reports\templates\reports\landing.html:344
+msgid "اعرف ما أُسند إليك، نفّذه، واترك أثرًا واضحًا"
+msgstr "Know what is assigned to you, do it, and leave a clear trace"
+
+#: .\reports\templates\reports\landing.html:345
+msgid ""
+"تصل إلى الطلبات والتكليفات والوثائق والاجتماعات والخطط والتقارير التي تدخل "
+"ضمن نطاق عملك فقط، مع حالة وموعد ومسؤولية لا تحتمل الالتباس."
+msgstr "You reach only the requests, assignments, documents, meetings, plans and reports within your scope — each with an unambiguous status, deadline and owner."
+
+#: .\reports\templates\reports\landing.html:352
+msgid "صندوق عمل شخصي"
+msgstr "A personal work inbox"
+
+#: .\reports\templates\reports\landing.html:352
+msgid "طلبات وتكليفات مرتبة حسب الحالة والأولوية"
+msgstr "Requests and assignments ordered by status and priority"
+
+#: .\reports\templates\reports\landing.html:353
+msgid "تنفيذ موثّق بالمرفقات"
+msgstr "Delivery documented with attachments"
+
+#: .\reports\templates\reports\landing.html:353
+msgid "ملاحظات وشواهد وتاريخ لكل إجراء"
+msgstr "Notes, evidence and a timestamp for every action"
+
+#: .\reports\templates\reports\landing.html:354
+msgid "صلاحية بقدر المهمة"
+msgstr "Permission sized to the task"
+
+#: .\reports\templates\reports\landing.html:354
+msgid "تظهر الأدوات والبيانات اللازمة فقط"
+msgstr "Only the necessary tools and data are shown"
+
+#: .\reports\templates\reports\landing.html:362
+msgid "مساران واضحان للدخول:"
+msgstr "Two clear ways in:"
+
+#: .\reports\templates\reports\landing.html:371
+msgid "ابدأ دون إعداد تقني"
+msgstr "Start with no technical setup"
+
+#: .\reports\templates\reports\landing.html:372
+msgid "من تسجيل المدرسة إلى أول عمل موثّق في ثلاث خطوات"
+msgstr "From registering the school to your first documented action in three steps"
+
+#: .\reports\templates\reports\landing.html:373
+msgid ""
+"أنشئ حساب المدرسة، أضف فريقك، ثم جرّب مسارات العمل كاملة قبل اختيار الباقة "
+"المناسبة لحجم المدرسة."
+msgstr "Create the school account, add your team, then try the full workflows before choosing the plan that fits your school’s size."
+
+#: .\reports\templates\reports\landing.html:380
+msgid "سجّل المدرسة"
+msgstr "Register the school"
+
+#: .\reports\templates\reports\landing.html:381
+msgid ""
+"أدخل بيانات المدير والمدرسة لتحصل على حسابك وتبدأ التجربة المجانية مباشرة."
+msgstr "Enter the principal’s and school’s details to get your account and start the free trial right away."
+
+#: .\reports\templates\reports\landing.html:386
+msgid "أضف الفريق"
+msgstr "Add your team"
+
+#: .\reports\templates\reports\landing.html:387
+msgid ""
+"أضف المعلمين وحدد الصلاحيات، ثم ابدأ التقارير والطلبات والتعاميم من الويب أو "
+"الجوال."
+msgstr "Add teachers and set permissions, then start reports, requests and circulars from web or mobile."
+
+#: .\reports\templates\reports\landing.html:392
+msgid "اختر سعة مدرستك"
+msgstr "Choose your school’s capacity"
+
+#: .\reports\templates\reports\landing.html:393
+msgid "بعد التجربة اختر عدد المعلمين المناسب ومدة شهر أو 6 أشهر أو سنة."
+msgstr "After the trial, pick the right teacher count and a term of one month, 6 months or a year."
+
+#: .\reports\templates\reports\landing.html:400
+msgid "تدير أكثر من مدرسة؟"
+msgstr "Managing more than one school?"
+
+#: .\reports\templates\reports\landing.html:401
+msgid ""
+"أضف مدرسة أخرى من حساب المدير وانتقل بينها بسهولة. لكل مدرسة بياناتها "
+"وتجربتها وباقتها ودفعها المستقل."
+msgstr "Add another school from the principal’s account and switch between them easily. Each school keeps its own data, trial, plan and billing."
+
+#: .\reports\templates\reports\landing.html:411
+msgid "الأثر الذي يراه متخذ القرار"
+msgstr "The impact a decision-maker sees"
+
+#: .\reports\templates\reports\landing.html:412
+msgid "أقل وقت في جمع الصورة، وأكثر وقت في قيادة المدرسة"
+msgstr "Less time assembling the picture, more time leading the school"
+
+#: .\reports\templates\reports\landing.html:413
+msgid ""
+"منصة توثيق ترتّب العمل القائم داخل مسارات واضحة؛ فتصل المعلومة الصحيحة إلى "
+"الإدارة في وقتها، ويبقى الدليل محفوظًا عند الحاجة."
+msgstr "Tawtheeq organises existing work into clear workflows, so the right information reaches management on time and the evidence stays on file when it is needed."
+
+#: .\reports\templates\reports\landing.html:420
+msgid "قرار أسرع"
+msgstr "Faster decisions"
+
+#: .\reports\templates\reports\landing.html:421
+msgid ""
+"لوحة المدير تعرض ما يحتاج قرارًا أو اعتمادًا قبل التفاصيل التي يمكن أن تنتظر."
+msgstr "The principal’s dashboard surfaces what needs a decision or an approval ahead of details that can wait."
+
+#: .\reports\templates\reports\landing.html:423
+msgid "حالة العمل في فترة تختارها"
+msgstr "Work status over a period you choose"
+
+#: .\reports\templates\reports\landing.html:424
+msgid "إجراءات مباشرة من لوحة واحدة"
+msgstr "Direct actions from a single board"
+
+#: .\reports\templates\reports\landing.html:430
+msgid "تشغيل منضبط"
+msgstr "Disciplined operations"
+
+#: .\reports\templates\reports\landing.html:431
+msgid ""
+"من رفع التقرير إلى اعتماد الإنجاز، ومن فتح الطلب إلى إغلاقه؛ المسؤولية "
+"والحالة والتاريخ موثقة."
+msgstr "From filing a report to approving an achievement, from opening a request to closing it — owner, status and date are all recorded."
+
+#: .\reports\templates\reports\landing.html:433
+msgid "معرفة المسؤول والخطوة التالية"
+msgstr "Knowing the owner and the next step"
+
+#: .\reports\templates\reports\landing.html:434
+msgid "سجل زمني واضح لكل إجراء"
+msgstr "A clear timeline for every action"
+
+#: .\reports\templates\reports\landing.html:440
+msgid "جاهزية دائمة"
+msgstr "Always inspection-ready"
+
+#: .\reports\templates\reports\landing.html:441
+msgid ""
+"حوّل العمل اليومي إلى تقارير وملفات إنجاز المعلمين وأرشيف منظم عند الزيارة أو "
+"المراجعة."
+msgstr "Turn daily work into reports, teacher portfolios and an organised archive, ready for a visit or a review."
+
+#: .\reports\templates\reports\landing.html:443
+msgid "PDF موحد بهوية المدرسة"
+msgstr "A consistent PDF in the school’s identity"
+
+#: .\reports\templates\reports\landing.html:444
+msgid "مشاركة مؤقتة ومضبوطة"
+msgstr "Temporary, controlled sharing"
+
+#: .\reports\templates\reports\landing.html:454
+msgid "سؤال يستحق إجابة صريحة"
+msgstr "A question that deserves a straight answer"
+
+#: .\reports\templates\reports\landing.html:455
+msgid "«عندنا قروبات واتساب ومجلدات درايف» — إذًا ما الذي يتغير؟"
+msgstr "“We already have WhatsApp groups and Drive folders” — so what changes?"
+
+#: .\reports\templates\reports\landing.html:456
+msgid ""
+"لا شيء ضد الطريقة الحالية؛ المشكلة أنها تحفظ الملفات ولا تحفظ المسؤولية. هذا "
+"هو الفرق العملي كما ستراه في مدرستك."
+msgstr "Nothing against your current approach — the problem is that it stores files, not accountability. Here is the practical difference as you will see it in your school."
+
+#: .\reports\templates\reports\landing.html:462
+#: .\reports\templates\reports\landing.html:471
+#: .\reports\templates\reports\landing.html:480
+#: .\reports\templates\reports\landing.html:489
+#: .\reports\templates\reports\landing.html:498
+#: .\reports\templates\reports\landing.html:507
+msgid "الطريقة الحالية"
+msgstr "The current approach"
+
+#: .\reports\templates\reports\landing.html:462
+msgid "مجلدات ورسائل متفرقة"
+msgstr "Scattered folders and messages"
+
+#: .\reports\templates\reports\landing.html:466
+#: .\reports\templates\reports\landing.html:475
+#: .\reports\templates\reports\landing.html:484
+#: .\reports\templates\reports\landing.html:493
+#: .\reports\templates\reports\landing.html:502
+#: .\reports\templates\reports\landing.html:511
+msgid "مع منصة توثيق"
+msgstr "With Tawtheeq"
+
+#: .\reports\templates\reports\landing.html:466
+msgid "مسار عمل واحد موثّق"
+msgstr "One documented workflow"
+
+#: .\reports\templates\reports\landing.html:527
+msgid "تحتاج صورة تقود بها."
+msgstr "You need a picture you can lead with."
+
+#: .\reports\templates\reports\landing.html:528
+msgid ""
+"صُممت منصة توثيق حول أسئلة الإدارة الفعلية: ماذا يحدث الآن؟ أين التعثر؟ من "
+"المسؤول؟ وما الدليل المتاح عند المراجعة؟"
+msgstr "Tawtheeq is built around the questions management actually asks: what is happening now, where is it stuck, who owns it, and what evidence exists at review time?"
+
+#: .\reports\templates\reports\landing.html:538
+msgid "الرؤية التنفيذية"
+msgstr "Executive visibility"
+
+#: .\reports\templates\reports\landing.html:539
+msgid "ما يحتاج تدخلك يظهر أولًا"
+msgstr "What needs you appears first"
+
+#: .\reports\templates\reports\landing.html:540
+msgid "مؤشرات مفهومة وإجراءات مباشرة بدل قراءة قوائم طويلة."
+msgstr "Legible indicators and direct actions instead of reading long lists."
+
+#: .\reports\templates\reports\landing.html:544
+msgid "الحوكمة"
+msgstr "Governance"
+
+#: .\reports\templates\reports\landing.html:545
+msgid "صلاحية واضحة لكل دور"
+msgstr "A clear permission set for every role"
+
+#: .\reports\templates\reports\landing.html:546
+msgid "نطاقات وصول وسجل عمليات وعزل لبيانات كل مدرسة."
+msgstr "Access scopes, an activity log, and data isolation per school."
+
+#: .\reports\templates\reports\landing.html:550
+msgid "الاستمرارية"
+msgstr "Continuity"
+
+#: .\reports\templates\reports\landing.html:551
+msgid "ذاكرة لا تتبعثر بتغير الفريق"
+msgstr "A memory that survives staff changes"
+
+#: .\reports\templates\reports\landing.html:552
+msgid "تقارير وقرارات وشواهد تبقى منظمة وقابلة للرجوع."
+msgstr "Reports, decisions and evidence stay organised and retrievable."
+
+#: .\reports\templates\reports\landing.html:556
+#: .\reports\templates\reports\landing.html:721
+msgid "لمن يدير أكثر من مدرسة"
+msgstr "For those running more than one school"
+
+#: .\reports\templates\reports\landing.html:556
+msgid "حساب إداري واحد للتنقّل، مع بيانات وباقة ودفع مستقل لكل مدرسة."
+msgstr "One administrative account to move between schools, with separate data, plan and billing for each."
+
+#: .\reports\templates\reports\landing.html:566
+msgid "من الميدان إلى مكتب الإدارة"
+msgstr "From the field to the front office"
+
+#: .\reports\templates\reports\landing.html:567
+msgid "كل مسار في مكانه، وكلها تصنع صورة واحدة للمدير"
+msgstr "Every workflow in its place, all forming one picture for the principal"
+
+#: .\reports\templates\reports\landing.html:568
+msgid ""
+"يعمل الفريق من واجهات قصيرة وواضحة، بينما تحصل الإدارة على المتابعة والحوكمة "
+"والمخرجات دون إعادة جمع البيانات."
+msgstr "The team works from short, clear screens while management gets tracking, governance and outputs without re-collecting data."
+
+#: .\reports\templates\reports\landing.html:575
+msgid "للمدير"
+msgstr "For the principal"
+
+#: .\reports\templates\reports\landing.html:576
+msgid "لوحة قيادة لا لوحة أرقام"
+msgstr "A command dashboard, not a wall of numbers"
+
+#: .\reports\templates\reports\landing.html:577
+msgid ""
+"إجراءات سريعة، مؤشرات مفهومة، ومتابعة مباشرة للتقارير والمعلمين والطلبات دون "
+"الغرق في التفاصيل."
+msgstr "Quick actions, legible indicators and direct tracking of reports, teachers and requests without drowning in detail."
+
+#: .\reports\templates\reports\landing.html:579
+msgid "فترة زمنية تختارها"
+msgstr "A date range you choose"
+
+#: .\reports\templates\reports\landing.html:580
+msgid "وصول سريع لكل مسار"
+msgstr "Fast access to every workflow"
+
+#: .\reports\templates\reports\landing.html:581
+msgid "تقرير أسبوعي يصلك"
+msgstr "A weekly report delivered to you"
+
+#: .\reports\templates\reports\landing.html:588
+msgid "التقارير"
+msgstr "Reports"
+
+#: .\reports\templates\reports\landing.html:589
+msgid "توثيق مصور سريع"
+msgstr "Fast documentation with images"
+
+#: .\reports\templates\reports\landing.html:590
+msgid ""
+"يرفع المعلم التقرير من الجوال، ويخرج للمدرسة بصيغة PDF رسمية قابلة للطباعة."
+msgstr "Teachers file reports from their phone, and the school gets a formal, printable PDF."
+
+#: .\reports\templates\reports\landing.html:592
+msgid "رفع من الجوال"
+msgstr "Upload from mobile"
+
+#: .\reports\templates\reports\landing.html:593
+msgid "PDF بهوية المدرسة"
+msgstr "PDF in the school’s identity"
+
+#: .\reports\templates\reports\landing.html:594
+msgid "رابط مشاركة مؤقت"
+msgstr "Temporary sharing link"
+
+#: .\reports\templates\reports\landing.html:599
+msgid "ملف الإنجاز"
+msgstr "Achievement portfolio"
+
+#: .\reports\templates\reports\landing.html:600
+msgid "شواهد منظمة ومعتمدة"
+msgstr "Organised, approved evidence"
+
+#: .\reports\templates\reports\landing.html:601
+msgid "محاور وشواهد ومراجعة واعتماد، مع ملف نهائي يختصر وقت الجمع والترتيب."
+msgstr "Sections, evidence, review and approval — with a final file that removes the collating work."
+
+#: .\reports\templates\reports\landing.html:603
+msgid "يُبنى طوال السنة"
+msgstr "Built throughout the year"
+
+#: .\reports\templates\reports\landing.html:604
+msgid "مراجعة واعتماد"
+msgstr "Review and approval"
+
+#: .\reports\templates\reports\landing.html:605
+msgid "حقيبة قيادية للإدارة"
+msgstr "A leadership pack for management"
+
+#: .\reports\templates\reports\landing.html:610
+msgid "الطلبات"
+msgstr "Requests"
+
+#: .\reports\templates\reports\landing.html:611
+msgid "متابعة حتى الإغلاق"
+msgstr "Tracked through to closure"
+
+#: .\reports\templates\reports\landing.html:612
+msgid ""
+"إسناد الطلب للقسم والمسؤول، إضافة الملاحظات والمرفقات، ومراقبة الحالة كاملة."
+msgstr "Assign a request to a department and an owner, add notes and attachments, and watch the full status."
+
+#: .\reports\templates\reports\landing.html:614
+msgid "إسناد لمسؤول"
+msgstr "Assignment to an owner"
+
+#: .\reports\templates\reports\landing.html:615
+msgid "حالات وملاحظات"
+msgstr "Statuses and notes"
+
+#: .\reports\templates\reports\landing.html:616
+msgid "بحث وتصفية"
+msgstr "Search and filtering"
+
+#: .\reports\templates\reports\landing.html:621
+msgid "التعاميم"
+msgstr "Circulars"
+
+#: .\reports\templates\reports\landing.html:622
+msgid "وصول وتوقيع موثّق"
+msgstr "Documented delivery and signing"
+
+#: .\reports\templates\reports\landing.html:623
+msgid "اعرف من قرأ ومن وقّع، واحتفظ بسجل واضح بدل المتابعة اليدوية المتكررة."
+msgstr "Know who read and who signed, and keep a clear record instead of chasing people by hand."
+
+#: .\reports\templates\reports\landing.html:625
+msgid "استهداف أقسام أو أفراد"
+msgstr "Target departments or individuals"
+
+#: .\reports\templates\reports\landing.html:626
+msgid "سجل اطلاع وتوقيع"
+msgstr "A read-and-sign log"
+
+#: .\reports\templates\reports\landing.html:627
+msgid "طباعة كشف التوقيعات"
+msgstr "Print the signature sheet"
+
+#: .\reports\templates\reports\landing.html:632
+msgid "الخطط والمبادرات"
+msgstr "Plans and initiatives"
+
+#: .\reports\templates\reports\landing.html:633
+msgid "الخطة تُتابع لا تُحفظ"
+msgstr "A plan you track, not a plan you file"
+
+#: .\reports\templates\reports\landing.html:634
+msgid ""
+"خطة المدرسة ومبادراتها بأهدافها ومسؤوليها ونسب تنفيذها، بدل ملف يُكتب مرة "
+"ويُنسى."
+msgstr "The school plan and its initiatives with goals, owners and completion rates — instead of a document written once and forgotten."
+
+#: .\reports\templates\reports\landing.html:636
+msgid "مبادرات ومهام مرتبطة"
+msgstr "Linked initiatives and tasks"
+
+#: .\reports\templates\reports\landing.html:637
+msgid "تحديث الحالة والتقدّم"
+msgstr "Status and progress updates"
+
+#: .\reports\templates\reports\landing.html:638
+msgid "اعتماد من الإدارة"
+msgstr "Approval by management"
+
+#: .\reports\templates\reports\landing.html:643
+msgid "الاجتماعات"
+msgstr "Meetings"
+
+#: .\reports\templates\reports\landing.html:644
+msgid "محضر جاهز عند انتهاء الاجتماع"
+msgstr "Minutes ready when the meeting ends"
+
+#: .\reports\templates\reports\landing.html:645
+msgid ""
+"جدول الأعمال والحضور والقرارات في مكان واحد، ويخرج المحضر موثقًا لا مكتوبًا "
+"على عجل."
+msgstr "Agenda, attendance and decisions in one place, producing minutes that are properly recorded rather than hastily typed."
+
+#: .\reports\templates\reports\landing.html:647
+msgid "جدول أعمال وحضور"
+msgstr "Agenda and attendance"
+
+#: .\reports\templates\reports\landing.html:648
+msgid "قرارات وتوصيات"
+msgstr "Decisions and recommendations"
+
+#: .\reports\templates\reports\landing.html:649
+msgid "محضر قابل للطباعة"
+msgstr "Printable minutes"
+
+#: .\reports\templates\reports\landing.html:654
+msgid "التكليفات"
+msgstr "Assignments"
+
+#: .\reports\templates\reports\landing.html:655
+msgid "مهمة لها مالك وموعد"
+msgstr "A task with an owner and a deadline"
+
+#: .\reports\templates\reports\landing.html:656
+msgid ""
+"كلّف فردًا أو قسمًا، وتابع لوحة المهام لتعرف ما أُنجز وما تأخر ومن ينتظر ردّك."
+msgstr "Assign an individual or a department, and use the task board to see what is done, what is late, and who is waiting on you."
+
+#: .\reports\templates\reports\landing.html:658
+msgid "لوحة مهام للإدارة"
+msgstr "A task board for management"
+
+#: .\reports\templates\reports\landing.html:659
+msgid "«المسندة إليّ» للمنسوبين"
+msgstr "“Assigned to me” for staff"
+
+#: .\reports\templates\reports\landing.html:660
+msgid "تنبيه عند التأخر"
+msgstr "An alert when work runs late"
+
+#: .\reports\templates\reports\landing.html:665
+msgid "الاعتمادات"
+msgstr "Approvals"
+
+#: .\reports\templates\reports\landing.html:666
+msgid "صندوق موافقات بدل التذكير"
+msgstr "An approvals inbox instead of reminders"
+
+#: .\reports\templates\reports\landing.html:667
+msgid ""
+"ما ينتظر توقيعك يجتمع في مكان واحد: اعتمد، أعد للتعديل، أو ارفض بسبب موثّق."
+msgstr "Everything awaiting your signature gathers in one place: approve, return for edits, or reject with a recorded reason."
+
+#: .\reports\templates\reports\landing.html:669
+msgid "اعتماد أو إعادة"
+msgstr "Approve or return"
+
+#: .\reports\templates\reports\landing.html:670
+msgid "سبب مسجّل لكل قرار"
+msgstr "A recorded reason for every decision"
+
+#: .\reports\templates\reports\landing.html:671
+msgid "إشعار للمعني"
+msgstr "A notification to the person concerned"
+
+#: .\reports\templates\reports\landing.html:676
+msgid "الأقسام والصلاحيات"
+msgstr "Departments and permissions"
+
+#: .\reports\templates\reports\landing.html:677
+msgid "هيكل إداري يعكس مدرستك"
+msgstr "An org structure that mirrors your school"
+
+#: .\reports\templates\reports\landing.html:678
+msgid ""
+"أقسام وأعضاء ووكلاء وأدوار محددة النطاق، مع تفويض مؤقت عند غياب المسؤول."
+msgstr "Departments, members, deputies and scoped roles — with temporary delegation when an owner is away."
+
+#: .\reports\templates\reports\landing.html:680
+msgid "أدوار بنطاق محدد"
+msgstr "Roles with a defined scope"
+
+#: .\reports\templates\reports\landing.html:681
+msgid "تفويض مؤقت"
+msgstr "Temporary delegation"
+
+#: .\reports\templates\reports\landing.html:682
+msgid "سجل تدقيق للعمليات"
+msgstr "An audit log of operations"
+
+#: .\reports\templates\reports\landing.html:688
+msgid "الأرشيف والوثائق"
+msgstr "Archive and documents"
+
+#: .\reports\templates\reports\landing.html:689
+msgid "ذاكرة المدرسة محفوظة"
+msgstr "The school’s memory, preserved"
+
+#: .\reports\templates\reports\landing.html:690
+msgid ""
+"أرشيف وثائق للتعاميم والخطابات الواردة والصادرة، ونسخ سنوية ثابتة تضم "
+"التقارير والإنجاز والتذاكر والتعاميم، مع بصمة تحقق ومساحة تخزين واضحة."
+msgstr "A document archive for circulars and incoming and outgoing correspondence, plus immutable yearly snapshots covering reports, portfolios, tickets and circulars — with a verification hash and clearly stated storage."
+
+#: .\reports\templates\reports\landing.html:692
+msgid "نسخة ثابتة قابلة للتنزيل"
+msgstr "A downloadable immutable snapshot"
+
+#: .\reports\templates\reports\landing.html:693
+msgid "فهرس Excel"
+msgstr "Excel index"
+
+#: .\reports\templates\reports\landing.html:694
+msgid "بصمة تحقق SHA-256"
+msgstr "SHA-256 verification hash"
+
+#: .\reports\templates\reports\landing.html:722
+msgid "مجموعة مدارس تُدار من لوحة واحدة، لا من اجتماعات متكررة"
+msgstr "A group of schools run from one board, not from repeated meetings"
+
+#: .\reports\templates\reports\landing.html:723
+msgid ""
+"حساب «المدير التنفيذي» يجمع مدارس المجموعة في مستوى إداري أعلى: تقارير "
+"موحدة، تكليفات، مجالس، تعاميم، وتدقيق — مع بقاء بيانات كل مدرسة في نطاقها."
+msgstr "The executive-director account brings the group’s schools together at a higher administrative level: unified reports, assignments, councils, circulars and auditing — while each school’s data stays within its own scope."
+
+#: .\reports\templates\reports\landing.html:729
+msgid "لوحة المجموعة"
+msgstr "Group dashboard"
+
+#: .\reports\templates\reports\landing.html:730
+msgid ""
+"مؤشرات مدارس المجموعة جنبًا إلى جنب: من يتقدم، ومن يحتاج تدخلك هذا الأسبوع."
+msgstr "The group’s school indicators side by side: who is ahead, and who needs you this week."
+
+#: .\reports\templates\reports\landing.html:734
+msgid "تقرير موحد للمجموعة"
+msgstr "A unified group report"
+
+#: .\reports\templates\reports\landing.html:735
+msgid ""
+"تقرير يجمع نشاط المدارس، مع تصدير Excel وPDF جاهز للعرض على الملّاك أو "
+"الشركاء."
+msgstr "A report consolidating school activity, exportable to Excel and PDF and ready to present to owners or partners."
+
+#: .\reports\templates\reports\landing.html:739
+msgid "تكليفات على مستوى المجموعة"
+msgstr "Group-wide assignments"
+
+#: .\reports\templates\reports\landing.html:740
+msgid "وجّه مهمة إلى عدة مدارس دفعة واحدة، وتابع من نفّذ ومن تأخر من لوحة واحدة."
+msgstr "Send one task to several schools at once, and track who delivered and who is late from a single board."
+
+#: .\reports\templates\reports\landing.html:744
+msgid "مجالس ولجان المجموعة"
+msgstr "Group councils and committees"
+
+#: .\reports\templates\reports\landing.html:745
+msgid "اجتماعات المجموعة وقراراتها موثّقة، فلا تضيع التوصيات بين محاضر متفرقة."
+msgstr "Group meetings and their decisions are on record, so recommendations don’t get lost across scattered minutes."
+
+#: .\reports\templates\reports\landing.html:749
+msgid "تعاميم موجّهة للمدارس"
+msgstr "Circulars addressed to schools"
+
+#: .\reports\templates\reports\landing.html:750
+msgid "عمّم على مدارس المجموعة واطّلع على تقرير الوصول والتفاعل لكل مدرسة."
+msgstr "Circulate to the group’s schools and review the delivery and engagement report for each one."
+
+#: .\reports\templates\reports\landing.html:754
+msgid "تدقيق وأرشيف للمجموعة"
+msgstr "Group-level auditing and archive"
+
+#: .\reports\templates\reports\landing.html:755
+msgid "سجل عمليات على مستوى المجموعة وأرشيف يجمع سجل السنة لكل مدرسة."
+msgstr "A group-wide activity log and an archive gathering each school’s yearly record."
+
+#: .\reports\templates\reports\landing.html:762
+msgid "الاشتراك يبقى لكل مدرسة على حدة"
+msgstr "Subscriptions stay per school"
+
+#: .\reports\templates\reports\landing.html:763
+msgid ""
+"المستوى التنفيذي يمنحك الصورة الموحدة، بينما تحتفظ كل مدرسة ببياناتها "
+"وباقتها ودفعها المستقل — فلا تدفع عن مدرسة لا تستخدم المنصة."
+msgstr "The executive level gives you the unified picture, while each school keeps its own data, plan and billing — so you never pay for a school that isn’t using the platform."
+
+#: .\reports\templates\reports\landing.html:776
+msgid "دليل المنتج أمامك"
+msgstr "See the product for yourself"
+
+#: .\reports\templates\reports\landing.html:777
+msgid "ليست وعودًا تسويقية؛ هذه هي المنصة التي سيستخدمها فريقك"
+msgstr "Not marketing promises — this is the platform your team will use"
+
+#: .\reports\templates\reports\landing.html:778
+msgid ""
+"لقطات مباشرة من بيئة تجريبية توضح لوحة المدير، متابعة الطلبات، المخرج "
+"الرسمي، والأرشيف السنوي."
+msgstr "Live screenshots from a demo environment showing the principal’s dashboard, request tracking, the formal output, and the yearly archive."
+
+#: .\reports\templates\reports\landing.html:783
+msgid "شاشات فعلية وبيانات تجريبية"
+msgstr "Real screens with demo data"
+
+#: .\reports\templates\reports\landing.html:783
+msgid "اضغط على أي صورة لمعاينتها بوضوح واتخذ قرارك بناءً على المنتج نفسه."
+msgstr "Tap any image to view it clearly, and decide based on the product itself."
+
+#: .\reports\templates\reports\landing.html:788
+msgid "01 · لوحة المدير"
+msgstr "01 · Principal’s dashboard"
+
+#: .\reports\templates\reports\landing.html:789
+msgid "ابدأ يومك من الأولوية، لا من البحث"
+msgstr "Start your day from priorities, not from searching"
+
+#: .\reports\templates\reports\landing.html:790
+msgid ""
+"الإجراءات الأكثر استخدامًا أمامك، والفترة الزمنية قابلة للتغيير، وكل مسار على "
+"بُعد خطوة."
+msgstr "Your most-used actions up front, an adjustable date range, and every workflow one step away."
+
+#: .\reports\templates\reports\landing.html:800
+msgid "02 · الطلبات"
+msgstr "02 · Requests"
+
+#: .\reports\templates\reports\landing.html:801
+msgid "كل طلب يعرف وجهته وحالته"
+msgstr "Every request knows where it is going and where it stands"
+
+#: .\reports\templates\reports\landing.html:802
+msgid "بحث وتصفية وإسناد ومتابعة، مع تاريخ يحفظ ما حدث دون رسائل متفرقة."
+msgstr "Search, filter, assign and follow up, with a history that records what happened — no scattered messages."
+
+#: .\reports\templates\reports\landing.html:812
+msgid "03 · المخرجات"
+msgstr "03 · Outputs"
+
+#: .\reports\templates\reports\landing.html:813
+msgid "من إدخال بسيط إلى وثيقة رسمية"
+msgstr "From a simple entry to a formal document"
+
+#: .\reports\templates\reports\landing.html:814
+msgid "هوية المدرسة ومعلومات التقرير والصور في PDF مرتب وجاهز للحفظ والطباعة."
+msgstr "School branding, report details and images in a tidy PDF, ready to save and print."
+
+#: .\reports\templates\reports\landing.html:824
+msgid "04 · الأرشيف"
+msgstr "04 · Archive"
+
+#: .\reports\templates\reports\landing.html:825
+msgid "المساحة والنسخ السنوية أمام المدير"
+msgstr "Storage and yearly snapshots in front of the principal"
+
+#: .\reports\templates\reports\landing.html:826
+msgid ""
+"استهلاك التخزين، سنوات الأرشيف، وحالة كل نسخة ثابتة في شاشة واحدة سهلة "
+"الرجوع."
+msgstr "Storage usage, archive years, and the state of every snapshot on one easy-to-revisit screen."
+
+#: .\reports\templates\reports\landing.html:843
+msgid "الثقة جزء من التصميم"
+msgstr "Trust is part of the design"
+
+#: .\reports\templates\reports\landing.html:844
+msgid "الثقة التي تحتاجها الإدارة ليست مجرد كلمة"
+msgstr "The assurance management needs is more than a word"
+
+#: .\reports\templates\reports\landing.html:845
+msgid ""
+"بنية متعددة المدارس، وصلاحيات حسب الدور، وسجل للعمليات، وروابط مشاركة مؤقتة، "
+"وأرشيف يمكن التحقق من سلامته."
+msgstr "A multi-school architecture, role-based permissions, an activity log, temporary sharing links, and an archive whose integrity can be verified."
+
+#: .\reports\templates\reports\landing.html:849
+msgid "عزل المدارس"
+msgstr "School isolation"
+
+#: .\reports\templates\reports\landing.html:849
+msgid "كل مدرسة ضمن نطاق بيانات مستقل"
+msgstr "Each school within its own data scope"
+
+#: .\reports\templates\reports\landing.html:850
+msgid "صلاحيات حسب الدور"
+msgstr "Role-based permissions"
+
+#: .\reports\templates\reports\landing.html:850
+msgid "المدير والمعلم يرى ما يخصه"
+msgstr "Principal and teacher each see what concerns them"
+
+#: .\reports\templates\reports\landing.html:851
+msgid "مشاركة منضبطة"
+msgstr "Controlled sharing"
+
+#: .\reports\templates\reports\landing.html:851
+msgid "روابط مؤقتة وقابلة للإيقاف"
+msgstr "Temporary links that can be revoked"
+
+#: .\reports\templates\reports\landing.html:852
+msgid "أثر قابل للمراجعة"
+msgstr "An auditable trail"
+
+#: .\reports\templates\reports\landing.html:852
+msgid "سجل عمليات وأرشيف ببصمة SHA-256"
+msgstr "An activity log and an archive with a SHA-256 hash"
+
+#: .\reports\templates\reports\landing.html:861
+msgid "التسعير حسب عدد المعلمين"
+msgstr "Pricing by teacher count"
+
+#: .\reports\templates\reports\landing.html:862
+msgid "لا باقات تختار بينها — أدخل عدد معلميك ويظهر مبلغك"
+msgstr "No plans to choose between — enter your teacher count and see your price"
+
+#: .\reports\templates\reports\landing.html:863
+msgid ""
+"أدخل عدد معلمي مدرستك واختر المدة؛ سنحسب أصغر سعة عملية تناسبك، مع بقاء "
+"أدوات التشغيل والتوثيق الأساسية مشمولة."
+msgstr "Enter your school’s teacher count and pick a term; we work out the smallest practical capacity for you, with the core operations and documentation tools always included."
+
+#: .\reports\templates\reports\landing.html:867
+msgid "1. أدخل عدد المعلمين"
+msgstr "1. Enter the teacher count"
+
+#: .\reports\templates\reports\landing.html:867
+msgid "الرقم الفعلي في مدرستك"
+msgstr "The actual number in your school"
+
+#: .\reports\templates\reports\landing.html:868
+msgid "2. اختر المدة"
+msgstr "2. Choose the term"
+
+#: .\reports\templates\reports\landing.html:868
+msgid "شهري، 6 أشهر، أو سنوي"
+msgstr "Monthly, 6 months, or yearly"
+
+#: .\reports\templates\reports\landing.html:869
+msgid "3. فعّل المدرسة"
+msgstr "3. Activate the school"
+
+#: .\reports\templates\reports\landing.html:869
+msgid "اشتراك مستقل لا يختلط بمدرسة أخرى"
+msgstr "A standalone subscription that never mixes with another school"
+
+#: .\reports\templates\reports\landing.html:877
+msgid "كم معلماً سيستخدم المنصة؟"
+msgstr "How many teachers will use the platform?"
+
+#: .\reports\templates\reports\landing.html:878
+msgid ""
+"أدخل العدد الفعلي. نختار تلقائياً أقرب سعة مناسبة مع مساحة بسيطة للنمو، دون "
+"أن تضطر مباشرةً إلى باقة 50 معلماً."
+msgstr "Enter the real number. We automatically pick the nearest suitable capacity with a little room to grow, so you aren’t pushed straight to a 50-teacher plan."
+
+#: .\reports\templates\reports\landing.html:879
+msgid "عدد المعلمين"
+msgstr "Teacher count"
+
+#: .\reports\templates\reports\landing.html:894
+msgid "السعة الأنسب لمدرستك"
+msgstr "The best-fitting capacity for your school"
+
+#: .\reports\templates\reports\landing.html:896
+#: .\reports\templates\reports\landing.html:948
+#: .\reports\templates\reports\landing.html:980
+#: .\reports\templates\reports\landing.html:988
+#: .\reports\templates\reports\landing.html:997
+msgid "ريال"
+msgstr "SAR"
+
+#: .\reports\templates\reports\landing.html:897
+msgid "يُحتسب السعر فوراً"
+msgstr "Price calculated instantly"
+
+#: .\reports\templates\reports\landing.html:899
+msgid "عدد فريقك"
+msgstr "Your team size"
+
+#: .\reports\templates\reports\landing.html:900
+msgid "مقاعد للنمو"
+msgstr "Seats for growth"
+
+#: .\reports\templates\reports\landing.html:901
+msgid "مساحة التخزين"
+msgstr "Storage"
+
+#: .\reports\templates\reports\landing.html:903
+msgid "نختار لك السعة الأقل تكلفة تلقائياً."
+msgstr "We automatically select the lowest-cost capacity for you."
+
+#: .\reports\templates\reports\landing.html:913
+msgid "وتظهر السعة والمبلغ أعلاه قبل التسجيل"
+msgstr "Capacity and price appear above before you register"
+
+#: .\reports\templates\reports\landing.html:946
+msgid "التجربة المجانية"
+msgstr "Free trial"
+
+#: .\reports\templates\reports\landing.html:946
+msgid "اختبر المنصة داخل مدرستك قبل الاشتراك"
+msgstr "Test the platform inside your school before subscribing"
+
+#: .\reports\templates\reports\landing.html:951
+msgid "بعد التجربة تدفع حسب عدد معلميك فقط — احسب مبلغك أعلاه."
+msgstr "After the trial you pay only for your teacher count — work out your price above."
+
+#: .\reports\templates\reports\landing.html:1010
+msgid "باقة مدرستك"
+msgstr "Your school’s plan"
+
+#: .\reports\templates\reports\landing.html:1010
+msgid "ابدأ مجانًا وسنساعدك في اختيار السعة المناسبة."
+msgstr "Start free and we’ll help you pick the right capacity."
+
+#: .\reports\templates\reports\landing.html:1025
+msgid "اشتراك منصة توثيق"
+msgstr "Tawtheeq subscription"
+
+#: .\reports\templates\reports\landing.html:1025
+msgid "التقارير، ملفات الإنجاز، الطلبات، التعاميم، PDF والمشاركة الآمنة."
+msgstr "Reports, portfolios, requests, circulars, PDF output and secure sharing."
+
+#: .\reports\templates\reports\landing.html:1026
+msgid "السعر حسب عدد المعلمين والمدة أعلاه"
+msgstr "Price depends on the teacher count and term above"
+
+#: .\reports\templates\reports\landing.html:1030
+msgid "لا تفقد سجل سنة دراسية"
+msgstr "Never lose a school year’s record"
+
+#: .\reports\templates\reports\landing.html:1030
+msgid ""
+"أرشيف سنوي مستقل يجمع بيانات السنة وملفاتها في نسخة ثابتة قابلة للتنزيل، مع "
+"فهرس Excel وبصمة تحقق، وتبقى النسخ المحفوظة بعد انتهاء الإضافة."
+msgstr "A standalone yearly archive that gathers the year’s data and files into a downloadable immutable snapshot, with an Excel index and a verification hash. Saved snapshots remain available after the add-on ends."
+
+#: .\reports\templates\reports\landing.html:1031
+msgid "399 ريال / سنة"
+msgstr "SAR 399 / year"
+
+#: .\reports\templates\reports\landing.html:1035
+msgid "سعة أرشيف إضافية"
+msgstr "Additional archive capacity"
+
+#: .\reports\templates\reports\landing.html:1035
+msgid "كتلة تخزين إضافية تضاف إلى خدمة الأرشيف."
+msgstr "An extra storage block added to the archive service."
+
+#: .\reports\templates\reports\landing.html:1036
+msgid "149 ريال / 50GB"
+msgstr "SAR 149 / 50 GB"
+
+#: .\reports\templates\reports\landing.html:1040
+msgid "الدعم الفني"
+msgstr "Technical support"
+
+#: .\reports\templates\reports\landing.html:1040
+msgid ""
+"دعم فني بأولوية مشمول طوال مدة الاشتراك، أما جلسات الإعداد والتدريب الإضافية "
+"فمتاحة عند الطلب كخدمة مستقلة."
+msgstr "Priority technical support is included for the whole subscription term; additional setup and training sessions are available on request as a separate service."
+
+#: .\reports\templates\reports\landing.html:1041
+msgid "الدعم مشمول دون رسوم إضافية"
+msgstr "Support included at no extra charge"
+
+#: .\reports\templates\reports\landing.html:1045
+msgid "توسعة سعة المعلمين بمرونة"
+msgstr "Flexible teacher-capacity expansion"
+
+#: .\reports\templates\reports\landing.html:1045
+msgid ""
+"زيادات صغيرة كل 5 معلمين حتى 50، ثم كل 10؛ حتى لا تدفع المدرسة مقابل سعة "
+"كبيرة لا تحتاجها."
+msgstr "Small increments of 5 teachers up to 50, then 10 — so a school never pays for capacity it doesn’t need."
+
+#: .\reports\templates\reports\landing.html:1046
+msgid "يُحسب تلقائياً"
+msgstr "Calculated automatically"
+
+#: .\reports\templates\reports\landing.html:1050
+msgid "جلسة تدريب إضافية"
+msgstr "Additional training session"
+
+#: .\reports\templates\reports\landing.html:1050
+msgid "جلسة إعداد وتدريب عن بُعد لفريق المدرسة."
+msgstr "A remote setup and training session for the school team."
+
+#: .\reports\templates\reports\landing.html:1054
+msgid ""
+"يظهر المبلغ النهائي وأي تكلفة إضافية — إن وجدت — قبل تأكيد الطلب. الخدمة "
+"رقمية ولا توجد رسوم شحن."
+msgstr "The final amount and any additional cost — if any — are shown before you confirm the order. The service is digital and there are no shipping fees."
+
+#: .\reports\templates\reports\landing.html:1061
+msgid "أسئلة قبل البدء"
+msgstr "Questions before you start"
+
+#: .\reports\templates\reports\landing.html:1062
+msgid "إجابات مباشرة تساعدك على القرار"
+msgstr "Straight answers to help you decide"
+
+#: .\reports\templates\reports\landing.html:1063
+msgid ""
+"وإذا كان لديك سيناريو خاص بمدرستك، ابدأ التجربة واختبره على المنتج نفسه."
+msgstr "And if your school has a particular scenario, start the trial and test it on the product itself."
+
+#: .\reports\templates\reports\landing.html:1069
+msgid ""
+"لا. صُممت رحلة المعلم لتكون قصيرة: يختار المهمة، يدخل البيانات، يرفع الصور، "
+"ثم يحفظ أو يرسل للمراجعة."
+msgstr "No. The teacher’s journey is designed to be short: pick the task, enter the data, upload images, then save or submit for review."
+
+#: .\reports\templates\reports\landing.html:1073
+msgid ""
+"القرار لك، ولن نعدك بأرقام لا نستطيع إثباتها. الفرق أن الملفات وحدها لا تحفظ "
+"المسؤولية ولا حالة العمل ولا التوقيعات. ابدأ بالتجربة المجانية وطبّقها على "
+"أعمال أسبوع واحد، ثم قارن الوقت والوضوح بنفسك قبل أي التزام مالي."
+msgstr "The decision is yours, and we won’t promise numbers we can’t prove. The difference is that files alone don’t preserve accountability, work status, or signatures. Start the free trial, apply it to one week of work, then compare the time and the clarity yourself before any financial commitment."
+
+#: .\reports\templates\reports\landing.html:1077
+msgid ""
+"ثلاث خطوات فقط: تسجيل المدرسة، ثم إضافة المعلمين وتحديد الصلاحيات، ثم البدء "
+"بأول تقرير أو طلب أو تعميم. لا يلزم تجهيز تقني ولا تثبيت برامج؛ المنصة تعمل "
+"من المتصفح مباشرة."
+msgstr "Just three steps: register the school, add teachers and set permissions, then start your first report, request or circular. No technical setup and no software to install — the platform runs straight from the browser."
+
+#: .\reports\templates\reports\landing.html:1081
+msgid ""
+"نعم، الصفحات الأساسية مهيأة للجوال، خصوصًا رفع التقارير والشواهد ومتابعة "
+"الطلبات والتعاميم."
+msgstr "Yes — the core pages are built for mobile, especially uploading reports and evidence and following up on requests and circulars."
+
+#: .\reports\templates\reports\landing.html:1085
+msgid ""
+"نعم. المدرسة النشطة والصلاحيات تحكمان الوصول، ولا تظهر بيانات مدرسة ضمن نطاق "
+"مدرسة أخرى."
+msgstr "Yes. The active school and its permissions govern access, and no school’s data ever appears within another school’s scope."
+
+#: .\reports\templates\reports\landing.html:1089
+msgid ""
+"لا يلزم حساب مختلف. يمكن لمدير المدارس التبديل بين المدارس المرتبطة به، لكن "
+"بيانات كل مدرسة وتجربتها وباقتها ودفعها تبقى مستقلة."
+msgstr "No separate account is needed. A multi-school administrator can switch between their linked schools, but each school’s data, trial, plan and billing remain independent."
+
+#: .\reports\templates\reports\landing.html:1093
+msgid ""
+"يمكن لمدير المدرسة اختيار سعة المعلمين والمدة المناسبة، ثم دفع وتفعيل اشتراك "
+"هذه المدرسة من حسابها وفق الأسعار المنشورة."
+msgstr "The principal can choose the teacher capacity and the term, then pay for and activate that school’s subscription from its own account at the published prices."
+
+#: .\reports\templates\reports\landing.html:1097
+msgid ""
+"نعم. توفر المنصة مخرجات PDF منظمة للطباعة والحفظ، مع روابط مشاركة مؤقتة عند "
+"الحاجة."
+msgstr "Yes. The platform produces structured PDFs for printing and archiving, with temporary sharing links when needed."
+
+#: .\reports\templates\reports\landing.html:1101
+msgid ""
+"يمنحك مستوى إداريًا أعلى فوق المدارس: لوحة تجمع مؤشراتها، تقرير موحد يُصدَّر "
+"Excel وPDF، تكليفات ومجالس وتعاميم على مستوى المجموعة، وسجل تدقيق وأرشيف. "
+"ومع ذلك يبقى اشتراك كل مدرسة ودفعها مستقلًا، وتبقى بيانات كل مدرسة داخل "
+"نطاقها."
+msgstr "It gives you an administrative level above the schools: a board consolidating their indicators, a unified report exportable to Excel and PDF, group-level assignments, councils and circulars, plus an audit log and archive. Even so, each school’s subscription and billing stay independent, and each school’s data stays within its own scope."
+
+#: .\reports\templates\reports\landing.html:1105
+msgid ""
+"تغطيها. إلى جانب التقارير وملفات الإنجاز، تجد الخطط والمبادرات، الاجتماعات "
+"ومحاضرها، التكليفات ولوحة المهام، صندوق الاعتمادات، الأقسام الإدارية "
+"والصلاحيات والتفويض، وأرشيف الوثائق — كلها ضمن الاشتراك نفسه دون وحدات تُشترى "
+"منفصلة."
+msgstr "It covers them. Alongside reports and portfolios you get plans and initiatives, meetings and their minutes, assignments and the task board, the approvals inbox, administrative departments with permissions and delegation, and the document archive — all within the same subscription, with no separately purchased modules."
+
+#: .\reports\templates\reports\landing.html:1109
+msgid ""
+"لا. تستطيع إدارة المدرسة تصدير بيانات مدرستها وملفاتها في أي وقت، إضافة إلى "
+"مخرجات PDF وفهارس Excel والأرشيف السنوي القابل للتنزيل، فتبقى نسخة لديك "
+"مستقلة عن استمرار الاشتراك."
+msgstr "No. School management can export the school’s data and files at any time, in addition to PDF outputs, Excel indexes and the downloadable yearly archive — so you keep a copy independent of whether the subscription continues."
+
+#: .\reports\templates\reports\landing.html:1113
+msgid ""
+"نعم. الأرشيف إضافة سنوية مستقلة تحفظ التقارير والإنجاز والطلبات والتعاميم "
+"والإشعارات وملفاتها في نسخة ثابتة قابلة للتنزيل، مع فهرس Excel وبصمة تحقق. "
+"وتبقى النسخ التي حفظتها متاحة بعد انتهاء الإضافة."
+msgstr "Yes. The archive is a standalone yearly add-on that preserves reports, portfolios, requests, circulars, notifications and their files in a downloadable immutable snapshot, with an Excel index and a verification hash. Snapshots you saved remain available after the add-on ends."
+
+#: .\reports\templates\reports\landing.html:1124
+msgid "القرار الأفضل يبدأ بتجربة حقيقية"
+msgstr "The best decision starts with a real trial"
+
+#: .\reports\templates\reports\landing.html:1125
+msgid "ابدأ بمدرسة واحدة، واجعل أول مسار عمل أكثر وضوحًا من اليوم."
+msgstr "Start with one school, and make your first workflow clearer from today."
+
+#: .\reports\templates\reports\landing.html:1145
+msgid ""
+"منصة تشغيل وتوثيق للمدير والمالك والمدير التنفيذي؛ تمنح المدرسة صورة واضحة "
+"عن العمل وسجلًا مهنيًا لما أُنجز."
+msgstr "An operations and documentation platform for principals, owners and executive directors — giving the school a clear view of the work and a professional record of what was accomplished."
+
+#: .\reports\templates\reports\landing.html:1147
+msgid "المنصة"
+msgstr "Platform"
+
+#: .\reports\templates\reports\landing.html:1148
+msgid "المساعدة"
+msgstr "Help"
+
+#: .\reports\templates\reports\landing.html:1149
+msgid "السياسات"
+msgstr "Policies"
+
+#: .\reports\templates\reports\landing.html:1155
+msgid "عبر ميسر · تظهر الوسائل المفعّلة والمتاحة عند إتمام الدفع"
+msgstr "Via Moyasar · Enabled and available methods are shown at checkout"
+
+#: .\reports\templates\reports\landing.html:1192
+msgid "متجر موثّق — المركز السعودي للأعمال"
+msgstr "Verified store — Saudi Business Center"
+
+#: .\reports\templates\reports\landing.html:1203
+msgid "دخول"
+msgstr "Sign in"
+
+#: .\reports\templates\reports\legal_base.html:10
+msgid "سياسات منصة توثيق"
+msgstr "Tawtheeq policies"
+
+#: .\reports\templates\reports\legal_base.html:13
+msgid "آخر تحديث: 2 أغسطس 2026م"
+msgstr "Last updated: 2 August 2026"
+
+#: .\reports\templates\reports\legal_base.html:16
+msgid "سياسات المنصة"
+msgstr "Platform policies"
+
+#: .\reports\templates\reports\legal_base.html:17
+msgid "الشروط والأحكام"
+msgstr "Terms and conditions"
+
+#: .\reports\templates\reports\legal_base.html:18
+msgid "الخصوصية"
+msgstr "Privacy"
+
+#: .\reports\templates\reports\legal_base.html:19
+msgid "الإلغاء والاسترجاع"
+msgstr "Cancellation and refunds"
+
+#: .\reports\templates\reports\legal_base.html:20
+msgid "تقديم الخدمة"
+msgstr "Service delivery"
+
+#: .\reports\templates\reports\legal_base.html:21
+msgid "الشكاوى والمقترحات"
+msgstr "Complaints and suggestions"
+
+#: .\reports\templates\reports\login.html:487
+msgid "اسم المستخدم أو كلمة المرور غير صحيحة."
+msgstr "Incorrect username or password."
+
+#: .\reports\templates\reports\login.html:499
+msgid "رقم الجوال"
+msgstr "Mobile number"
+
+#: .\reports\templates\reports\login.html:513
+msgid "كلمة المرور"
+msgstr "Password"
+
+#: .\reports\templates\reports\login.html:538
+msgid "دخول بلا كلمة مرور"
+msgstr "Passwordless sign-in"
+
+#: .\reports\templates\reports\login.html:539
+msgid "أكّد هويتك ببصمتك أو Face ID أو قفل الشاشة — لا شيء يُكتب ولا شيء يُنسى."
+msgstr "Confirm your identity with your fingerprint, Face ID or screen lock — nothing to type, nothing to forget."
+
+#: .\reports\templates\reports\partials\language_switcher.html:20
+#, python-format
+msgid "Switch the site language to %(label)s"
+msgstr "Switch the site language to %(label)s"
+
+#: .\reports\templates\reports\password_reset_base.html:383
+msgid "لن يتغيّر شيء في حسابك قبل أن تعيّن كلمة المرور بنفسك."
+msgstr "Nothing in your account changes until you set the password yourself."
+
+#: .\reports\templates\reports\password_reset_base.html:389
+msgid "أدخل بريدك"
+msgstr "Enter your email"
+
+#: .\reports\templates\reports\password_reset_base.html:392
+msgid "افتح الرسالة"
+msgstr "Open the message"
+
+#: .\reports\templates\reports\password_reset_base.html:395
+msgid "كلمة مرور جديدة"
+msgstr "New password"
+
+#: .\reports\templates\reports\password_reset_base.html:404
+msgid "اتصال مشفّر · لا نعرض بيانات حسابك على هذه الصفحة"
+msgstr "Encrypted connection · We don’t display your account data on this page"
+
+#: .\reports\templates\reports\password_reset_form.html:14
+msgid "هل نسيت كلمة المرور؟"
+msgstr "Forgot your password?"
+
+#: .\reports\templates\reports\privacy_policy.html:15
+msgid "1. جهة التحكم ونطاق السياسة"
+msgstr "1. Controller and scope of this policy"
+
+#: .\reports\templates\reports\privacy_policy.html:19
+msgid ""
+"تدير منصة توثيق معالجة البيانات اللازمة لتشغيل الموقع وحسابات المدارس "
+"والمستخدمين وخدمات الدعم والاشتراك."
+msgstr "Tawtheeq manages the data processing required to operate the website, school and user accounts, and the support and subscription services."
+
+#: .\reports\templates\reports\privacy_policy.html:21
+msgid ""
+"تعمل المدرسة أيضًا بصفتها الجهة التي تحدد مستخدميها والمحتوى المدرسي الذي "
+"يُرفع إلى المنصة، بينما تعالج منصة توثيق تلك البيانات لتقديم الخدمة المتعاقد "
+"عليها ووفق التعليمات المشروعة."
+msgstr "The school also acts as the party that determines its users and the school content uploaded to the platform, while Tawtheeq processes that data to deliver the contracted service and in accordance with lawful instructions."
+
+#: .\reports\templates\reports\privacy_policy.html:25
+msgid "2. البيانات وطرق جمعها"
+msgstr "2. Data and how it is collected"
+
+#: .\reports\templates\reports\privacy_policy.html:27
+msgid "بيانات الحساب والتواصل:"
+msgstr "Account and contact data:"
+
+#: .\reports\templates\reports\privacy_policy.html:28
+msgid "بيانات المدرسة:"
+msgstr "School data:"
+
+#: .\reports\templates\reports\privacy_policy.html:29
+msgid "محتوى الخدمة:"
+msgstr "Service content:"
+
+#: .\reports\templates\reports\privacy_policy.html:30
+msgid "الدعم والدفع:"
+msgstr "Support and payment:"
+
+#: .\reports\templates\reports\privacy_policy.html:31
+msgid "ميزات الذكاء الاصطناعي:"
+msgstr "AI features:"
+
+#: .\reports\templates\reports\privacy_policy.html:32
+msgid "بيانات تقنية:"
+msgstr "Technical data:"
+
+#: .\reports\templates\reports\privacy_policy.html:33
+msgid "مصدر التسجيل:"
+msgstr "Registration source:"
+
+#: .\reports\templates\reports\privacy_policy.html:35
+msgid ""
+"نجمع البيانات مباشرةً عند التسجيل والاستخدام والتواصل، وتلقائيًا بالقدر اللازم "
+"لتشغيل الموقع وحمايته، أو من المدرسة عندما تنشئ حسابات مستخدميها."
+msgstr "We collect data directly during registration, use and correspondence; automatically to the extent needed to operate and protect the site; or from the school when it creates accounts for its users."
+
+#: .\reports\templates\reports\privacy_policy.html:39
+msgid "3. الأغراض والمسوغ النظامي"
+msgstr "3. Purposes and legal basis"
+
+#: .\reports\templates\reports\privacy_policy.html:40
+msgid ""
+"تعالج البيانات لتنفيذ عقد الخدمة، وإنشاء الحسابات، وتشغيل خصائص المنصة، "
+"وإدارة الاشتراك والدعم، وحماية الحسابات ومنع الإساءة، وتحسين الأداء، والوفاء "
+"بالالتزامات النظامية. يعتمد المسوغ بحسب الحالة على تنفيذ العقد، أو الموافقة، "
+"أو مصلحة مشروعة لا تتعارض مع حقوق صاحب البيانات، أو التزام نظامي."
+msgstr "Data is processed to perform the service contract, create accounts, operate platform features, manage subscriptions and support, protect accounts and prevent abuse, improve performance, and meet statutory obligations. Depending on the case, the basis is contract performance, consent, a legitimate interest that does not conflict with the data subject’s rights, or a legal obligation."
+
+#: .\reports\templates\reports\privacy_policy.html:41
+msgid ""
+"عند طلب بيانات إلزامية، قد يؤدي عدم تقديمها إلى تعذر إنشاء الحساب أو تقديم "
+"الخاصية المطلوبة. لا تستخدم البيانات للتسويق المباشر إلا بعد الحصول على "
+"الموافقة المطلوبة، ويمكن سحبها في أي وقت."
+msgstr "Where data is marked as mandatory, not providing it may make it impossible to create the account or deliver the requested feature. Data is not used for direct marketing without the required consent, which may be withdrawn at any time."
+
+#: .\reports\templates\reports\privacy_policy.html:45
+msgid "4. الإفصاح ومقدمو الخدمات والنطاق الجغرافي"
+msgstr "4. Disclosure, service providers and geographic scope"
+
+#: .\reports\templates\reports\privacy_policy.html:51
+msgid ""
+"عند استخدام مساعد منصور أو تحسين التقارير، يُرسل نص السؤال أو المسودة وسياق "
+"الطلب الضروري إلى مزود خدمة الذكاء الاصطناعي OpenAI لتوليد النتيجة المطلوبة. "
+"تُرسل الطلبات دون طلب حفظ حالة الاستجابة، إلا أن OpenAI قد تحتفظ افتراضيًا "
+"بسجلات مراقبة إساءة الاستخدام لمدة تصل إلى 30 يومًا. استخدام هذه الميزة "
+"اختياري، ويجب عدم إدخال أرقام الهوية أو البيانات الصحية أو الأسرار أو أي "
+"بيانات شخصية لا تلزم للمهمة."
+msgstr "When you use the Mansour assistant or report enhancement, the text of your question or draft and the necessary request context are sent to the AI provider OpenAI to generate the result. Requests are sent without asking for response state to be retained; however, OpenAI may by default keep abuse-monitoring logs for up to 30 days. Use of this feature is optional, and you must not enter ID numbers, health data, secrets, or any personal data not required for the task."
+
+#: .\reports\templates\reports\privacy_policy.html:52
+msgid ""
+"قد تستلزم البنية التقنية معالجة داخل المملكة أو خارجها؛ وعند النقل خارج "
+"المملكة تطبق المتطلبات والضمانات النظامية ذات الصلة، ويقتصر الإفصاح على الحد "
+"اللازم للغرض."
+msgstr "The technical architecture may require processing inside or outside the Kingdom. Where data is transferred outside the Kingdom, the relevant statutory requirements and safeguards apply, and disclosure is limited to what the purpose requires."
+
+#: .\reports\templates\reports\privacy_policy.html:53
+msgid ""
+"قد نفصح عن البيانات للجهات المختصة إذا أوجب النظام ذلك، أو للمدرسة والأشخاص "
+"المخولين داخل نطاق صلاحياتهم. لا نبيع البيانات الشخصية أو نؤجرها لأغراض "
+"إعلانية."
+msgstr "We may disclose data to the competent authorities where the law requires it, or to the school and authorised individuals within the scope of their permissions. We do not sell or rent personal data for advertising purposes."
+
+#: .\reports\templates\reports\privacy_policy.html:57
+msgid "5. الحماية والاحتفاظ والإتلاف"
+msgstr "5. Protection, retention and destruction"
+
+#: .\reports\templates\reports\privacy_policy.html:58
+msgid ""
+"نطبق ضوابط وصول حسب الدور، وتشفيرًا أثناء النقل، وتخزينًا خاصًا للمرفقات، "
+"وسجلات تدقيق ونسخًا احتياطية وإجراءات للاستجابة للحوادث. لا توجد وسيلة تقنية "
+"تضمن انعدام المخاطر بالكامل."
+msgstr "We apply role-based access controls, encryption in transit, private storage for attachments, audit logs, backups, and incident-response procedures. No technical measure can guarantee the complete absence of risk."
+
+#: .\reports\templates\reports\privacy_policy.html:59
+msgid ""
+"نحتفظ ببيانات الحساب والمحتوى طوال مدة تقديم الخدمة وما يلزم بعدها لتسوية "
+"الحقوق والالتزامات، ونحتفظ بالسجلات المالية والأمنية للمدد النظامية أو "
+"اللازمة للدفاع عن المطالبات. بعد انتهاء الغرض تُتلف البيانات أو تُخفى هويتها "
+"بطريقة آمنة، وقد تبقى مؤقتًا ضمن دورة النسخ الاحتياطي المقيدة."
+msgstr "We retain account data and content for the duration of the service and for as long as afterwards as is needed to settle rights and obligations, and we retain financial and security records for the statutory periods or as needed to defend claims. Once the purpose ends, data is securely destroyed or anonymised, and may remain temporarily within the restricted backup cycle."
+
+#: .\reports\templates\reports\privacy_policy.html:63
+msgid "6. حقوق صاحب البيانات"
+msgstr "6. Data subject rights"
+
+#: .\reports\templates\reports\privacy_policy.html:64
+msgid ""
+"وفق نظام حماية البيانات الشخصية، يحق لصاحب البيانات العلم، والوصول، وطلب "
+"نسخة مقروءة، والتصحيح أو الاستكمال أو التحديث، وطلب الإتلاف في الحالات "
+"المقررة، والعدول عن الموافقة متى كانت هي أساس المعالجة، وتقديم شكوى."
+msgstr "Under the Personal Data Protection Law, the data subject has the right to be informed, to access their data, to request a readable copy, to have it corrected, completed or updated, to request destruction in the prescribed cases, to withdraw consent where consent is the basis of processing, and to lodge a complaint."
+
+#: .\reports\templates\reports\privacy_policy.html:69
+msgid "7. ملفات الارتباط، القُصّر، والتحديثات"
+msgstr "7. Cookies, minors, and updates"
+
+#: .\reports\templates\reports\privacy_policy.html:70
+msgid ""
+"نستخدم ملفات ارتباط ضرورية للجلسة والأمان وتفضيلات المدرسة النشطة. نقيس مصدر "
+"التسجيل داخليًا من معاملات الحملة ونطاق الإحالة، ولا نضع ملفات ارتباط إعلانية "
+"لطرف ثالث في الوضع الحالي. المنصة موجهة للمدارس وموظفيها ولا تستهدف جمع "
+"بيانات الأطفال مباشرة؛ وعلى المدرسة عدم رفع بيانات شخصية لا يلزمها العمل "
+"المدرسي أو لا تملك مسوغًا لمعالجتها."
+msgstr "We use cookies that are strictly necessary for sessions, security and the active-school preference. We measure the registration source internally from campaign parameters and the referring domain, and we currently set no third-party advertising cookies. The platform is intended for schools and their staff and does not aim to collect children’s data directly; schools must not upload personal data that school work does not require or that they have no basis to process."
+
+#: .\reports\templates\reports\privacy_policy.html:71
+msgid ""
+"ننشر أي تحديث لهذه السياسة في هذه الصفحة، ونشعر العملاء بالتغيير الجوهري عبر "
+"وسيلة مناسبة قبل سريانه متى كان ذلك مطلوبًا."
+msgstr "We publish any update to this policy on this page, and where required we notify customers of material changes through an appropriate channel before they take effect."
+
+#: .\reports\templates\reports\refund_policy.html:15
+msgid "التجربة المجانية قبل الشراء"
+msgstr "Free trial before purchase"
+
+#: .\reports\templates\reports\refund_policy.html:16
+msgid ""
+"نوفر تجربة مجانية دون بطاقة ائتمانية حتى تتمكن المدرسة من فحص وظائف المنصة "
+"قبل شراء الاشتراك. لا يترتب على انتهاء التجربة أي خصم تلقائي."
+msgstr "We offer a free trial with no credit card so the school can examine the platform’s functionality before purchasing a subscription. No automatic charge follows the end of the trial."
+
+#: .\reports\templates\reports\refund_policy.html:20
+msgid "حق الإلغاء خلال سبعة أيام"
+msgstr "Right of cancellation within seven days"
+
+#: .\reports\templates\reports\refund_policy.html:21
+msgid ""
+"يجوز للمستهلك فسخ عقد الاشتراك خلال السبعة أيام التالية لتاريخ التعاقد ما "
+"دام لم يستخدم الخدمة أو ينتفع بها. يقدم الطلب عبر نموذج الشكاوى أو بريد خدمة "
+"العملاء، ويذكر رقم الطلب أو الاشتراك وسبب الطلب ووسيلة الدفع."
+msgstr "The consumer may rescind the subscription contract within the seven days following the contract date, provided they have not used or benefited from the service. The request is submitted through the complaints form or the customer-service email and must state the order or subscription number, the reason, and the payment method."
+
+#: .\reports\templates\reports\refund_policy.html:22
+msgid ""
+"إذا بدأ العميل استخدام المنصة أو استفاد من وظائف الاشتراك بعد التفعيل، "
+"فيُراجع الطلب وفق مقدار الانتفاع وأي خلل أو عدم مطابقة، وقد لا ينطبق حق الفسخ "
+"المقرر للخدمة غير المستخدمة. لا يؤثر ذلك في حق العميل عند وجود عيب أو إخلال "
+"من مقدم الخدمة."
+msgstr "If the customer has started using the platform or benefited from subscription functionality after activation, the request is reviewed according to the extent of that use and any defect or non-conformity, and the right of rescission prescribed for an unused service may not apply. This does not affect the customer’s rights where there is a defect or a breach by the service provider."
+
+#: .\reports\templates\reports\refund_policy.html:26
+msgid "التأخر أو عدم المطابقة"
+msgstr "Delay or non-conformity"
+
+#: .\reports\templates\reports\refund_policy.html:28
+msgid ""
+"إذا تأخر تنفيذ الخدمة أكثر من خمسة عشر يومًا عن الموعد المتفق عليه، يحق "
+"للمستهلك إلغاء الطلب واسترداد ما دفعه، ما لم يكن التأخر بسبب قوة قاهرة أو "
+"اتفق الطرفان على مدة أخرى."
+msgstr "If delivery of the service is delayed more than fifteen days beyond the agreed date, the consumer may cancel the order and recover what they paid, unless the delay is due to force majeure or the parties agreed on a different period."
+
+#: .\reports\templates\reports\refund_policy.html:29
+msgid ""
+"إذا كانت الخدمة لا تطابق الوصف الجوهري أو تعذر استخدامها بسبب خلل من المنصة، "
+"نحاول المعالجة دون تكلفة؛ فإن تعذرت خلال مدة معقولة، يقدم استرداد كلي أو "
+"جزئي بحسب أثر الخلل والمدة المتبقية."
+msgstr "If the service does not match its essential description, or cannot be used because of a fault on the platform’s side, we attempt to remedy it at no cost; if that is not possible within a reasonable period, a full or partial refund is issued according to the impact of the fault and the remaining term."
+
+#: .\reports\templates\reports\refund_policy.html:30
+msgid "المبالغ المدفوعة بالخطأ أو العمليات المكررة تُعاد بعد التحقق."
+msgstr "Amounts paid in error or duplicate transactions are refunded after verification."
+
+#: .\reports\templates\reports\refund_policy.html:35
+msgid "الاستثناءات والمبالغ غير المستخدمة"
+msgstr "Exceptions and unused amounts"
+
+#: .\reports\templates\reports\refund_policy.html:36
+msgid ""
+"لا يشمل الاسترداد عادةً مدة اشتراك استُهلكت فعليًا دون خلل، أو خدمة نُفذت "
+"بالكامل بموافقة العميل، أو تكلفة إضافية نفذت بناءً على طلبه. ويظل أي حق أقوى "
+"يقرره النظام مقدمًا على هذه السياسة."
+msgstr "Refunds do not normally cover a subscription period actually consumed without fault, a service fully performed with the customer’s agreement, or an additional cost incurred at their request. Any stronger right granted by law continues to take precedence over this policy."
+
+#: .\reports\templates\reports\refund_policy.html:40
+msgid "طريقة ومدة رد المبلغ"
+msgstr "Refund method and timeline"
+
+#: .\reports\templates\reports\refund_policy.html:42
+msgid "نؤكد استلام الطلب خلال يومي عمل."
+msgstr "We acknowledge receipt of the request within two business days."
+
+#: .\reports\templates\reports\refund_policy.html:43
+msgid ""
+"نراجع الأهلية ونبلغ العميل بالقرار خلال سبعة أيام عمل، ما لم تتطلب الحالة "
+"مستندًا أو تحققًا إضافيًا."
+msgstr "We review eligibility and inform the customer of the decision within seven business days, unless the case requires an additional document or verification."
+
+#: .\reports\templates\reports\refund_policy.html:44
+msgid ""
+"عند الموافقة، نصدر الاسترداد إلى وسيلة الدفع الأصلية خلال سبعة أيام عمل. قد "
+"تستغرق جهة الدفع أو البنك مدة إضافية لظهور المبلغ."
+msgstr "Once approved, we issue the refund to the original payment method within seven business days. The payment provider or bank may take additional time for the amount to appear."
+
+#: .\reports\templates\reports\refund_policy.html:46
+msgid ""
+"لا تُفرض رسوم على استرداد ناشئ عن خطأ من المنصة. إذا تعذر الرد إلى الوسيلة "
+"الأصلية، نتواصل مع العميل لاختيار وسيلة موثقة وآمنة."
+msgstr "No fee is charged for a refund arising from an error on the platform’s side. If a refund to the original method is not possible, we contact the customer to choose a documented, secure alternative."
+
+#: .\reports\templates\reports\register_school.html:375
+msgid "لتشغيل وتوثيق العمل المدرسي"
+msgstr "For running and documenting school work"
+
+#: .\reports\templates\reports\register_school.html:380
+msgid "ابدأ بمدرستك الحقيقية، لا بنسخة محدودة."
+msgstr "Start with your real school, not a limited version."
+
+#: .\reports\templates\reports\register_school.html:381
+msgid ""
+"بعد التسجيل ستدخل مباشرة إلى لوحة المدرسة، وتستطيع تجربة مسارات المنصة "
+"الأساسية قبل اتخاذ قرار الاشتراك."
+msgstr "After registering you go straight to the school dashboard, and you can try the platform’s core workflows before deciding on a subscription."
+
+#: .\reports\templates\reports\register_school.html:383
+msgid "التقارير وملفات الإنجاز والمخرجات بصيغة PDF"
+msgstr "Reports, portfolios and PDF outputs"
+
+#: .\reports\templates\reports\register_school.html:384
+msgid "الطلبات والتذاكر والتعاميم والتوقيعات"
+msgstr "Requests, tickets, circulars and signatures"
+
+#: .\reports\templates\reports\register_school.html:392
+msgid "بيانات المدرسة معزولة، ولا تحتاج إلى بطاقة ائتمانية لبدء التجربة."
+msgstr "School data is isolated, and no credit card is needed to start the trial."
+
+#: .\reports\templates\reports\register_school.html:403
+msgid "بيانات المدرسة"
+msgstr "School details"
+
+#: .\reports\templates\reports\register_school.html:404
+msgid "حساب إدارة المدرسة"
+msgstr "School administrator account"
+
+#: .\reports\templates\reports\register_school.html:405
+msgid "ابدأ التجربة"
+msgstr "Start the trial"
+
+#: .\reports\templates\reports\register_school.html:407
+msgid "أنشئ حساب المدرسة"
+msgstr "Create the school account"
+
+#: .\reports\templates\reports\register_school.html:408
+msgid ""
+"أدخل البيانات الأساسية فقط. بعد الإنشاء سنعرض لك بيانات الدخول بوضوح في صفحة "
+"مستقلة."
+msgstr "Enter only the essential details. Once created, we show your sign-in credentials clearly on a separate page."
+
+#: .\reports\templates\reports\register_school.html:442
+msgid "اختياري"
+msgstr "Optional"
+
+#: .\reports\templates\reports\register_school.html:460
+msgid "سيكون رقم الجوال هو اسم المستخدم عند تسجيل الدخول."
+msgstr "Your mobile number will be your username when signing in."
+
+#: .\reports\templates\reports\register_school.html:466
+msgid "ميس."
+msgstr "Hijri."
+
+#: .\reports\templates\reports\register_school.html:501
+msgid "إنشاء المدرسة وبدء التجربة"
+msgstr "Create the school and start the trial"
+
+#: .\reports\templates\reports\registration_success.html:336
+msgid "بيانات الدخول إلى حساب إدارة المدرسة"
+msgstr "Sign-in credentials for the school administrator account"
+
+#: .\reports\templates\reports\registration_success.html:337
+msgid ""
+"احتفظ بها في مكان آمن. أنت مسجّل الدخول حاليًا ويمكنك الانتقال مباشرة إلى لوحة "
+"المدرسة."
+msgstr "Keep them somewhere safe. You are signed in now and can go straight to the school dashboard."
+
+#: .\reports\templates\reports\registration_success.html:366
+msgid "للدخول لاحقًا استخدم:"
+msgstr "To sign in later, use:"
+
+#: .\reports\templates\reports\registration_success.html:372
+msgid "لتجربة العمل الجماعي"
+msgstr "To try collaborative work"
+
+#: .\reports\templates\reports\registration_success.html:373
+msgid "مفعّل طوال التجربة"
+msgstr "Active for the whole trial"
+
+#: .\reports\templates\reports\registration_success.html:377
+msgid "ابدأ بهذه الخطوات الثلاث"
+msgstr "Start with these three steps"
+
+#: .\reports\templates\reports\service_delivery_policy.html:15
+msgid "طريقة التسليم"
+msgstr "Delivery method"
+
+#: .\reports\templates\reports\service_delivery_policy.html:16
+msgid ""
+"تُسلّم التجربة المجانية بإنشاء حساب المدرسة وتأكيد بيانات الدخول. ويُسلّم "
+"الاشتراك المدفوع بتفعيل الباقة على الحساب المسجل، مع إشعار داخل المنصة أو "
+"عبر وسيلة التواصل المسجلة. لا تشحن منصة توثيق أي سلعة مادية."
+msgstr "The free trial is delivered by creating the school account and confirming the sign-in credentials. A paid subscription is delivered by activating the plan on the registered account, with a notification inside the platform or through the registered contact channel. Tawtheeq does not ship any physical goods."
+
+#: .\reports\templates\reports\service_delivery_policy.html:20
+msgid "مدد التفعيل"
+msgstr "Activation timelines"
+
+#: .\reports\templates\reports\service_delivery_policy.html:22
+msgid "التجربة المجانية:"
+msgstr "Free trial:"
+
+#: .\reports\templates\reports\service_delivery_policy.html:23
+msgid "الاشتراك المدفوع:"
+msgstr "Paid subscription:"
+
+#: .\reports\templates\reports\service_delivery_policy.html:24
+msgid "إضافة الأرشيف أو السعة:"
+msgstr "Archive or capacity add-on:"
+
+#: .\reports\templates\reports\service_delivery_policy.html:25
+msgid "الإعداد أو المساعدة المجانية المشمولة:"
+msgstr "Included free setup or assistance:"
+
+#: .\reports\templates\reports\service_delivery_policy.html:30
+msgid "مسؤوليات العميل"
+msgstr "Customer responsibilities"
+
+#: .\reports\templates\reports\service_delivery_policy.html:31
+msgid ""
+"على العميل تقديم بيانات صحيحة، وإتمام الدفع المطلوب، وإتاحة وسيلة تواصل "
+"صالحة، والتأكد من توافق جهازه واتصاله مع متصفح حديث. يبدأ حساب مدة التفعيل "
+"بعد اكتمال المتطلبات اللازمة."
+msgstr "The customer must provide accurate data, complete the required payment, keep a valid contact channel available, and ensure their device and connection work with a modern browser. The activation period begins once the necessary requirements are met."
+
+#: .\reports\templates\reports\service_delivery_policy.html:35
+msgid "التأخير والانقطاع"
+msgstr "Delays and interruptions"
+
+#: .\reports\templates\reports\service_delivery_policy.html:36
+msgid ""
+"عند حدوث تأخير نبلغ العميل بالسبب والموعد المتوقع ونوفر قناة متابعة. إذا "
+"تجاوز تنفيذ الخدمة خمسة عشر يومًا من الموعد المتفق عليه، فللمستهلك إلغاء "
+"الطلب واسترداد المبلغ وفق النظام وسياسة الاسترجاع، ما لم يكن التأخير بسبب "
+"قوة قاهرة أو اتُفق على مدة أخرى."
+msgstr "If a delay occurs we inform the customer of the reason and the expected date and provide a follow-up channel. If delivery of the service exceeds fifteen days from the agreed date, the consumer may cancel the order and recover the amount in accordance with the law and the refund policy, unless the delay is due to force majeure or a different period was agreed."
+
+#: .\reports\templates\reports\service_delivery_policy.html:37
+msgid ""
+"قد تتطلب الصيانة المخططة توقفًا مؤقتًا؛ نحرص على تنفيذها في أوقات منخفضة "
+"الاستخدام والإشعار بها متى كان أثرها جوهريًا."
+msgstr "Planned maintenance may require a temporary outage; we aim to carry it out during low-usage periods and to give notice whenever its impact is material."
+
+#: .\reports\templates\reports\terms_conditions.html:15
+msgid "1. التعريف ونطاق الخدمة"
+msgstr "1. Definition and scope of the service"
+
+#: .\reports\templates\reports\terms_conditions.html:16
+msgid ""
+"منصة توثيق هي منصة برمجية سحابية لإدارة التقارير المدرسية، وملفات الإنجاز، "
+"والطلبات، والتعاميم، والمخرجات بصيغة PDF، وخدمات الأرشفة الاختيارية. العميل "
+"هو المدرسة أو الشخص المخول بالتعاقد نيابةً عنها، والمستخدم هو من تمنحه "
+"المدرسة حسابًا وصلاحية."
+msgstr "Tawtheeq is a cloud software platform for managing school reports, achievement portfolios, requests, circulars, PDF outputs, and optional archiving services. The customer is the school or the person authorised to contract on its behalf; a user is anyone the school grants an account and permissions."
+
+#: .\reports\templates\reports\terms_conditions.html:17
+msgid ""
+"تُعد هذه الشروط، وصف الباقة، والسعر الإجمالي الظاهر قبل الدفع، وسياسات "
+"الخصوصية والاسترجاع وتقديم الخدمة أجزاءً من العقد الإلكتروني."
+msgstr "These terms, the plan description, the total price shown before payment, and the privacy, refund and service-delivery policies all form part of the electronic contract."
+
+#: .\reports\templates\reports\terms_conditions.html:21
+msgid "2. إنشاء الحساب وصحة المعلومات"
+msgstr "2. Account creation and accuracy of information"
+
+#: .\reports\templates\reports\terms_conditions.html:23
+msgid ""
+"يقر منشئ حساب المدرسة بأنه مخول بذلك، وأن البيانات المدخلة صحيحة ومحدثة."
+msgstr "Whoever creates the school account confirms that they are authorised to do so and that the data entered is accurate and up to date."
+
+#: .\reports\templates\reports\terms_conditions.html:24
+msgid ""
+"تتحمل المدرسة مسؤولية إدارة مستخدميها وصلاحياتهم والمحافظة على بيانات الدخول."
+msgstr "The school is responsible for managing its users and their permissions and for safeguarding sign-in credentials."
+
+#: .\reports\templates\reports\terms_conditions.html:25
+msgid ""
+"يجب عدم رفع محتوى غير مشروع، أو مخالف لحقوق الغير، أو لا تملك المدرسة صلاحية "
+"معالجته."
+msgstr "No content may be uploaded that is unlawful, infringes the rights of others, or that the school has no authority to process."
+
+#: .\reports\templates\reports\terms_conditions.html:26
+msgid ""
+"يجوز إيقاف الوصول مؤقتًا عند وجود خطر أمني أو استخدام مخالف، مع إشعار العميل "
+"متى كان ذلك ممكنًا."
+msgstr "Access may be suspended temporarily where there is a security risk or improper use, with notice to the customer whenever possible."
+
+#: .\reports\templates\reports\terms_conditions.html:31
+msgid "3. الباقات والأسعار والدفع"
+msgstr "3. Plans, prices and payment"
+
+#: .\reports\templates\reports\terms_conditions.html:32
+msgid ""
+"تظهر خصائص كل باقة ومدتها وسعة المعلمين وسعرها بالريال السعودي في قسم "
+"«المنتجات والخدمات والأسعار». الأسعار المنشورة هي المبالغ النهائية المطلوبة، "
+"ولا توجد ضريبة قيمة مضافة. إذا تغير الوضع الضريبي مستقبلًا فسيُوضّح السعر "
+"الإجمالي وأي ضريبة أو تكلفة إضافية قبل تأكيد الطلب."
+msgstr "Each plan’s features, term, teacher capacity and price in Saudi riyals are shown in the “Products, services and prices” section. Published prices are the final amounts payable, and there is no value-added tax. If the tax position changes in future, the total price and any tax or additional cost will be made clear before the order is confirmed."
+
+#: .\reports\templates\reports\terms_conditions.html:33
+msgid ""
+"لا يتجدد الاشتراك المدفوع تلقائيًا ما لم تُعرض آلية تجديد تلقائي بوضوح ويحصل "
+"مقدم الخدمة على موافقة صريحة من العميل. يبدأ الاشتراك بعد قبول الدفع والتحقق "
+"اللازم وفق سياسة تقديم الخدمة."
+msgstr "A paid subscription does not renew automatically unless an auto-renewal mechanism is clearly presented and the provider obtains the customer’s explicit consent. The subscription begins once payment is accepted and the necessary verification is complete, in line with the service-delivery policy."
+
+#: .\reports\templates\reports\terms_conditions.html:37
+msgid "4. التزامات مقدم الخدمة"
+msgstr "4. Provider obligations"
+
+#: .\reports\templates\reports\terms_conditions.html:39
+msgid ""
+"تقديم الوظائف المشمولة في الباقة خلال مدتها، مع صيانة المنصة وتطبيق إجراءات "
+"أمن مناسبة."
+msgstr "Provide the functionality included in the plan for its term, maintain the platform, and apply appropriate security measures."
+
+#: .\reports\templates\reports\terms_conditions.html:40
+msgid ""
+"إظهار أي انقطاع مخطط أو تغيير جوهري في الخدمة، ومعالجة الأعطال ضمن حدود "
+"معقولة."
+msgstr "Disclose any planned outage or material change to the service, and address faults within reasonable limits."
+
+#: .\reports\templates\reports\terms_conditions.html:41
+msgid ""
+"عدم تغيير السعر أو النطاق على اشتراك مدفوع خلال مدته إلا بموافقة العميل أو "
+"لسبب نظامي."
+msgstr "Not change the price or scope of a paid subscription during its term except with the customer’s consent or for a statutory reason."
+
+#: .\reports\templates\reports\terms_conditions.html:42
+msgid "توفير قنوات واضحة للدعم والشكاوى والاسترجاع."
+msgstr "Provide clear channels for support, complaints and refunds."
+
+#: .\reports\templates\reports\terms_conditions.html:47
+msgid "5. المحتوى والملكية الفكرية"
+msgstr "5. Content and intellectual property"
+
+#: .\reports\templates\reports\terms_conditions.html:48
+msgid ""
+"تبقى بيانات المدرسة ومحتواها مملوكة لها أو لأصحاب الحقوق فيها. يحتفظ مقدم "
+"الخدمة بحقوق البرمجيات والتصميم والعلامة والمحتوى العام. يمنع نسخ المنصة أو "
+"تفكيكها أو محاولة تجاوز ضوابطها أو استخدامها لتقديم خدمة منافسة دون تصريح."
+msgstr "The school’s data and content remain owned by the school or by the relevant rights holders. The provider retains the rights to the software, design, trademark and general content. Copying or disassembling the platform, attempting to circumvent its controls, or using it to offer a competing service without authorisation is prohibited."
+
+#: .\reports\templates\reports\terms_conditions.html:52
+msgid "6. الإلغاء، انتهاء الاشتراك، والمسؤولية"
+msgstr "6. Cancellation, end of subscription, and liability"
+
+#: .\reports\templates\reports\terms_conditions.html:53
+msgid ""
+"تخضع طلبات الإلغاء والاسترداد لسياسة الإلغاء والاسترجاع والحقوق المقررة "
+"نظامًا. عند انتهاء الاشتراك قد يتوقف إنشاء محتوى جديد أو بعض الوظائف؛ وعلى "
+"العميل تنزيل ما يحتاجه خلال المدد الموضحة له. لا يحد أي نص هنا من حق نظامي "
+"لا يجوز الاتفاق على إسقاطه."
+msgstr "Cancellation and refund requests are governed by the cancellation and refund policy and by the rights granted under law. When a subscription ends, creating new content or some functionality may stop; the customer should download what they need within the periods communicated to them. Nothing here limits a statutory right that cannot be waived by agreement."
+
+#: .\reports\templates\reports\terms_conditions.html:54
+msgid ""
+"لا يكون مقدم الخدمة مسؤولًا عن تعطل سببه جهاز العميل أو اتصاله أو خدمة خارج "
+"سيطرته، مع بقائه مسؤولًا عن التزاماته النظامية وعن معالجة الخلل الذي يقع ضمن "
+"نطاق المنصة."
+msgstr "The provider is not liable for a failure caused by the customer’s device or connection or by a service outside its control, while remaining responsible for its statutory obligations and for remedying faults within the platform’s scope."
+
+#: .\reports\templates\reports\terms_conditions.html:58
+msgid "7. الأنظمة وتسوية النزاع"
+msgstr "7. Governing law and dispute resolution"
+
+#: .\reports\templates\reports\terms_conditions.html:59
+msgid ""
+"تخضع العلاقة لأنظمة المملكة العربية السعودية. يبدأ حل أي خلاف عبر قناة "
+"الشكاوى، دون إخلال بحق العميل في اللجوء إلى وزارة التجارة أو الجهات المختصة "
+"والمحاكم السعودية."
+msgstr "The relationship is governed by the laws of the Kingdom of Saudi Arabia. Any dispute is first addressed through the complaints channel, without prejudice to the customer’s right to approach the Ministry of Commerce, the competent authorities, or the Saudi courts."

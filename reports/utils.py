@@ -5,6 +5,8 @@ from django.conf import settings
 from django.apps import apps
 import logging
 
+from core.observability import report_degraded as _degraded, soft_fail
+
 from core.trace_context import get_trace_id
 
 logger = logging.getLogger(__name__)
@@ -72,12 +74,10 @@ def run_task_safe(
             )
             # A broker outage degrades the whole platform silently otherwise;
             # surface it as a counter so alerting can see it immediately.
-            try:
+            with soft_fail("celery.count_enqueue_failure"):
                 from core import opmetrics
 
                 opmetrics.increment("celery.enqueue.failed")
-            except Exception:
-                pass
 
         # 2) Development fallback: background thread
         if allow_thread:
@@ -101,12 +101,10 @@ def run_task_safe(
                 trace_id,
                 len(args),
             )
-            try:
+            with soft_fail("celery.count_dropped_task"):
                 from core import opmetrics
 
                 opmetrics.increment("celery.task.dropped")
-            except Exception:
-                pass
             return
 
         try:
@@ -155,11 +153,12 @@ def _resolve_department_for_category(cat, school=None):
                     if ds is not None and ds != school_scope:
                         d = None
                 except Exception:
+                    _degraded("notifications.department_scope_check")
                     d = None
             if d:
                 return d
     except Exception:
-        pass
+        _degraded("notifications.resolve_target_department")
 
     # 2) علاقات M2M شائعة: departments / depts / dept_list
     for rel_name in ("departments", "depts", "dept_list"):
@@ -175,7 +174,7 @@ def _resolve_department_for_category(cat, school=None):
                 if d:
                     return d
             except Exception:
-                pass
+                _degraded("notifications.resolve_department_by_slug")
 
     # 3) استعلام احتياطي
     try:

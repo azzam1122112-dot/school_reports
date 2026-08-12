@@ -5,9 +5,9 @@ Why this exists
 ``env.production`` lives only on the server: it holds live secrets, and the
 deploy deliberately excludes it so a release can never clobber it. The cost of
 that correct decision is **drift** — the repository's ``env.production.example``
-is a template nobody diffs against the real file. A release once shipped with
-Tamara still advertised and Moyasar still disabled: every test green, the image
-correct, the site wrong. Nothing compared the two, because nothing could.
+is a template nobody diffs against the real file. A release once shipped
+advertising one gateway while the paying one was switched off: every test
+green, the image correct, the site wrong. Nothing compared the two.
 
 This script closes that gap without weakening the rule. It changes a **fixed,
 named set of keys** and nothing else — it is not a generic "set any variable"
@@ -26,7 +26,7 @@ Guarantees
 Usage (from the deploy workflow, or by hand on the server)::
 
     printf '%s' "$MOYASAR_SECRET_KEY" | python3 apply_runtime_config.py \\
-        --moyasar-enabled True --moyasar-environment live --tamara-enabled False
+        --moyasar-enabled True --moyasar-environment live
 """
 
 from __future__ import annotations
@@ -53,7 +53,6 @@ BACKUPS_TO_KEEP = 5
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-path", type=Path, default=DEFAULT_ENV_PATH)
-    parser.add_argument("--tamara-enabled", choices=BOOL_CHOICES)
     parser.add_argument("--moyasar-enabled", choices=BOOL_CHOICES)
     parser.add_argument("--moyasar-environment", choices=("live", "test"))
     parser.add_argument("--pdf-offload-enabled", choices=BOOL_CHOICES)
@@ -80,8 +79,6 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
     """Build the key set, validating every value before anything is written."""
     values: dict[str, str] = {}
 
-    if args.tamara_enabled:
-        values["TAMARA_ENABLED"] = args.tamara_enabled
     if args.moyasar_enabled:
         values["MOYASAR_ENABLED"] = args.moyasar_enabled
     if args.moyasar_environment:

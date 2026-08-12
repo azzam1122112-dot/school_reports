@@ -36,7 +36,7 @@
      الأزرار من ``available_actions`` وحدها — لا زرّ لا تذكره. {% endcomment %}
   <section class="lab-section">
     <div class="lab-card">
-      <div class="lab-section__head" style="margin-bottom:.6rem">
+      <div class="lab-section__head xs-lab-experiment-detail-1">
         <h2>
           <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>
           الحالة: {{ experiment.get_approval_state_display }}
@@ -47,7 +47,7 @@
       </div>
 
       {% if experiment.review_note %}
-        <p style="color:var(--lab-warn);line-height:1.9;margin:.2rem 0 .8rem">
+        <p class="xs-lab-experiment-detail-2">
           <b>ملاحظة المراجعة:</b> {{ experiment.review_note }}
         </p>
       {% endif %}
@@ -69,7 +69,7 @@
             <label for="note">ملاحظة (تُلزم عند الإعادة أو طلب الاستكمال)</label>
             <input class="form-control" type="text" id="note" name="note" maxlength="500">
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+          <div class="u-flex u-wrap u-gap-06">
             {% for action in actions %}
               <button type="submit" name="approval_action" value="{{ action }}"
                       {% if action == 'submit' and submission_missing %}disabled title="أكمل بيانات الإرسال أولاً"{% endif %}
@@ -88,7 +88,7 @@
           </div>
         </form>
       {% else %}
-        <p style="color:var(--lab-muted);margin:0">
+        <p class="u-text-lab-muted u-m-0">
           {% if experiment.is_final %}
             التجربة معتمدة — والمعتمد نهائي لا يُعدَّل ولا يعود.
           {% else %}
@@ -106,38 +106,38 @@
     </div>
     <div class="lab-card">
       {% if experiment.requested_by or experiment.objectives or experiment.procedure or experiment.materials_note or experiment.assets.all or experiment.safety_notes or experiment.report %}
-      <dl style="display:grid;gap:.9rem;margin:0">
+      <dl class="xs-lab-experiment-detail-3">
         {% if experiment.requested_by %}
-          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">طلبها</dt>
-          <dd style="margin:.2rem 0 0">{{ experiment.requested_by.name }}</dd></div>
+          <div><dt class="xs-lab-experiment-detail-4">طلبها</dt>
+          <dd class="u-my-tight">{{ experiment.requested_by.name }}</dd></div>
         {% endif %}
         {% if experiment.objectives %}
-          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">الأهداف</dt>
-          <dd style="margin:.2rem 0 0;line-height:1.9">{{ experiment.objectives|linebreaksbr }}</dd></div>
+          <div><dt class="xs-lab-experiment-detail-4">الأهداف</dt>
+          <dd class="u-my-tight u-lh-loose">{{ experiment.objectives|linebreaksbr }}</dd></div>
         {% endif %}
         {% if experiment.procedure %}
-          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">خطوات التنفيذ</dt>
-          <dd style="margin:.2rem 0 0;line-height:1.9">{{ experiment.procedure|linebreaksbr }}</dd></div>
+          <div><dt class="xs-lab-experiment-detail-4">خطوات التنفيذ</dt>
+          <dd class="u-my-tight u-lh-loose">{{ experiment.procedure|linebreaksbr }}</dd></div>
         {% endif %}
         {% if experiment.materials_note %}
-          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">المواد والأدوات</dt>
-          <dd style="margin:.2rem 0 0;line-height:1.9">{{ experiment.materials_note|linebreaksbr }}</dd></div>
+          <div><dt class="xs-lab-experiment-detail-4">المواد والأدوات</dt>
+          <dd class="u-my-tight u-lh-loose">{{ experiment.materials_note|linebreaksbr }}</dd></div>
         {% endif %}
         {% if experiment.assets.all %}
-          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">أصناف العهدة المستخدمة</dt>
-          <dd style="margin:.35rem 0 0;display:flex;flex-wrap:wrap;gap:.4rem">
+          <div><dt class="xs-lab-experiment-detail-4">أصناف العهدة المستخدمة</dt>
+          <dd class="xs-lab-experiment-detail-5">
             {% for asset in experiment.assets.all %}
               <a class="lab-chip" href="{% url 'reports:lab_asset_detail' asset.pk %}">{{ asset.name }}</a>
             {% endfor %}
           </dd></div>
         {% endif %}
         {% if experiment.safety_notes %}
-          <div><dt style="font-weight:800;color:var(--lab-warn);font-size:12.5px">إجراءات السلامة</dt>
-          <dd style="margin:.2rem 0 0;line-height:1.9">{{ experiment.safety_notes|linebreaksbr }}</dd></div>
+          <div><dt class="xs-lab-experiment-detail-6">إجراءات السلامة</dt>
+          <dd class="u-my-tight u-lh-loose">{{ experiment.safety_notes|linebreaksbr }}</dd></div>
         {% endif %}
         {% if experiment.report %}
-          <div><dt style="font-weight:800;color:var(--lab-muted);font-size:12.5px">التقرير المرتبط</dt>
-          <dd style="margin:.2rem 0 0">
+          <div><dt class="xs-lab-experiment-detail-4">التقرير المرتبط</dt>
+          <dd class="u-my-tight">
             <a class="lab-link" href="{% url 'reports:report_print' experiment.report.pk %}">{{ experiment.report.title }}</a>
           </dd></div>
         {% endif %}
@@ -176,7 +176,7 @@
             <b>{{ step.get_action_display }}</b>
             {% if step.actor_display %}— {{ step.actor_display }}{% endif %}
             {% if step.actor_role %} · {{ step.actor_role }}{% endif %}
-            {% if step.note %}<div style="color:var(--lab-muted)">{{ step.note }}</div>{% endif %}
+            {% if step.note %}<div class="u-text-lab-muted">{{ step.note }}</div>{% endif %}
             <time dir="rtl">{{ step.created_at|hijri }} هـ — {{ step.created_at|time:"H:i" }}</time>
           </li>
         {% endfor %}

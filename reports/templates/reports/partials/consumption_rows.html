@@ -10,8 +10,7 @@
     {% else %}
       <span class="dir-usage__track" role="img"
             aria-label="مساحة العمل {{ row.storage.percent }} بالمئة، {{ row.storage.label }}">
-        <span class="dir-usage__fill{% if row.storage.percent >= 90 %} is-critical{% endif %}"
-              style="width: {{ row.storage.percent }}%"></span>
+        <span class="dir-usage__fill{% if row.storage.percent >= 90 %} is-critical{% endif %}" data-progress="{{ row.storage.percent }}"></span>
       </span>
       <span class="dir-usage__pct">{{ row.storage.percent }}%</span>
     {% endif %}
@@ -24,8 +23,7 @@
     {% else %}
       <span class="dir-usage__track" role="img"
             aria-label="المقاعد {{ row.seats.percent }} بالمئة، {{ row.seats.label }}">
-        <span class="dir-usage__fill{% if row.seats.percent >= 90 %} is-critical{% endif %}"
-              style="width: {{ row.seats.percent }}%"></span>
+        <span class="dir-usage__fill{% if row.seats.percent >= 90 %} is-critical{% endif %}" data-progress="{{ row.seats.percent }}"></span>
       </span>
       <span class="dir-usage__pct">{{ row.seats.label }}</span>
     {% endif %}
@@ -38,8 +36,7 @@
     {% else %}
       <span class="dir-usage__track" role="img"
             aria-label="الأرشفة {{ row.archive.percent }} بالمئة، {{ row.archive.label }}">
-        <span class="dir-usage__fill{% if row.archive.percent >= 90 %} is-critical{% endif %}"
-              style="width: {{ row.archive.percent }}%"></span>
+        <span class="dir-usage__fill{% if row.archive.percent >= 90 %} is-critical{% endif %}" data-progress="{{ row.archive.percent }}"></span>
       </span>
       <span class="dir-usage__pct">{{ row.archive.percent }}%</span>
     {% endif %}

@@ -3,7 +3,7 @@
 {% block title %}{{ page_title|default:"صندوق الطلبات" }}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      Tickets Inbox (page-only) — بدون كسر أنماط base/app.css
      - Scoped داخل .inbox-wrap
@@ -377,14 +377,14 @@
               <td data-label="إجراءات">
                 <div class="row-actions">
                   <a href="{% url 'reports:ticket_detail' t.pk %}" class="btn-open">
-                    فتح <i class="fa-solid fa-arrow-up-left-from-square" style="opacity:.9"></i>
+                    فتح <i class="fa-solid fa-arrow-up-left-from-square u-dim-more"></i>
                   </a>
                 </div>
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="9" style="text-align:center;padding:16px;color:var(--muted);font-weight:900;">
+              <td colspan="9" class="u-text-center u-p-5 u-text-muted-alt u-fw-900">
                 لا توجد طلبات
               </td>
             </tr>

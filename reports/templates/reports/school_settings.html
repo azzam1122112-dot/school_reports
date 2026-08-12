@@ -3,7 +3,7 @@
 {% block title %}إعدادات المدرسة{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      إعدادات المدرسة - تصميم 2026
      تصميم عصري وفخم مع تأثيرات متقدمة
@@ -478,7 +478,7 @@
               <label class="ss-label" for="{{ form.report_approval_enabled.id_for_label }}">
                 <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> دورة اعتماد التقارير
               </label>
-              <label style="display:flex;gap:.6rem;align-items:flex-start;font-weight:600;line-height:1.8">
+              <label class="u-flex u-gap-sm u-items-start u-fw-600 u-lh-relaxed">
                 {{ form.report_approval_enabled }}
                 <span>يمر التقرير بالمراجعة والاعتماد قبل أن يصير نهائياً</span>
               </label>

@@ -2876,3 +2876,28 @@ html[data-theme="dark"] .userbox .menu {
     background: #fff !important;
   }
 }
+
+/* ── حالة «تعذّر التحميل» لقسمٍ داخل الصفحة ──────────────────────────────
+   قسمٌ فارغ وقسمٌ متعثّر كانا يظهران شيئاً واحداً. هذا الصنف يجعل الثاني
+   مقروءاً: نبرة تحذير لا خطأ — الصفحة تعمل، وهذا القسم وحده لم يصل.
+   الألوان من الرموز لا ثوابت، فتتبع الوضع الداكن بلا طبقة تجاوز. */
+.section-degraded {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--r-md, 10px);
+  border: 1px solid var(--border-light, #e2e8f0);
+  background: var(--bg-sub, #f4f7f3);
+  color: var(--text-muted, #68766f);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.section-degraded i {
+  color: var(--warning, #b9975b);
+  margin-top: 2px;
+  flex: 0 0 auto;
+}

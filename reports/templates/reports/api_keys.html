@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load static hijri_tags %}
+
+{% block title %}مفاتيح التكامل | منصة توثيق{% endblock %}
+
+{% block content %}
+<main class="container u-mt-2xl" id="mainContent">
+
+  <header class="u-mb-lg">
+    <h1 class="u-m-0">مفاتيح التكامل</h1>
+    <p class="u-text-muted u-mt-2">
+      تتيح لنظام خارجي قراءة بيانات مدرستك — أو الكتابة فيها — دون مشاركة كلمة مرور أحد.
+      <a href="{% url 'openapi_schema' %}">وثيقة الواجهة</a>
+    </p>
+  </header>
+
+  {% if new_key %}
+    <section class="card u-mb-lg" aria-labelledby="newKeyHeading">
+      <h2 id="newKeyHeading" class="u-mt-0">مفتاحك الجديد</h2>
+      <p class="section-degraded" role="status">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        انسخه الآن. لا يُخزَّن عندنا إلا مجزّأً، فلن نستطيع عرضه مرة أخرى — ومن فقده أنشأ غيره وأبطل هذا.
+      </p>
+      <pre class="u-p-4 u-radius-sm u-w-full" id="newKeyValue">{{ new_key }}</pre>
+    </section>
+  {% endif %}
+
+  <section class="card u-mb-lg" aria-labelledby="createHeading">
+    <h2 id="createHeading" class="u-mt-0">إنشاء مفتاح</h2>
+    <form method="post" action="{% url 'reports:api_key_create' %}">
+      {% csrf_token %}
+
+      <label for="keyName" class="u-block u-fw-700 u-mb-2">اسم التكامل</label>
+      <input id="keyName" name="name" type="text" maxlength="120" required
+             class="u-w-full u-mb-4" placeholder="مثال: نظام الجدول المدرسي">
+
+      <label for="keyActingAs" class="u-block u-fw-700 u-mb-2">يعمل بصلاحيات</label>
+      <select id="keyActingAs" name="acting_as" required class="u-w-full u-mb-2">
+        <option value="">— اختر منسوباً —</option>
+        {% for membership in staff %}
+          <option value="{{ membership.teacher_id }}">{{ membership.teacher.name }}</option>
+        {% endfor %}
+      </select>
+      <p class="u-text-muted u-fs-sm u-mb-4">
+        لن يملك المفتاح أكثر مما يملكه هذا الشخص. واختيار من صلاحياته أضيق أأمن.
+      </p>
+
+      <fieldset class="u-mb-4">
+        <legend class="u-fw-700 u-mb-2">النطاق</legend>
+        <label class="u-block u-mb-2">
+          <input type="radio" name="scope" value="read" checked>
+          قراءة فقط — كافٍ لأغلب التكاملات
+        </label>
+        <label class="u-block">
+          <input type="radio" name="scope" value="write">
+          قراءة وكتابة — يسمح بإنشاء تقارير
+        </label>
+      </fieldset>
+
+      <button type="submit" class="btn btn-primary">
+        <i class="fa-solid fa-key" aria-hidden="true"></i>
+        إنشاء المفتاح
+      </button>
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="listHeading">
+    <h2 id="listHeading" class="u-mt-0">المفاتيح الحالية</h2>
+
+    {% if api_keys %}
+      <table class="u-w-full">
+        <thead>
+          <tr>
+            <th scope="col">الاسم</th>
+            <th scope="col">المعرِّف</th>
+            <th scope="col">النطاق</th>
+            <th scope="col">يعمل بصلاحيات</th>
+            <th scope="col">آخر استعمال</th>
+            <th scope="col">الحالة</th>
+            <th scope="col"><span class="sr-only">إجراء</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key in api_keys %}
+            <tr>
+              <td>{{ key.name }}</td>
+              <td><code>{{ key.public_id }}</code></td>
+              <td>{{ key.get_scope_display }}</td>
+              <td>{{ key.acting_as.name }}</td>
+              <td>{% if key.last_used_at %}{{ key.last_used_at|hijri }}{% else %}—{% endif %}</td>
+              <td>{% if key.is_active %}نشط{% else %}مُبطَل{% endif %}</td>
+              <td>
+                {% if key.is_active %}
+                  <form method="post" action="{% url 'reports:api_key_revoke' key.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline btn-sm">إبطال</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="u-text-muted">لا مفاتيح بعد.</p>
+    {% endif %}
+  </section>
+
+</main>
+{% endblock %}

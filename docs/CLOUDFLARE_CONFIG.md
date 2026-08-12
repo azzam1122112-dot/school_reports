@@ -87,20 +87,20 @@ expr:   lower(http.user_agent) contains "python" or "curl" or "wget" or "headles
 مؤكَّد عملياً:
 
 ```
-POST /payments/tamara/webhook/  (python-requests) -> 403 Cf-Mitigated: challenge
+POST /payments/moyasar/callback/<batch_ref>/  (python-requests) -> 403 Cf-Mitigated
 GET  /api/v1/                   (curl)            -> 403
 GET  /healthz/                  (curl)            -> 403
 GET  /                          (Chrome UA)       -> 200
 ```
 
-المعالج في [subscriptions.py:3260](../reports/views/subscriptions.py#L3260) يتحقق من
-التوقيع بنفسه عبر `verify_notification_token`، فالحماية قائمة في التطبيق —
-لكن الحافة تمنع الطلب من الوصول أصلاً، فتضيع إشعارات Tamara بصمت.
+المعالج يعيد التحقق من الفاتورة لدى البوابة بنفسه، فالحماية قائمة في التطبيق —
+لكن الحافة تمنع الطلب من الوصول أصلاً، فتضيع إشعارات البوابة بصمت.
 
 **الإصلاح:** قاعدة `Skip` أعلى الترتيب في WAF Custom Rules:
 
 ```
-(http.request.uri.path in {"/payments/tamara/webhook/" "/healthz/"})
+(http.request.uri.path eq "/healthz/")
+or starts_with(http.request.uri.path, "/payments/moyasar/callback/")
 or starts_with(http.request.uri.path, "/api/v1/")
 ```
 

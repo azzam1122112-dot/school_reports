@@ -5,7 +5,7 @@
 {% block title %}طلب دعم فني جديد{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      Ticket Create (page-only polish) — بدون لمس .btn / .card العامة
      - RTL
@@ -245,9 +245,9 @@
         <p>اكتب المشكلة بوضوح، وأرفق صورة إن لزم. سيصل الطلب للإدارة للمتابعة.</p>
       </div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-weight:900;opacity:.95">
-        <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);white-space:nowrap">
-          <i class="fa-solid fa-user" style="opacity:.95"></i>
+      <div class="u-flex u-gap-3 u-wrap u-items-center u-fw-900 u-opacity-95">
+        <span class="xs-support-ticket-create-1">
+          <i class="fa-solid fa-user u-opacity-95"></i>
           {{ request.user.name|default:"مستخدم" }}
         </span>
       </div>
@@ -256,8 +256,8 @@
 
   <div class="ticket-card">
     <div class="ticket-card-hd">
-      <div style="font-weight:950;display:flex;gap:10px;align-items:center;">
-        <i class="fa-solid fa-life-ring" style="opacity:.9"></i>
+      <div class="u-fw-950 u-flex u-gap-3 u-items-center">
+        <i class="fa-solid fa-life-ring u-dim-more"></i>
         <span>نموذج طلب الدعم</span>
       </div>
       <div class="hint">الحقول بعلامة * إلزامية</div>
@@ -294,7 +294,7 @@
             <span>JPG / PNG — يفضّل أقل من 10MB</span>
           </div>
 
-          <div id="attachPreview" class="t-attach-preview" style="display:none" aria-live="polite"></div>
+          <div id="attachPreview" class="t-attach-preview u-hidden" aria-live="polite"></div>
 
           {% if form.attachment.errors %}<div class="t-err">{{ form.attachment.errors.0 }}</div>{% endif %}
         </div>

@@ -1,0 +1,95 @@
+{% comment %}
+مسجّل الإملاء الصوتي لحقل تفاصيل التقرير.
+
+يُعرض في حالتين: جاهزاً داخل التطبيق المثبَّت، أو مقفلاً في المتصفّح العادي مع
+سبب واضح. والحالة المقفلة مقصودة: إخفاء الميزة كليّاً يجعل المعلّم الذي سمع بها
+يظن أنها غير موجودة، وإظهار سببها يحوّل القيد إلى دعوة لتثبيت التطبيق.
+{% endcomment %}
+<div
+  class="report-voice"
+  data-report-voice
+  data-endpoint="{% url 'reports:transcribe_report_voice' %}"
+  data-target-id="{{ target_id|default:'id_idea' }}"
+  data-daily-limit="{{ voice_report_daily_limit|default:3 }}"
+  data-remaining="{{ voice_report_daily_remaining|default:3 }}"
+  data-max-seconds="{{ voice_report_max_seconds|default:180 }}"
+  data-max-bytes="{{ voice_report_max_bytes|default:10485760 }}"
+  data-pwa-only="{% if voice_report_pwa_only %}1{% else %}0{% endif %}"
+  hidden
+>
+  <div class="report-voice-head">
+    <span class="report-voice-icon"><i class="fa-solid fa-microphone-lines" aria-hidden="true"></i></span>
+    <div class="report-voice-copy">
+      <strong>اكتب تقريرك بصوتك</strong>
+      <span data-voice-subtitle>تحدّث بالتفاصيل، ونحوّلها إلى نص مكتوب تراجعه قبل اعتماده.</span>
+    </div>
+    <div class="report-voice-quota" data-voice-quota>
+      <span>المتبقي اليوم</span>
+      <b><span data-voice-remaining>{{ voice_report_daily_remaining|default:3 }}</span> من {{ voice_report_daily_limit|default:3 }}</b>
+    </div>
+  </div>
+
+  {# ── غير متاح: متصفّح عادي، أو جهاز بلا دعم تسجيل ── #}
+  <div class="report-voice-locked" data-voice-locked hidden>
+    <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
+    <p data-voice-locked-message>
+      التسجيل الصوتي متاح داخل تطبيق توثيق المثبَّت على جهازك. ثبّت التطبيق من زر
+      «تثبيت التطبيق» ثم افتح إضافة تقرير من داخله.
+    </p>
+  </div>
+
+  {# ── جاهز للتسجيل ── #}
+  <div class="report-voice-stage" data-voice-stage hidden>
+    <div class="report-voice-meter" data-voice-meter aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+
+    <div class="report-voice-timer" data-voice-timer hidden>
+      <span dir="ltr" data-voice-elapsed>0:00</span>
+      <small data-voice-remaining-time></small>
+    </div>
+
+    <div class="report-voice-actions">
+      <button type="button" class="report-voice-record" data-voice-record>
+        <i class="fa-solid fa-microphone" aria-hidden="true"></i>
+        <span data-voice-record-label>ابدأ التسجيل</span>
+      </button>
+      <button type="button" class="report-voice-secondary" data-voice-retry hidden>
+        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> تسجيل جديد
+      </button>
+    </div>
+
+    <div class="report-voice-review" data-voice-review hidden>
+      <audio data-voice-player controls preload="none"></audio>
+      <button type="button" class="report-voice-send" data-voice-send>
+        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+        تحويل التسجيل إلى نص
+      </button>
+    </div>
+  </div>
+
+  <p class="report-voice-status" data-voice-status role="status" aria-live="polite"></p>
+
+  {# ── النص الناتج: لا يدخل التقرير إلا باختيار المعلّم ── #}
+  <section class="report-voice-result" data-voice-result hidden aria-label="النص المفرَّغ من التسجيل">
+    <div class="report-voice-result-head">
+      <strong><i class="fa-solid fa-file-lines" aria-hidden="true"></i> النص المفرَّغ</strong>
+      <span>راجعه قبل إدراجه — لن يتغيّر التقرير حتى تختار</span>
+    </div>
+    <div class="report-voice-result-text" data-voice-output></div>
+    <div class="report-voice-result-actions">
+      <button type="button" class="report-voice-accept" data-voice-append>
+        <i class="fa-solid fa-plus" aria-hidden="true"></i> إضافة إلى النص الحالي
+      </button>
+      <button type="button" class="report-voice-accept is-replace" data-voice-replace>
+        <i class="fa-solid fa-arrow-down-long" aria-hidden="true"></i> استبدال النص
+      </button>
+      <button type="button" class="report-voice-cancel" data-voice-discard>تجاهل</button>
+    </div>
+  </section>
+
+  <p class="report-voice-note">
+    لا يُحفظ التسجيل في المنصة؛ يُفرَّغ ثم يُحذف. ولا تُملِ أرقام هوية أو بيانات
+    صحية أو أي بيانات شخصية لا يحتاجها التقرير.
+  </p>
+</div>

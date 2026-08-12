@@ -1,6 +1,6 @@
-{% load static %}
+{% load i18n static %}
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html {% include "reports/partials/html_lang.html" %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -12,11 +12,11 @@
   <title>تم تجهيز مدرستك | منصة توثيق</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
   {% include "reports/partials/pwa_install_head.html" %}
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  {% comment %}الخط والأيقونات محلياً: لا طلب لطرف ثالث قبل أول حرف، ولا نطاق خارجي في سياسة المحتوى.{% endcomment %}
+  <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
-  <style>
+  <style nonce="{{ CSP_NONCE }}">
     :root {
       --forest: #071d15;
       --forest-2: #0a3f2b;
@@ -332,8 +332,8 @@
     <section class="success-body">
       <div class="receipt-intro">
         <div>
-          <h2>بيانات الدخول إلى حساب إدارة المدرسة</h2>
-          <p>احتفظ بها في مكان آمن. أنت مسجّل الدخول حاليًا ويمكنك الانتقال مباشرة إلى لوحة المدرسة.</p>
+          <h2>{% translate "بيانات الدخول إلى حساب إدارة المدرسة" %}</h2>
+          <p>{% translate "احتفظ بها في مكان آمن. أنت مسجّل الدخول حاليًا ويمكنك الانتقال مباشرة إلى لوحة المدرسة." %}</p>
         </div>
         <span class="once-badge"><i class="fa-solid fa-eye-slash"></i> تظهر في هذه الصفحة مرة واحدة</span>
       </div>
@@ -362,18 +362,18 @@
       </div>
       <div class="login-address">
         <i class="fa-solid fa-link"></i>
-        <span>للدخول لاحقًا استخدم:</span>
+        <span>{% translate "للدخول لاحقًا استخدم:" %}</span>
         <a href="{% url 'reports:login' %}">{{ request.get_host }}{% url 'reports:login' %}</a>
       </div>
 
       <div class="trial-summary" aria-label="تفاصيل التجربة">
         <div><i class="fa-regular fa-calendar-check"></i><span><strong>{{ receipt.trial_days }} يومًا كاملة</strong><small>تنتهي في {{ receipt.trial_end_date }}</small></span></div>
-        <div><i class="fa-solid fa-users"></i><span><strong>حتى {{ receipt.teacher_limit }} من أعضاء الكادر</strong><small>لتجربة العمل الجماعي</small></span></div>
-        <div><i class="fa-solid fa-box-archive"></i><span><strong>أرشيف {{ receipt.archive_storage_gb }}GB</strong><small>مفعّل طوال التجربة</small></span></div>
+        <div><i class="fa-solid fa-users"></i><span><strong>حتى {{ receipt.teacher_limit }} من أعضاء الكادر</strong><small>{% translate "لتجربة العمل الجماعي" %}</small></span></div>
+        <div><i class="fa-solid fa-box-archive"></i><span><strong>أرشيف {{ receipt.archive_storage_gb }}GB</strong><small>{% translate "مفعّل طوال التجربة" %}</small></span></div>
       </div>
 
       <section class="next-section">
-        <h2>ابدأ بهذه الخطوات الثلاث</h2>
+        <h2>{% translate "ابدأ بهذه الخطوات الثلاث" %}</h2>
         <ol class="next-steps">
           <li><span>1</span>راجع بيانات المدرسة وأضف شعارها وهويتها.</li>
           <li><span>2</span>أضف حسابًا أو حسابين من الكادر لتجربة التقارير والطلبات.</li>

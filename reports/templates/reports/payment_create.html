@@ -5,7 +5,7 @@
 {% block title %}رفع إيصال دفع{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* ✅ Scoped styles (بدون لمس :root) */
   .payup-scope{max-width:980px;margin-inline:auto;padding:clamp(10px,2.2vw,18px)}
   .payup-shell{
@@ -234,7 +234,7 @@
         </div>
 
         <div class="actions">
-          <button type="submit" class="btn btn-primary" id="submitBtn" style="flex:1">
+          <button type="submit" class="btn btn-primary u-grow" id="submitBtn">
             <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
             إرسال الطلب
           </button>

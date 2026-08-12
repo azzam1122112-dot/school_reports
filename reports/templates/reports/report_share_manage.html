@@ -4,7 +4,7 @@
 {% block title %}مشاركة التقرير | {{ report.title }}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      Share Management 2026 — Modern & Functional
      ========================================================= */
@@ -360,7 +360,7 @@
         </div>
 
         <!-- Link Copy Area -->
-        <label for="shareUrl" style="display:block;margin-bottom:8px;font-weight:700;font-size:0.9rem;color:var(--ink)">رابط التقرير العام:</label>
+        <label for="shareUrl" class="u-block u-mb-2 u-fw-700 u-fs-md u-text-ink">رابط التقرير العام:</label>
         <div class="link-box">
           <input type="text" class="link-input" id="shareUrl" value="{{ public_url }}" readonly>
           <button class="btn-copy" id="copyShareLink" type="button" aria-label="نسخ رابط التقرير العام">
@@ -373,16 +373,16 @@
         <div class="share-actions-grid">
            <!-- WhatsApp -->
            <a href="https://wa.me/?text={{ public_url|urlencode }}" target="_blank" rel="noopener" class="btn-whatsapp">
-             <i class="fab fa-whatsapp" style="font-size:1.2rem"></i>
+             <i class="fab fa-whatsapp xs-report-share-manage-1"></i>
              <span>عبر واتساب</span>
            </a>
            
            <!-- Disable Form -->
-           <form method="post" style="display:block" data-confirm="هل تريد إيقاف مشاركة التقرير؟" data-confirm-type="warning">
+           <form method="post" data-confirm="هل تريد إيقاف مشاركة التقرير؟" data-confirm-type="warning" class="u-block">
              {% csrf_token %}
              <input type="hidden" name="action" value="disable">
              <button type="submit" class="btn-danger-soft">
-               <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom;margin-left:4px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+               <svg class="icon xs-report-share-manage-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                إيقاف المشاركة
              </button>
            </form>

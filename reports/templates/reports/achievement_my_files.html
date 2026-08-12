@@ -3,7 +3,7 @@
 {% block title %}ملف الإنجاز{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      Achievement Files — Luxury 2026 Theme
      ========================================================= */
@@ -395,7 +395,7 @@
                 {% endif %}
             </div>
 
-            <div class="af-actions" style="flex:0 0 auto">
+            <div class="af-actions u-shrink-0">
                 <button class="af-btn af-btn-primary" type="submit">
                 <i class="fa-solid fa-plus"></i>
                 <span>إنشاء الآن</span>
@@ -403,7 +403,7 @@
             </div>
             </div>
             {% else %}
-            <div class="af-empty" style="padding:20px;">
+            <div class="af-empty xs-achievement-my-files-1">
               <i class="fa-solid fa-calendar-xmark"></i>
               <b>لم تُحدد السنة الدراسية الحالية</b>
               <p>يرجى من {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }} تحديدها من إعدادات المدرسة أولًا.</p>
@@ -429,7 +429,7 @@
                 <span>
                     <i class="fa-regular fa-clock"></i> آخر تحديث: {{ f.updated_at|date:"Y-m-d" }}
                 </span>
-                <div style="margin-top:8px;">
+                <div class="u-mt-2">
                      {# Simple logic to pick class based on status #}
                      <span class="af-status {% if f.status == 'draft' %}status-draft{% elif f.status == 'approved' %}status-approved{% else %}status-submitted{% endif %}">
                         {{ f.get_status_display }}
@@ -456,7 +456,7 @@
                 <i class="fa-solid fa-pen"></i>
               </button>
 
-              <form action="{% url 'reports:achievement_file_delete' f.pk %}" method="post" class="af-delete-form" data-confirm="هل تريد حذف هذا الملف نهائيًا؟ لن يمكنك استرجاعه." data-confirm-type="danger" style="display:inline;">
+              <form action="{% url 'reports:achievement_file_delete' f.pk %}" method="post" class="af-delete-form u-inline" data-confirm="هل تريد حذف هذا الملف نهائيًا؟ لن يمكنك استرجاعه." data-confirm-type="danger">
                 {% csrf_token %}
                 <button type="submit" class="af-btn af-btn-danger" title="حذف الملف" aria-label="حذف ملف {{ f.academic_year }}">
                    <i class="fa-solid fa-trash"></i>
@@ -477,24 +477,24 @@
 </div>
 
 <!-- Modal تعديل السنة -->
-<dialog id="yearModal" aria-labelledby="yearModalTitle" style="padding:0;border:none;border-radius:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);width:min(400px, 90vw);background:var(--card);color:var(--ink)">
+<dialog id="yearModal" aria-labelledby="yearModalTitle" class="xs-achievement-my-files-2">
   <form id="yearForm" method="post">
     {% csrf_token %}
-    <div style="padding:18px;border-bottom:1px solid var(--line);">
-      <h3 id="yearModalTitle" style="margin:0;font-weight:900">تعديل السنة الدراسية</h3>
+    <div class="xs-achievement-my-files-3">
+      <h3 id="yearModalTitle" class="u-m-0 u-fw-900">تعديل السنة الدراسية</h3>
     </div>
-    <div style="padding:18px;">
+    <div class="u-p-6">
       <label class="af-label" for="yearModalAcademicYear">السنة الجديدة (هجري)</label>
-      <select id="yearModalAcademicYear" name="academic_year" required class="input" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;font-weight:700">
+      <select id="yearModalAcademicYear" name="academic_year" required class="input xs-achievement-my-files-4">
         {% for val, label in create_form.fields.academic_year.choices %}
           <option value="{{ val }}">{{ label }}</option>
         {% endfor %}
       </select>
-      <div style="margin-top:10px;font-size:0.85rem;color:var(--muted);line-height:1.4">
+      <div class="xs-achievement-my-files-5">
         تنبيه: لا يمكن اختيار سنة يوجد لها ملف آخر بالفعل.
       </div>
     </div>
-    <div style="padding:18px;background:var(--bg);display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--line)">
+    <div class="xs-achievement-my-files-6">
       <button type="button" class="af-btn" id="yearModalCancel">إلغاء</button>
       <button type="submit" class="af-btn af-btn-primary">حفظ التغييرات</button>
     </div>

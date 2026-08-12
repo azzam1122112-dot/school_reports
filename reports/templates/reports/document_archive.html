@@ -6,7 +6,7 @@
 {% block head %}
 {% include "reports/_assignment_theme.html" %}
 {% include "reports/_document_theme.html" %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .doc-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr); align-items: start; }
   @media (max-width: 980px) { .doc-grid { grid-template-columns: 1fr; } }
 
@@ -104,7 +104,7 @@
       {% if pending %}
         <section class="asg-card">
           <h2 class="asg-card__title">
-            <i class="fa-solid fa-hourglass-half" aria-hidden="true" style="color:var(--asg-gold)"></i>
+            <i class="fa-solid fa-hourglass-half xs-document-archive-1" aria-hidden="true"></i>
             تنتظر اعتماد الأرشفة
           </h2>
           <p class="asg-card__hint">راجع بياناتها وتصنيفها ثم اعتمد نقلها أو أعِدها بملاحظة.</p>
@@ -142,7 +142,7 @@
 
       <section class="asg-card">
         <h2 class="asg-card__title">
-          <i class="fa-solid fa-magnifying-glass" aria-hidden="true" style="color:var(--asg-green)"></i>
+          <i class="fa-solid fa-magnifying-glass xs-document-archive-2" aria-hidden="true"></i>
           البحث في الوثائق
         </h2>
         <p class="asg-card__hint">
@@ -151,11 +151,11 @@
         </p>
 
         <form method="get" class="doc-filters">
-          <div class="asg-field" style="margin:0">
+          <div class="asg-field u-m-0">
             <label for="f-q">بحث بالعنوان</label>
             <input type="text" id="f-q" name="q" value="{{ q_term }}" placeholder="كلمة من العنوان…">
           </div>
-          <div class="asg-field" style="margin:0">
+          <div class="asg-field u-m-0">
             <label for="f-year">السنة</label>
             <select id="f-year" name="year">
               <option value="">كل السنوات</option>
@@ -164,7 +164,7 @@
               {% endfor %}
             </select>
           </div>
-          <div class="asg-field" style="margin:0">
+          <div class="asg-field u-m-0">
             <label for="f-dept">القسم</label>
             <select id="f-dept" name="department">
               <option value="">كل الأقسام</option>
@@ -173,7 +173,7 @@
               {% endfor %}
             </select>
           </div>
-          <div class="asg-field" style="margin:0">
+          <div class="asg-field u-m-0">
             <label for="f-kind">النوع</label>
             <select id="f-kind" name="kind">
               <option value="">كل الأنواع</option>
@@ -182,7 +182,7 @@
               {% endfor %}
             </select>
           </div>
-          <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+          <div class="u-flex u-gap-05 u-wrap">
             <button type="submit" class="asg-btn asg-btn--primary">
               <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
               بحث
@@ -252,7 +252,7 @@
                   {% if doc.storage_bytes %} · {{ doc.storage_bytes|filesizeformat }}{% endif %}
                 </div>
                 <div class="doc-card__foot">
-                  <span class="asg-tag" style="color:var(--k)">{{ doc.get_kind_display }}</span>
+                  <span class="asg-tag xs-document-archive-3">{{ doc.get_kind_display }}</span>
                   {% if doc.academic_year %}<span class="asg-tag">{{ doc.academic_year }} هـ</span>{% endif %}
                   {% if doc.department %}<span class="asg-tag">{{ doc.department.name }}</span>{% endif %}
                   {% if doc.is_archived %}
@@ -290,7 +290,7 @@
             </nav>
           {% endif %}
         {% else %}
-          <div class="asg-empty" style="margin-top:1rem">
+          <div class="asg-empty u-mt-lg">
             <div class="asg-empty__icon"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></div>
             <h2>{% if has_filters %}لا نتائج مطابقة{% else %}لا وثائق بعد{% endif %}</h2>
             <p>
@@ -310,7 +310,7 @@
     <div>
       <section class="asg-card doc-side" id="uploadPanel">
         <h2 class="asg-card__title">
-          <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true" style="color:var(--asg-green)"></i>
+          <i class="fa-solid fa-cloud-arrow-up xs-document-archive-2" aria-hidden="true"></i>
           رفع وثيقة
         </h2>
         <p class="asg-card__hint">تُحفظ مسودةً، وترسلها لاعتماد الأرشفة حين تكتمل.</p>
@@ -331,7 +331,7 @@
           </div>
           {% if form.file.errors %}<ul class="asg-errors">{% for e in form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
 
-          <div class="doc-picked" id="docPicked" style="margin-top:.7rem">
+          <div class="doc-picked xs-document-archive-4" id="docPicked">
             <span class="doc-ico" id="docPickedIcon" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span>
             <span class="doc-picked__name">
               <span id="docPickedName"></span>
@@ -342,7 +342,7 @@
             </button>
           </div>
 
-          <div class="asg-field" style="margin-top:1rem">
+          <div class="asg-field u-mt-lg">
             <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
             {{ form.title }}
             {% if form.title.errors %}<ul class="asg-errors">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
@@ -366,7 +366,7 @@
             {{ form.kind }}
           </div>
 
-          <button type="submit" class="asg-btn asg-btn--primary" id="docSubmit" style="width:100%;justify-content:center">
+          <button type="submit" class="asg-btn asg-btn--primary u-w-full u-justify-center" id="docSubmit">
             <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
             <span id="docSubmitText">رفع الوثيقة</span>
           </button>

@@ -215,7 +215,7 @@
                 <td>
                   <div class="exec-progress">
                     <span><b>{{ row.completion }}%</b>{% if row.assignments_overdue %}<em>{{ row.assignments_overdue }} متأخر</em>{% endif %}</span>
-                    <span class="exec-progress__track"><span style="width:{{ row.completion }}%"></span></span>
+                    <span class="exec-progress__track"><span data-progress="{{ row.completion }}"></span></span>
                   </div>
                 </td>
                 <td><span class="exec-chip exec-chip--{{ row.subscription.tone }}">{{ row.subscription.label }}</span></td>

@@ -1,0 +1,62 @@
+/* static/css/tokens.css
+   ─────────────────────────────────────────────────────────────────────────
+   رموز التصميم: المصدر الوحيد للّون والمسافة والظل والحركة.
+
+   **لماذا ملفٌ مستقل.** كانت هذه الرموز مكتوبةً داخل ``<style>`` في
+   ``base.html`` — أي داخل قالبٍ من ثلاثة آلاف سطر، لا يُفتح إلا لتعديل ترويسة،
+   ولا يعرف أحد أن فيه تعريف الهوية البصرية كلها. ومن احتاج لوناً كتبه بيده،
+   فتكاثرت النسخ حتى صار في المنصة 519 ``!important`` و784 سمة ``style=``.
+
+   ومكانُ الرموز هنا يجعل الإجابة على «ما لونُ العلامة؟» ملفاً واحداً لا بحثاً.
+
+   **قاعدة الاستعمال:** لا لون مكتوب بالسداسي في أي ملف آخر. إن احتجت لوناً
+   ليس هنا، فأضفه هنا باسمٍ يقول دوره (``--danger`` لا ``--red``) ثم استعمله.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* 
+   NEO-PROFESSIONAL THEME 2026 
+   Global Design System Overlay
+*/
+:root {
+  --font-base: 'Cairo', system-ui, -apple-system, sans-serif;
+
+  /* Palette */
+  --brand: #006c35;
+  --brand-alpha: rgba(0, 108, 53, 0.95);
+  --accent: #b9975b;
+  --accent-hover: #8d6b2f;
+
+  --surface: #ffffff;
+  --bg-body: #f4f7f3;
+  --bg-sub: #edf5ef;
+
+  --text-main: #10251f;
+  --text-muted: #68766f;
+  --text-light: #8d9b95;
+
+  --border-light: #e2e8f0;
+  --border-focus: #cbd5e1;
+
+  --success: #16845b;
+  --warning: #b9975b;
+  --danger: #ef4444;
+
+  /* Elevations */
+  --shadow-xs: 0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-sm: 0 4px 6px -1px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+
+  /* Radii */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-full: 9999px;
+
+  /* Transitions */
+  /* حلقة التركيز — لونٌ واحد يراه مستعمل لوحة المفاتيح في كل شاشة. */
+  --focus-ring: #8d6b2f;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-feedback: cubic-bezier(0.34, 1.56, 0.64, 1);
+}

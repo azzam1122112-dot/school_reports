@@ -6,6 +6,8 @@ from collections import defaultdict
 from django.db.models import Count, Q
 from django.db.models.functions import TruncWeek
 
+from core.observability import report_degraded as _degraded, soft_call, soft_fail
+
 from ._helpers import *
 from ._helpers import (
     _is_staff, _role_display_map, _filter_by_school,
@@ -43,7 +45,7 @@ def _resolve_department_by_code_or_pk(code_or_pk: str, school: Optional[School] 
     if Department is not None:
         try:
             qs = Department.objects.all()
-            if school is not None and _model_has_field(Department, "school"):
+            if school is not None:
                 qs = qs.filter(school=school)
             dept_obj = qs.filter(slug__iexact=dept_code).first()
             if not dept_obj:
@@ -316,7 +318,7 @@ def _all_departments(active_school: Optional[School] = None):
     if Ticket is not None and department_ids:
         try:
             ticket_qs = Ticket.objects.filter(department_id__in=department_ids)
-            if active_school is not None and _model_has_field(Ticket, "school"):
+            if active_school is not None:
                 ticket_qs = ticket_qs.filter(school=active_school)
             ticket_rows = ticket_qs.values("department_id").annotate(
                 open_count=Count("id", filter=Q(status=Ticket.Status.OPEN)),
@@ -349,7 +351,7 @@ def _all_departments(active_school: Optional[School] = None):
     if Report is not None and department_ids and hasattr(Department, "reporttypes"):
         try:
             report_qs = Report.objects.all()
-            if active_school is not None and _model_has_field(Report, "school"):
+            if active_school is not None:
                 report_qs = report_qs.filter(school=active_school)
             counts_by_type = {
                 int(r["category_id"]): int(r["c"] or 0)
@@ -581,6 +583,7 @@ def school_settings(request: HttpRequest) -> HttpResponse:
                 joined = "; ".join(errors)
                 messages.error(request, f"{label}: {joined}")
         except Exception:
+            _degraded("forms.render_error_messages")
             # لا نكسر الصفحة إن حدث خطأ أثناء بناء الرسالة
             pass
 
@@ -617,7 +620,8 @@ class _SchoolAdminForm(forms.ModelForm):
         try:
             from unidecode import unidecode  # type: ignore
             text = unidecode(text or "")
-        except Exception:
+        except ImportError:
+            # حزمةٌ اختيارية بحقّ: بدونها يُشتقّ الرمز من النص كما هو.
             pass
         return slugify(text or "", allow_unicode=False)
 
@@ -985,38 +989,10 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         "active_school": active_school,
     }
 
-    manager_membership = None
-    if active_school is not None:
-        manager_membership = SchoolMembership.objects.filter(
-            school=active_school,
-            teacher=request.user,
-            role_type=SchoolMembership.RoleType.MANAGER,
-            is_active=True,
-        ).only("id", "weekly_summary_email_enabled").first()
-
     if request.method == "POST":
-        action = (request.POST.get("action") or "").strip()
-        if action == "toggle_weekly_summary_email":
-            if manager_membership is None:
-                messages.error(request, "لا يمكن حفظ إعداد الملخص الأسبوعي لهذه المدرسة.")
-                return redirect("reports:admin_dashboard")
-
-            raw_pref_value = (request.POST.get("weekly_summary_email_enabled") or "").strip().lower()
-            email_pref_enabled = raw_pref_value in {"1", "true", "on", "yes"}
-            SchoolMembership.objects.filter(pk=manager_membership.pk).update(
-                weekly_summary_email_enabled=email_pref_enabled,
-            )
-            manager_membership.weekly_summary_email_enabled = email_pref_enabled
-            messages.success(
-                request,
-                "تم تفعيل استلام الملخص الأسبوعي على بريدك."
-                if email_pref_enabled
-                else "تم إيقاف استلام الملخص الأسبوعي على بريدك.",
-            )
-            return redirect("reports:admin_dashboard")
-
-        # Any other POST is a stale or tampered form. Re-rendering the dashboard
-        # in response would leave the browser able to re-submit it on refresh.
+        # The dashboard has no forms of its own; every POST here is a stale or
+        # tampered submission. Re-rendering the dashboard in response would
+        # leave the browser able to re-submit it on refresh.
         messages.error(request, "إجراء غير معروف. أعد المحاولة من اللوحة.")
         return redirect("reports:admin_dashboard")
 
@@ -1027,14 +1003,12 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         has_reporttype = True
 
         # نعرض عدد الأنواع المعرّفة (وليس فقط المستخدمة) داخل المدرسة النشطة.
-        rt_qs = ReportType.objects.all()
-        if hasattr(ReportType, "is_active"):
-            rt_qs = rt_qs.filter(is_active=True)
-        if active_school is not None and _model_has_field(ReportType, "school"):
+        rt_qs = ReportType.objects.filter(is_active=True)
+        if active_school is not None:
             rt_qs = rt_qs.filter(school=active_school)
         reporttypes_count = rt_qs.count()
     except Exception:
-        pass
+        _degraded("dashboard.reporttypes_count", school_id=getattr(active_school, "pk", None))
 
     ctx.update({
         "has_reporttype": has_reporttype,
@@ -1071,7 +1045,8 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             else:
                 subscription_warning = 'expired'
         except Exception:
-            pass
+            # تحذيرُ انتهاءٍ لا يظهر = مدرسةٌ تُفاجأ بتوقّف الخدمة.
+            _degraded("dashboard.subscription_warning", school_id=getattr(active_school, "pk", None))
         
         ctx['subscription_warning'] = subscription_warning
 
@@ -1083,8 +1058,14 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         # المدير أنه اقترب من الحدّ، ولا يخبره أين هو منه قبل ذلك.
         ctx['consumption'] = school_consumption_summary(active_school)
         
-        # آخر الأنشطة
+        # آخر الأنشطة.
+        #
+        # ── لماذا عَلَمُ فشلٍ منفصل ────────────────────────────────────────
+        # قائمةٌ فارغة تعني في الشاشة «لا نشاط بعد» — وهي رسالةٌ صحيحة لمدرسةٍ
+        # جديدة، وكاذبةٌ تماماً لمدرسةٍ نشطة تعثّر استعلامها. والمدير لا يملك ما
+        # يفرّق بينهما، فيقرأ الصمت طمأنينة.
         recent_activities = []
+        recent_activities_failed = False
         try:
             recent_reports = _filter_by_school(
                 Report.objects.all(),
@@ -1124,9 +1105,11 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             recent_activities.sort(key=lambda x: x['time'], reverse=True)
             recent_activities = recent_activities[:8]
         except Exception:
-            pass
+            _degraded("dashboard.recent_activities", school_id=getattr(active_school, "pk", None))
+            recent_activities_failed = True
         
         ctx['recent_activities'] = recent_activities
+        ctx['recent_activities_failed'] = recent_activities_failed
 
     selected_period = _normalize_dashboard_period(request.GET.get("period"))
     dashboard_payload = get_school_dashboard_payload(
@@ -1232,9 +1215,6 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             **payload_kpis,
             "focus_items": focus_items,
             "attention_total": attention_total,
-            "weekly_summary_email_enabled": bool(
-                getattr(manager_membership, "weekly_summary_email_enabled", True)
-            ),
             "initial_period": selected_period,
             "selected_period_label": dashboard_payload["period_label"],
             "ticket_completion_rate": ticket_completion_rate,
@@ -1286,7 +1266,7 @@ def admin_dashboard_data(request: HttpRequest) -> HttpResponse:
         rt_qs = ReportType.objects.all()
         if hasattr(ReportType, "is_active"):
             rt_qs = rt_qs.filter(is_active=True)
-        if active_school is not None and _model_has_field(ReportType, "school"):
+        if active_school is not None:
             rt_qs = rt_qs.filter(school=active_school)
         reporttypes_count = rt_qs.count()
     except Exception:
@@ -1510,16 +1490,15 @@ def department_edit(request: HttpRequest, code: str) -> HttpResponse:
 
     # عزل المدرسة: منع تعديل قسم يخص مدرسة أخرى.
     # الأقسام العامة (school is NULL) يسمح بها للسوبر فقط.
-    try:
-        if not getattr(request.user, "is_superuser", False) and hasattr(obj, "school_id"):
-            if getattr(obj, "school_id", None) is None:
-                messages.error(request, "لا يمكنك تعديل قسم عام.")
-                return redirect("reports:departments_list")
-            if active_school is None or getattr(obj, "school_id", None) != getattr(active_school, "id", None):
-                messages.error(request, "لا يمكنك تعديل قسم من مدرسة أخرى.")
-                return redirect("reports:departments_list")
-    except Exception:
-        pass
+    # فحصُ العزل لا يُبتلع: تعثّره كان يُقرأ «مسموح» فيُفتح قسمُ مدرسةٍ أخرى
+    # للتعديل. الفحص الذي يفشل مفتوحاً ليس فحصاً.
+    if not getattr(request.user, "is_superuser", False):
+        if getattr(obj, "school_id", None) is None:
+            messages.error(request, "لا يمكنك تعديل قسم عام.")
+            return redirect("reports:departments_list")
+        if active_school is None or getattr(obj, "school_id", None) != getattr(active_school, "id", None):
+            messages.error(request, "لا يمكنك تعديل قسم من مدرسة أخرى.")
+            return redirect("reports:departments_list")
 
     FormCls = get_department_form()
     if not FormCls:
@@ -1798,17 +1777,14 @@ def department_delete(request: HttpRequest, code: str) -> HttpResponse:
 
     # عزل المدرسة: لا يُسمح بحذف قسم يخص مدرسة أخرى.
     # الأقسام العامة (school is NULL) يُسمح بها للسوبر فقط (باستثناء قسم المدير الدائم الذي يمنع حذفه أصلاً).
-    try:
-        dep_school_id = getattr(obj, "school_id", None)
-        if dep_school_id is None:
-            if not getattr(request.user, "is_superuser", False):
-                messages.error(request, "لا يمكنك حذف قسم عام على مستوى المنصة.")
-                return redirect("reports:departments_list")
-        elif active_school is not None and dep_school_id != active_school.id:
-            messages.error(request, "لا يمكنك حذف قسم يخص مدرسة أخرى.")
+    dep_school_id = getattr(obj, "school_id", None)
+    if dep_school_id is None:
+        if not getattr(request.user, "is_superuser", False):
+            messages.error(request, "لا يمكنك حذف قسم عام على مستوى المنصة.")
             return redirect("reports:departments_list")
-    except Exception:
-        pass
+    elif active_school is not None and dep_school_id != active_school.id:
+        messages.error(request, "لا يمكنك حذف قسم يخص مدرسة أخرى.")
+        return redirect("reports:departments_list")
 
     try:
         obj.delete()
@@ -1966,18 +1942,15 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
         return redirect("reports:departments_list")
 
     # عزل المدرسة: لا نسمح بإدارة أعضاء قسم تابع لمدرسة أخرى.
-    try:
-        if obj is not None:
-            dep_school_id = getattr(obj, "school_id", None)
-            if dep_school_id is None:
-                if not getattr(request.user, "is_superuser", False):
-                    messages.error(request, "لا يمكنك إدارة قسم عام على مستوى المنصة.")
-                    return redirect("reports:departments_list")
-            elif active_school is not None and dep_school_id != active_school.id:
-                messages.error(request, "لا يمكنك إدارة قسم يخص مدرسة أخرى.")
+    if obj is not None:
+        dep_school_id = getattr(obj, "school_id", None)
+        if dep_school_id is None:
+            if not getattr(request.user, "is_superuser", False):
+                messages.error(request, "لا يمكنك إدارة قسم عام على مستوى المنصة.")
                 return redirect("reports:departments_list")
-    except Exception:
-        pass
+        elif active_school is not None and dep_school_id != active_school.id:
+            messages.error(request, "لا يمكنك إدارة قسم يخص مدرسة أخرى.")
+            return redirect("reports:departments_list")
 
     if request.method == "POST":
         teacher_id = request.POST.get("teacher_id")

@@ -6,7 +6,7 @@
 {% block title %}لوحة التحكم بالتقارير{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      لوحة التقارير - تصميم 2026
      هوية المنصة: أخضر سعودي (#006c35) + ذهبي (#b9975b)
@@ -926,14 +926,14 @@
         {% endif %}
 
         <div class="repdash-field">
-          <label style="visibility:hidden">إجراءات</label>
+          <label class="xs-admin-reports-1">إجراءات</label>
           <div class="repdash-actions">
-            <button type="submit" class="btn btn-primary" style="min-height:48px; font-weight: 700;">
+            <button type="submit" class="btn btn-primary u-min-h-48 u-fw-700">
               <i class="fa-solid fa-filter"></i> تصفية
             </button>
 
             {% if start_date or end_date or teacher_name or category %}
-              <a href="{% url 'reports:admin_reports' %}" class="btn btn-outline" title="مسح الفلاتر" style="min-height:48px; font-weight: 700;">
+              <a href="{% url 'reports:admin_reports' %}" class="btn btn-outline u-min-h-48 u-fw-700" title="مسح الفلاتر">
                 <i class="fa-solid fa-rotate-left"></i> إعادة تعيين
               </a>
             {% endif %}
@@ -967,18 +967,18 @@
                 <td>{{ r.id }}</td>
 
                 <td>
-                  <div style="font-weight:900; font-size:1rem;">{{ r.report_date|hijri }} هـ</div>
-                  <div style="font-size:.9rem; color:var(--rd-text-light); font-weight:700; margin-top:4px;">{{ r.day_name }}</div>
+                  <div class="xs-admin-reports-2">{{ r.report_date|hijri }} هـ</div>
+                  <div class="xs-admin-reports-3">{{ r.day_name }}</div>
                 </td>
 
                 {% if request.user.is_superuser %}
                   <td>
                     {% if r.school %}
                       <span class="rd-badge rd-badge-school">
-                        <i class="fa-solid fa-school" style="opacity:.85"></i> {{ r.school.name }}
+                        <i class="fa-solid fa-school u-dim"></i> {{ r.school.name }}
                       </span>
                     {% else %}
-                      <span style="color:var(--rd-text-light); font-weight:850;">—</span>
+                      <span class="xs-admin-reports-4">—</span>
                     {% endif %}
                   </td>
                 {% endif %}
@@ -994,17 +994,17 @@
                   </div>
                 </td>
 
-                <td style="font-weight:900; font-size:1rem; color:var(--rd-text);">{{ r.title }}</td>
+                <td class="xs-admin-reports-5">{{ r.title }}</td>
 
                 <td>
                   <span class="rd-badge rd-badge-cat">
-                    <i class="fa-solid fa-tag" style="opacity:.8"></i>
+                    <i class="fa-solid fa-tag xs-admin-reports-6"></i>
                     {% if r.category %}{{ r.category.name }}{% else %}—{% endif %}
                   </span>
                 </td>
 
                 <td>
-                  <span style="font-weight:900; font-size:1.05rem; color:var(--rd-primary); background:var(--rd-primary-soft); padding:6px 14px; border-radius:999px; display:inline-block;">
+                  <span class="xs-admin-reports-7">
                     {{ r.beneficiaries_count|default:"0" }}
                   </span>
                 </td>
@@ -1032,7 +1032,7 @@
                     {% endif %}
 
                     {% if r.user_can_delete|default:can_delete %}
-                      <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline;" class="rd-delete-form" data-confirm="سيتم حذف هذا التقرير نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger">
+                      <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" class="rd-delete-form u-inline" data-confirm="سيتم حذف هذا التقرير نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
                         <button type="submit" class="rd-iconbtn rd-del" title="حذف">
@@ -1043,7 +1043,7 @@
                   </div>
 
                   {# بيانات مخفية للـ JS (الـ idea آمنة لأن linebreaksbr يعمل escape) #}
-                  <div id="rd-data-{{ r.pk }}" style="display:none;" data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}">
+                  <div id="rd-data-{{ r.pk }}" data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}" class="u-hidden">
                     <div class="d-teacher">{{ r.teacher_display_name }}</div>
                     <div class="d-title">{{ r.title }}</div>
                     <div class="d-date">{{ r.report_date|hijri }} هـ</div>
@@ -1122,10 +1122,10 @@
             {% endif %}
 
             {% if r.user_can_delete|default:can_delete %}
-              <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline; width: 100%;" class="rd-delete-form" data-confirm="سيتم حذف هذا التقرير نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger">
+              <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" class="rd-delete-form u-inline u-w-full" data-confirm="سيتم حذف هذا التقرير نهائيًا ولا يمكن التراجع. هل تريد المتابعة؟" data-confirm-type="danger">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <button type="submit" class="rd-iconbtn rd-del" style="width: 100%;">
+                <button type="submit" class="rd-iconbtn rd-del u-w-full">
                   <i class="fa-solid fa-trash"></i> حذف
                 </button>
               </form>
@@ -1134,7 +1134,7 @@
         </div>
       {% empty %}
         <div class="rd-card">
-          <div class="rd-empty" style="padding: 18px 10px;">
+          <div class="rd-empty xs-admin-reports-8">
             <i class="fa-regular fa-folder-open fa-2x"></i>
             <div>لا توجد تقارير مطابقة للبحث</div>
           </div>
@@ -1144,22 +1144,20 @@
 
     <!-- Pagination - محسّن -->
     {% if reports.paginator.num_pages > 1 %}
-      <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top: 32px;">
+      <div class="xs-admin-reports-9">
         {% if reports.has_previous %}
-          <a class="btn btn-primary"
-             style="min-height:48px; font-weight:700; padding:14px 24px;"
+          <a class="btn btn-primary xs-admin-reports-10"
              href="?page={{ reports.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">
             <i class="fa-solid fa-chevron-right"></i> السابق
           </a>
         {% endif %}
 
-        <span class="btn btn-outline" style="cursor:default; opacity:.9; min-height:48px; font-weight:800; font-size:1.05rem; padding:14px 28px;">
+        <span class="btn btn-outline xs-admin-reports-11">
           صفحة {{ reports.number }} من {{ reports.paginator.num_pages }}
         </span>
 
         {% if reports.has_next %}
-          <a class="btn btn-primary"
-             style="min-height:48px; font-weight:700; padding:14px 24px;"
+          <a class="btn btn-primary xs-admin-reports-10"
              href="?page={{ reports.next_page_number }}{% if qs %}&{{ qs }}{% endif %}">
             التالي <i class="fa-solid fa-chevron-left"></i>
           </a>
@@ -1173,7 +1171,7 @@
   <dialog id="rdDetailsDialog" aria-label="تفاصيل التقرير">
     <div class="rd-dlg-hd">
       <h3>
-        <i class="fa-solid fa-clipboard-list" style="opacity:.85;"></i>
+        <i class="fa-solid fa-clipboard-list u-dim"></i>
         تفاصيل التقرير
       </h3>
       <button type="button" class="rd-iconbtn" data-rd-action="close-details" aria-label="إغلاق">

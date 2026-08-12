@@ -23,9 +23,23 @@ from ..report_ai import (
     reserve_report_ai_daily_slot,
     validate_report_text,
 )
+from ..voice_report import (
+    VoiceReportError,
+    VoiceReportUnavailable,
+    is_enabled as voice_report_is_enabled,
+    polish_dictation,
+    release_voice_report_daily_slot,
+    reserve_voice_report_daily_slot,
+    transcribe_audio,
+    validate_audio_upload,
+    voice_report_daily_limit,
+    voice_report_daily_remaining,
+)
 from ..gender_labels import school_gender_labels, school_gender_template_context
 from ..generated_exports import async_exports_enabled, enqueue_generated_export
 from ..models import GeneratedExportJob
+
+from core.observability import report_degraded as _degraded, soft_call, soft_fail
 
 from ._helpers import *
 from .export_jobs import generated_export_job_response
@@ -44,6 +58,7 @@ from ..utils import _resolve_department_for_category, _build_head_decision
 from core import opmetrics
 from ..ai_features import (
     FEATURE_REPORT_IMPROVEMENT,
+    FEATURE_VOICE_REPORT,
     platform_ai_toggle_enabled,
 )
 
@@ -79,7 +94,35 @@ def _report_ai_template_context(user) -> dict[str, int | bool]:
         ),
         "report_ai_daily_limit": REPORT_AI_DAILY_LIMIT,
         "report_ai_daily_remaining": report_ai_daily_remaining(user.pk),
+        **_voice_report_template_context(user),
     }
+
+
+def _voice_report_feature_enabled() -> bool:
+    return bool(platform_ai_toggle_enabled(FEATURE_VOICE_REPORT) and voice_report_is_enabled())
+
+
+def _voice_report_template_context(user) -> dict[str, int | bool]:
+    return {
+        "voice_report_enabled": _voice_report_feature_enabled(),
+        "voice_report_daily_limit": voice_report_daily_limit(),
+        "voice_report_daily_remaining": voice_report_daily_remaining(user.pk),
+        "voice_report_max_seconds": int(getattr(settings, "VOICE_REPORT_MAX_SECONDS", 180)),
+        "voice_report_max_bytes": int(getattr(settings, "VOICE_REPORT_MAX_BYTES", 10 * 1024 * 1024)),
+        "voice_report_pwa_only": bool(getattr(settings, "VOICE_REPORT_PWA_ONLY", True)),
+    }
+
+
+def _request_is_from_installed_app(request: HttpRequest) -> bool:
+    """هل جاء الطلب من التطبيق المثبَّت؟
+
+    الترويسة يضعها سكربت المسجّل حين يكون العرض ``standalone``. وهي **إشارة
+    منتَج لا حاجز أمني**: العميل يملك ترويساته ويستطيع تزويرها. القيد الذي
+    يحمي التكلفة فعلاً هو الحصة اليومية المحسوبة على الخادم، وهذا يمنع ظهور
+    الميزة واستعمالها من متصفّح عادي في المسار الطبيعي لا أكثر.
+    """
+    surface = (request.headers.get("X-Tawtheeq-Surface") or "").strip().lower()
+    return surface == "standalone"
 
 
 def _notify_report_created(report, active_school):
@@ -353,6 +396,110 @@ def improve_report_text(request: HttpRequest) -> JsonResponse:
     response["Cache-Control"] = "no-store"
     return response
 
+def _voice_json(payload: dict, *, status: int = 200) -> JsonResponse:
+    response = JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@login_required(login_url="reports:login")
+@never_cache
+@ratelimit(key="user", rate="6/m", method="POST", block=True)
+@require_http_methods(["POST"])
+def transcribe_report_voice(request: HttpRequest) -> JsonResponse:
+    """يحوّل تسجيلاً صوتياً إلى نصّ تقرير مقترح، دون حفظ الصوت ولا التقرير.
+
+    الترتيب مقصود: البوابة، ثم التحقق من الملف، ثم حجز الحصة. حجزُ الحصة قبل
+    التحقق كان يعني أن ملفاً بصيغة خاطئة يستهلك محاولةً من رصيد المعلّم.
+    """
+    if not _voice_report_feature_enabled():
+        return _voice_json(
+            {"ok": False, "message": "خدمة التفريغ الصوتي غير متاحة حاليًا."},
+            status=404,
+        )
+
+    if getattr(settings, "VOICE_REPORT_PWA_ONLY", True) and not _request_is_from_installed_app(request):
+        return _voice_json(
+            {
+                "ok": False,
+                "message": "التسجيل الصوتي متاح داخل تطبيق توثيق المثبَّت على جهازك.",
+                "reason": "pwa_required",
+            },
+            status=403,
+        )
+
+    limit = voice_report_daily_limit()
+    upload = request.FILES.get("audio")
+
+    try:
+        audio_bytes, extension = validate_audio_upload(upload)
+    except VoiceReportError as exc:
+        return _voice_json(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": voice_report_daily_remaining(request.user.pk),
+                "daily_limit": limit,
+            },
+            status=400,
+        )
+
+    try:
+        remaining = reserve_voice_report_daily_slot(request.user.pk)
+    except VoiceReportUnavailable as exc:
+        return _voice_json({"ok": False, "message": str(exc)}, status=503)
+
+    if remaining is None:
+        return _voice_json(
+            {
+                "ok": False,
+                "message": f"استخدمت تسجيلاتك الـ{limit} المتاحة اليوم. يعود الرصيد تلقائيًا غدًا.",
+                "remaining": 0,
+                "daily_limit": limit,
+            },
+            status=429,
+        )
+
+    try:
+        raw_text = transcribe_audio(audio_bytes, extension)
+        text = polish_dictation(raw_text)
+    except VoiceReportUnavailable as exc:
+        release_voice_report_daily_slot(request.user.pk)
+        opmetrics.increment("report.voice.failure")
+        return _voice_json(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": voice_report_daily_remaining(request.user.pk),
+                "daily_limit": limit,
+            },
+            status=503,
+        )
+    except VoiceReportError as exc:
+        release_voice_report_daily_slot(request.user.pk)
+        opmetrics.increment("report.voice.failure")
+        return _voice_json(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": voice_report_daily_remaining(request.user.pk),
+                "daily_limit": limit,
+            },
+            status=400,
+        )
+
+    logger.info(
+        "Report voice transcription user_id=%s chars=%s trace_id=%s",
+        getattr(request.user, "id", None),
+        len(text),
+        getattr(request, "trace_id", None),
+    )
+    opmetrics.increment("report.voice.success")
+    return _voice_json(
+        {"ok": True, "text": text, "remaining": remaining, "daily_limit": limit}
+    )
+
+
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def my_reports(request: HttpRequest) -> HttpResponse:
@@ -617,13 +764,11 @@ def school_archive(request: HttpRequest) -> HttpResponse:
     )
 
     if archive_addon is not None:
-        try:
+        with soft_fail("archive.sync_storage_usage", school_id=getattr(active_school, "pk", None)):
             sync_school_archive_storage_usage(active_school)
             archive_addon.refresh_from_db(
                 fields=["storage_used_bytes", "storage_limit_gb", "end_date", "updated_at"]
             )
-        except Exception:
-            pass
 
     archive_versions_qs = (
         saved_archives_qs.filter(academic_year=selected_year)
@@ -855,7 +1000,7 @@ def school_archive_create(request: HttpRequest) -> HttpResponse:
                 if not persisted:
                     archive.archive_file.delete(save=False)
             except Exception:
-                pass
+                _degraded("archive.orphan_file_cleanup", archive_id=getattr(archive, "pk", None))
         logger.exception(
             "school_archive_create failed school_id=%s year=%s",
             getattr(active_school, "id", None),
@@ -864,11 +1009,9 @@ def school_archive_create(request: HttpRequest) -> HttpResponse:
         messages.error(request, "تعذر إنشاء النسخة المحفوظة. لم تُسجل نسخة ناقصة؛ حاول مرة أخرى.")
         return redirect(f"{reverse('reports:school_archive')}?year={selected_year}")
     finally:
-        try:
+        with soft_fail("archive.close_zip_handle"):
             if zip_file is not None:
                 zip_file.close()
-        except Exception:
-            pass
 
     if archive.status == SchoolYearArchive.Status.PARTIAL:
         messages.warning(
@@ -1410,7 +1553,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
             if (not getattr(user, "is_superuser", False)) and active_school is None:
                 messages.error(request, "فضلاً اختر مدرسة أولاً.")
                 return redirect("reports:select_school")
-            if active_school is not None and _model_has_field(Report, "school"):
+            if active_school is not None:
                 qs = qs.filter(school=active_school)
             r = get_object_or_404(qs, pk=pk)
         else:
@@ -1445,9 +1588,10 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                         try:
                             c.created_by_role_label = _private_comment_role_label(getattr(c, "created_by", None), school_scope)
                         except Exception:
+                            _degraded("reports.private_comment_role_label", comment_id=getattr(c, "pk", None))
                             c.created_by_role_label = ""
             except Exception:
-                pass
+                _degraded("reports.private_comments_block")
 
             # السماح بإضافة تعليق (يصل للمعلم فقط)
             if can_add_private_comment:
@@ -1509,18 +1653,16 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                                 return HttpResponse(status=403)
 
                         if action == "private_comment_delete":
-                            try:
+                            # حذفٌ يفشل صامتاً يُعيد المستخدم إلى صفحة يظهر
+                            # فيها ما ظنّ أنه حذفه.
+                            with soft_fail("reports.delete_private_comment", comment_id=comment.pk):
                                 comment.delete()
-                            except Exception:
-                                pass
                             return redirect("reports:report_print", pk=r.pk)
 
                         body = (request.POST.get("body") or "").strip()
                         if body:
-                            try:
+                            with soft_fail("reports.edit_private_comment", comment_id=comment.pk):
                                 TeacherPrivateComment.objects.filter(pk=comment.pk).update(body=body)
-                            except Exception:
-                                pass
                         return redirect(request.get_full_path())
                 else:
                     comment_form = PrivateCommentForm()
@@ -1537,11 +1679,10 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
             pref = request.GET.get("dept")
             if pref:
                 dept_qs = Department.objects.all()
-                try:
-                    if school_scope is not None and "school" in [f.name for f in Department._meta.get_fields()]:
+                # فلترةٌ لم تُطبَّق تعرض أقسام مدارس أخرى في القائمة.
+                with soft_fail("reports.department_school_filter", school_id=getattr(school_scope, "pk", None)):
+                    if school_scope is not None:
                         dept_qs = dept_qs.filter(school=school_scope)
-                except Exception:
-                    pass
 
                 dept = dept_qs.filter(Q(slug=pref) | Q(id=pref)).first() or dept
 
@@ -2034,11 +2175,9 @@ def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpRespo
     try:
         f = field.open("rb")
         resp = FileResponse(f)
-        try:
+        with soft_fail("files.image_content_disposition"):
             filename = os.path.basename(getattr(field, "name", "") or "") or f"image{slot}"
             resp["Content-Disposition"] = f'inline; filename="{filename}"'
-        except Exception:
-            pass
         return resp
     except Exception:
         url = getattr(field, "url", None)
@@ -2080,6 +2219,7 @@ def share_achievement_pdf(request: HttpRequest, token: str) -> HttpResponse:
                 ach_file.pdf_generated_at = timezone.now()
                 ach_file.save(update_fields=["pdf_file", "pdf_generated_at"])
             except Exception:
+                _degraded("achievements.persist_generated_pdf", file_id=ach_file.pk)
                 # حتى لو فشل التخزين (S3/permissions..)، نُرجع الملف للمستخدم.
                 pass
 
@@ -2114,11 +2254,9 @@ def share_achievement_pdf(request: HttpRequest, token: str) -> HttpResponse:
     try:
         f = ach_file.pdf_file.open("rb")
         resp = FileResponse(f, content_type="application/pdf")
-        try:
+        with soft_fail("files.pdf_content_disposition"):
             filename = os.path.basename(getattr(ach_file.pdf_file, "name", "") or "") or "achievement.pdf"
             resp["Content-Disposition"] = f'inline; filename="{filename}"'
-        except Exception:
-            pass
         return resp
     except Exception:
         url = getattr(ach_file.pdf_file, "url", None)
@@ -2154,12 +2292,7 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("reports:admin_reports")
 
     # لا نجبر تغيير المدرسة النشطة بالجَلسة، لكن نستخدم مدرسة التقرير لتصفية الأنواع عند الحاجة.
-    form_school = active_school
-    if form_school is None and _model_has_field(Report, "school"):
-        try:
-            form_school = getattr(r, "school", None)
-        except Exception:
-            form_school = active_school
+    form_school = active_school or getattr(r, "school", None)
 
     if request.method == "POST":
         form = ReportForm(request.POST, request.FILES, instance=r, active_school=form_school)

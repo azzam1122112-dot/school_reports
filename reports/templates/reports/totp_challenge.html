@@ -1,0 +1,34 @@
+{% extends 'reports/password_reset_base.html' %}
+
+{% comment %}
+  شاشة العامل الثاني تمتدّ من قالب الاستعادة لا من ``base.html``: صاحبها لم
+  تُنشأ له جلسة مصادَق عليها بعد، فترويسةُ التطبيق وقوائمُها لا معنى لها هنا
+  — وعرضُها يوحي بدخولٍ لم يتم.
+{% endcomment %}
+
+{% block title %}التحقق بخطوتين{% endblock %}
+
+{% block content %}
+  <h1>التحقق بخطوتين</h1>
+  <p class="recovery-copy">
+    أدخل الرمز المعروض في تطبيق المصادقة على هاتفك. وإن فقدت الهاتف، أدخل أحد
+    رموز الاسترجاع التي حفظتها عند التفعيل.
+  </p>
+
+  <form method="post" class="recovery-form" action="{% url 'reports:totp_challenge' %}">
+    {% csrf_token %}
+    <div class="recovery-field">
+      <label class="recovery-label" for="challengeCode">الرمز</label>
+      <div class="recovery-inputwrap">
+        <input id="challengeCode" name="code" type="text" inputmode="numeric"
+               maxlength="32" required autocomplete="one-time-code" autofocus
+               class="recovery-input" placeholder="٦ أرقام أو رمز استرجاع">
+      </div>
+    </div>
+    <button type="submit" class="recovery-button">تحقّق</button>
+  </form>
+
+  <p class="recovery-help">
+    <a href="{% url 'reports:login' %}">العودة إلى تسجيل الدخول</a>
+  </p>
+{% endblock %}

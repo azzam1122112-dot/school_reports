@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -162,18 +161,13 @@ class LandingPageTests(TestCase):
         self.assertGreater(html.index('class="footer-payments"'), html.index("<footer"))
         self.assertLess(html.index('class="footer-payments"'), html.index('class="footer-bottom"'))
 
-    def test_tamara_is_advertised_only_while_it_is_enabled(self):
-        """إعلان وسيلة دفع معطّلة يقود الزائر إلى خيار لن يجده عند الدفع."""
-        with patch("reports.views.auth.tamara_is_enabled", return_value=True):
-            enabled = self.client.get(reverse("reports:landing"))
-        self.assertContains(enabled, "img/tamara-wordmark-gradient-ar.png")
-        self.assertContains(enabled, 'aria-label="تمارا"')
-        self.assertContains(enabled, "عبر ميسر وتمارا")
+    def test_footer_advertises_only_payment_methods_the_platform_accepts(self):
+        """إعلان وسيلة دفع غير مدعومة يقود الزائر إلى خيار لن يجده عند الدفع."""
+        response = self.client.get(reverse("reports:landing"))
 
-        with patch("reports.views.auth.tamara_is_enabled", return_value=False):
-            disabled = self.client.get(reverse("reports:landing"))
-        self.assertNotContains(disabled, "img/tamara-wordmark-gradient-ar.png")
-        self.assertNotContains(disabled, 'aria-label="تمارا"')
+        self.assertContains(response, "عبر ميسر")
+        self.assertNotContains(response, "tamara")
+        self.assertNotContains(response, "تمارا")
 
     def test_landing_exposes_complete_canonical_and_social_metadata(self):
         response = self.client.get(reverse("reports:landing"))

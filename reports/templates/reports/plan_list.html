@@ -43,7 +43,7 @@
       </div>
 
       {% if totals.tasks %}
-        <div class="pln-ring" style="--v:{{ totals.percent }}" role="img"
+        <div class="pln-ring" data-progress-var="--v" data-progress-value="{{ totals.percent }}" role="img"
              aria-label="نسبة إنجاز مهام الخطط {{ totals.percent }}%">
           <span class="pln-ring__v">{{ totals.percent }}%</span>
           <span class="pln-ring__l">الإنجاز</span>
@@ -157,7 +157,7 @@
               <span class="pln-tag">{{ row.plan.get_stage_display }}</span>
               <span class="pln-tag">{{ row.plan.get_approval_state_display }}</span>
               {% if row.late %}
-                <span class="pln-tag" style="color:var(--asg-danger);border-color:currentColor">
+                <span class="pln-tag xs-plan-list-1">
                   {{ row.late }} متأخرة
                 </span>
               {% endif %}
@@ -169,7 +169,7 @@
                 <span>{{ row.percent }}%</span>
               </div>
               <div class="pln-meter__track">
-                <div class="pln-meter__fill" style="width:{{ row.percent }}%"></div>
+                <div class="pln-meter__fill" data-progress="{{ row.percent }}"></div>
               </div>
             </div>
 
@@ -196,7 +196,7 @@
             الخطة تجمع أهدافك ومؤشراتها ومهامها. وكل مهمة تتحوّل إلى تكليف بموعده
             وشواهده، فتُقاس نسبة الإنجاز من التنفيذ الفعلي لا من تقدير.
           </p>
-          <div style="margin-top:1.1rem">
+          <div class="u-mt-xl">
             <a class="asg-btn asg-btn--primary" href="{% url 'reports:plan_create' %}">
               <i class="fa-solid fa-plus" aria-hidden="true"></i>
               أنشئ أول خطة

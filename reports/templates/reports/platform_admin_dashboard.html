@@ -1574,8 +1574,8 @@
             <!-- Revenue Chart -->
             <div class="card-panel">
                 <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
-                        <i class="fas fa-chart-line" style="color: var(--secondary-color);"></i>
+                    <h3 class="u-m-0 u-fs-lg u-fw-700">
+                        <i class="fas fa-chart-line xs-platform-admin-dashboard-1"></i>
                         نمو الإيرادات الشهرية
                     </h3>
                     <div class="export-buttons">
@@ -1597,11 +1597,11 @@
             <!-- Subscriptions Expiring Soon Table -->
             <div class="card-panel">
                 <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
-                        <i class="fas fa-clock" style="color: var(--warning-color);"></i>
+                    <h3 class="u-m-0 u-fs-lg u-fw-700">
+                        <i class="fas fa-clock xs-platform-admin-dashboard-2"></i>
                         اشتراكات تنتهي قريباً (خلال 30 يوم)
                     </h3>
-                    <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn-modern outline" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                    <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn-modern outline xs-platform-admin-dashboard-3">
                         عرض الكل <i class="fas fa-arrow-left"></i>
                     </a>
                 </div>
@@ -1622,8 +1622,8 @@
                                 {% for sub in subscriptions_expiring_list %}
                                 <tr>
                                     <td>
-                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                            <i class="fas fa-school" style="color: var(--primary-color);"></i>
+                                        <div class="u-flex u-items-center u-gap-06">
+                                            <i class="fas fa-school xs-platform-admin-dashboard-4"></i>
                                             <strong>{{ sub.school.name }}</strong>
                                         </div>
                                     </td>
@@ -1645,12 +1645,12 @@
                                     </td>
                                     <td>{{ sub.end_date|hijri }} هـ</td>
                                     <td>
-                                        <strong style="color: var(--warning-color);">
+                                        <strong class="xs-platform-admin-dashboard-2">
                                             {% if sub.days_remaining != None %}{{ sub.days_remaining }} يوم{% else %}{{ sub.end_date|timeuntil }}{% endif %}
                                         </strong>
                                     </td>
                                     <td>
-                                        <a href="{% url 'reports:platform_subscription_detail' sub.id %}" class="btn-modern outline" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+                                        <a href="{% url 'reports:platform_subscription_detail' sub.id %}" class="btn-modern outline xs-platform-admin-dashboard-5">
                                             <i class="fas fa-eye"></i> عرض
                                         </a>
                                     </td>
@@ -1658,9 +1658,9 @@
                                 {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="6" style="text-align:center; padding: 3rem; color:var(--text-muted);">
-                                    <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--secondary-color); margin-bottom: 1rem; display: block;"></i>
-                                    <strong style="font-size: 1.1rem; display: block; margin-bottom: 0.5rem;">الوضع مستقر</strong>
+                                <td colspan="6" class="xs-platform-admin-dashboard-6">
+                                    <i class="fas fa-check-circle xs-platform-admin-dashboard-7"></i>
+                                    <strong class="u-fs-lg u-block u-mb-05">الوضع مستقر</strong>
                                     لا توجد اشتراكات تنتهي خلال الـ 30 يوم القادمة.
                                 </td>
                             </tr>
@@ -1673,8 +1673,8 @@
             <!-- Reports Activity Chart -->
             <div class="card-panel">
                 <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
-                        <i class="fas fa-file-alt" style="color: var(--primary-color);"></i>
+                    <h3 class="u-m-0 u-fs-lg u-fw-700">
+                        <i class="fas fa-file-alt xs-platform-admin-dashboard-4"></i>
                         نشاط التقارير الشهري
                     </h3>
                     <div class="export-buttons">
@@ -1698,8 +1698,8 @@
             <!-- Schools Distribution Chart -->
             <div class="card-panel">
                 <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
-                        <i class="fas fa-chart-pie" style="color: var(--accent);"></i>
+                    <h3 class="u-m-0 u-fs-lg u-fw-700">
+                        <i class="fas fa-chart-pie xs-platform-admin-dashboard-8"></i>
                         توزيع المدارس حسب المرحلة
                     </h3>
                 </div>
@@ -1713,12 +1713,12 @@
             <!-- Recent Activity Timeline -->
             <div class="card-panel">
                 <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
-                        <i class="fas fa-history" style="color: var(--text-muted);"></i>
+                    <h3 class="u-m-0 u-fs-lg u-fw-700">
+                        <i class="fas fa-history u-text-muted"></i>
                         آخر الأنشطة
                     </h3>
                 </div>
-                <div class="card-body" style="padding: 1rem;">
+                <div class="card-body u-p-lg">
                     <div class="activity-timeline">
                         {% if recent_activities %}
                             {% for activity in recent_activities %}
@@ -1734,8 +1734,8 @@
                             </div>
                             {% endfor %}
                         {% else %}
-                        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                            <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                        <div class="xs-platform-admin-dashboard-9">
+                            <i class="fas fa-inbox xs-platform-admin-dashboard-10"></i>
                             لا توجد أنشطة حديثة
                         </div>
                         {% endif %}
@@ -1746,21 +1746,21 @@
             <!-- Quick Ticket Stats -->
             <div class="card-panel">
                 <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
-                        <i class="fas fa-headset" style="color: var(--danger-color);"></i>
+                    <h3 class="u-m-0 u-fs-lg u-fw-700">
+                        <i class="fas fa-headset xs-platform-admin-dashboard-11"></i>
                         الدعم الفني
                     </h3>
                 </div>
                 <div class="card-body">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem;">
+                    <div class="xs-platform-admin-dashboard-12">
                         <span>مكتملة</span>
                         <span class="status-badge status-active" id="ticketsDoneSideStat">{{ tickets_done }}</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem;">
+                    <div class="xs-platform-admin-dashboard-12">
                         <span>قيد المعالجة (مفتوحة)</span>
                         <span class="status-badge status-warning" id="ticketsOpenSideStat">{{ tickets_open }}</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between;">
+                    <div class="u-flex u-justify-between">
                         <span>مرفوضة</span>
                         <span class="status-badge status-danger" id="ticketsRejectedSideStat">{{ tickets_rejected }}</span>
                     </div>
@@ -2244,17 +2244,17 @@ function buildLocalSearchIndex() {
 
 function renderSearchResults(items) {
     if (!items.length) {
-        searchResults.innerHTML = '<div class="search-result-item" style="padding:1rem; color: var(--text-muted);">لا توجد نتائج مطابقة.</div>';
+        searchResults.innerHTML = '<div class="search-result-item u-p-lg u-text-muted">لا توجد نتائج مطابقة.</div>';
         setSearchOpen(true);
         return;
     }
     searchResults.innerHTML = items.slice(0, 8).map((item) => {
         const safeHref = item.href || '#';
-        return '<a class="search-result-item" href="' + escapeHtml(safeHref) + '" style="display:flex;gap:.75rem;align-items:flex-start;text-decoration:none;color:inherit;">'
-            + '<i class="fas ' + escapeHtml(item.icon || 'fa-search') + '" style="color:var(--primary-color);margin-top:.2rem;"></i>'
-            + '<span style="min-width:0;">'
-            + '<strong style="display:block;color:var(--text-main);font-size:.92rem;">' + escapeHtml(item.title) + '</strong>'
-            + '<small style="display:block;color:var(--text-muted);font-weight:700;margin-top:.15rem;">' + escapeHtml(item.type || 'نتيجة') + (item.subtitle ? ' · ' + escapeHtml(item.subtitle) : '') + '</small>'
+        return '<a class="search-result-item xs-platform-admin-dashboard-13" href="' + escapeHtml(safeHref) + '">'
+            + '<i class="fas ' + escapeHtml(item.icon || 'fa-search') + ' xs-platform-admin-dashboard-14"></i>'
+            + '<span class="u-min-w-0">'
+            + '<strong class="xs-platform-admin-dashboard-15">' + escapeHtml(item.title) + '</strong>'
+            + '<small class="xs-platform-admin-dashboard-16">' + escapeHtml(item.type || 'نتيجة') + (item.subtitle ? ' · ' + escapeHtml(item.subtitle) : '') + '</small>'
             + '</span>'
             + '</a>';
     }).join('');
@@ -2395,7 +2395,7 @@ function printChart(chartId, title) {
     popup.document.write(
         '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'
         + '<title>' + escapeHtml(title || 'رسم بياني') + '</title>'
-        + '<style>body{font-family:Cairo,Arial,sans-serif;margin:32px;color:#111827;text-align:center}img{max-width:100%;border:1px solid #e5e7eb;border-radius:10px}h1{font-size:22px;margin-bottom:24px}</style>'
+        + '<style nonce="{{ CSP_NONCE }}">body{font-family:Cairo,Arial,sans-serif;margin:32px;color:#111827;text-align:center}img{max-width:100%;border:1px solid #e5e7eb;border-radius:10px}h1{font-size:22px;margin-bottom:24px}</style>'
         + '</head><body><h1>' + escapeHtml(title || 'رسم بياني') + '</h1><img src="' + url + '" alt=""></body></html>'
     );
     popup.document.close();

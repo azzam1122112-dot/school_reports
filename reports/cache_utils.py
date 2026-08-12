@@ -13,6 +13,8 @@ import time
 from contextlib import contextmanager
 from typing import Optional
 
+from core.observability import report_degraded as _degraded, soft_call, soft_fail
+
 from django.conf import settings
 from django.core.cache import cache
 
@@ -91,10 +93,7 @@ def invalidate_school_dashboard(school_id: int) -> None:
         cache.add(key, 1, timeout=None)
         cache.incr(key)
     except (ValueError, TypeError):
-        try:
-            cache.set(key, 2, timeout=None)
-        except Exception:
-            pass
+        soft_call("cache.version_bump_reset", lambda: cache.set(key, 2, timeout=None), default=None)
     except Exception:
         # Cache failure must never roll back the business write. A short TTL on
         # the old payload is the final consistency guard.
@@ -132,13 +131,13 @@ def redis_cache_lock(key: str, *, timeout: int = 15):
         yield acquired
     finally:
         if acquired:
-            try:
+            # قفلٌ لا يُحرَّر يبقى حتى ينتهي عمره — فيُعاد بناء اللوحة تسلسلياً
+            # طوال تلك المدة بدل أن تُخدم من الكاش.
+            with soft_fail("cache.release_rebuild_lock", key=key):
                 if lock is not None:
                     lock.release()
                 elif cache.get(key) == token:
                     cache.delete(key)
-            except Exception:
-                pass
 
 
 def get_school_dashboard_payload(
@@ -204,11 +203,9 @@ def get_school_dashboard_payload(
     # A broken/expired lock must not make the page unavailable. This path is
     # limited to a cold-cache timeout and the fresh result is still published.
     payload = builder()
-    try:
+    with soft_fail("cache.publish_rebuilt_payload", key=fresh_key):
         cache.set(fresh_key, payload, timeout=ttl)
         cache.set(stale_key, payload, timeout=stale_ttl)
-    except Exception:
-        pass
     return payload
 
 
@@ -232,10 +229,11 @@ def invalidate_user_notifications(user_id: int) -> None:
                 keys.append(f"unreadcnt:v1:u{uid}:s{int(school_id)}")
                 keys.append(f"ws:counts:{uid}:{int(school_id)}")
         except Exception:
-            pass
+            # مفاتيحُ مدارس لم تُجمع = عدّادات لا تُبطَل في تلك المدارس.
+            _degraded("cache.collect_user_school_keys", user_id=uid)
         cache.delete_many(keys)
     except Exception:
-        pass
+        _degraded("cache.invalidate_user_notifications", user_id=uid)
 
 
 # ── Cached getters ──────────────────────────────────────────────────
@@ -244,15 +242,9 @@ def get_or_set(key: str, callback, ttl: int = CACHE_TTL_MEDIUM):
     Safe wrapper around cache.get_or_set that falls back to the
     callback on any cache backend error.
     """
-    try:
-        val = cache.get(key)
-        if val is not None:
-            return val
-    except Exception:
-        pass
+    val = soft_call("cache.get_or_set_read", lambda: cache.get(key), default=None, key=key)
+    if val is not None:
+        return val
     val = callback()
-    try:
-        cache.set(key, val, ttl)
-    except Exception:
-        pass
+    soft_call("cache.get_or_set_write", lambda: cache.set(key, val, ttl), default=None, key=key)
     return val

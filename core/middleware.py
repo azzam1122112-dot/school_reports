@@ -13,6 +13,7 @@ from .client_ip import client_ip_for_ratelimit
 from .limits_cache import limits_cache
 from .trace_context import reset_trace_id, set_trace_id
 from . import opmetrics
+from .observability import report_degraded as _degraded, soft_fail
 
 BLOCKED_PREFIXES = (
     "/wp-admin",
@@ -75,10 +76,8 @@ class RequestTraceMiddleware:
             opmetrics.increment("http.responses.5xx")
         elif status_code >= 400:
             opmetrics.increment("http.responses.4xx")
-        try:
+        with soft_fail("trace.attach_response_header"):
             response[self.HEADER_NAME] = request.trace_id
-        except Exception:
-            pass
         return response
 
 
@@ -258,11 +257,9 @@ class SchoolRateLimitMiddleware:
             return response
 
         response = self.get_response(request)
-        try:
+        with soft_fail("ratelimit.attach_response_headers"):
             response["X-RateLimit-Limit"] = str(limit)
             response["X-RateLimit-Remaining"] = str(max(0, limit - count))
-        except Exception:
-            pass
         return response
 
 
@@ -305,7 +302,9 @@ class BlockBadPathsMiddleware:
                     response.status_code = 429
                     return response
             except Exception:
-                pass
+                # حدُّ المستأجر يفشل مفتوحاً عمداً — مدرسةٌ محجوبة بالخطأ أسوأ
+                # من مدرسةٍ تتجاوز ميزانيتها دقيقةً. لكن ذلك يجب أن يُقاس.
+                _degraded("ratelimit.school_budget_check")
 
         blocked = False
         for pref in BLOCKED_PREFIXES:
@@ -333,7 +332,7 @@ class BlockBadPathsMiddleware:
                         (request.META.get("HTTP_USER_AGENT", "") or "-")[:180],
                     )
             except Exception:
-                pass
+                _degraded("security.log_blocked_probe")
             # Return 404 to minimize endpoint fingerprinting.
             return HttpResponseNotFound()
         return self.get_response(request)

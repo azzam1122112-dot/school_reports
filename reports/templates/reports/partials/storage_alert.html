@@ -32,7 +32,7 @@ Silent until 80% — a banner that is always on is a banner nobody reads.
 
     <div class="storage-alert__meter" role="img"
          aria-label="نسبة استخدام مساحة التخزين {{ storage_overview.usage_percent }} بالمئة">
-      <span style="width: {{ storage_overview.usage_percent }}%"></span>
+      <span data-progress="{{ storage_overview.usage_percent }}"></span>
     </div>
 
     {% if storage_overview.seats %}

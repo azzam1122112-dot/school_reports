@@ -845,7 +845,7 @@
                   <td class="text-center">{{ r.beneficiaries_count|default_if_none:"—" }}</td>
 
                   <td>
-                    <textarea id="idea-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
+                    <textarea id="idea-{{ r.pk }}" class="u-hidden">{{ r.idea|default_if_none:''|escape }}</textarea>
                     {{ r.idea|default_if_none:""|truncatewords:12 }}
                   </td>
 
@@ -859,7 +859,7 @@
                   </td>
 
                   <td>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                    <div class="u-flex u-gap-2 u-wrap u-items-center">
                       <button
                         class="btn btn-primary js-show"
                         type="button"
@@ -904,7 +904,7 @@
                 </tr>
               {% empty %}
                 <tr>
-                  <td colspan="8" class="text-center muted" style="padding:18px">
+                  <td colspan="8" class="text-center muted u-p-6">
                     {% if configuration_missing %}ستظهر التقارير بعد ربط الإدارة القسم بأنواع التقارير.{% else %}لا توجد تقارير ضمن قسمك وفق الفلاتر الحالية.{% endif %}
                   </td>
                 </tr>
@@ -939,7 +939,7 @@
                 | 👥 {{ r.beneficiaries_count|default_if_none:"—" }}
               </p>
 
-              <textarea id="idea-m-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
+              <textarea id="idea-m-{{ r.pk }}" class="u-hidden">{{ r.idea|default_if_none:''|escape }}</textarea>
               <p class="report-idea">{{ r.idea|default_if_none:""|truncatewords:20 }}</p>
 
               <div class="report-images">
@@ -976,7 +976,7 @@
               </div>
             </article>
           {% empty %}
-            <div class="muted" style="text-align:center;padding:18px">
+            <div class="muted u-text-center u-p-6">
               {% if configuration_missing %}ستظهر التقارير بعد ربط الإدارة القسم بأنواع التقارير.{% else %}لا توجد تقارير ضمن قسمك وفق الفلاتر الحالية.{% endif %}
             </div>
           {% endfor %}

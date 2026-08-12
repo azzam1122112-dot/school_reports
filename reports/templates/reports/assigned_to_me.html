@@ -5,7 +5,7 @@
 {% block title %}الطلبات المسندة إليّ{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* ═══════════════════════════════════════════════════════════════════
      الطبقة الأساس لهذه الشاشة — نُقلت من `app.css` الذي يُحمَّل على كل صفحة،
      وهذه الشاشة وحدها تستعملها. ترتيبها أولاً هنا يطابق ترتيبها هناك:
@@ -588,7 +588,7 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
       <!-- Search -->
       <div class="lx-search">
         <label class="sr-only" for="assignedSearch">البحث في الطلبات المسندة</label>
-        <input id="assignedSearch" type="search" name="q" class="lx-input" style="width:100%"
+        <input id="assignedSearch" type="search" name="q" class="lx-input u-w-full"
                placeholder="بحث برقم الطلب أو العنوان..."
                value="{{ request.GET.q|default:'' }}">
       </div>
@@ -661,20 +661,20 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
             <tr>
               <td><span class="t-id">#{{ t.id }}</span></td>
               <td>
-                <a href="{% url 'reports:ticket_detail' t.id %}" style="text-decoration:none;font-weight:700;color:var(--c-text)">
+                <a href="{% url 'reports:ticket_detail' t.id %}" class="xs-assigned-to-me-1">
                   {{ t.title|default:"بدون عنوان" }}
                 </a>
               </td>
               <td>
-                <div style="display:flex;align-items:center;gap:6px;">
-                  <i class="fa-regular fa-user" style="color:var(--c-text-muted)"></i>
+                <div class="xs-assigned-to-me-2">
+                  <i class="fa-regular fa-user u-text-c-muted"></i>
                   {% firstof t.creator.name t.creator.phone "—" %}
                 </div>
               </td>
               <td>{{ t.department|default:"—" }}</td>
               <td>
                 <time datetime="{{ t.created_at|date:'c' }}">{{ t.created_at|hijri }} هـ</time><br>
-                <small style="color:var(--c-text-muted)">{{ t.created_at|date:"Y-m-d" }} م</small>
+                <small class="u-text-c-muted">{{ t.created_at|date:"Y-m-d" }} م</small>
               </td>
               <td>
                 <span class="status-pill 
@@ -691,14 +691,14 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
                 </span>
               </td>
               <td>
-                <a href="{% url 'reports:ticket_detail' t.id %}" class="lx-btn" style="background:var(--c-surface-alt);border:1px solid var(--c-border);padding:6px 12px;font-size:0.85rem;">
+                <a href="{% url 'reports:ticket_detail' t.id %}" class="lx-btn xs-assigned-to-me-3">
                   عرض
                 </a>
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="7" style="text-align:center;padding:40px;color:var(--c-text-muted);">
+              <td colspan="7" class="xs-assigned-to-me-4">
                 لا توجد تذاكر مطابقة لعملية البحث.
               </td>
             </tr>
@@ -713,8 +713,8 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
       {% for t in page_obj.object_list %}
         <div class="ticket-card">
           <!-- Main Info -->
-          <div style="flex:1; min-width:280px;">
-            <div style="display:flex; align-items:center; margin-bottom:8px;">
+          <div class="xs-assigned-to-me-5">
+            <div class="u-flex u-items-center u-mb-2">
               <span class="t-id">#{{ t.id }}</span>
               <a href="{% url 'reports:ticket_detail' t.id %}" class="t-title">
                 {{ t.title|default:"بدون عنوان" }}
@@ -735,7 +735,7 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
           </div>
 
           <!-- Status & Action -->
-          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
+          <div class="u-flex u-col u-items-end u-gap-3">
             <span class="status-pill 
               {% if t.status == 'open' %}st-new
               {% elif t.status == 'in_progress' %}st-pro
@@ -749,18 +749,18 @@ html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,
               {% else %}{{ t.status }}{% endif %}
             </span>
 
-            <a href="{% url 'reports:ticket_detail' t.id %}" class="lx-btn" style="background:var(--c-surface);border:1px solid var(--c-border);padding:8px 16px;">
+            <a href="{% url 'reports:ticket_detail' t.id %}" class="lx-btn xs-assigned-to-me-6">
               التفاصيل <i class="fa-solid fa-arrow-left"></i>
             </a>
           </div>
         </div>
       {% empty %}
         <div class="empty-state">
-          <div style="font-size:3rem; color:var(--c-border); margin-bottom:16px;">
+          <div class="xs-assigned-to-me-7">
             <i class="fa-solid fa-clipboard-check"></i>
           </div>
-          <h3 style="margin:0 0 8px 0; color:var(--c-text);">لا توجد تذاكر مسندة</h3>
-          <p style="color:var(--c-text-muted); margin:0;">لا يوجد لديك أي تذاكر معينة حالياً تطابق معايير البحث.</p>
+          <h3 class="xs-assigned-to-me-8">لا توجد تذاكر مسندة</h3>
+          <p class="u-text-c-muted u-m-0">لا يوجد لديك أي تذاكر معينة حالياً تطابق معايير البحث.</p>
         </div>
       {% endfor %}
     </div>

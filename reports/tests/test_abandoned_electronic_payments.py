@@ -87,7 +87,7 @@ class AbandonedMoyasarOrderTests(TestCase):
         payment = self._pending_payment()
 
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice",
+            "reports.views.billing_gateways.fetch_moyasar_invoice",
             return_value={"id": payment.gateway_order_id, "status": "initiated"},
         ):
             response = self.client.post(
@@ -103,9 +103,9 @@ class AbandonedMoyasarOrderTests(TestCase):
         payment = self._pending_payment(batch="batch-paid")
 
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice",
+            "reports.views.billing_gateways.fetch_moyasar_invoice",
             return_value={"id": payment.gateway_order_id, "status": "paid"},
-        ), patch("reports.views.subscriptions._complete_moyasar_invoice") as complete:
+        ), patch("reports.views.billing_gateways._complete_moyasar_invoice") as complete:
             self.client.post(
                 reverse("reports:moyasar_checkout_cancel", args=[payment.pk])
             )
@@ -137,7 +137,7 @@ class AbandonedMoyasarOrderTests(TestCase):
         payment = self._pending_payment(age_minutes=120, batch="batch-stale")
 
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice",
+            "reports.views.billing_gateways.fetch_moyasar_invoice",
             return_value={"id": payment.gateway_order_id, "status": "initiated"},
         ):
             summary = reconcile_pending_gateway_payments(abandon_after_minutes=60)
@@ -151,7 +151,7 @@ class AbandonedMoyasarOrderTests(TestCase):
         payment = self._pending_payment(age_minutes=5, batch="batch-fresh")
 
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice",
+            "reports.views.billing_gateways.fetch_moyasar_invoice",
             return_value={"id": payment.gateway_order_id, "status": "initiated"},
         ):
             summary = reconcile_pending_gateway_payments(abandon_after_minutes=60)
@@ -166,7 +166,7 @@ class AbandonedMoyasarOrderTests(TestCase):
         payment = self._pending_payment(batch="batch-no-credentials")
 
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice"
+            "reports.views.billing_gateways.fetch_moyasar_invoice"
         ) as fetch_invoice:
             summary = reconcile_pending_gateway_payments(abandon_after_minutes=60)
 
@@ -180,9 +180,9 @@ class AbandonedMoyasarOrderTests(TestCase):
         payment = self._pending_payment(age_minutes=600, batch="batch-late-paid")
 
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice",
+            "reports.views.billing_gateways.fetch_moyasar_invoice",
             return_value={"id": payment.gateway_order_id, "status": "paid"},
-        ), patch("reports.views.subscriptions._complete_moyasar_invoice") as complete:
+        ), patch("reports.views.billing_gateways._complete_moyasar_invoice") as complete:
             summary = reconcile_pending_gateway_payments(abandon_after_minutes=60)
 
         complete.assert_called_once()
@@ -193,7 +193,7 @@ class AbandonedMoyasarOrderTests(TestCase):
         payment = self._pending_payment(age_minutes=600, batch="batch-disabled")
 
         with patch(
-            "reports.views.subscriptions.fetch_moyasar_invoice",
+            "reports.views.billing_gateways.fetch_moyasar_invoice",
             return_value={"id": payment.gateway_order_id, "status": "initiated"},
         ):
             summary = reconcile_pending_gateway_payments(abandon_after_minutes=0)

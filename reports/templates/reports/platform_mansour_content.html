@@ -3,7 +3,7 @@
 {% block title %}محتوى منصور | إعدادات المنصة{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   .mansour-editor {
     max-width: 1200px;
     margin: 0 auto;
@@ -132,7 +132,7 @@
       <span class="muted" dir="ltr">{{ content_path }}</span>
     </div>
     <div class="panel-body">
-      <label for="{{ form.content.id_for_label }}" style="display:block;font-weight:800;margin-bottom:.5rem;">
+      <label for="{{ form.content.id_for_label }}" class="u-block u-fw-800 u-mb-05">
         {{ form.content.label }}
       </label>
       {{ form.content }}
@@ -147,7 +147,7 @@
       </div>
     </div>
 
-    <div style="padding:0 1rem 1rem;display:flex;gap:.6rem;flex-wrap:wrap;">
+    <div class="xs-platform-mansour-content-1">
       <button type="submit" class="btn btn-primary">
         <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
         حفظ المحتوى

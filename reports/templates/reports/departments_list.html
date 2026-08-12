@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% block title %}إدارة الأقسام{% endblock %}
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   body { background: linear-gradient(120deg, #e0e7ff 0%, #f0fdfa 100%); min-height: 100vh; }
   .smart-card {
     max-width: 1100px;
@@ -275,12 +275,12 @@
             <td class="smart-table-actions">
               <a class="smart-btn ghost" href="{% url 'reports:department_edit' code=code %}"><i class="fa-solid fa-pen-to-square"></i> تعديل</a>
               <a class="smart-btn ghost" href="{% url 'reports:department_members' code=code %}"><i class="fa-solid fa-users"></i> الأعضاء</a>
-              <form method="post" action="{% url 'reports:department_delete' code=code %}" style="display:inline" data-confirm="هل تريد حذف القسم «{{ d.name|escapejs }}» نهائيًا؟">{% csrf_token %}<button class="smart-btn danger" type="submit"><i class="fa-solid fa-trash-can"></i> حذف</button></form>
+              <form method="post" action="{% url 'reports:department_delete' code=code %}" data-confirm="هل تريد حذف القسم «{{ d.name|escapejs }}» نهائيًا؟" class="u-inline">{% csrf_token %}<button class="smart-btn danger" type="submit"><i class="fa-solid fa-trash-can"></i> حذف</button></form>
             </td>
           </tr>
           {% endwith %}
         {% empty %}
-          <tr><td colspan="7" style="text-align:center;color:#64748b;font-weight:900">لا توجد أقسام بعد.</td></tr>
+          <tr><td colspan="7" class="xs-departments-list-1">لا توجد أقسام بعد.</td></tr>
         {% endfor %}
       </tbody>
     </table>
