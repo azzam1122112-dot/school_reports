@@ -32,16 +32,14 @@ INLINE_STYLE = re.compile(r'\sstyle\s*=\s*"([^"]*)"')
 # السمات متعدّدة الإعلانات إلى قوائم أصناف (كلٌّ أو لا شيء لكل سمة)، ثم 305
 # برفع الفريد لكل صفحة إلى ``static/css/extracted.css``.
 #
-# **بلغ العدد أرضيّته: 32.** وكلها خارج حكم سياسة المحتوى:
-#   * 31 في قالب بريد HTML — عملاء البريد يتجاهلون ``<link>`` ويجرّدون
-#     ``<style>``، فالتضمين هناك شرطُ عملٍ لا دَين.
-#   * 1 في قالب PDF يُصيَّر بـWeasyPrint: لا جافاسكربت، ولا يُعرض في متصفّح.
-#   * 1 في ``password_reset_email.txt`` وما شابهه.
+# **بلغ عدد قوالب الويب أرضيّته: 1.** وهي في قالب PDF يُصيَّر بـWeasyPrint؛
+# لا جافاسكربت فيه ولا يُعرض في متصفّح. قوالب البريد مستثناة من العد لأن
+# عملاء البريد يتجاهلون ``<link>`` ويجرّدون ``<style>``، فالتضمين فيها شرط عمل.
 #
 # و``style-src`` أُغلقت فعلاً. فارتفاع هذا العدد لا يعني «دَيناً زاد» بل
 # **صفحةً ستُكسر في الإنتاج**: المتصفّح سيرفض السمة الجديدة.
 # لا تُضف سمة ``style`` جديدة إلى أي قالب يُعرض في متصفّح.
-MAX_INLINE_STYLES = 32
+MAX_INLINE_STYLES = 1
 
 # القوالب التي لم تُنظَّف بعد، مرتّبة بالأثقل. تُحذف أسطرها عند التنظيف.
 WORST_OFFENDERS_CEILING = 50
@@ -55,9 +53,12 @@ class InlineStyleBudgetTests(SimpleTestCase):
     def _counts(self) -> dict[str, int]:
         counts: dict[str, int] = {}
         for path in self.template_root.rglob("*.html"):
+            rel = str(path.relative_to(self.template_root)).replace("\\", "/")
+            if rel.startswith("reports/emails/"):
+                continue
             found = INLINE_STYLE.findall(path.read_text(encoding="utf-8"))
             if found:
-                counts[str(path.relative_to(self.template_root))] = len(found)
+                counts[rel] = len(found)
         return counts
 
     def test_inline_style_count_never_grows(self):
@@ -99,9 +100,12 @@ class InlineStyleBudgetTests(SimpleTestCase):
         """
         dynamic = []
         for path in self.template_root.rglob("*.html"):
+            rel = str(path.relative_to(self.template_root)).replace("\\", "/")
+            if rel.startswith("reports/emails/"):
+                continue
             for value in INLINE_STYLE.findall(path.read_text(encoding="utf-8")):
                 if "{{" in value or "{%" in value:
-                    dynamic.append(f"{path.relative_to(self.template_root)}: {value[:60]}")
+                    dynamic.append(f"{rel}: {value[:60]}")
 
         # السقف الحالي للقيم الديناميكية المتبقّية.
         self.assertLessEqual(len(dynamic), 35, "\n".join(sorted(dynamic)[:20]))
@@ -122,7 +126,7 @@ class InlineStyleBudgetTests(SimpleTestCase):
 
         for path in self.template_root.rglob("*.html"):
             rel = str(path.relative_to(self.template_root)).replace("\\", "/")
-            if rel.startswith("emails/"):
+            if rel.startswith("reports/emails/"):
                 continue
             source = path.read_text(encoding="utf-8")
             if not uses_utility.search(source):
@@ -145,7 +149,7 @@ class InlineStyleBudgetTests(SimpleTestCase):
         ``<style>``. فالأنماط المضمَّنة هناك هي الطريقة الوحيدة العاملة، ولا
         علاقة لها بسياسة المحتوى لأن الرسالة لا تُعرض في نطاق المنصة.
         """
-        email_dir = self.template_root / "emails"
+        email_dir = self.template_root / "reports" / "emails"
         if not email_dir.exists():
             return
         for path in email_dir.rglob("*.html"):

@@ -79,6 +79,14 @@ class SubscriptionExpiryReminderEmailTests(TestCase):
         self.assertIn("7", sent.subject)
         self.assertIn("منصة توثيق", sent.subject)
         self.assertIn("الباقة السنوية", sent.body)
+        self.assertEqual(len(sent.alternatives), 1)
+        html, content_type = sent.alternatives[0]
+        self.assertEqual(content_type, "text/html")
+        self.assertIn("تنبيه الاشتراك", html)
+        self.assertIn("مدرسة الاشتراك", html)
+        self.assertIn("الباقة السنوية", html)
+        self.assertIn("إدارة الاشتراك والتجديد", html)
+        self.assertIn("توثيق أدق، متابعة أوضح", html)
 
     def test_reminder_is_not_emailed_twice_within_a_day(self):
         self._subscription_expiring_in(3)

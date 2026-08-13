@@ -19,6 +19,7 @@ from django.utils import timezone
 
 from core.observability import report_degraded as _degraded, soft_fail
 
+from .email_branding import email_brand_context, platform_url, render_branded_email
 from .storage import _compress_image_file
 from .telegram_alerts import TelegramDeliveryError, deliver_telegram_alert
 from .web_push import WebPushTransientError
@@ -1029,22 +1030,54 @@ def check_subscription_expiry_task() -> dict:
             # reads "ينتهي خلال 14" with no unit. The subject line is written
             # for the inbox instead.
             email_subject = (
-                f"⏰ اشتراك {school_name} ينتهي "
+                f"اشتراك {school_name} ينتهي "
                 + ("غداً" if days_left == 1 else f"خلال {days_left} يوماً")
-                + " - منصة توثيق"
+                + " | منصة توثيق"
             )
             Teacher = apps.get_model("reports", "Teacher")
             managers_with_email = Teacher.objects.filter(
                 id__in=manager_ids, is_active=True
-            ).exclude(email="").only("id", "email")
+            ).exclude(email="").only("id", "email", "name")
             for mgr in managers_with_email:
                 if _is_valid_email(mgr.email):
                     try:
+                        expiry_phrase = "غدًا" if days_left == 1 else f"خلال {days_left} أيام"
+                        remaining_text = "يوم واحد" if days_left == 1 else f"{days_left} أيام"
+                        expiry_context = email_brand_context(
+                            recipient_name=(mgr.name or "مدير المدرسة").strip(),
+                            school_name=school_name,
+                            plan_name=sub.plan.name,
+                            end_date=sub.end_date.strftime("%Y-%m-%d"),
+                            remaining_text=remaining_text,
+                            action_url=platform_url("/subscription/my/"),
+                        )
+                        plain_message = render_to_string(
+                            "reports/emails/subscription_expiry.txt", expiry_context
+                        ).strip()
+                        html_message = render_branded_email(
+                            "subscription_expiry.html",
+                            recipient_name=expiry_context["recipient_name"],
+                            email_title=f"اشتراك {school_name} ينتهي {expiry_phrase}",
+                            email_eyebrow="تنبيه الاشتراك",
+                            email_preheader=f"متبقي {remaining_text} على انتهاء باقة {sub.plan.name}.",
+                            email_tone="warning",
+                            action_url=expiry_context["action_url"],
+                            action_label="إدارة الاشتراك والتجديد",
+                            meta_items=[
+                                {"label": "المدرسة", "value": school_name},
+                                {"label": "الباقة", "value": sub.plan.name},
+                                {"label": "تاريخ الانتهاء", "value": expiry_context["end_date"]},
+                                {"label": "المدة المتبقية", "value": remaining_text},
+                            ],
+                            notice_title="حافظ على استمرارية الخدمة",
+                            notice_text="أكمل التجديد قبل تاريخ الانتهاء لتفادي توقف وصول فريق المدرسة إلى المنصة.",
+                        )
                         send_mail(
                             subject=email_subject,
-                            message=message,
+                            message=plain_message,
                             from_email=from_email,
                             recipient_list=[mgr.email],
+                            html_message=html_message,
                             fail_silently=False,
                         )
                         summary["emails_sent"] += 1
@@ -1237,13 +1270,24 @@ def send_password_change_email_task(self, teacher_id: int) -> bool:
     from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
     now_text = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M")
 
-    subject = "🔐 تم تغيير كلمة المرور - منصة توثيق"
-    message = (
-        f"مرحباً {teacher_name}،\n\n"
-        f"تم تغيير كلمة المرور لحسابك في منصة توثيق بنجاح.\n"
-        f"الوقت: {now_text}\n\n"
-        "إذا لم تقم بهذا التغيير، يرجى التواصل مع إدارة المدرسة أو الدعم الفني فوراً.\n\n"
-        "مع تحيات فريق منصة توثيق"
+    subject = "تم تغيير كلمة المرور | منصة توثيق"
+    email_context = email_brand_context(
+        recipient_name=teacher_name,
+        changed_at=now_text,
+    )
+    message = render_to_string(
+        "reports/emails/password_changed.txt", email_context
+    ).strip()
+    html_message = render_branded_email(
+        "password_changed.html",
+        recipient_name=teacher_name,
+        email_title="تم تغيير كلمة المرور",
+        email_eyebrow="أمان الحساب",
+        email_preheader=f"تأكيد تغيير كلمة مرور حساب {teacher_name} في منصة توثيق.",
+        email_tone="success",
+        meta_items=[{"label": "وقت التغيير", "value": now_text}],
+        notice_title="لم تكن أنت؟",
+        notice_text="تواصل فورًا مع إدارة المدرسة أو الدعم الفني لحماية حسابك والتحقق من النشاط.",
     )
 
     try:
@@ -1252,6 +1296,7 @@ def send_password_change_email_task(self, teacher_id: int) -> bool:
             message=message,
             from_email=from_email,
             recipient_list=[email],
+            html_message=html_message,
             fail_silently=False,
         )
         logger.info(
