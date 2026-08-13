@@ -144,6 +144,29 @@ class MansourHonestyTests(SimpleTestCase):
         self.assertNotIn("ما وصلني الموضوع", answer)
         self.assertIn("الإنجاز", answer)
 
+    def test_complete_capability_question_is_not_mistaken_for_a_follow_up(self):
+        answer, sources = ask_mansour(
+            "هل أقدر أنظم اجتماع وأكتب محضرًا رسميًا وأنزله PDF؟",
+            plans=[],
+            audience="manager",
+        )
+
+        self.assertNotIn("ما وصلني الموضوع", answer)
+        self.assertIn("المحضر", answer)
+        self.assertIn("PDF", answer)
+        self.assertEqual(sources[0]["url"], "https://tawtheeq-ksa.com/guide/#manager-meetings")
+
+    def test_public_deputy_question_explains_boundaries_without_forcing_two_roles(self):
+        answer, _sources = ask_mansour(
+            "أنا وكيل مدرسة، ما الذي أستطيع عمله وما الذي يبقى للمدير؟",
+            plans=[],
+            audience="general",
+        )
+
+        self.assertIn("الوكيل", answer)
+        self.assertIn("الاعتماد النهائي", answer)
+        self.assertNotIn("معلم أم مدير مدرسة", answer)
+
 
 @override_settings(OPENAI_API_KEY="test-secret-key", MANSOUR_ASSISTANT_ENABLED=True)
 class MansourSharedSecretTests(SimpleTestCase):

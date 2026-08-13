@@ -51,11 +51,13 @@ class Command(BaseCommand):
                 if configured_audience == "auto"
                 else configured_audience
             )
-            selected = (
-                _default_knowledge(audience, limit=top_k)
-                if _is_role_overview_question(question)
-                else select_knowledge(question, audience=audience, limit=top_k)
-            )
+            selected = select_knowledge(question, audience=audience, limit=top_k)
+            # A generic "what can I do?" needs the default journey, while an
+            # explicitly named role such as deputy has a dedicated article.
+            if _is_role_overview_question(question) and not any(
+                item.slug == "school-role-model" for item in selected
+            ):
+                selected = _default_knowledge(audience, limit=top_k)
             selected_slugs = [item.slug for item in selected]
             expected_slugs = [str(value) for value in case.get("expected_slugs") or []]
             expected_intent = str(case.get("expected_intent") or "")

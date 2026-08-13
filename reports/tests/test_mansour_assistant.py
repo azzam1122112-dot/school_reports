@@ -440,11 +440,16 @@ class MansourAssistantTests(TestCase):
             request_body["max_output_tokens"],
             settings.MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS,
         )
+        self.assertEqual(
+            request_body["text"],
+            {"verbosity": settings.MANSOUR_ASSISTANT_TEXT_VERBOSITY},
+        )
+        self.assertRegex(request_body["safety_identifier"], r"^tawtheeq_[a-f0-9]{16}$")
         self.assertFalse(request_body["store"])
         self.assertIn("باقة المدرسة", request_body["instructions"])
         self.assertIn("650", request_body["instructions"])
         self.assertIn("الفئة: مدير مدرسة", request_body["instructions"])
-        self.assertIn("guide/#manager-communication", request_body["instructions"])
+        self.assertIn("#pricing", request_body["instructions"])
         self.assertNotIn("test-secret-key", request.data.decode("utf-8"))
         self.assertEqual(response.json()["audience"], "manager")
         self.assertEqual(response.json()["audience_label"], "مدير مدرسة")
@@ -478,6 +483,49 @@ class MansourAssistantTests(TestCase):
         self.assertIn("تقاريري - منصة توثيق", request_body["instructions"])
         self.assertIn("/reports/my/", request_body["instructions"])
         self.assertNotIn("token=secret", request_body["instructions"])
+
+    @patch("reports.mansour_assistant.urlopen", return_value=_FakeOpenAIResponse())
+    def test_authenticated_assistant_receives_minimal_personal_journey_context(
+        self, mocked_urlopen
+    ):
+        school = School.objects.create(name="مدرسة خاصة لا تُرسل", code="private-context")
+        SchoolSubscription.objects.create(
+            school=school,
+            plan=SubscriptionPlan.objects.get(name="باقة المدرسة"),
+        )
+        teacher = Teacher.objects.create_user(
+            phone="500008811",
+            name="اسم شخصي لا يُرسل",
+            password="test-pass",
+        )
+        SchoolMembership.objects.create(
+            school=school,
+            teacher=teacher,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        self.client.force_login(teacher)
+        session = self.client.session
+        session["active_school_id"] = school.pk
+        session.save()
+
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "اشرح لي ما أبدأ به اليوم"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        request = mocked_urlopen.call_args.args[0]
+        body = json.loads(request.data.decode("utf-8"))
+        instructions = body["instructions"]
+        self.assertIn("مساعد شخصي داخل الحساب", instructions)
+        self.assertIn("الدور الفعلي: المعلم", instructions)
+        self.assertIn("رحلة المعلم", instructions)
+        self.assertIn("المدرسة النشطة: محددة", instructions)
+        self.assertIn("الخطوة المقترحة من النظام", instructions)
+        self.assertNotIn(school.name, instructions)
+        self.assertNotIn(teacher.name, instructions)
+        self.assertNotIn(teacher.phone, instructions)
 
     @patch("reports.mansour_assistant.urlopen", return_value=_FakeWeakComplaintOpenAIResponse())
     def test_complaint_intent_quality_guard_rewrites_weak_model_answer(self, _mocked_urlopen):

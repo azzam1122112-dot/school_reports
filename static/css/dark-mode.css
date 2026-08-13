@@ -696,17 +696,11 @@ html[data-theme="dark"] .button-quiet,
 html[data-theme="dark"] .menu-toggle { background: #102920; border-color: var(--line); color: #d9f4e5; }
 html[data-theme="dark"] .mobile-menu-panel,
 html[data-theme="dark"] .mobile-sticky,
-html[data-theme="dark"] .mobile-login,
-html[data-theme="dark"] .system-shot-label {
+html[data-theme="dark"] .mobile-login {
   background: rgba(13, 36, 29, .97) !important;
   border-color: rgba(205, 225, 216, .18) !important;
   color: #d9f4e5 !important;
 }
-html[data-theme="dark"] .browser-top { background: #10251e; border-color: var(--line); color: #a9bcb2; }
-html[data-theme="dark"] .browser-frame { background: #0d241d; border-color: rgba(205, 225, 216, .22); }
-html[data-theme="dark"] .float-card { background: rgba(13, 36, 29, .96); border-color: rgba(205, 225, 216, .18); }
-html[data-theme="dark"] .float-card strong { color: #edf6f1; }
-html[data-theme="dark"] .float-card small { color: #abc0b6; }
 
 /* The landing page is light-on-white in the default theme, so every panel that
    used to ship its own dark slab now needs an explicit dark counterpart. */
@@ -718,7 +712,7 @@ html[data-theme="dark"] .hero {
 }
 html[data-theme="dark"] .hero::before { opacity: .16; background-image: linear-gradient(rgba(205, 225, 216, .16) 1px, transparent 1px), linear-gradient(90deg, rgba(205, 225, 216, .16) 1px, transparent 1px); }
 html[data-theme="dark"] .hero h1,
-html[data-theme="dark"] .hero-quote strong,
+html[data-theme="dark"] .hero-note b,
 html[data-theme="dark"] .section-heading h2,
 html[data-theme="dark"] .roles-copy h2,
 html[data-theme="dark"] .security-intro h2,
@@ -748,12 +742,15 @@ html[data-theme="dark"] .leadership-link,
 html[data-theme="dark"] .executive-card small { color: #6fd3ac; }
 html[data-theme="dark"] .hero h1 em,
 html[data-theme="dark"] .hero-lead,
-html[data-theme="dark"] .hero-quote p,
+html[data-theme="dark"] .hero-note,
+html[data-theme="dark"] .hero-persona small,
 html[data-theme="dark"] .assurance,
 html[data-theme="dark"] .trust-bar span { color: #b6cdc3; }
-html[data-theme="dark"] .hero-personas span { color: #b6cdc3; background: rgba(205, 225, 216, .06); border-color: rgba(205, 225, 216, .16); }
-html[data-theme="dark"] .hero-personas b { color: #edf6f1; }
-html[data-theme="dark"] .hero-quote { border-color: rgba(205, 225, 216, .14); }
+html[data-theme="dark"] .overline { background: rgba(205, 225, 216, .07); border-color: rgba(111, 211, 172, .34); box-shadow: none; }
+html[data-theme="dark"] .hero-persona { background: rgba(205, 225, 216, .06); border-color: rgba(205, 225, 216, .16); box-shadow: none; }
+html[data-theme="dark"] .hero-persona:hover { background: rgba(205, 225, 216, .1); border-color: rgba(111, 211, 172, .4); box-shadow: none; }
+html[data-theme="dark"] .hero-persona strong { color: #edf6f1; }
+html[data-theme="dark"] .hero-note { background: rgba(205, 225, 216, .05); border-color: rgba(111, 211, 172, .3); }
 html[data-theme="dark"] .trust-bar { background: rgba(205, 225, 216, .05); border-color: rgba(205, 225, 216, .14); }
 html[data-theme="dark"] .trust-bar > div { border-color: rgba(205, 225, 216, .12); }
 html[data-theme="dark"] .trust-bar strong,
@@ -813,7 +810,6 @@ html[data-theme="dark"] .sbc-seal-fallback { color: #dcece4; background: rgba(20
 html[data-theme="dark"] .sbc-seal-fallback i,
 html[data-theme="dark"] .footer-verification__label i { color: #6fd3ac; }
 html[data-theme="dark"] .button-dark-quiet { color: #dcece4; background: rgba(205, 225, 216, .07); border-color: rgba(205, 225, 216, .2); }
-html[data-theme="dark"] .browser-frame,
 html[data-theme="dark"] .showcase-image img { border-color: rgba(205, 225, 216, .2); }
 
 /* Authentication, registration, success, recovery and maintenance pages. */

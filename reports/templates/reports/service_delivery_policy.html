@@ -1,13 +1,13 @@
 {% extends "reports/legal_base.html" %}
 
 {% load i18n %}
-{% block title %}سياسة تقديم وتسليم الخدمة الرقمية | منصة توثيق{% endblock %}
+{% block title %}{% translate "سياسة تقديم وتسليم الخدمة الرقمية | منصة توثيق" %}{% endblock %}
 {% block seo_meta %}
 {% url 'reports:service_delivery_policy' as canonical_path %}
-{% include "reports/partials/public_seo.html" with seo_title="سياسة تقديم وتسليم الخدمة الرقمية | منصة توثيق" seo_description="سياسة تفعيل وتسليم خدمات منصة توثيق الرقمية، مدد التنفيذ، مسؤوليات العميل، والتعامل مع التأخير." seo_image_alt="سياسة تقديم الخدمة الرقمية في منصة توثيق" canonical_path=canonical_path social_type="article" include_schema=True schema_type="WebPage" modified_date="2026-08-02" %}
+{% include "reports/partials/public_seo.html" with seo_title=_("سياسة تقديم وتسليم الخدمة الرقمية | منصة توثيق") seo_description=_("سياسة تفعيل وتسليم خدمات منصة توثيق الرقمية، مدد التنفيذ، مسؤوليات العميل، والتعامل مع التأخير.") seo_image_alt=_("سياسة تقديم الخدمة الرقمية في منصة توثيق") canonical_path=canonical_path social_type="article" include_schema=True schema_type="WebPage" modified_date="2026-08-02" %}
 {% endblock %}
-{% block legal_title %}سياسة تقديم وتسليم الخدمة الرقمية{% endblock %}
-{% block legal_intro %}خدمات منصة توثيق رقمية بالكامل؛ لا توجد منتجات مادية أو رسوم شحن. يتم التسليم بتفعيل حساب المدرسة والباقة المختارة.{% endblock %}
+{% block legal_title %}{% translate "سياسة تقديم وتسليم الخدمة الرقمية" %}{% endblock %}
+{% block legal_intro %}{% translate "خدمات منصة توثيق رقمية بالكامل؛ لا توجد منتجات مادية أو رسوم شحن. يتم التسليم بتفعيل حساب المدرسة والباقة المختارة." %}{% endblock %}
 {% block delivery_current %}aria-current="page"{% endblock %}
 
 {% block legal_content %}
@@ -19,10 +19,10 @@
 <section class="legal-card">
   <h2>{% translate "مدد التفعيل" %}</h2>
   <ul>
-    <li><strong>{% translate "التجربة المجانية:" %}</strong> عادةً فور اكتمال التسجيل والتحقق الأساسي.</li>
-    <li><strong>{% translate "الاشتراك المدفوع:" %}</strong> فور اعتماد الدفع أو خلال يوم عمل واحد إذا تطلبت العملية مراجعة يدوية.</li>
-    <li><strong>{% translate "إضافة الأرشيف أو السعة:" %}</strong> خلال يوم عمل من اعتماد الطلب والدفع.</li>
-    <li><strong>{% translate "الإعداد أو المساعدة المجانية المشمولة:" %}</strong> بموعد يتفق عليه مع المدرسة، ولا يؤخر ذلك تفعيل وظائف الباقة.</li>
+    <li><strong>{% translate "التجربة المجانية:" %}</strong> {% translate "عادةً فور اكتمال التسجيل والتحقق الأساسي." %}</li>
+    <li><strong>{% translate "الاشتراك المدفوع:" %}</strong> {% translate "فور اعتماد الدفع أو خلال يوم عمل واحد إذا تطلبت العملية مراجعة يدوية." %}</li>
+    <li><strong>{% translate "إضافة الأرشيف أو السعة:" %}</strong> {% translate "خلال يوم عمل من اعتماد الطلب والدفع." %}</li>
+    <li><strong>{% translate "الإعداد أو المساعدة المجانية المشمولة:" %}</strong> {% translate "بموعد يتفق عليه مع المدرسة، ولا يؤخر ذلك تفعيل وظائف الباقة." %}</li>
   </ul>
 </section>
 

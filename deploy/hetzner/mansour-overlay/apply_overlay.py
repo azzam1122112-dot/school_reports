@@ -33,16 +33,16 @@ MANSOUR_ASSISTANT_ENABLED = _env_bool(
     bool(OPENAI_API_KEY),
 )
 MANSOUR_ASSISTANT_MODEL = (
-    os.getenv("MANSOUR_ASSISTANT_MODEL") or "gpt-5-nano"
+    os.getenv("MANSOUR_ASSISTANT_MODEL") or "gpt-5-mini"
 ).strip()
 
 try:
     MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS = max(
         100,
-        min(600, int(os.getenv("MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS", "350"))),
+        min(900, int(os.getenv("MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS", "700"))),
     )
 except (TypeError, ValueError):
-    MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS = 350
+    MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS = 700
 
 try:
     MANSOUR_ASSISTANT_TIMEOUT_SECONDS = max(

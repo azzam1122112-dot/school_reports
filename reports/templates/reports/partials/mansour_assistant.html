@@ -1,4 +1,4 @@
-{% load static %}
+{% load i18n static %}
 <aside
   class="mansour-assistant"
   id="mansourAssistant"
@@ -7,7 +7,7 @@
   data-internal="{% if mansour_internal %}true{% else %}false{% endif %}"
   data-role-label="{% if mansour_internal %}{{ USER_ROLE_LABEL|default:'' }}{% endif %}"
   data-chat-scope="{{ MANSOUR_CHAT_SCOPE|default:'anon' }}"
-  aria-label="المساعد الذكي منصور"
+  aria-label="{% translate "المساعد الذكي منصور" %}"
 >
   <button
     class="mansour-launcher"
@@ -15,12 +15,12 @@
     type="button"
     aria-controls="mansourPanel"
     aria-expanded="false"
-    aria-label="فتح المساعد الذكي منصور"
-    title="اسأل منصور"
+    aria-label="{% translate "فتح المساعد الذكي منصور" %}"
+    title="{% translate "اسأل منصور" %}"
   >
     <span class="mansour-launcher-copy">
-      <strong>اسأل منصور</strong>
-      <small>متاح الآن</small>
+      <strong>{% translate "اسأل منصور" %}</strong>
+      <small>{% translate "متاح الآن" %}</small>
     </span>
     <span class="mansour-launcher-avatar" aria-hidden="true">
       <img src="{% static 'img/mansour-avatar-v2.png' %}?v=20260731.1" alt="">
@@ -40,30 +40,30 @@
         <img src="{% static 'img/mansour-avatar-v2.png' %}?v=20260731.1" alt="">
       </span>
       <div class="mansour-identity">
-        <strong id="mansourTitle">منصور</strong>
-        <small><span class="mansour-status-dot" aria-hidden="true"></span>مساعد منصة توثيق الذكي · جاهز لمساعدتك</small>
+        <strong id="mansourTitle">{% translate "منصور" %}</strong>
+        <small><span class="mansour-status-dot" aria-hidden="true"></span>{% translate "مساعد منصة توثيق الذكي · جاهز لمساعدتك" %}</small>
       </div>
-      <button class="mansour-reset" id="mansourReset" type="button" aria-label="بدء محادثة جديدة" title="محادثة جديدة">
+      <button class="mansour-reset" id="mansourReset" type="button" aria-label="{% translate "بدء محادثة جديدة" %}" title="{% translate "محادثة جديدة" %}">
         <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
       </button>
-      <button class="mansour-close" id="mansourClose" type="button" aria-label="إغلاق المساعد">
+      <button class="mansour-close" id="mansourClose" type="button" aria-label="{% translate "إغلاق المساعد" %}">
         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
       </button>
     </header>
 
     <div class="mansour-conversation" id="mansourConversation" aria-live="polite" aria-relevant="additions">
-      <p class="mansour-message assistant">{% if mansour_internal %}أهلًا بك، أنا منصور. أشرح لك الصفحة الحالية وأساعدك في إنجاز عملك داخل منصة توثيق وفق صلاحياتك.{% else %}أهلًا بك، أنا منصور. أساعدك في فهم منصة توثيق، اختيار البداية المناسبة، وحل المشكلات بخطوات واضحة وآمنة.{% endif %}</p>
+      <p class="mansour-message assistant">{% if mansour_internal %}أهلًا بك، أنا منصور. أشرح لك الصفحة الحالية وأساعدك في إنجاز عملك داخل منصة توثيق وفق صلاحياتك.{% else %}{% translate "أهلًا بك، أنا منصور. أساعدك في فهم منصة توثيق، اختيار البداية المناسبة، وحل المشكلات بخطوات واضحة وآمنة." %}{% endif %}</p>
     </div>
 
-    <div class="mansour-quick-actions" id="mansourQuickActions" aria-label="أسئلة مقترحة">
+    <div class="mansour-quick-actions" id="mansourQuickActions" aria-label="{% translate "أسئلة مقترحة" %}">
       {% if mansour_internal %}
-        <button class="mansour-quick-action" type="button" data-question="اشرح لي هذه الصفحة">اشرح هذه الصفحة</button>
-        <button class="mansour-quick-action" type="button" data-question="كيف أنجز عملي هنا؟">كيف أنجز عملي هنا؟</button>
-        <button class="mansour-quick-action" type="button" data-question="ما الخطوة التالية المناسبة لدوري؟">ما الخطوة التالية؟</button>
+        <button class="mansour-quick-action" type="button" data-question="اشرح لي هذه الصفحة">{% translate "اشرح هذه الصفحة" %}</button>
+        <button class="mansour-quick-action" type="button" data-question="كيف أنجز عملي هنا؟">{% translate "كيف أنجز عملي هنا؟" %}</button>
+        <button class="mansour-quick-action" type="button" data-question="ما الخطوة التالية المناسبة لدوري؟">{% translate "ما الخطوة التالية؟" %}</button>
       {% else %}
-        <button class="mansour-quick-action" type="button" data-question="ما هي منصة توثيق؟">ما هي منصة توثيق؟</button>
-        <button class="mansour-quick-action" type="button" data-question="كيف أبدأ التجربة؟">كيف أبدأ التجربة؟</button>
-        <button class="mansour-quick-action" type="button" data-question="ما الباقات المتاحة؟">ما الباقات المتاحة؟</button>
+        <button class="mansour-quick-action" type="button" data-question="{% translate "ما هي منصة توثيق؟" %}">{% translate "ما هي منصة توثيق؟" %}</button>
+        <button class="mansour-quick-action" type="button" data-question="{% translate "كيف أبدأ التجربة؟" %}">{% translate "كيف أبدأ التجربة؟" %}</button>
+        <button class="mansour-quick-action" type="button" data-question="{% translate "ما الباقات المتاحة؟" %}">{% translate "ما الباقات المتاحة؟" %}</button>
       {% endif %}
     </div>
 
@@ -74,19 +74,19 @@
           rows="1"
           maxlength="500"
           autocomplete="off"
-          placeholder="اكتب سؤالك هنا…"
-          aria-label="اكتب استفسارك لمنصور"
+          placeholder="{% translate "اكتب سؤالك هنا…" %}"
+          aria-label="{% translate "اكتب استفسارك لمنصور" %}"
           aria-describedby="mansourComposerHint"
         ></textarea>
-        <button class="mansour-send" id="mansourSend" type="submit" aria-label="إرسال الاستفسار">
+        <button class="mansour-send" id="mansourSend" type="submit" aria-label="{% translate "إرسال الاستفسار" %}">
           <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
         </button>
       </div>
       <div class="mansour-composer-meta" id="mansourComposerHint">
-        <span>Enter للإرسال · Shift+Enter لسطر جديد</span>
+        <span>{% translate "Enter للإرسال · Shift+Enter لسطر جديد" %}</span>
         <span id="mansourCharCount">0/500</span>
       </div>
-      <p class="mansour-disclaimer"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> مساعد آلي؛ لا ترسل بيانات شخصية أو مدرسية حساسة.</p>
+      <p class="mansour-disclaimer"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> {% translate "مساعد آلي؛ لا ترسل بيانات شخصية أو مدرسية حساسة." %}</p>
     </form>
   </section>
 </aside>

@@ -132,6 +132,21 @@
     });
   });
 
+  // بطاقات الأدوار في الهيرو تنقل الزائر إلى قسم الأدوار مفتوحًا على دوره،
+  // لا إلى أول تبويب. الوسم منفصل عن ``data-role-target`` كي لا تدخل البطاقة
+  // في مجموعة التبويبات ولا في تنقّل الأسهم داخلها.
+  Array.prototype.forEach.call(
+    document.querySelectorAll("[data-role-jump]"),
+    function (link) {
+      link.addEventListener("click", function () {
+        var tab = document.querySelector(
+          '[data-role-target="' + link.getAttribute("data-role-jump") + '"]'
+        );
+        if (tab) activateRole(tab, false);
+      });
+    }
+  );
+
   if (document.body.classList.contains("landing-page")) {
     document.body.classList.add("landing-assistant-delayed");
     var syncLandingScrollState = function () {

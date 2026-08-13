@@ -1,4 +1,4 @@
-{% load static maintenance_text %}
+{% load i18n static maintenance_text %}
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -14,7 +14,7 @@
   بصرياً، فإن غاب السكربت بقيت الترويسة تعمل بصمت.
   {% endcomment %}
   <meta http-equiv="refresh" content="60">
-  <title>الموقع تحت الصيانة والتطوير</title>
+  <title>{% translate "الموقع تحت الصيانة والتطوير" %}</title>
   {% include "reports/partials/pwa_install_head.html" %}
   <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
@@ -416,7 +416,7 @@
       .retry-btn, .countdown { transition: none !important; }
     }
   </style>
-  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260808.1">
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260813.1">
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 <body>
@@ -424,15 +424,15 @@
     <section class="main-panel">
       <div class="brand-row">
         <div class="brand-copy">
-          <p class="brand-name">منصة توثيق<small>توثيق أدق، متابعة أوضح</small></p>
-          <span class="status-pill"><span class="status-dot" aria-hidden="true"></span> صيانة وتطوير</span>
+          <p class="brand-name">{% translate "منصة توثيق" %}<small>{% translate "توثيق أدق، متابعة أوضح" %}</small></p>
+          <span class="status-pill"><span class="status-dot" aria-hidden="true"></span> {% translate "صيانة وتطوير" %}</span>
         </div>
-        <img class="logo" src="{% static 'img/brand-mark.svg' %}" alt="شعار منصة توثيق">
+        <img class="logo" src="{% static 'img/brand-mark.svg' %}" alt="{% translate "شعار منصة توثيق" %}">
       </div>
 
-      <h1 id="maintenance-title">الموقع تحت الصيانة والتطوير</h1>
+      <h1 id="maintenance-title">{% translate "الموقع تحت الصيانة والتطوير" %}</h1>
       <p class="lead">
-        نعمل حالياً على تحسين المنصة ورفع جودة التجربة. سيتم إتاحة الموقع مرة أخرى فور انتهاء أعمال الصيانة.
+        {% translate "نعمل حالياً على تحسين المنصة ورفع جودة التجربة. سيتم إتاحة الموقع مرة أخرى فور انتهاء أعمال الصيانة." %}
       </p>
 
       {% if maintenance_message %}
@@ -440,11 +440,11 @@
       {% endif %}
     </section>
 
-    <aside class="status-panel" aria-label="حالة العمل">
+    <aside class="status-panel" aria-label="{% translate "حالة العمل" %}">
       <div class="countdown" data-countdown>
         <span class="countdown-value" dir="ltr" data-countdown-value>1:00</span>
       </div>
-      <p class="countdown-label">حتى المحاولة التالية</p>
+      <p class="countdown-label">{% translate "حتى المحاولة التالية" %}</p>
 
       <div class="tool-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none">
@@ -454,27 +454,28 @@
       </div>
 
       <div class="side-block">
-        <p class="side-title">ما الذي يحدث الآن؟</p>
+        <p class="side-title">{% translate "ما الذي يحدث الآن؟" %}</p>
         <ul class="steps">
-          <li><span class="step-mark">١</span><span>تحسينات على الأداء وتجربة الاستخدام.</span></li>
-          <li><span class="step-mark">٢</span><span>فحص الاستقرار على الجوال والتابلت.</span></li>
-          <li><span class="step-mark">٣</span><span>إعادة فتح المنصة مباشرة بعد انتهاء العمل.</span></li>
+          <li><span class="step-mark">{% translate "١" %}</span><span>{% translate "تحسينات على الأداء وتجربة الاستخدام." %}</span></li>
+          <li><span class="step-mark">{% translate "٢" %}</span><span>{% translate "فحص الاستقرار على الجوال والتابلت." %}</span></li>
+          <li><span class="step-mark">{% translate "٣" %}</span><span>{% translate "إعادة فتح المنصة مباشرة بعد انتهاء العمل." %}</span></li>
         </ul>
       </div>
 
-      <p class="refresh-note">ستعود المنصة للعمل تلقائياً فور انتهاء الصيانة — تُحدَّث هذه الصفحة كل دقيقة من تلقاء نفسها.</p>
+      <p class="refresh-note">{% translate "ستعود المنصة للعمل تلقائياً فور انتهاء الصيانة — تُحدَّث هذه الصفحة كل دقيقة من تلقاء نفسها." %}</p>
 
-      <a class="retry-btn" href="/" aria-label="إعادة المحاولة الآن">
+      <a class="retry-btn" href="/" aria-label="{% translate "إعادة المحاولة الآن" %}">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        المحاولة الآن
+        {% translate "المحاولة الآن" %}
       </a>
-      <p class="auto-note">إذا انتهت الصيانة، سينقلك هذا الزر مباشرة إلى المنصة.</p>
+      <p class="auto-note">{% translate "إذا انتهت الصيانة، سينقلك هذا الزر مباشرة إلى المنصة." %}</p>
     </aside>
   </main>
   {% include "reports/partials/pwa_install.html" %}
   <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    const MAINTENANCE_TEXT = { now: '{% translate "الآن" as t %}{{ t|escapejs }}' };
     /* الحلقة تعرض ما تفعله ترويسة ``refresh`` أصلاً — لا تتحكم فيه. غيابُ
        السكربت يترك الصفحة تُحدَّث بلا عدّاد، لا بلا تحديث. */
     (function () {
@@ -492,7 +493,7 @@
         value.textContent = mins + ":" + (secs < 10 ? "0" : "") + secs;
         ring.style.setProperty("--progress", String((left / total) * 100));
         if (left <= 0) {
-          value.textContent = "الآن";
+          value.textContent = MAINTENANCE_TEXT.now;
           window.clearInterval(timer);
           return;
         }

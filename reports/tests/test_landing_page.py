@@ -130,7 +130,7 @@ class LandingPageTests(TestCase):
         self.assertNotIn("هوية مقدم الخدمة", html)
         self.assertNotIn('href="#business"', html)
         self.assertIn('<span>دخول</span>', html)
-        self.assertIn('src="/static/js/landing.js?v=20260810.1"', html)
+        self.assertIn('src="/static/js/landing.js?v=20260813.1"', html)
         self.assertNotIn("var periodButtons", html)
         self.assertIn("no-store", response.headers["Cache-Control"])
         self.assertEqual(response.headers["CDN-Cache-Control"], "no-store")

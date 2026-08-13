@@ -5,6 +5,9 @@ const CORE_ASSETS = [
   // No query string: the manifest is looked up by path, so a versioned key
   // here would never be matched by the request that needs it offline.
   "/static/manifest.json",
+  // The English manifest is a separate file, so the language a visitor chose
+  // must still resolve to a cached manifest when the network is gone.
+  "/static/manifest.en.json",
   "/static/img/pwa/icon-192.png",
   "/static/img/pwa/icon-512.png",
   "/static/img/pwa/icon-maskable-192.png",
@@ -46,7 +49,8 @@ function isStaticRequest(request) {
 }
 
 function isManifestRequest(request) {
-  return new URL(request.url).pathname === "/static/manifest.json";
+  const path = new URL(request.url).pathname;
+  return path === "/static/manifest.json" || path === "/static/manifest.en.json";
 }
 
 function isApiRequest(request) {

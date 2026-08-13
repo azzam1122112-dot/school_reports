@@ -1,13 +1,13 @@
 {% extends "reports/legal_base.html" %}
 
 {% load i18n %}
-{% block title %}سياسة الشكاوى والمقترحات | منصة توثيق{% endblock %}
+{% block title %}{% translate "سياسة الشكاوى والمقترحات | منصة توثيق" %}{% endblock %}
 {% block seo_meta %}
 {% url 'reports:complaints_policy' as canonical_path %}
-{% include "reports/partials/public_seo.html" with seo_title="سياسة الشكاوى والمقترحات | منصة توثيق" seo_description="قنوات تقديم الشكاوى والمقترحات لمنصة توثيق، مدد الرد والمعالجة، ونموذج شكوى إلكتروني مباشر." seo_image_alt="سياسة الشكاوى والمقترحات في منصة توثيق" canonical_path=canonical_path social_type="article" include_schema=True schema_type="WebPage" modified_date="2026-08-02" %}
+{% include "reports/partials/public_seo.html" with seo_title=_("سياسة الشكاوى والمقترحات | منصة توثيق") seo_description=_("قنوات تقديم الشكاوى والمقترحات لمنصة توثيق، مدد الرد والمعالجة، ونموذج شكوى إلكتروني مباشر.") seo_image_alt=_("سياسة الشكاوى والمقترحات في منصة توثيق") canonical_path=canonical_path social_type="article" include_schema=True schema_type="WebPage" modified_date="2026-08-02" %}
 {% endblock %}
-{% block legal_title %}سياسة الشكاوى والمقترحات{% endblock %}
-{% block legal_intro %}نستقبل الشكاوى بالعربية عبر نموذج الموقع، ونمنح كل شكوى إلكترونية رقم متابعة واضحًا.{% endblock %}
+{% block legal_title %}{% translate "سياسة الشكاوى والمقترحات" %}{% endblock %}
+{% block legal_intro %}{% translate "نستقبل الشكاوى بالعربية عبر نموذج الموقع، ونمنح كل شكوى إلكترونية رقم متابعة واضحًا." %}{% endblock %}
 {% block complaints_current %}aria-current="page"{% endblock %}
 
 {% block legal_content %}
@@ -21,7 +21,7 @@
 
 <section class="legal-card" id="complaint-form">
   <h2>{% translate "تقديم شكوى إلكترونية" %}</h2>
-  {% if submitted_reference %}<p class="legal-success">تم استلام الشكوى. رقم المتابعة: <span dir="ltr">{{ submitted_reference }}</span></p>{% endif %}
+  {% if submitted_reference %}<p class="legal-success">{% translate "تم استلام الشكوى. رقم المتابعة:" %} <span dir="ltr">{{ submitted_reference }}</span></p>{% endif %}
   <form method="post" class="legal-form" novalidate>
     {% csrf_token %}
     <div class="legal-honeypot">{{ complaint_form.website.label_tag }}{{ complaint_form.website }}</div>
