@@ -1,0 +1,5 @@
+{% extends "reports/emails/branded_base.html" %}
+{% block lead %}<div style="font-size:14px;line-height:1.95;color:#476257;">{{ email_intro }}</div>{% endblock %}
+{% block content %}
+<tr><td style="padding:18px 34px 8px;"><div style="padding:22px 24px;background:#f8faf9;border-right:4px solid #b9975b;font-size:15px;line-height:2;color:#29483b;text-align:right;">{{ body_html|safe }}</div></td></tr>
+{% endblock %}

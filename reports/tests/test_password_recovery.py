@@ -60,7 +60,7 @@ class PasswordRecoveryTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(
             mail.outbox[0].subject,
-            "🔐 استعادة كلمة المرور - منصة توثيق",
+            "استعادة كلمة المرور | منصة توثيق",
         )
         self.assertIn(
             reverse(
@@ -86,7 +86,9 @@ class PasswordRecoveryTests(TestCase):
         self.assertEqual(content_type, "text/html")
         self.assertIn("منصة توثيق", html)
         self.assertIn("تعيين كلمة مرور جديدة", html)
-        self.assertIn("#006c35", html)  # هوية المنصة اللونية
+        self.assertIn("#075c36", html)  # هوية المنصة اللونية
+        self.assertIn("توثيق أدق، متابعة أوضح", html)
+        self.assertIn("مستخدم الاستعادة", html)
         self.assertIn("/static/img/logo1.png", html)
         self.assertIn("support@tawtheeq-ksa.com", html)
         # The button and the copyable fallback both carry the same link.

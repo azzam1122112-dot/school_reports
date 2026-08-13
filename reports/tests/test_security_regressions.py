@@ -207,3 +207,28 @@ class SecurityRegressionTests(TestCase):
         sent = send_password_change_email_task(self.user.id)
 
         self.assertIs(sent, False)
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        PASSWORD_CHANGE_EMAIL_ENABLED=True,
+        DEFAULT_FROM_EMAIL="notifications@tawtheeq-ksa.com",
+    )
+    def test_password_change_email_uses_branded_security_template(self):
+        from django.core import mail
+
+        self.user.email = "teacher@example.com"
+        self.user.save(update_fields=["email"])
+
+        sent = send_password_change_email_task(self.user.id)
+
+        self.assertIs(sent, True)
+        self.assertEqual(len(mail.outbox), 1)
+        message = mail.outbox[0]
+        self.assertIn("تم تغيير كلمة المرور", message.subject)
+        self.assertIn(self.user.name, message.body)
+        self.assertEqual(len(message.alternatives), 1)
+        html, content_type = message.alternatives[0]
+        self.assertEqual(content_type, "text/html")
+        self.assertIn("أمان الحساب", html)
+        self.assertIn("وقت التغيير", html)
+        self.assertIn("لم تكن أنت؟", html)

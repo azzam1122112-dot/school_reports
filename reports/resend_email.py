@@ -21,6 +21,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.html import strip_tags
 
+from .email_branding import render_branded_email
 from .models import (
     PlatformEmail,
     PlatformEmailAttachment,
@@ -143,17 +144,18 @@ def _snippet(text: str, html: str = "") -> str:
     return re.sub(r"\s+", " ", source).strip()[:320]
 
 
-def _email_html(body: str) -> str:
+def _email_html(body: str, *, subject: str = "", support_email: str = "") -> str:
     safe_body = "<br>".join(escape(body).splitlines())
-    return f"""<!doctype html>
-<html lang="ar" dir="rtl"><head><meta charset="utf-8"></head>
-<body style="margin:0;background:#f4f7f5;font-family:Arial,Tahoma,sans-serif;color:#15241c">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f7f5;padding:32px 12px"><tr><td align="center">
-<table role="presentation" width="620" cellspacing="0" cellpadding="0" style="max-width:620px;width:100%;background:#fff;border:1px solid #dce5df">
-<tr><td style="background:#006c35;color:#fff;padding:20px 26px;font-size:20px;font-weight:700">منصة توثيق</td></tr>
-<tr><td style="padding:30px 26px;font-size:16px;line-height:1.9;text-align:right">{safe_body}</td></tr>
-<tr><td style="border-top:1px solid #e4e9e6;padding:16px 26px;color:#66736c;font-size:12px;text-align:right">رسالة رسمية من منصة توثيق</td></tr>
-</table></td></tr></table></body></html>"""
+    title = subject.strip() or "رسالة من منصة توثيق"
+    return render_branded_email(
+        "message.html",
+        email_title=title,
+        email_preheader=_snippet(body),
+        email_intro="رسالة موجهة إليك من مركز الاتصال الرسمي في منصة توثيق.",
+        body_html=safe_body,
+        support_email=support_email,
+        is_automated=False,
+    )
 
 
 def send_platform_email(
@@ -188,7 +190,11 @@ def send_platform_email(
         reply_to_emails=[config.reply_to_email],
         subject=subject.strip() or "(بدون موضوع)",
         text_body=body,
-        html_body=_email_html(body),
+        html_body=_email_html(
+            body,
+            subject=subject,
+            support_email=config.reply_to_email,
+        ),
         snippet=_snippet(body),
         created_by=created_by,
         last_event_at=now,

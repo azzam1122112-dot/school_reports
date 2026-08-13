@@ -129,6 +129,30 @@ class PlatformEmailTests(TestCase):
         sent_payload = api_request.call_args.kwargs["payload"]
         self.assertEqual(sent_payload["from"], f"{self.config.sender_name} <{self.config.sender_email}>")
         self.assertIn("منصة توثيق", sent_payload["html"])
+        self.assertIn("رسالة تشغيلية", sent_payload["html"])
+        self.assertIn("مركز الاتصال الرسمي", sent_payload["html"])
+        self.assertIn(self.config.reply_to_email, sent_payload["html"])
+        self.assertNotIn("<script", sent_payload["html"])
+
+    @patch("reports.resend_email._api_request")
+    def test_compose_escapes_untrusted_body_inside_branded_template(self, api_request):
+        api_request.return_value = {"id": "resend_safe_html_001"}
+        self.client.force_login(self.admin)
+
+        self.client.post(
+            reverse("reports:platform_email_compose"),
+            {
+                "to": "recipient@example.com",
+                "cc": "",
+                "bcc": "",
+                "subject": "تنبيه مهم",
+                "body": '<script>alert("x")</script>\nتم الاستلام.',
+            },
+        )
+
+        html = api_request.call_args.kwargs["payload"]["html"]
+        self.assertNotIn("<script", html)
+        self.assertIn("&lt;script&gt;", html)
 
     @patch("reports.resend_email._api_request")
     def test_compose_validates_and_sends_attachment(self, api_request):

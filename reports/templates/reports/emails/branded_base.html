@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>{{ platform_name }} | {% if email_title %}{{ email_title }}{% elif expiry_text %}تعيين كلمة مرور جديدة{% else %}رسالة رسمية{% endif %}</title>
+</head>
+<body style="margin:0;padding:0;background:#edf2ef;color:#17372b;font-family:Tahoma,Arial,sans-serif;direction:rtl;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">{% if email_preheader %}{{ email_preheader }}{% elif expiry_text %}رابط استعادة حسابك صالح {{ expiry_text }} فقط.{% else %}رسالة رسمية من {{ platform_name }}.{% endif %}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#edf2ef;">
+    <tr>
+      <td align="center" style="padding:30px 12px;">
+        <table role="presentation" width="660" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:660px;background:#ffffff;border:1px solid #d8e4dc;border-radius:8px;overflow:hidden;box-shadow:0 18px 48px rgba(18,61,44,.12);">
+          <tr>
+            <td style="height:6px;background:#b9975b;font-size:0;line-height:0;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="padding:26px 32px;background:#075c36;text-align:right;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td valign="middle" style="text-align:right;">
+                    <div style="font-size:12px;line-height:1.7;color:#d7eadf;">{% if email_eyebrow %}{{ email_eyebrow }}{% elif expiry_text %}أمان الحساب{% else %}مركز الاتصال الرسمي{% endif %}</div>
+                    <div style="font-size:25px;line-height:1.5;font-weight:800;color:#ffffff;">{{ platform_name }}</div>
+                    <div style="margin-top:2px;font-size:11px;line-height:1.7;color:#e5c989;">توثيق أدق، متابعة أوضح</div>
+                  </td>
+                  <td width="82" valign="middle" style="text-align:left;">
+                    {% if logo_url %}<img src="{{ logo_url }}" width="66" alt="{{ platform_name }}" style="display:block;width:66px;max-width:66px;height:auto;margin-right:auto;padding:6px;background:#ffffff;border:1px solid #d9c28c;border-radius:6px;">{% else %}<div style="display:inline-block;width:54px;height:54px;line-height:54px;text-align:center;background:#ffffff;color:#075c36;border:1px solid #d9c28c;border-radius:6px;font-size:25px;font-weight:800;">ت</div>{% endif %}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:34px 34px 8px;text-align:right;">
+              {% if recipient_name %}<div style="margin-bottom:8px;font-size:14px;line-height:1.8;color:#61786d;">مرحبًا {{ recipient_name }}،</div>{% elif user.name %}<div style="margin-bottom:8px;font-size:14px;line-height:1.8;color:#61786d;">مرحبًا {{ user.name }}،</div>{% else %}<div style="margin-bottom:8px;font-size:14px;line-height:1.8;color:#61786d;">مرحبًا بك،</div>{% endif %}
+              <div style="font-size:12px;line-height:1.8;font-weight:800;color:{% if email_tone == 'danger' or expiry_text %}#a33a32{% elif email_tone == 'warning' %}#967126{% elif email_tone == 'success' %}#087044{% else %}#8b6a2c{% endif %};">{% if email_eyebrow %}{{ email_eyebrow }}{% elif expiry_text %}أمان الحساب{% else %}مركز الاتصال الرسمي{% endif %}</div>
+              <h1 style="margin:4px 0 12px;font-size:25px;line-height:1.55;color:#17372b;font-weight:800;letter-spacing:0;">{% if email_title %}{{ email_title }}{% elif expiry_text %}تعيين كلمة مرور جديدة{% else %}رسالة من {{ platform_name }}{% endif %}</h1>
+              {% block lead %}{% endblock %}
+            </td>
+          </tr>
+          {% block content %}{% endblock %}
+          {% if meta_items %}
+          <tr>
+            <td style="padding:18px 34px 4px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f5f8f6;border:1px solid #dce7e0;border-radius:6px;">
+                {% for item in meta_items %}<tr><td style="padding:{% if forloop.first %}15px 18px 9px{% elif forloop.last %}9px 18px 15px{% else %}9px 18px{% endif %};font-size:13px;line-height:1.75;color:#566f63;{% if not forloop.last %}border-bottom:1px solid #e3ebe6;{% endif %}"><span style="font-weight:800;color:#17372b;">{{ item.label }}:</span> {{ item.value }}</td></tr>{% endfor %}
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+          {% if action_url and action_label %}
+          <tr>
+            <td align="center" style="padding:24px 34px 8px;">
+              <a href="{{ action_url }}" style="display:inline-block;min-width:190px;padding:14px 28px;background:#075c36;color:#ffffff;text-decoration:none;text-align:center;font-size:15px;line-height:1.5;font-weight:800;border-radius:5px;border-bottom:3px solid #03472a;">{{ action_label }}</a>
+            </td>
+          </tr>
+          {% endif %}
+          {% if notice_title or notice_text %}
+          <tr>
+            <td style="padding:18px 34px 4px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:{% if email_tone == 'danger' %}#fff4f2{% elif email_tone == 'warning' %}#fff9ec{% else %}#f1f8f4{% endif %};border:1px solid {% if email_tone == 'danger' %}#edcbc6{% elif email_tone == 'warning' %}#ead9ad{% else %}#cee3d6{% endif %};border-radius:6px;">
+                <tr><td style="padding:14px 18px;text-align:right;font-size:13px;line-height:1.9;color:#586b61;">{% if notice_title %}<span style="font-weight:800;color:#17372b;">{{ notice_title }}</span>{% endif %}{% if notice_title and notice_text %}<br>{% endif %}{{ notice_text }}</td></tr>
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+          {% block after_content %}{% endblock %}
+          <tr>
+            <td style="padding:24px 34px 30px;text-align:right;">
+              <div style="padding-top:18px;border-top:1px solid #e1eae4;font-size:12px;line-height:1.9;color:#687d73;">
+                {% if is_automated or expiry_text %}هذه رسالة آلية موثوقة من {{ platform_name }}.{% else %}أُرسلت هذه الرسالة من مركز الاتصال الرسمي في {{ platform_name }}.{% endif %}
+                {% if support_email %}<br>للدعم: <a href="mailto:{{ support_email }}" dir="ltr" style="color:#075c36;text-decoration:underline;">{{ support_email }}</a>{% endif %}
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 28px;background:#f5f8f6;border-top:1px solid #dfe9e3;text-align:center;font-size:11px;line-height:1.8;color:#71847a;">
+              {{ platform_name }} · منصة الإدارة والتوثيق المدرسي<br>
+              <span style="color:#9a762f;">جميع الحقوق محفوظة</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
