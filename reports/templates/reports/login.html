@@ -1,15 +1,15 @@
-{% load i18n static %}
+{% load static %}
 <!doctype html>
-<html {% include "reports/partials/html_lang.html" %}>
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#eafaf3">
   <meta name="color-scheme" content="light dark">
   {% include "reports/partials/theme_bootstrap.html" %}
-  <meta name="description" content="{% if admin_login %}{% translate "دخول مدير النظام لمنصة توثيق" %}{% else %}{% translate "تسجيل الدخول لمنصة توثيق" %}{% endif %}">
+  <meta name="description" content="{% if admin_login %}دخول مدير النظام لمنصة توثيق{% else %}تسجيل الدخول لمنصة توثيق{% endif %}">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>{% if admin_login %}{% translate "دخول مدير النظام" %}{% else %}{% translate "تسجيل الدخول" %}{% endif %} | {% translate "منصة توثيق" %}</title>
+  <title>{% if admin_login %}دخول مدير النظام{% else %}تسجيل الدخول{% endif %} | منصة توثيق</title>
   {% include "reports/partials/pwa_install_head.html" %}
 
   <!-- Typography & Icons -->
@@ -438,7 +438,6 @@
   {% include "reports/_identity.html" %}
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
-  <link rel="stylesheet" href="{% static 'css/language-switcher.css' %}?v=20260812.1">
 <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260813.1">
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
@@ -453,14 +452,14 @@
         <!-- Brand -->
         <div class="brand-area">
           <div class="logo-circle">
-            <img src="{% static 'img/brand-mark.svg' %}" alt="{% translate "منصة توثيق" %}" class="brand-logo-img">
+            <img src="{% static 'img/brand-mark.svg' %}" alt="منصة توثيق" class="brand-logo-img">
           </div>
-          <h1 class="brand-title">{% if admin_login %}{% translate "لوحة مدير النظام" %}{% else %}{% translate "منصة توثيق" %}{% endif %}</h1>
+          <h1 class="brand-title">{% if admin_login %}لوحة مدير النظام{% else %}منصة توثيق{% endif %}</h1>
           <div class="brand-sub">
             {% if admin_login %}
-              {% translate "دخول مخصص للسوبر آدمن وإدارة المنصة" %}
+              دخول مخصص للسوبر آدمن وإدارة المنصة
             {% else %}
-              {% translate "سجّل دخولك لمتابعة أعمالك" %}
+              سجّل دخولك لمتابعة أعمالك
             {% endif %}
           </div>
         </div>
@@ -483,7 +482,7 @@
           <div class="messages-area">
             <div class="msg error">
                 <i class="fa-solid fa-circle-xmark"></i>
-                <span>{% translate "اسم المستخدم أو كلمة المرور غير صحيحة." %}</span>
+                <span>اسم المستخدم أو كلمة المرور غير صحيحة.</span>
             </div>
           </div>
         {% endif %}
@@ -495,7 +494,7 @@
           <input type="hidden" name="next" value="{{ next|default:'' }}">
 
           <div class="form-group">
-            <label for="identifier" class="form-label">{% translate "رقم الجوال" %} </label>
+            <label for="identifier" class="form-label">رقم الجوال </label>
             <div class="input-wrapper">
               {% comment %}
                 "webauthn" lets the browser surface a saved passkey inside the
@@ -508,32 +507,32 @@
           </div>
 
           <div class="form-group">
-            <label for="password" class="form-label">{% translate "كلمة المرور" %}</label>
+            <label for="password" class="form-label">كلمة المرور</label>
             <div class="input-wrapper">
               <input type="password" name="password" id="password" class="form-input" 
                      placeholder="••••••••" required autocomplete="current-password">
               <i class="fa-solid fa-lock input-icon"></i>
-              <button type="button" class="password-toggle" id="togglePass" title="{% translate "إظهار كلمة المرور" %}">
+              <button type="button" class="password-toggle" id="togglePass" title="إظهار كلمة المرور">
                 <i class="fa-regular fa-eye-slash"></i>
               </button>
             </div>
           </div>
 
           <button type="submit" class="btn-login" id="loginSubmitBtn">
-            {% if admin_login %}{% translate "دخول لوحة الإدارة" %}{% else %}{% translate "تسجيل الدخول" %}{% endif %} <i class="fa-solid fa-arrow-left"></i>
+            {% if admin_login %}دخول لوحة الإدارة{% else %}تسجيل الدخول{% endif %} <i class="fa-solid fa-arrow-left"></i>
           </button>
 
           {% comment %}
             Revealed by script only when the browser can actually do WebAuthn, so
             an unsupported device never sees a door it cannot open.
           {% endcomment %}
-          <div class="passkey-divider" id="passkeyDivider" hidden>{% translate "أو" %}</div>
+          <div class="passkey-divider" id="passkeyDivider" hidden>أو</div>
           <div class="passkey-panel" id="passkeyPanel" hidden>
             <div class="passkey-panel__head">
               <span class="passkey-panel__icon" aria-hidden="true"><i class="fa-solid fa-fingerprint"></i></span>
               <div>
-                <strong>{% translate "دخول بلا كلمة مرور" %}</strong>
-                <small>{% translate "أكّد هويتك ببصمتك أو Face ID أو قفل الشاشة — لا شيء يُكتب ولا شيء يُنسى." %}</small>
+                <strong>دخول بلا كلمة مرور</strong>
+                <small>أكّد هويتك ببصمتك أو Face ID أو قفل الشاشة — لا شيء يُكتب ولا شيء يُنسى.</small>
               </div>
             </div>
             <button
@@ -542,17 +541,17 @@
               id="passkeyLoginBtn"
               data-options-url="{% url 'reports:passkey_login_options' %}"
               data-verify-url="{% url 'reports:passkey_login_verify' %}"
-              data-label="{% if admin_login %}{% translate "دخول الإدارة بالبصمة" %}{% else %}{% translate "الدخول بالبصمة" %}{% endif %}"
+              data-label="{% if admin_login %}دخول الإدارة بالبصمة{% else %}الدخول بالبصمة{% endif %}"
             >
               <i class="fa-solid fa-fingerprint" aria-hidden="true"></i>
-              <span data-passkey-label>{% if admin_login %}{% translate "دخول الإدارة بالبصمة" %}{% else %}{% translate "الدخول بالبصمة" %}{% endif %}</span>
+              <span data-passkey-label>{% if admin_login %}دخول الإدارة بالبصمة{% else %}الدخول بالبصمة{% endif %}</span>
             </button>
             <div class="passkey-status" id="passkeyStatus" role="status" aria-live="polite"></div>
           </div>
 
           <div class="form-footer">
              <a href="{% url 'reports:password_reset' %}" class="link">
-               {% translate "هل نسيت كلمة المرور؟" %}
+               هل نسيت كلمة المرور؟
              </a>
           </div>
         </form>
@@ -561,28 +560,10 @@
   </div>
 
   <footer class="auth-footer">
-    {% include "reports/partials/language_switcher.html" %}
-    &copy; {% now "Y" as copyright_year %}{% blocktranslate %}{{ copyright_year }} جميع الحقوق محفوظة — منصة توثيق{% endblocktranslate %}
+    &copy; {% now "Y" %} جميع الحقوق محفوظة — منصة توثيق
   </footer>
 
   <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
-    /* نصوص السكربت تُترجم مثل بقية الصفحة: تُبنى مرة واحدة هنا، ويمرّ كل نص
-       عبر ``escapejs`` فلا تنقلب علامة اقتباس إنجليزية إلى كيان HTML. */
-    const LOGIN_TEXT = {
-      signingIn: '{% translate "جارٍ تسجيل الدخول..." as t %}{{ t|escapejs }}',
-      passkeyLabel: '{% translate "الدخول بالبصمة" as t %}{{ t|escapejs }}',
-      verifying: '{% translate "جارٍ التحقق..." as t %}{{ t|escapejs }}',
-      unsupported: '{% translate "هذا الجهاز أو المتصفح لا يدعم الدخول بمفتاح المرور. سجّل الدخول بكلمة المرور، أو حدّث Chrome أو Safari وفعّل قفل الشاشة." as t %}{{ t|escapejs }}',
-      badOrigin: '{% translate "تعذر التحقق من نطاق المنصة. افتح" as t %}{{ t|escapejs }}',
-      badOriginTail: '{% translate "مباشرة في Chrome أو Safari ثم أعد المحاولة." as t %}{{ t|escapejs }}',
-      scopedFailed: '{% translate "لم يكتمل الدخول. تأكد من أن هذا الجهاز هو الذي فعّلت عليه البصمة، ثم أعد المحاولة." as t %}{{ t|escapejs }}',
-      noPasskey: '{% translate "لم نجد مفتاح مرور محفوظًا على هذا الجهاز. اكتب رقم الجوال ثم أعد المحاولة، أو استخدم كلمة المرور." as t %}{{ t|escapejs }}',
-      passkeyFailed: '{% translate "تعذر تسجيل الدخول بالبصمة." as t %}{{ t|escapejs }}',
-      requestFailed: '{% translate "تعذر تنفيذ العملية." as t %}{{ t|escapejs }}',
-      verified: '{% translate "تم التحقق، جارٍ فتح حسابك..." as t %}{{ t|escapejs }}',
-      awaitingDevice: '{% translate "في انتظار تأكيد الجهاز..." as t %}{{ t|escapejs }}',
-      completePrompt: '{% translate "أكمل التحقق ببصمتك أو Face ID أو قفل الشاشة..." as t %}{{ t|escapejs }}',
-    };
     // Password Toggle
     const toggleBtn = document.getElementById('togglePass');
     const passInput = document.getElementById('password');
@@ -617,7 +598,7 @@
         submitted = true;
         btn.disabled = true;
         btn.setAttribute('aria-disabled', 'true');
-        btn.innerHTML = LOGIN_TEXT.signingIn + ' <i class="fa-solid fa-spinner fa-spin"></i>';
+        btn.innerHTML = 'جارٍ تسجيل الدخول... <i class="fa-solid fa-spinner fa-spin"></i>';
       });
     })();
 
@@ -635,7 +616,7 @@
       if (divider) divider.hidden = false;
       if (panel) panel.hidden = false;
 
-      const defaultLabel = passkeyBtn.dataset.label || LOGIN_TEXT.passkeyLabel;
+      const defaultLabel = passkeyBtn.dataset.label || 'الدخول بالبصمة';
       /* Chrome refuses a second ceremony while one is pending, and the silent
          autofill request stays pending for the whole page life — so the button
          must cancel it before opening its own dialog. */
@@ -652,23 +633,23 @@
         busy = isBusy;
         passkeyBtn.disabled = isBusy;
         passkeyBtn.setAttribute('aria-busy', isBusy ? 'true' : 'false');
-        if (labelSpan) labelSpan.textContent = isBusy ? (label || LOGIN_TEXT.verifying) : defaultLabel;
+        if (labelSpan) labelSpan.textContent = isBusy ? (label || 'جارٍ التحقق...') : defaultLabel;
       }
 
       function passkeyErrorMessage(error, scoped) {
         const site = window.location.origin;
         if (error && (error.name === 'NotSupportedError' || error.name === 'ConstraintError')) {
-          return LOGIN_TEXT.unsupported;
+          return 'هذا الجهاز أو المتصفح لا يدعم الدخول بمفتاح المرور. سجّل الدخول بكلمة المرور، أو حدّث Chrome أو Safari وفعّل قفل الشاشة.';
         }
         if (error && error.name === 'SecurityError') {
-          return LOGIN_TEXT.badOrigin + ' ' + site + ' ' + LOGIN_TEXT.badOriginTail;
+          return 'تعذر التحقق من نطاق المنصة. افتح ' + site + ' مباشرة في Chrome أو Safari ثم أعد المحاولة.';
         }
         if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
           return scoped
-            ? LOGIN_TEXT.scopedFailed
-            : LOGIN_TEXT.noPasskey;
+            ? 'لم يكتمل الدخول. تأكد من أن هذا الجهاز هو الذي فعّلت عليه البصمة، ثم أعد المحاولة.'
+            : 'لم نجد مفتاح مرور محفوظًا على هذا الجهاز. اكتب رقم الجوال ثم أعد المحاولة، أو استخدم كلمة المرور.';
         }
-        return error && error.message ? error.message : LOGIN_TEXT.passkeyFailed;
+        return error && error.message ? error.message : 'تعذر تسجيل الدخول بالبصمة.';
       }
 
       function b64ToBuffer(value) {
@@ -725,14 +706,14 @@
         });
         const data = await response.json();
         if (!response.ok || !data.ok) {
-          throw new Error(data.message || LOGIN_TEXT.requestFailed);
+          throw new Error(data.message || 'تعذر تنفيذ العملية.');
         }
         return data;
       }
 
       async function completeLogin(credential) {
         const verified = await postJSON(passkeyBtn.dataset.verifyUrl, credentialToJSON(credential));
-        showStatus(LOGIN_TEXT.verified, false);
+        showStatus('تم التحقق، جارٍ فتح حسابك...', false);
         window.location.href = verified.redirect || '/';
       }
 
@@ -750,8 +731,8 @@
         }
 
         try {
-          setBusy(true, LOGIN_TEXT.awaitingDevice);
-          showStatus(LOGIN_TEXT.completePrompt, false);
+          setBusy(true, 'في انتظار تأكيد الجهاز...');
+          showStatus('أكمل التحقق ببصمتك أو Face ID أو قفل الشاشة...', false);
           const options = await postJSON(passkeyBtn.dataset.optionsUrl, {
             identifier: identifierValue,
           });
@@ -788,7 +769,7 @@
             signal: controller.signal,
           });
           if (!credential) return;
-          setBusy(true, LOGIN_TEXT.verifying);
+          setBusy(true, 'جارٍ التحقق...');
           await completeLogin(credential);
         } catch (error) {
           // Aborting is the normal exit when the user chooses another method.

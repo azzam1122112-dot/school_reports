@@ -12,7 +12,7 @@ from django.contrib.auth import views as auth_views
 from django.db import IntegrityError
 from django.db.models import Q
 from django.urls import reverse_lazy
-from django.utils import timezone, translation
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
 
@@ -1775,19 +1775,6 @@ def landing_pricing_context() -> dict[str, Any]:
     return ctx
 
 
-def _landing_has_explicit_language_choice(request: HttpRequest) -> bool:
-    """A new visitor should see the Arabic sales page, not browser-driven mix.
-
-    The public layer supports English, but the catalogue is intentionally
-    limited to the public templates and some copy remains Arabic until translated.
-    Respect an explicit language switcher choice; otherwise keep the Saudi
-    landing page Arabic even when the browser's Accept-Language prefers English.
-    """
-    cookie_name = getattr(settings, "LANGUAGE_COOKIE_NAME", "django_language")
-    selected = str(request.COOKIES.get(cookie_name, "") or "").strip().lower()
-    return selected in {code for code, _label in getattr(settings, "LANGUAGES", [])}
-
-
 @never_cache
 @cache_control(no_cache=True, must_revalidate=True, no_store=True, max_age=0)
 @require_http_methods(["GET"])
@@ -1807,10 +1794,6 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         )
 
     capture_marketing_attribution(request)
-
-    if not _landing_has_explicit_language_choice(request):
-        translation.activate(settings.LANGUAGE_CODE)
-        request.LANGUAGE_CODE = settings.LANGUAGE_CODE
 
     ctx = dict(landing_pricing_context())
     # A gateway's brand mark is a claim that we accept it. Show each one only

@@ -1,49 +1,49 @@
 {% extends "base.html" %}
-{% load i18n static %}
+{% load static %}
 
-{% block title %}{% translate "الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق" %}{% endblock %}
+{% block title %}الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق{% endblock %}
 {% block robots %}index,follow,max-image-preview:large,max-snippet:-1{% endblock %}
 {% block seo_meta %}
 {% url 'reports:faq' as canonical_path %}
-{% include "reports/partials/public_seo.html" with seo_title=_("الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق") seo_description=_("إجابات عن منصة توثيق للتقارير المدرسية وملفات الإنجاز والطلبات والتعاميم، وآلية الاستخدام والطباعة والصلاحيات وحماية بيانات المدرسة.") seo_image_alt=_("الأسئلة الشائعة عن منصة توثيق") canonical_path=canonical_path %}
+{% include "reports/partials/public_seo.html" with seo_title="الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق" seo_description="إجابات عن منصة توثيق للتقارير المدرسية وملفات الإنجاز والطلبات والتعاميم، وآلية الاستخدام والطباعة والصلاحيات وحماية بيانات المدرسة." seo_image_alt="الأسئلة الشائعة عن منصة توثيق" canonical_path=canonical_path %}
 <script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
 {
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "@id": "{{ SITE_URL }}{% url 'reports:faq' %}#faq",
   "url": "{{ SITE_URL }}{% url 'reports:faq' %}",
-  "inLanguage": "{% if LANGUAGE_CODE == 'en' %}en{% else %}ar-SA{% endif %}",
+  "inLanguage": "ar-SA",
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "{% translate "ما هي منصة توثيق؟" as t %}{{ t|escapejs }}",
+      "name": "ما هي منصة توثيق؟",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "{% translate "منصة ويب عربية لإدارة التقارير المدرسية والطلبات الداخلية وملفات إنجاز المعلمين والتعاميم في مكان واحد." as t %}{{ t|escapejs }}"
+        "text": "منصة ويب عربية لإدارة التقارير المدرسية والطلبات الداخلية وملفات إنجاز المعلمين والتعاميم في مكان واحد."
       }
     },
     {
       "@type": "Question",
-      "name": "{% translate "هل المنصة مناسبة لمدرسة واحدة فقط؟" as t %}{{ t|escapejs }}",
+      "name": "هل المنصة مناسبة لمدرسة واحدة فقط؟",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "{% translate "لا، تدعم المنصة مدرسة واحدة أو عدة مدارس في الوقت نفسه، مع عزل واضح لبيانات وصلاحيات وكادر كل مدرسة." as t %}{{ t|escapejs }}"
+        "text": "لا، تدعم المنصة مدرسة واحدة أو عدة مدارس في الوقت نفسه، مع عزل واضح لبيانات وصلاحيات وكادر كل مدرسة."
       }
     },
     {
       "@type": "Question",
-      "name": "{% translate "هل يمكن استخراج ملف إنجاز PDF؟" as t %}{{ t|escapejs }}",
+      "name": "هل يمكن استخراج ملف إنجاز PDF؟",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "{% translate "نعم، تولد المنصة ملف PDF منظمًا لملف الإنجاز يتضمن البيانات والشواهد المرفقة وشعار المدرسة، ويكون جاهزًا للطباعة." as t %}{{ t|escapejs }}"
+        "text": "نعم، تولد المنصة ملف PDF منظمًا لملف الإنجاز يتضمن البيانات والشواهد المرفقة وشعار المدرسة، ويكون جاهزًا للطباعة."
       }
     },
     {
       "@type": "Question",
-      "name": "{% translate "هل المنصة آمنة وتحمي بيانات المدرسة؟" as t %}{{ t|escapejs }}",
+      "name": "هل المنصة آمنة وتحمي بيانات المدرسة؟",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "{% translate "تعزل المنصة بيانات كل مدرسة وتطبق صلاحيات حسب الدور وسجل تدقيق للعمليات الحساسة." as t %}{{ t|escapejs }}"
+        "text": "تعزل المنصة بيانات كل مدرسة وتطبق صلاحيات حسب الدور وسجل تدقيق للعمليات الحساسة."
       }
     }
   ]
@@ -255,266 +255,266 @@
 <div class="faq-page">
   
   <div class="faq-hero">
-    <h1><i class="fa-solid fa-circle-question"></i> {% translate "الأسئلة الشائعة" %}</h1>
-    <p>{% translate "إجابات لأكثر الأسئلة شيوعاً حول منصة توثيق" %}</p>
+    <h1><i class="fa-solid fa-circle-question"></i> الأسئلة الشائعة</h1>
+    <p>إجابات لأكثر الأسئلة شيوعاً حول منصة توثيق</p>
   </div>
 
   <div class="faq-search">
-    <label class="sr-only" for="faqSearch">{% translate "البحث في الأسئلة الشائعة" %}</label>
-    <input type="text" id="faqSearch" placeholder="{% translate "ابحث عن سؤالك هنا..." %}">
+    <label class="sr-only" for="faqSearch">البحث في الأسئلة الشائعة</label>
+    <input type="text" id="faqSearch" placeholder="ابحث عن سؤالك هنا...">
   </div>
 
   <div class="faq-category">
-    <h2><i class="fa-solid fa-circle-info"></i> {% translate "عام" %}</h2>
+    <h2><i class="fa-solid fa-circle-info"></i> عام</h2>
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "ما هي منصة توثيق؟" %}</h3>
+        <h3>ما هي منصة توثيق؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% blocktranslate with teachers=SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" teachers_dative=SCHOOL_TEACHERS_DATIVE_LABEL|default:"للمعلمين" %}منصة توثيق هي نظام ويب عربي متكامل لإدارة احتياجات المدرسة اليومية في مكان واحد. تشمل: توثيق التقارير المدرسية مع صور وطباعة احترافية، إدارة الطلبات الداخلية بين {{ teachers }} والأقسام، ملفات الإنجاز السنوية {{ teachers_dative }} مع توليد PDF، والإشعارات الموجهة مع تتبع القراءة والتوقيع.{% endblocktranslate %}</p>
+        <p>منصة توثيق هي نظام ويب عربي متكامل لإدارة احتياجات المدرسة اليومية في مكان واحد. تشمل: توثيق التقارير المدرسية مع صور وطباعة احترافية، إدارة الطلبات الداخلية بين {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} والأقسام، ملفات الإنجاز السنوية {{ SCHOOL_TEACHERS_DATIVE_LABEL|default:"للمعلمين" }} مع توليد PDF، والإشعارات الموجهة مع تتبع القراءة والتوقيع.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "هل المنصة مناسبة لمدرسة واحدة فقط؟" %}</h3>
+        <h3>هل المنصة مناسبة لمدرسة واحدة فقط؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% translate "لا، تدعم المنصة مدرسة واحدة أو عدة مدارس في نفس الوقت، مع عزل واضح للبيانات بين كل مدرسة. كل مدرسة لها بياناتها وصلاحياتها وكادرها التعليمي المستقل." %}</p>
+        <p>لا، تدعم المنصة مدرسة واحدة أو عدة مدارس في نفس الوقت، مع عزل واضح للبيانات بين كل مدرسة. كل مدرسة لها بياناتها وصلاحياتها وكادرها التعليمي المستقل.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% blocktranslate with teachers=SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" %}هل يوجد حد لعدد {{ teachers }}؟{% endblocktranslate %}</h3>
+        <h3>هل يوجد حد لعدد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% blocktranslate with teachers=SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" %}يتم تحديد عدد {{ teachers }} حسب باقة الاشتراك التي تختارها المدرسة. يمكنك التواصل معنا لمعرفة الباقة المناسبة لعدد {{ teachers }} في مدرستك.{% endblocktranslate %}</p>
+        <p>يتم تحديد عدد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} حسب باقة الاشتراك التي تختارها المدرسة. يمكنك التواصل معنا لمعرفة الباقة المناسبة لعدد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} في مدرستك.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "هل المنصة آمنة وتحمي بيانات المدرسة؟" %}</h3>
+        <h3>هل المنصة آمنة وتحمي بيانات المدرسة؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% translate "نعم، المنصة مبنية على أحدث معايير الأمان. تتضمن: تشفير البيانات، جلسة واحدة لكل مستخدم، تسجيل خروج تلقائي بعد الخمول، وسجل تدقيق كامل لجميع العمليات الحساسة." %}</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="faq-category">
-    <h2><i class="fa-solid fa-file-lines"></i> {% translate "التقارير" %}</h2>
-    
-    <div class="faq-item">
-      <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "كم صورة يمكنني إرفاقها في التقرير؟" %}</h3>
-        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
-      </div>
-      <div class="faq-answer">
-        <p>{% translate "يمكنك إرفاق حتى 4 صور في كل تقرير. ستظهر الصور في التقرير المطبوع بتنسيق احترافي." %}</p>
-      </div>
-    </div>
-
-    <div class="faq-item">
-      <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "هل يمكنني تعديل التقرير بعد حفظه؟" %}</h3>
-        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
-      </div>
-      <div class="faq-answer">
-        <p>{% translate "نعم، يمكنك تعديل تقاريرك في أي وقت من صفحة «تقاريري» بالضغط على أيقونة التعديل (القلم) بجانب التقرير." %}</p>
-      </div>
-    </div>
-
-    <div class="faq-item">
-      <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "كيف يمكنني طباعة التقرير؟" %}</h3>
-        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
-      </div>
-      <div class="faq-answer">
-        <p>{% translate "من صفحة «تقاريري»، اضغط على أيقونة الطباعة بجانب التقرير المراد طباعته. سيتم فتح صفحة طباعة احترافية تحتوي على شعار المدرسة والصور المرفقة، يمكنك الطباعة مباشرة أو حفظها كملف PDF." %}</p>
-      </div>
-    </div>
-
-    <div class="faq-item">
-      <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "هل يمكن تخصيص أنواع التقارير حسب احتياجات المدرسة؟" %}</h3>
-        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
-      </div>
-      <div class="faq-answer">
-        <p>{% blocktranslate with manager_dative=SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" %}نعم، يمكن {{ manager_dative }} إضافة أنواع التقارير وتخصيصها من لوحة الإدارة وربطها بالأقسام المناسبة.{% endblocktranslate %}</p>
+        <p>نعم، المنصة مبنية على أحدث معايير الأمان. تتضمن: تشفير البيانات، جلسة واحدة لكل مستخدم، تسجيل خروج تلقائي بعد الخمول، وسجل تدقيق كامل لجميع العمليات الحساسة.</p>
       </div>
     </div>
   </div>
 
   <div class="faq-category">
-    <h2><i class="fa-solid fa-ticket"></i> {% translate "الطلبات والتذاكر" %}</h2>
+    <h2><i class="fa-solid fa-file-lines"></i> التقارير</h2>
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "ما الفرق بين التقرير والطلب؟" %}</h3>
+        <h3>كم صورة يمكنني إرفاقها في التقرير؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% translate "التقرير هو توثيق لحدث أو نشاط قمت به. أما الطلب فهو طلب تحتاج فيه لإجراء من قسم معين (مثل طلب صيانة، طلب احتياج، أو استفسار)." %}</p>
+        <p>يمكنك إرفاق حتى 4 صور في كل تقرير. ستظهر الصور في التقرير المطبوع بتنسيق احترافي.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "كيف أتابع حالة طلبي؟" %}</h3>
+        <h3>هل يمكنني تعديل التقرير بعد حفظه؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% translate "يمكنك متابعة جميع طلباتك من صفحة «طلباتي». ستظهر لك حالة كل طلب (جديد، قيد المعالجة، مكتمل، مرفوض) مع أي ملاحظات أو ردود من الجهة المختصة." %}</p>
+        <p>نعم، يمكنك تعديل تقاريرك في أي وقت من صفحة «تقاريري» بالضغط على أيقونة التعديل (القلم) بجانب التقرير.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "هل يمكنني إرفاق ملفات أو صور مع الطلب؟" %}</h3>
+        <h3>كيف يمكنني طباعة التقرير؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% translate "نعم، يمكنك إرفاق صور أو ملفات داعمة مع طلبك لتوضيح المشكلة أو الاحتياج بشكل أفضل." %}</p>
+        <p>من صفحة «تقاريري»، اضغط على أيقونة الطباعة بجانب التقرير المراد طباعته. سيتم فتح صفحة طباعة احترافية تحتوي على شعار المدرسة والصور المرفقة، يمكنك الطباعة مباشرة أو حفظها كملف PDF.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "من يتلقى الطلبات؟" %}</h3>
+        <h3>هل يمكن تخصيص أنواع التقارير حسب احتياجات المدرسة؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% translate "يتم توجيه الطلب إلى القسم المختص الذي اخترته عند إنشاء الطلب. مسؤول القسم سيستقبل الطلب في صندوق «الوارد» الخاص به ويقوم بمعالجته." %}</p>
+        <p>نعم، يمكن {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} إضافة أنواع التقارير وتخصيصها من لوحة الإدارة وربطها بالأقسام المناسبة.</p>
       </div>
     </div>
   </div>
 
   <div class="faq-category">
-    <h2><i class="fa-solid fa-award"></i> {% translate "ملفات الإنجاز" %}</h2>
+    <h2><i class="fa-solid fa-ticket"></i> الطلبات والتذاكر</h2>
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "هل يمكن استخراج ملف إنجاز PDF؟" %}</h3>
+        <h3>ما الفرق بين التقرير والطلب؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% translate "نعم، المنصة تولد ملف PDF احترافي لملف الإنجاز يحتوي على جميع بياناتك والشواهد (الصور) المرفقة، مع شعار المدرسة وتنسيق احترافي جاهز للطباعة." %}</p>
+        <p>التقرير هو توثيق لحدث أو نشاط قمت به. أما الطلب فهو طلب تحتاج فيه لإجراء من قسم معين (مثل طلب صيانة، طلب احتياج، أو استفسار).</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "كم عدد الشواهد (الصور) التي يمكن إضافتها لكل محور؟" %}</h3>
+        <h3>كيف أتابع حالة طلبي؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% translate "يمكنك إضافة حتى 8 صور لكل محور من محاور ملف الإنجاز (التخطيط، التنفيذ، التقويم، التنمية المهنية، المسؤوليات الإضافية)." %}</p>
+        <p>يمكنك متابعة جميع طلباتك من صفحة «طلباتي». ستظهر لك حالة كل طلب (جديد، قيد المعالجة، مكتمل، مرفوض) مع أي ملاحظات أو ردود من الجهة المختصة.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "هل توجد مشاركة خارجية لملف الإنجاز؟" %}</h3>
+        <h3>هل يمكنني إرفاق ملفات أو صور مع الطلب؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% translate "نعم، يمكنك إنشاء رابط مؤقت لمشاركة ملف الإنجاز مع الجهات المعنية أو المهتمين خارج المنصة. الرابط قابل للتفعيل والتعطيل ويمكن تحديد مدة صلاحيته." %}</p>
+        <p>نعم، يمكنك إرفاق صور أو ملفات داعمة مع طلبك لتوضيح المشكلة أو الاحتياج بشكل أفضل.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% blocktranslate with manager_dative=SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" %}هل يمكن {{ manager_dative }} مراجعة ملف الإنجاز؟{% endblocktranslate %}</h3>
+        <h3>من يتلقى الطلبات؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% blocktranslate with teachers=SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" manager_dative=SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" %}نعم، تتوفر {{ manager_dative }} صلاحية مراجعة ملفات الإنجاز لجميع {{ teachers }} واعتمادها بعد التأكد من اكتمالها.{% endblocktranslate %}</p>
+        <p>يتم توجيه الطلب إلى القسم المختص الذي اخترته عند إنشاء الطلب. مسؤول القسم سيستقبل الطلب في صندوق «الوارد» الخاص به ويقوم بمعالجته.</p>
       </div>
     </div>
   </div>
 
   <div class="faq-category">
-    <h2><i class="fa-solid fa-bell"></i> {% translate "الإشعارات والتعاميم" %}</h2>
+    <h2><i class="fa-solid fa-award"></i> ملفات الإنجاز</h2>
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "كيف أعرف أن لدي إشعار جديد؟" %}</h3>
+        <h3>هل يمكن استخراج ملف إنجاز PDF؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% translate "ستظهر علامة حمراء على أيقونة الإشعارات في أعلى الصفحة عند وصول إشعار جديد لم تقرأه بعد." %}</p>
+        <p>نعم، المنصة تولد ملف PDF احترافي لملف الإنجاز يحتوي على جميع بياناتك والشواهد (الصور) المرفقة، مع شعار المدرسة وتنسيق احترافي جاهز للطباعة.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "ماذا يحدث إذا لم أوقع على التعميم في الوقت المحدد؟" %}</h3>
+        <h3>كم عدد الشواهد (الصور) التي يمكن إضافتها لكل محور؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% translate "بعض التعاميم لها موعد نهائي للتوقيع. عدم التوقيع قبل الموعد قد يظهر في تقارير الإدارة. احرص على مراجعة التعاميم والتوقيع عليها في الوقت المناسب." %}</p>
+        <p>يمكنك إضافة حتى 8 صور لكل محور من محاور ملف الإنجاز (التخطيط، التنفيذ، التقويم، التنمية المهنية، المسؤوليات الإضافية).</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "هل يمكن للمدير معرفة من قرأ ووقع على التعميم؟" %}</h3>
+        <h3>هل توجد مشاركة خارجية لملف الإنجاز؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% blocktranslate with manager_dative=SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" %}نعم، النظام يتتبع من قرأ التعميم ومن وقّع عليه، مع توقيت القراءة والتوقيع. ويمكن {{ manager_dative }} مشاهدة تقرير شامل بذلك.{% endblocktranslate %}</p>
+        <p>نعم، يمكنك إنشاء رابط مؤقت لمشاركة ملف الإنجاز مع الجهات المعنية أو المهتمين خارج المنصة. الرابط قابل للتفعيل والتعطيل ويمكن تحديد مدة صلاحيته.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
+        <h3>هل يمكن {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} مراجعة ملف الإنجاز؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>نعم، تتوفر {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} صلاحية مراجعة ملفات الإنجاز لجميع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} واعتمادها بعد التأكد من اكتمالها.</p>
       </div>
     </div>
   </div>
 
   <div class="faq-category">
-    <h2><i class="fa-solid fa-user-tie"></i> {% translate "الإدارة والصلاحيات" %}</h2>
+    <h2><i class="fa-solid fa-bell"></i> الإشعارات والتعاميم</h2>
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "كيف يمكن إضافة حسابات جديدة للكادر التعليمي؟" %}</h3>
+        <h3>كيف أعرف أن لدي إشعار جديد؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% blocktranslate with teachers=SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" manager_dative=SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" %}يمكن {{ manager_dative }} إضافة {{ teachers }} من «لوحة المدرسة ← فريق المدرسة»، إما فرديًا أو باستيراد قائمة Excel.{% endblocktranslate %}</p>
+        <p>ستظهر علامة حمراء على أيقونة الإشعارات في أعلى الصفحة عند وصول إشعار جديد لم تقرأه بعد.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% translate "لا أرى لوحة المدرسة، لماذا؟" %}</h3>
+        <h3>ماذا يحدث إذا لم أوقع على التعميم في الوقت المحدد؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{% blocktranslate with manager=SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" %}لوحة المدرسة هي الصفحة الرئيسية لحساب {{ manager }}. إذا لم تظهر بعد تسجيل الدخول، فتأكد من ربط الحساب بدور إدارة المدرسة، أو تواصل مع الدعم الفني لضبط الصلاحية.{% endblocktranslate %}</p>
+        <p>بعض التعاميم لها موعد نهائي للتوقيع. عدم التوقيع قبل الموعد قد يظهر في تقارير الإدارة. احرص على مراجعة التعاميم والتوقيع عليها في الوقت المناسب.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>{% blocktranslate with teachers_dative=SCHOOL_TEACHERS_DATIVE_LABEL|default:"للمعلمين" %}هل يمكن تعيين صلاحيات مخصصة {{ teachers_dative }}؟{% endblocktranslate %}</h3>
+        <h3>هل يمكن للمدير معرفة من قرأ ووقع على التعميم؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>نعم، النظام يتتبع من قرأ التعميم ومن وقّع عليه، مع توقيت القراءة والتوقيع. ويمكن {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} مشاهدة تقرير شامل بذلك.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-category">
+    <h2><i class="fa-solid fa-user-tie"></i> الإدارة والصلاحيات</h2>
+    
+    <div class="faq-item">
+      <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
+        <h3>كيف يمكن إضافة حسابات جديدة للكادر التعليمي؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>يمكن {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} إضافة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} من «لوحة المدرسة ← فريق المدرسة»، إما فرديًا أو باستيراد قائمة Excel.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
+        <h3>لا أرى لوحة المدرسة، لماذا؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>لوحة المدرسة هي الصفحة الرئيسية لحساب {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}. إذا لم تظهر بعد تسجيل الدخول، فتأكد من ربط الحساب بدور إدارة المدرسة، أو تواصل مع الدعم الفني لضبط الصلاحية.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
+        <h3>هل يمكن تعيين صلاحيات مخصصة {{ SCHOOL_TEACHERS_DATIVE_LABEL|default:"للمعلمين" }}؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
         {% comment %} تصحيح: النص السابق كان يَعِد بإنشاء أدوار مخصصة غير مدعومة في المنصة.
            الوصف أدناه يطابق ما ينفّذه النظام فعلاً اليوم. {% endcomment %}
-        <p>{% translate "نعم. تُنشئ داخل مدرستك أقساماً حسب حاجتك، وتُعيّن لكل قسم مسؤولاً يطّلع على تقارير أنواع قسمه دون غيرها، وتُسند إليه الطلبات الواردة ومتابعتها. كما تحدّد لكل منسوب مسمّاه الوظيفي داخل المدرسة." %}</p>
+        <p>نعم. تُنشئ داخل مدرستك أقساماً حسب حاجتك، وتُعيّن لكل قسم مسؤولاً يطّلع على تقارير أنواع قسمه دون غيرها، وتُسند إليه الطلبات الواردة ومتابعتها. كما تحدّد لكل منسوب مسمّاه الوظيفي داخل المدرسة.</p>
       </div>
     </div>
   </div>
 
   <div class="faq-cta">
-    <h3>{% translate "لم تجد إجابة لسؤالك؟" %}</h3>
-    <p>{% translate "فريق الدعم الفني جاهز لمساعدتك" %}</p>
+    <h3>لم تجد إجابة لسؤالك؟</h3>
+    <p>فريق الدعم الفني جاهز لمساعدتك</p>
     <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-primary xs-faq-1">
-      <i class="fa-solid fa-life-ring"></i> {% translate "تواصل معنا" %}
+      <i class="fa-solid fa-life-ring"></i> تواصل معنا
     </a>
   </div>
 

@@ -1,5 +1,4 @@
 {% extends 'reports/password_reset_base.html' %}
-{% load i18n %}
 
 {% comment %}
   شاشة العامل الثاني تمتدّ من قالب الاستعادة لا من ``base.html``: صاحبها لم
@@ -7,29 +6,29 @@
   — وعرضُها يوحي بدخولٍ لم يتم.
 {% endcomment %}
 
-{% block title %}{% translate "التحقق بخطوتين" %}{% endblock %}
+{% block title %}التحقق بخطوتين{% endblock %}
 
 {% block content %}
-  <h1>{% translate "التحقق بخطوتين" %}</h1>
+  <h1>التحقق بخطوتين</h1>
   <p class="recovery-copy">
-    {% translate "أدخل الرمز المعروض في تطبيق المصادقة على هاتفك. وإن فقدت الهاتف، أدخل أحد
-    رموز الاسترجاع التي حفظتها عند التفعيل." %}
+    أدخل الرمز المعروض في تطبيق المصادقة على هاتفك. وإن فقدت الهاتف، أدخل أحد
+    رموز الاسترجاع التي حفظتها عند التفعيل.
   </p>
 
   <form method="post" class="recovery-form" action="{% url 'reports:totp_challenge' %}">
     {% csrf_token %}
     <div class="recovery-field">
-      <label class="recovery-label" for="challengeCode">{% translate "الرمز" %}</label>
+      <label class="recovery-label" for="challengeCode">الرمز</label>
       <div class="recovery-inputwrap">
         <input id="challengeCode" name="code" type="text" inputmode="numeric"
                maxlength="32" required autocomplete="one-time-code" autofocus
-               class="recovery-input" placeholder="{% translate "٦ أرقام أو رمز استرجاع" %}">
+               class="recovery-input" placeholder="٦ أرقام أو رمز استرجاع">
       </div>
     </div>
-    <button type="submit" class="recovery-button">{% translate "تحقّق" %}</button>
+    <button type="submit" class="recovery-button">تحقّق</button>
   </form>
 
   <p class="recovery-help">
-    <a href="{% url 'reports:login' %}">{% translate "العودة إلى تسجيل الدخول" %}</a>
+    <a href="{% url 'reports:login' %}">العودة إلى تسجيل الدخول</a>
   </p>
 {% endblock %}
