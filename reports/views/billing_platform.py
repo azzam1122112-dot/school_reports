@@ -16,6 +16,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse
 import uuid
 
 from django.core.exceptions import ImproperlyConfigured
+from django.db.models import Case, IntegerField, Value, When
 from django.views.decorators.csrf import csrf_exempt
 
 from core.observability import report_degraded as _degraded, soft_call, soft_fail
@@ -1577,7 +1578,14 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
     # جدول العمليات = النطاق + تبويب الحالة.
     # ملاحظة: الاسترجاعات = عمليات مقبولة بمبلغ سالب.
     if status == "pending":
-        payments = scope_qs.filter(status=Payment.Status.PENDING)
+        payments = scope_qs.filter(status=Payment.Status.PENDING).order_by(
+            Case(
+                When(payment_method=Payment.Method.BANK_TRANSFER, then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField(),
+            ),
+            "created_at",
+        )
     elif status == "refunds":
         payments = scope_qs.filter(status=Payment.Status.APPROVED, amount__lt=0)
     elif status == "cancelled":

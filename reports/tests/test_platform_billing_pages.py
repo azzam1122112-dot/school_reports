@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -78,6 +80,14 @@ class PlatformBillingPagesTests(TestCase):
         self.assertContains(response, "قيد المراجعة")
         # setUp فيه عملية معلّقة واحدة فقط → التبويب يعرض صفًا واحدًا
         self.assertContains(response, "1 عملية في هذا التبويب")
+
+    def test_bank_review_deadline_skips_saudi_weekend(self):
+        payment = Payment.objects.get(status=Payment.Status.PENDING)
+        thursday = timezone.make_aware(datetime(2026, 8, 13, 10, 0))
+        Payment.objects.filter(pk=payment.pk).update(created_at=thursday)
+        payment.refresh_from_db()
+
+        self.assertEqual(payment.bank_review_due_date.isoformat(), "2026-08-16")
 
     def test_platform_settings_page_shows_storage_overview(self):
         response = self.client.get(reverse("reports:platform_settings"))

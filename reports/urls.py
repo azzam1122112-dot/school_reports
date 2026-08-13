@@ -486,6 +486,16 @@ urlpatterns = [
     path("subscription/expired/", views.subscription_expired, name="subscription_expired"),
     path("subscription/my/", views.my_subscription, name="my_subscription"),
     path("subscription/history/", views.subscription_history, name="subscription_history"),
+    path(
+        "subscription/invoices/<int:payment_id>/",
+        views.subscription_invoice,
+        name="subscription_invoice",
+    ),
+    path(
+        "subscription/invoices/<int:payment_id>/pdf/",
+        views.subscription_invoice_pdf,
+        name="subscription_invoice_pdf",
+    ),
     path("subscription/payment/create/", views.payment_create, name="payment_create"),
     path("subscription/payment/moyasar/", views.moyasar_checkout_create, name="moyasar_checkout_create"),
     path(

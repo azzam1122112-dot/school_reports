@@ -350,6 +350,29 @@ class Payment(models.Model):
         verbose_name_plural = "المدفوعات والإيرادات"
         ordering = ['-created_at']
 
+    @property
+    def bank_review_due_date(self):
+        """آخر يوم عمل مستهدف لمراجعة التحويل البنكي (الأحد إلى الخميس)."""
+        if (
+            self.payment_method != self.Method.BANK_TRANSFER
+            or self.status != self.Status.PENDING
+            or not self.created_at
+        ):
+            return None
+
+        created_at = self.created_at
+        if timezone.is_aware(created_at):
+            created_at = timezone.localtime(created_at)
+        due_date = created_at.date() + timedelta(days=1)
+        while due_date.weekday() in {4, 5}:  # الجمعة والسبت
+            due_date += timedelta(days=1)
+        return due_date
+
+    @property
+    def bank_review_is_overdue(self):
+        due_date = self.bank_review_due_date
+        return bool(due_date and timezone.localdate() > due_date)
+
     def __str__(self):
         return f"دفع #{self.id} - {self.school.name} - {self.amount}"
 

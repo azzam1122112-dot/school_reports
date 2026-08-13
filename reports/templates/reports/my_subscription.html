@@ -6,6 +6,7 @@
 
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/flexible-pricing.css' %}?v=20260804.1">
+<link rel="stylesheet" href="{% static 'css/billing-invoice.css' %}?v=20260813.1">
 <style nonce="{{ CSP_NONCE }}">
   /* ══════════════════════════════════════════════════════════════════
      صفحة اشتراك المدرسة — مبنية بالكامل على جذر الهوية `_identity.html`.
@@ -1791,7 +1792,7 @@
       <div class="subx-panel__aside">
         <span class="subx-assurance">
           <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-          <span><strong>طلب موثّق</strong>تُراجع الدفعة قبل التفعيل</span>
+          <span><strong>تفعيل واضح</strong>فوري إلكترونيًا · يوم عمل للتحويل</span>
         </span>
       </div>
     </div>
@@ -2207,7 +2208,7 @@
             <div class="summary-trust">
               <div><i class="fa-solid fa-receipt" aria-hidden="true"></i><span>الأسعار نهائية بلا ضريبة قيمة مضافة أو رسوم خفية.</span></div>
               <div><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span>لا تحفظ منصة توثيق بيانات بطاقتك البنكية.</span></div>
-              <div><i class="fa-solid fa-headset" aria-hidden="true"></i><span>فريق الدعم يراجع كل دفعة قبل التفعيل.</span></div>
+              <div><i class="fa-solid fa-bolt" aria-hidden="true"></i><span>الدفع الإلكتروني يُفعّل الخدمات تلقائيًا؛ والتحويل البنكي خلال يوم عمل.</span></div>
             </div>
           </aside>
         </div>
@@ -2229,7 +2230,7 @@
               <span class="payment-method-icon"><i class="fa-solid fa-credit-card" aria-hidden="true"></i></span>
               <span class="payment-method-copy">
                 <strong>الدفع الإلكتروني</strong>
-                <small>مدى والبطاقات والمحافظ الرقمية</small>
+                <small>تفعيل تلقائي فور نجاح الدفع</small>
               </span>
               <span class="payment-method-status"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
               <span class="payment-method-brands" aria-label="مدى وفيزا وماستركارد">
@@ -2245,7 +2246,7 @@
               <span class="payment-method-icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span>
               <span class="payment-method-copy">
                 <strong>تحويل بنكي</strong>
-                <small>حوّل المبلغ ثم أرفق الإيصال</small>
+                <small>المراجعة والتفعيل خلال يوم عمل</small>
               </span>
               <span class="payment-method-status"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
               <span class="payment-method-brands">
@@ -2266,7 +2267,7 @@
                 {% if moyasar_environment != 'live' %}<span class="checkout-sandbox">بيئة اختبار</span>{% endif %}
               </div>
               <h3>الدفع الإلكتروني</h3>
-              <p>ادفع بأمان باستخدام مدى أو فيزا أو ماستركارد. ستنتقل إلى صفحة دفع مشفّرة لإتمام العملية، ثم تعود إلى منصة توثيق تلقائيًا.</p>
+              <p>ادفع بأمان باستخدام مدى أو فيزا أو ماستركارد. ستنتقل إلى صفحة دفع مشفّرة، وتُفعّل الباقة والخدمات المختارة تلقائيًا فور تأكيد نجاح الدفع، دون مراجعة يدوية.</p>
               <div class="payment-method-brands payment-method-brands--panel" aria-label="وسائل الدفع الإلكتروني المدعومة">
                 <span class="payment-mark"><img class="payment-brand-logo payment-brand-logo--mada" src="{% static 'img/payment/mada.svg' %}" alt="مدى" width="54" height="18"></span>
                 <span class="payment-mark"><img class="payment-brand-logo payment-brand-logo--visa" src="{% static 'img/payment/visa.svg' %}" alt="Visa" width="42" height="16"></span>
@@ -2281,8 +2282,9 @@
                 <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
                 <span>اختر خدمة للمتابعة</span>
               </button>
-              <small class="checkout-action-note"><i class="fa-solid fa-lock" aria-hidden="true"></i> ستكمل الدفع في صفحة إلكترونية آمنة</small>
+              <small class="checkout-action-note"><i class="fa-solid fa-bolt" aria-hidden="true"></i> سيتم تفعيل الباقة تلقائيًا بعد نجاح عملية الدفع</small>
               <div class="checkout-commercial-notice" id="checkoutCommercialElectronic">
+                <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> التفعيل فوري وتلقائي عند وصول تأكيد النجاح من بوابة الدفع.</span>
                 <span><i class="fa-solid fa-receipt" aria-hidden="true"></i> الأسعار نهائية، ولا توجد ضريبة قيمة مضافة أو رسوم خفية.</span>
                 <span><i class="fa-solid fa-file-shield" aria-hidden="true"></i> بالمتابعة توافق على <a href="{% url 'reports:terms_conditions' %}">الشروط والأحكام</a> و<a href="{% url 'reports:refund_policy' %}">سياسة الإلغاء والاسترجاع</a>.</span>
               </div>
@@ -2339,7 +2341,7 @@
               <ol class="bank-steps">
                 <li>حوّل مجموع الطلب الظاهر في الملخّص إلى هذا الحساب.</li>
                 <li>احتفظ بصورة واضحة لإيصال التحويل (إيصال واحد يكفي لكل البنود).</li>
-                <li>ارفع الإيصال أدناه وأرسل الطلب — يُفعَّل بعد مراجعة الدفعة.</li>
+                <li>ارفع الإيصال وأرسل الطلب؛ تتم المراجعة والتفعيل خلال يوم عمل واحد كحد أقصى.</li>
               </ol>
             </div>
 
@@ -2381,6 +2383,7 @@
               <span>اختر خدمة لإرسال إيصال التحويل</span>
             </button>
             <div class="checkout-commercial-notice">
+              <span><i class="fa-solid fa-clock" aria-hidden="true"></i> التحويل قيد المراجعة، وسيتم تفعيل الباقة والخدمات المختارة خلال يوم عمل واحد كحد أقصى بعد التحقق من الإيصال.</span>
               <span><i class="fa-solid fa-receipt" aria-hidden="true"></i> الأسعار نهائية، ولا توجد ضريبة قيمة مضافة أو رسوم خفية.</span>
               <span><i class="fa-solid fa-file-shield" aria-hidden="true"></i> بالإرسال توافق على <a href="{% url 'reports:terms_conditions' %}">الشروط والأحكام</a> و<a href="{% url 'reports:refund_policy' %}">سياسة الإلغاء والاسترجاع</a>.</span>
             </div>
@@ -2496,6 +2499,16 @@
                 <span class="tbl-badge tbl-badge-refund"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> استرجاع</span>
               {% elif payment.status == 'approved' %}
                 <span class="tbl-badge tbl-badge-success"><i class="fa-solid fa-check" aria-hidden="true"></i> تم التفعيل</span>
+                {% if payment.invoice_available %}
+                  <div class="billing-invoice-actions">
+                    <a href="{% url 'reports:subscription_invoice' payment.invoice_anchor_id %}{% if acting_on_behalf %}?school={{ school.pk }}{% endif %}" class="billing-invoice-link">
+                      <i class="fa-regular fa-file-lines" aria-hidden="true"></i> عرض الفاتورة
+                    </a>
+                    <a href="{% url 'reports:subscription_invoice_pdf' payment.invoice_anchor_id %}{% if acting_on_behalf %}?school={{ school.pk }}{% endif %}" class="billing-invoice-link billing-invoice-link--download">
+                      <i class="fa-solid fa-download" aria-hidden="true"></i> PDF
+                    </a>
+                  </div>
+                {% endif %}
               {% elif payment.status == 'cancelled' %}
                 <span class="tbl-badge tbl-badge-neutral"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
               {% elif payment.status == 'rejected' %}
@@ -2508,7 +2521,7 @@
                   <button type="submit" class="checkout-cancel-button">إلغاء الطلب غير المدفوع</button>
                 </form>
               {% else %}
-                <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> قيد المراجعة</span>
+                <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> قيد المراجعة · التفعيل قبل {{ payment.bank_review_due_date|date:"Y-m-d" }}</span>
               {% endif %}
             </td>
             <td class="notes-cell" data-label="ملاحظات">{{ payment.notes|default:"—"|linebreaksbr }}</td>

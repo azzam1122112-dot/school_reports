@@ -109,6 +109,10 @@ class MoyasarPaymentTests(TestCase):
         self.assertContains(response, "لا توجد ضريبة قيمة مضافة أو رسوم خفية")
         self.assertContains(response, reverse("reports:terms_conditions"))
         self.assertContains(response, reverse("reports:refund_policy"))
+        self.assertContains(response, "سيتم تفعيل الباقة تلقائيًا بعد نجاح عملية الدفع")
+        self.assertContains(response, "دون مراجعة يدوية")
+        self.assertContains(response, "خلال يوم عمل واحد كحد أقصى")
+        self.assertNotContains(response, "فريق الدعم يراجع كل دفعة قبل التفعيل")
         for asset in (
             "img/payment/mada.svg",
             "img/payment/visa.svg",

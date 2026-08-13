@@ -174,9 +174,11 @@ html[data-theme="dark"] .flex-pricing-shell.is-over-limit .flex-result-status { 
 }
 .sub-includes-head h4 i { color: var(--inc-green); }
 .sub-includes-head p { margin: 0 0 16px; color: var(--inc-muted); font-size: .76rem; line-height: 1.75; font-weight: 700; }
+/* ثلاثة أعمدة لا ``auto-fit``: المزايا تسع، فأربعة أعمدة تترك الصف الأخير
+   ببطاقة يتيمة وحدها. ثلاثة تقسمها إلى ثلاثة صفوف كاملة. */
 .sub-includes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin: 0;
   padding: 0;
@@ -213,6 +215,10 @@ html[data-theme="dark"] .flex-pricing-shell.is-over-limit .flex-result-status { 
 }
 .sub-includes-note strong { display: flex; gap: 7px; align-items: center; font-size: .76rem; font-weight: 900; }
 .sub-includes-note ul { margin: 7px 0 0; padding-inline-start: 18px; color: var(--inc-muted); font-size: .7rem; line-height: 1.85; font-weight: 700; }
+
+@media (max-width: 980px) {
+  .sub-includes-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 @media (max-width: 760px) {
   .sub-includes { border-radius: 18px; }
