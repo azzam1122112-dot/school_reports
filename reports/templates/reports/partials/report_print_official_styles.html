@@ -238,6 +238,15 @@ body {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 3mm;
 }
+.images-grid--1 { grid-template-columns: minmax(0, 1fr); }
+.images-grid--1 .img-box { width: 84%; margin-inline: auto; }
+.images-grid--1 .img-box img { height: 105mm; }
+.images-grid--2 .img-box img { height: 67mm; }
+.images-grid--3 { grid-template-rows: repeat(2, minmax(0, 1fr)); }
+.images-grid--3 .img-box:first-child { grid-row: 1 / span 2; }
+.images-grid--3 .img-box:first-child img { height: 104mm; }
+.images-grid--3 .img-box:not(:first-child) img { height: 48mm; }
+.images-grid--4 .img-box img { height: 54mm; }
 .img-box {
   padding: 2mm;
   overflow: hidden;
@@ -255,11 +264,30 @@ body {
   object-fit: contain;
   image-rendering: auto;
 }
+.img-box img.img-fit--cover { object-fit: cover; }
+.img-box img.img-fit--contain { object-fit: contain; }
+.img-box--large { grid-column: 1 / -1; }
+.img-box--large img { height: 92mm; }
+.img-box--small img { height: 38mm; }
 .img-cap {
   margin: 1.5mm 0 0;
   color: var(--report-muted);
   font-size: 8pt;
   font-weight: 800;
+}
+.img-cap span {
+  display: inline-block;
+  margin-left: 2mm;
+  padding-left: 2mm;
+  border-left: 1px solid var(--report-line);
+  color: var(--report-green);
+  font-family: Arial, sans-serif;
+  font-size: 7pt;
+}
+.evidence-section--separate {
+  break-before: page;
+  page-break-before: always;
+  margin-top: 0;
 }
 
 .signature-spacer { min-height: 6mm; }
@@ -397,10 +425,35 @@ body {
   }
   .images-grid { gap: 2mm; }
   .img-box { padding: 1.2mm; }
-  .img-box img { height: 32mm; object-fit: contain; }
-  .page--dense-evidence .img-box img { height: 27mm; }
+  .img-box img { object-fit: contain; }
+  .images-grid--1 .img-box img { height: 116mm; }
+  .images-grid--2 .img-box img { height: 72mm; }
+  .images-grid--3 .img-box:first-child img { height: 108mm; }
+  .images-grid--3 .img-box:not(:first-child) img { height: 50mm; }
+  .images-grid--4 .img-box img { height: 57mm; }
+  .page--dense-evidence .img-box img { max-height: 108mm; }
+  .page--dense-evidence .img-box--small img { height: 36mm; }
   .img-cap { margin-top: .7mm; font-size: 7.2pt; }
-  .signature-spacer { min-height: 0; height: 0; }
+
+  /* ── التواقيع في نهاية الصفحة، لا في نهاية النص ──────────────────────
+     التقرير القصير كان ينتهي في منتصف الورقة والتواقيع ملتصقة بآخر سطر،
+     فتبدو الوثيقة مبتورة. والعلاج المكتوب أصلاً — فاصلٌ مرن داخل صفحة
+     مرنة — كان معطَّلاً بثلاث قواعد هنا: ``display:block`` على ‎.page‎،
+     و``min-height:auto`` عند الطباعة، وتصفير الفاصل في هذا السطر.
+
+     الارتفاع = A4 ناقص هامشَي الصفحة (‎8mm‎ أعلى و‎12mm‎ أسفل) من ``@page``
+     أعلاه، ناقص ‎2mm‎ أمانًا ضد تقريب المتصفّح — فزيادةٌ بمليمتر واحد تولّد
+     صفحة ثانية فارغة.
+
+     وللتقرير الطويل لا يبقى فراغ يُوزَّع، فيأخذ الفاصل صفرًا وتتبع
+     التواقيع النصَّ كما هي الحال اليوم. */
+  .page {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(297mm - 8mm - 12mm - 2mm);
+  }
+  .signature-spacer { flex: 1 1 auto; min-height: 0; height: auto; }
+  .approval-block { flex: 0 0 auto; }
   .approval-heading {
     margin: .5mm 0 1.5mm;
     padding-bottom: 1.2mm;

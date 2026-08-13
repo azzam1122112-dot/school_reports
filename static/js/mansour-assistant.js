@@ -20,6 +20,63 @@
   var roleLabel = root.getAttribute("data-role-label") || "";
   var history = [];
   var isSending = false;
+
+  // ── بقاء المحادثة عبر التنقّل ───────────────────────────────────────────
+  // كان السجل مصفوفةً في الذاكرة، فأي انتقال يمسحه. وأثره أبعد من إزعاج
+  // المستخدم: ميزةُ الأسئلة المتتابعة («وين ألقاها؟» تُحلّ من السؤال السابق)
+  // لم تكن تعمل عبر الصفحات أصلاً لأن السجل لا يصل إلى الطلب التالي.
+  //
+  // ``sessionStorage`` لا ``localStorage``: المحادثة تخصّ هذا التبويب وتنتهي
+  // بإغلاقه. والمفتاح يحمل بصمة رمز CSRF لأن جانغو يدوّره عند تسجيل الدخول
+  // والخروج — فمحادثة مستخدمٍ سابق على الجهاز نفسه لا تُستعاد لمن بعده.
+  var MAX_STORED_ENTRIES = 24;
+  var transcript = [];
+
+  // الخادم يمرّر بصمة الجلسة. ولا تصلح ``{% csrf_token %}`` لهذا: جانغو
+  // يقنّعها بقناعٍ عشوائي في كل طلب، فتتغيّر البصمة مع كل صفحة ولا تُستعاد
+  // محادثة قط — وهذا ما ظهر فعلاً عند أول قياس.
+  var chatScope = root.getAttribute("data-chat-scope") || "anon";
+  var storageKey = "mansour:chat:v1:" + (isInternal ? "internal" : "public") + ":" + chatScope;
+
+  // محادثات الجلسات السابقة على الجهاز نفسه لا تُستعاد، ولا تبقى مخزّنة.
+  function dropForeignConversations() {
+    try {
+      var stale = [];
+      for (var i = 0; i < window.sessionStorage.length; i++) {
+        var key = window.sessionStorage.key(i);
+        if (key && key.indexOf("mansour:chat:") === 0 && key !== storageKey) stale.push(key);
+      }
+      stale.forEach(function (key) { window.sessionStorage.removeItem(key); });
+    } catch (error) { /* التخزين محظور: لا شيء يُنظَّف ولا شيء يُكسر */ }
+  }
+
+  function persistConversation() {
+    try {
+      transcript = transcript.slice(-MAX_STORED_ENTRIES);
+      window.sessionStorage.setItem(storageKey, JSON.stringify({
+        history: history.slice(-6),
+        transcript: transcript
+      }));
+    } catch (error) {
+      // حصّة التخزين ممتلئة أو محظورة: المحادثة تعمل بلا حفظ، ولا شيء يُكسر.
+    }
+  }
+
+  function forgetConversation() {
+    try {
+      window.sessionStorage.removeItem(storageKey);
+    } catch (error) { /* لا شيء */ }
+  }
+
+  function record(role, text, extraClass, sources) {
+    transcript.push({
+      role: role,
+      text: text,
+      cls: extraClass || "",
+      sources: Array.isArray(sources) ? sources : null
+    });
+    persistConversation();
+  }
   var welcomeMessage = isInternal
     ? "أهلًا بك، أنا منصور. أشرح لك الصفحة الحالية وأساعدك في إنجاز عملك داخل منصة توثيق وفق صلاحياتك" + (roleLabel ? " كـ" + roleLabel : "") + "."
     : "أهلًا بك، أنا منصور. أساعدك في فهم منصة توثيق، اختيار البداية المناسبة، وحل المشكلات بخطوات واضحة وآمنة.";
@@ -67,6 +124,14 @@
     return /(^|\.)tawtheeq-ksa\.com$/i.test(url.hostname);
   }
 
+  // رابط يشير إلى الصفحة المفتوحة نفسها ولا يختلف إلا بالمرساة: التنقّل إليه
+  // إعادةُ تحميلٍ بلا داعٍ، والصواب تمريرٌ في المكان.
+  function isSamePageAnchor(url) {
+    return url.origin === window.location.origin
+      && url.pathname === window.location.pathname
+      && Boolean(url.hash);
+  }
+
   function addSources(sources) {
     if (!conversation || !Array.isArray(sources) || !sources.length) return;
     var container = document.createElement("div");
@@ -86,9 +151,27 @@
           ? url.pathname + url.search + url.hash
           : url.href;
         link.textContent = source.title;
-        if (url.origin !== window.location.origin) {
+
+        if (isSamePageAnchor(url)) {
+          // نفس الصفحة: أغلق اللوحة ومرّر إلى الموضع بدل إعادة التحميل.
+          link.addEventListener("click", function (event) {
+            var target = document.getElementById(url.hash.slice(1));
+            if (!target) return;
+            event.preventDefault();
+            setOpen(false);
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        } else {
+          // تبويب جديد: المستخدم قد يكون في منتصف نموذج لم يُحفظ، والمحادثة
+          // نفسها تُفقد مع التنقّل. فتحُ الرابط جانباً يبقي عمله وسياقه سليمين.
           link.target = "_blank";
           link.rel = "noopener noreferrer";
+          link.setAttribute("aria-label", source.title + " (يفتح في تبويب جديد)");
+          var hint = document.createElement("span");
+          hint.className = "mansour-source-hint";
+          hint.setAttribute("aria-hidden", "true");
+          hint.textContent = "↗";
+          link.appendChild(hint);
         }
         container.appendChild(link);
       } catch (error) {
@@ -131,6 +214,8 @@
 
   function resetConversation() {
     history = [];
+    transcript = [];
+    forgetConversation();
     audience = root.getAttribute("data-audience") || "";
     clearConversation(welcomeMessage);
     renderQuickActions();
@@ -172,6 +257,7 @@
     var historyForRequest = history.slice(-6);
     addMessage(question, "user");
     history.push({ role: "user", content: question });
+    record("user", question);
     if (input) {
       input.value = "";
       input.style.height = "";
@@ -215,6 +301,7 @@
         addSources(data.sources);
         history.push({ role: "assistant", content: data.answer });
         history = history.slice(-6);
+        record("assistant", data.answer, "", data.sources);
       })
       .catch(function (error) {
         if (pending) pending.remove();
@@ -260,7 +347,34 @@
     if (event.key === "Escape" && panel && !panel.hidden) setOpen(false);
   });
 
+  function restoreConversation() {
+    var saved;
+    try {
+      saved = JSON.parse(window.sessionStorage.getItem(storageKey) || "null");
+    } catch (error) {
+      return false;
+    }
+    if (!saved || !Array.isArray(saved.transcript) || !saved.transcript.length) return false;
+
+    history = Array.isArray(saved.history) ? saved.history.slice(-6) : [];
+    transcript = saved.transcript.slice(-MAX_STORED_ENTRIES);
+    if (!conversation) return false;
+    while (conversation.firstChild) conversation.removeChild(conversation.firstChild);
+    addMessage(welcomeMessage, "assistant");
+    transcript.forEach(function (entry) {
+      if (!entry || !entry.text) return;
+      // ``pending`` حالةٌ لحظية لا معنى لاستعادتها، و``error`` رسالة عن طلبٍ
+      // انتهى — كلاهما يُسقط عند الاستعادة.
+      if (entry.cls === "pending" || entry.cls === "error") return;
+      addMessage(entry.text, entry.role === "user" ? "user" : "assistant");
+      if (entry.role === "assistant" && entry.sources) addSources(entry.sources);
+    });
+    return true;
+  }
+
   renderQuickActions();
   updateCharCount();
   setSending(false);
+  dropForeignConversations();
+  restoreConversation();
 }());

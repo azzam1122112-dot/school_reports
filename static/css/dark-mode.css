@@ -195,23 +195,40 @@ html[data-theme="dark"] button.secondary:hover {
 }
 
 html[data-theme="dark"] .badge.success,
-html[data-theme="dark"] .msg.success,
 html[data-theme="dark"] .alert-success {
   background: rgba(66, 202, 136, .14) !important;
   border-color: rgba(110, 231, 168, .28) !important;
   color: #9ce8bd !important;
 }
 html[data-theme="dark"] .badge.warning,
-html[data-theme="dark"] .msg.warning,
 html[data-theme="dark"] .alert-warning {
   background: rgba(212, 177, 109, .15) !important;
   border-color: rgba(240, 214, 157, .30) !important;
   color: #f0d69d !important;
 }
 html[data-theme="dark"] .badge.danger,
-html[data-theme="dark"] .msg.error,
 html[data-theme="dark"] .alert-danger {
   background: rgba(255, 140, 145, .13) !important;
+  border-color: rgba(255, 140, 145, .30) !important;
+  color: #ffc5c8 !important;
+}
+
+/* التنبيه العائم يحتاج سطحاً معتماً تحت الصبغة، وإلا قُرئ نصّ الصفحة خلاله. */
+html[data-theme="dark"] .msg.success {
+  background-color: var(--surface) !important;
+  background-image: linear-gradient(rgba(66, 202, 136, .14), rgba(66, 202, 136, .14)) !important;
+  border-color: rgba(110, 231, 168, .28) !important;
+  color: #9ce8bd !important;
+}
+html[data-theme="dark"] .msg.warning {
+  background-color: var(--surface) !important;
+  background-image: linear-gradient(rgba(212, 177, 109, .15), rgba(212, 177, 109, .15)) !important;
+  border-color: rgba(240, 214, 157, .30) !important;
+  color: #f0d69d !important;
+}
+html[data-theme="dark"] .msg.error {
+  background-color: var(--surface) !important;
+  background-image: linear-gradient(rgba(255, 140, 145, .13), rgba(255, 140, 145, .13)) !important;
   border-color: rgba(255, 140, 145, .30) !important;
   color: #ffc5c8 !important;
 }
@@ -885,11 +902,20 @@ html[data-theme="dark"] .lead,
 html[data-theme="dark"] .message { color: #abc0b6 !important; }
 html[data-theme="dark"] .quiet-button,
 html[data-theme="dark"] .back-link { background: #102920 !important; border-color: var(--line) !important; color: #d9f4e5 !important; }
-html[data-theme="dark"] .msg.error,
 html[data-theme="dark"] .error,
 html[data-theme="dark"] .form-errors,
 html[data-theme="dark"] .recovery-errors {
   background: rgba(180, 35, 47, .16) !important;
+  border-color: rgba(255, 140, 145, .32) !important;
+  color: #ffc5c8 !important;
+}
+
+/* ``.error`` داخل النموذج يجلس على سطح البطاقة، أما ``.msg.error`` فيطفو فوق
+   الصفحة. قِيس في الوضع الداكن ‎rgba(180,35,47,0.16)‎ بعد إصلاح القاعدة
+   الأولى — لأن هذه القاعدة المتأخرة كانت تعيده شفافاً. */
+html[data-theme="dark"] .msg.error {
+  background-color: var(--surface) !important;
+  background-image: linear-gradient(rgba(180, 35, 47, .16), rgba(180, 35, 47, .16)) !important;
   border-color: rgba(255, 140, 145, .32) !important;
   color: #ffc5c8 !important;
 }

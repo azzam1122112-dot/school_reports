@@ -420,7 +420,9 @@
     .mnd-msg-body::before { font-size: 1.8rem; }
     .mnd-meta-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .mnd-meta-item { padding: 9px 10px; border-radius: 9px; }
-    .mnd-meta-label { font-size: .65rem; }
+    /* ‎.65rem‎ = ‎10.4px‎ على الجوال، وهو دون ما يُقرأ بيسر. والصفحة تُقرأ على
+       الهاتف أساساً، فالتصغير هنا يعمل ضدّ موضعه. */
+    .mnd-meta-label { font-size: .72rem; }
     .mnd-meta-value { font-size: .8rem; }
     .mnd-sig-ack { padding: 14px; font-size: .88rem; border-radius: 10px; }
     .mnd-input { min-height: 42px; font-size: .88rem; }

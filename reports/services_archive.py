@@ -12,6 +12,7 @@ from .models import (
     LeadershipEvidenceImage,
     Notification,
     Report,
+    ReportEvidence,
     School,
     SchoolArchiveAddon,
     SchoolYearArchive,
@@ -95,6 +96,9 @@ def calculate_school_archive_storage_bytes(school: School | None) -> int:
         total += _file_size(report.image3)
         total += _file_size(report.image4)
 
+    for evidence in ReportEvidence.objects.filter(report__school=school).only("image"):
+        total += _file_size(evidence.image)
+
     for ach_file in TeacherAchievementFile.objects.filter(school=school).only("pdf_file"):
         total += _file_size(ach_file.pdf_file)
 
@@ -166,7 +170,10 @@ def school_storage_breakdown(school: School | None) -> dict:
     circulars_qs = Notification.objects.filter(school=school, requires_signature=True)
     notifications_qs = Notification.objects.filter(school=school, requires_signature=False)
     values = {
-        "reports": _sum(Report.objects.filter(school=school)),
+        "reports": (
+            _sum(Report.objects.filter(school=school))
+            + _sum(ReportEvidence.objects.filter(report__school=school))
+        ),
         "achievements": (
             _sum(TeacherAchievementFile.objects.filter(school=school))
             + _sum(AchievementEvidenceImage.objects.filter(section__file__school=school))
@@ -803,6 +810,15 @@ def reclaimable_storage_by_year(school: School | None) -> list[dict]:
 
         report_bytes = int(
             Report.objects.filter(school=school, academic_year=year)
+            .aggregate(total=Sum("storage_bytes"))
+            .get("total")
+            or 0
+        )
+        report_bytes += int(
+            ReportEvidence.objects.filter(
+                report__school=school,
+                report__academic_year=year,
+            )
             .aggregate(total=Sum("storage_bytes"))
             .get("total")
             or 0

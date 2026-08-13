@@ -61,6 +61,9 @@
   function setup(root) {
     var target = document.getElementById(root.getAttribute("data-target-id") || "id_idea");
     var endpoint = root.getAttribute("data-endpoint") || "";
+    var documentName = root.getAttribute("data-document-name") || "التقرير";
+    var recordingPrompt = root.getAttribute("data-recording-prompt") ||
+      "جارٍ التسجيل… تحدّث بوضوح عن تفاصيل التقرير.";
     if (!target || !endpoint) return;
 
     var dailyLimit = parseInt(root.getAttribute("data-daily-limit"), 10) || 3;
@@ -307,7 +310,7 @@
           setRecordingUi(true);
           startTimer();
           startMeter(granted);
-          status("جارٍ التسجيل… تحدّث بوضوح عن تفاصيل التقرير.");
+          status(recordingPrompt);
         })
         .catch(function (error) {
           releaseStream();
@@ -381,7 +384,7 @@
           if (el.output) el.output.textContent = suggestion;
           if (el.result) el.result.hidden = false;
           renderQuota(data.remaining);
-          status("راجع النص، ثم أضفه إلى التقرير أو استبدل به النص الحالي.", "success");
+          status("راجع النص، ثم أضفه إلى " + documentName + " أو استبدل به النص الحالي.", "success");
           if (el.result) el.result.scrollIntoView({ behavior: "smooth", block: "nearest" });
         })
         .catch(function (error) {
@@ -414,7 +417,7 @@
       clearBlob();
       if (el.retry) el.retry.hidden = true;
       suggestion = "";
-      status("أُدرج النص في التقرير. راجعه قبل الحفظ.", "success");
+      status("أُدرج النص في " + documentName + ". راجعه قبل الحفظ.", "success");
       target.focus();
     }
 

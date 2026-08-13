@@ -5,11 +5,12 @@
 
 {% block head %}
 {% if report_ai_enabled %}
-<link rel="stylesheet" href="{% static 'css/report-ai-improver.css' %}?v=20260801.2">
+<link rel="stylesheet" href="{% static 'css/report-ai-improver.css' %}?v=20260813.2">
 {% endif %}
 {% if voice_report_enabled %}
 <link rel="stylesheet" href="{% static 'css/report-voice.css' %}?v=20260812.1">
 {% endif %}
+<link rel="stylesheet" href="{% static 'css/report-evidence.css' %}?v=20260813.2">
 <style nonce="{{ CSP_NONCE }}">
   /* 
     ═══════════════════════════════════════════════════════════
@@ -934,9 +935,11 @@
       </a>
     </header>
 
-    <form id="report-form" method="POST" enctype="multipart/form-data" autocomplete="off" novalidate>
+    <form id="report-form" method="POST" enctype="multipart/form-data" autocomplete="off" novalidate
+          data-pwa-draft-key="report-add-u{{ request.user.id|default:0 }}-s{{ request.session.active_school_id|default:0 }}">
       {% csrf_token %}
       {{ form.section_selection_enabled }}
+      {{ form.client_submission_id }}
       {% if leadership_section %}
         <input type="hidden" name="leadership_section" value="{{ leadership_section.pk }}">
         <div class="xs-add-report-1">
@@ -1166,19 +1169,7 @@
         <div class="ar-col-side">
           
           <div class="ar-card ar-sticky">
-            <h3 class="xs-add-report-5"><i class="fa-solid fa-images"></i> المرفقات والصور</h3>
-            
-            <div class="ar-img-grid">
-               {% for i in "1234" %}
-               <label class="ar-drop-zone" for="id_image{{ i }}">
-                  <i class="fa-solid fa-camera"></i>
-                  <span class="xs-add-report-6">صورة {{ i }}</span>
-                  <input type="file" name="image{{ i }}" id="id_image{{ i }}" accept="image/*" aria-label="إرفاق الصورة {{ i }}">
-               </label>
-               {% endfor %}
-            </div>
-            
-            <div class="ar-previews" id="preview-container"></div>
+            {% include "reports/partials/report_evidence_formset.html" %}
             
             <button type="submit" id="submitBtn" class="ar-submit-btn">
                <i class="fa-solid fa-floppy-disk"></i> حفظ التقرير
@@ -1514,29 +1505,6 @@
        return ok;
      }
 
-    var MAX_DIM = 1600;
-    var Q = 0.82;
-    function compress(file){
-       return new Promise(function(res){
-          if(!file || !file.type.startsWith('image/')) return res(file);
-          var img=new Image(); var u=URL.createObjectURL(file);
-          img.onload=function(){
-             var w=img.width, h=img.height;
-             if(w>h && w>MAX_DIM){ h=Math.round(h*(MAX_DIM/w)); w=MAX_DIM; }
-             else if(h>=w && h>MAX_DIM){ w=Math.round(w*(MAX_DIM/h)); h=MAX_DIM; }
-             var cvs=document.createElement('canvas'); cvs.width=w; cvs.height=h;
-             var ctx=cvs.getContext('2d'); ctx.drawImage(img,0,0,w,h);
-             cvs.toBlob(function(b){
-                URL.revokeObjectURL(u);
-                if(b) res(new File([b], file.name.replace(/\.\w+$/,'.jpg'), {type:'image/jpeg', lastModified:Date.now()}));
-                else res(file);
-             }, 'image/jpeg', Q);
-          };
-          img.onerror=function(){ URL.revokeObjectURL(u); res(file); };
-          img.src=u;
-       });
-    }
-
      if(form){
        validationFields.forEach(function(cfg){
          var el = getFieldElement(cfg);
@@ -1588,43 +1556,12 @@
          var labelEl = document.getElementById('upLabel');
          
          try{
-            if(labelEl) labelEl.textContent = "جاري ضغط الصور";
-            
-            var fd=new FormData();
-            for(var i=0; i<form.elements.length; i++){
-               var el=form.elements[i];
-               if(!el.name || el.disabled || el.type==='file') continue;
-               if((el.type==='checkbox'||el.type==='radio') && !el.checked) continue;
-               fd.append(el.name, el.value);
-            }
-            
-            var imgs=['image1','image2','image3','image4'];
-            var totalImages = 0;
-            var compressedImages = 0;
-            
-            // Count images
-            for(var k=0; k<imgs.length; k++){
-               var inp=form.querySelector('[name="'+imgs[k]+'"]');
-               if(inp && inp.files[0]) totalImages++;
-            }
-            
-            // Compress images with progress
-            for(var k=0; k<imgs.length; k++){
-               var inp=form.querySelector('[name="'+imgs[k]+'"]');
-               if(inp && inp.files[0]){
-                  if(labelEl && totalImages > 0) {
-                    labelEl.textContent = "ضغط الصورة " + (compressedImages + 1) + " من " + totalImages;
-                  }
-                  var c = await compress(inp.files[0]);
-                  fd.append(imgs[k], c);
-                  compressedImages++;
-               }
-            }
-            
-            if(labelEl) labelEl.textContent = "جاري الرفع";
+             var fd = new FormData(form);
+             if(labelEl) labelEl.textContent = "جاري الرفع";
             
             var xhr = new XMLHttpRequest();
             xhr.open('POST', form.action||window.location.href, true);
+            xhr.timeout = 120000;
             var tok = form.querySelector('[name="csrfmiddlewaretoken"]');
             if(tok) xhr.setRequestHeader('X-CSRFToken', tok.value);
             xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
@@ -1646,6 +1583,8 @@
             
             xhr.onload=function(){
                if(xhr.status>=200 && xhr.status<400){
+                  form.dispatchEvent(new CustomEvent('tawtheeq:submit-success', {bubbles:true, detail:{form:form}}));
+                  window.dispatchEvent(new CustomEvent('tawtheeq:task-complete', {detail:{kind:'report'}}));
                   if(labelEl) labelEl.textContent = "تم بنجاح!";
                   pctEl.textContent="100%";
                   fill.style.width="100%";
@@ -1674,7 +1613,7 @@
                }
             };
              
-             xhr.onerror=function(){ 
+            xhr.onerror=function(){
               showValidationAlert(
                 ['تعذر الاتصال بالشبكة أثناء الحفظ، يرجى المحاولة مرة أخرى.'],
                 'انقطع الاتصال أثناء الحفظ، لذلك لم يكتمل إرسال التقرير.'
@@ -1682,6 +1621,16 @@
               overlay.style.display="none"; 
               overlay.setAttribute("aria-hidden","true");
               btn.disabled=false; 
+            };
+
+            xhr.ontimeout=function(){
+              showValidationAlert(
+                ['استغرق الرفع وقتًا أطول من المتوقع. بقيت المسودة والصور محفوظة على هذا الجهاز.'],
+                'لم يكتمل الحفظ بعد، ويمكنك إعادة المحاولة عند استقرار الاتصال.'
+              );
+              overlay.style.display="none";
+              overlay.setAttribute("aria-hidden","true");
+              btn.disabled=false;
             };
             
             xhr.send(fd);
@@ -1714,6 +1663,8 @@
     var KEY = "sr:draft:add_report:u{{ request.user.id|default:0 }}:s{{ request.session.active_school_id|default:0 }}";
     var form = document.getElementById("report-form");
     if(!form || !window.localStorage) return;
+    // لا نشغّل طبقة النص القديمة إلا لترحيل مسودة موجودة من إصدار سابق.
+    if(window.indexedDB){ try{ if(!localStorage.getItem(KEY)) return; }catch(e){ return; } }
 
     var banner = document.getElementById("draftBanner");
     var savedTag = document.getElementById("draftSaved");
@@ -1776,7 +1727,7 @@
           if(timeEl && parsed.t){ timeEl.textContent = "آخر حفظ: " + fmtTime(parsed.t); }
           var rb = document.getElementById("draftRestore");
           var db = document.getElementById("draftDiscard");
-          if(rb){ rb.addEventListener("click", function(){ fillFrom(parsed.d); if(banner){ banner.style.display="none"; } }); }
+          if(rb){ rb.addEventListener("click", function(){ fillFrom(parsed.d); try{ localStorage.removeItem(KEY); }catch(e){} if(banner){ banner.style.display="none"; } }); }
           if(db){ db.addEventListener("click", function(){ try{ localStorage.removeItem(KEY); }catch(e){} if(banner){ banner.style.display="none"; } }); }
         }
       }catch(e){}
@@ -1789,12 +1740,13 @@
       el.addEventListener("change", scheduleSave);
     });
 
-    // مسح المسودة عند الإرسال
-    form.addEventListener("submit", function(){
+    // لا تُمسح المسودة عند بدء الإرسال؛ مدير المسودات يمسحها بعد نجاح الخادم فقط.
+    form.addEventListener("tawtheeq:submit-success", function(){
       try{ localStorage.removeItem(KEY); }catch(e){}
     });
   })();
 </script>
+<script src="{% static 'js/report-evidence.js' %}?v=20260813.2" defer></script>
 
 
 {% endblock %}

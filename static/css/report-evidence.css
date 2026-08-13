@@ -1,0 +1,48 @@
+.report-evidence-editor {
+  --ree-green: #006c35;
+  --ree-ink: #17251f;
+  --ree-muted: #64736c;
+  --ree-line: #d8e2dc;
+  direction: rtl;
+}
+.ree-source-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ree-source-actions .ree-file-label { width: 100%; min-height: 44px; border: 0; cursor: pointer; }
+.ree-file-label--secondary { border: 1px solid var(--ree-line) !important; background: #fff !important; color: var(--ree-ink) !important; }
+@media (max-width: 420px) { .ree-source-actions { grid-template-columns: 1fr; } }
+.ree-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 16px; }
+.ree-heading h3 { margin: 0; color: var(--ree-ink); font-size: 1.05rem; font-weight: 900; }
+.ree-heading h3 i { color: var(--ree-green); margin-left: 7px; }
+.ree-heading p { margin: 5px 0 0; color: var(--ree-muted); font-size: .84rem; line-height: 1.7; }
+.ree-page-mode { min-width: 210px; }
+.ree-page-mode label, .ree-description > span, .ree-options label > span { display: block; margin-bottom: 6px; color: var(--ree-muted); font-size: .76rem; font-weight: 800; }
+.ree-page-mode select, .ree-fields input[type="text"], .ree-options select { width: 100%; min-height: 42px; border: 1px solid var(--ree-line); border-radius: 7px; background: #fff; color: var(--ree-ink); font: inherit; padding: 8px 10px; }
+.ree-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.ar-col-side .ree-list { grid-template-columns: 1fr; }
+.ree-card { min-width: 0; overflow: hidden; border: 1px solid var(--ree-line); border-radius: 8px; background: #fff; box-shadow: 0 8px 24px rgba(23, 37, 31, .06); }
+.ree-card-bar { height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-bottom: 1px solid var(--ree-line); background: #f7faf8; }
+.ree-number { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ree-green); color: #fff; font: 800 .72rem Arial, sans-serif; }
+.ree-order-actions { display: flex; gap: 4px; }
+.ree-order-actions button { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--ree-muted); cursor: pointer; }
+.ree-order-actions button:hover { background: #e8f3ed; color: var(--ree-green); }
+.ree-preview { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: #eef3f0; }
+.ree-preview img { width: 100%; height: 100%; display: block; object-fit: contain; background: #f4f7f5; }
+.ree-placeholder { width: 100%; height: 100%; display: grid; place-content: center; gap: 8px; text-align: center; color: #87948e; }
+.ree-placeholder i { font-size: 1.6rem; }
+.ree-ratio { position: absolute; left: 8px; bottom: 8px; min-height: 22px; padding: 3px 7px; border-radius: 5px; background: rgba(7, 61, 43, .86); color: #fff; direction: ltr; font: 700 .68rem Arial, sans-serif; }
+.ree-ratio:empty { display: none; }
+.ree-fields { display: grid; gap: 11px; padding: 12px; }
+.ree-fields input[type="file"] { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.ree-file-label { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px dashed #8aa99a; border-radius: 7px; background: #f4faf6; color: var(--ree-green); font-size: .82rem; font-weight: 900; cursor: pointer; }
+.ree-options { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.ree-switches { display: flex; flex-wrap: wrap; gap: 14px; }
+.ree-switches label { display: inline-flex; align-items: center; gap: 7px; color: var(--ree-ink); font-size: .78rem; font-weight: 800; cursor: pointer; }
+.ree-delete { color: #a12a2a !important; }
+.ree-file-note { min-height: 18px; color: var(--ree-muted); font-size: .72rem; }
+.ree-file-note.is-warning { color: #915900; }
+.ree-file-note.is-error, .ree-error { color: #b42318; font-size: .76rem; font-weight: 800; }
+.ree-card.is-deleted { opacity: .48; filter: grayscale(.7); }
+@media (max-width: 760px) {
+  .ree-heading { align-items: stretch; flex-direction: column; }
+  .ree-page-mode { min-width: 0; }
+  .ree-list { grid-template-columns: 1fr; }
+}

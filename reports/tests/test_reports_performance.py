@@ -40,7 +40,9 @@ class TeacherReportsQuerysetPerformanceTests(TestCase):
     def test_teacher_reports_queryset_uses_joined_relations_without_n_plus_one(self):
         qs = get_teacher_reports_queryset(user=self.teacher, active_school=self.school)
 
-        with self.assertNumQueries(1):
+        # One query loads reports and their joined relations; the second
+        # prefetches all evidence rows for the page without an N+1 penalty.
+        with self.assertNumQueries(2):
             rows = list(qs[:5])
             payload = [
                 (

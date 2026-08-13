@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from django.conf import settings
@@ -8,6 +9,7 @@ from django.test import SimpleTestCase
 class MobilePrintPreviewRegressionTests(SimpleTestCase):
     templates = (
         "reports/report_print.html",
+        "reports/meeting_print.html",
         "reports/ticket_print.html",
         "reports/pdf/leadership_portfolio.html",
     )
@@ -63,3 +65,57 @@ class MobilePrintPreviewRegressionTests(SimpleTestCase):
         self.assertIn(".footer{position:static", source)
         self.assertIn("@media print", source)
         self.assertIn("@page{size:A4", source)
+
+
+class ReportSignaturesAtPageBottomTests(SimpleTestCase):
+    """التواقيع في نهاية الورقة لا في نهاية النص.
+
+    التقرير القصير كان ينتهي في منتصف الصفحة والتواقيع ملتصقة بآخر سطر فتبدو
+    الوثيقة مبتورة. والعلاج كان مكتوباً أصلاً — فاصلٌ مرن داخل صفحة مرنة — لكنه
+    كان معطَّلاً بثلاث قواعد في ورقة الأنماط «الرسمية» التي تُحمَّل بعده:
+    ``display:block`` على ‎.page‎، و``min-height:auto`` عند الطباعة، وتصفير
+    الفاصل بـ``height:0``.
+
+    قِيس بعد الإصلاح في متصفّح حقيقي: التقرير القصير صفحة واحدة والتواقيع
+    ملاصقة لأسفلها، والتقرير الممتد لثلاث صفحات يتبع فيه التوقيعُ النصَّ بلا
+    صفحة فارغة.
+    """
+
+    OFFICIAL_STYLES = "reports/templates/reports/partials/report_print_official_styles.html"
+
+    @staticmethod
+    def _source(relative_path: str) -> str:
+        return (Path(settings.BASE_DIR) / relative_path).read_text(encoding="utf-8")
+
+    def setUp(self):
+        source = self._source(self.OFFICIAL_STYLES)
+        # كتلة الطباعة وحدها؛ قواعد الشاشة لا شأن لها بموضع التواقيع.
+        self.print_block = source.split("@media print {", 1)[1]
+
+    def test_the_printed_page_is_a_flex_column(self):
+        """بغير هذا لا يعمل الفاصل المرن مهما ضُبط."""
+        self.assertIn("display: flex;", self.print_block)
+        self.assertIn("flex-direction: column;", self.print_block)
+
+    def test_the_spacer_can_still_grow(self):
+        self.assertIn(".signature-spacer { flex: 1 1 auto;", self.print_block)
+        self.assertNotIn(".signature-spacer { min-height: 0; height: 0; }", self.print_block)
+
+    def test_the_page_height_matches_the_declared_page_margins(self):
+        """ارتفاع الصفحة مشتق من ``@page``؛ فإن تغيّر الهامش ولم يتبعه الارتفاع
+        ظهرت صفحة ثانية فارغة أو بقيت التواقيع مرتفعة عن أسفل الورقة."""
+        source = self._source(self.OFFICIAL_STYLES)
+        margin = re.search(r"@page \{[^}]*?margin:\s*([\d.]+)mm\s+[\d.]+mm\s+([\d.]+)mm", source, re.S)
+        self.assertIsNotNone(margin, "تعذّر قراءة هوامش @page")
+        top, bottom = margin.group(1), margin.group(2)
+
+        height = re.search(
+            r"min-height:\s*calc\(297mm\s*-\s*([\d.]+)mm\s*-\s*([\d.]+)mm\s*-\s*[\d.]+mm\)",
+            self.print_block,
+        )
+        self.assertIsNotNone(height, "ارتفاع صفحة الطباعة غير مشتق من مقاس A4")
+        self.assertEqual(
+            (height.group(1), height.group(2)),
+            (top, bottom),
+            "ارتفاع الصفحة لا يطابق هوامش @page المعلنة",
+        )

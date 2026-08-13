@@ -251,6 +251,37 @@ class TranscriptionRequestTests(TestCase):
         # اسم الملف يُصاغ على الخادم؛ اسم العميل لا يصل الترويسة أبدًا.
         self.assertIn(b'filename="report.webm"', body)
 
+    def test_meeting_transcription_uses_minutes_vocabulary_and_filename(self):
+        from reports.voice_report import transcribe_meeting_audio
+
+        captured = {}
+
+        def fake_urlopen(request, timeout=None):
+            captured["body"] = request.data
+            import json as _json
+
+            return self._fake_response(
+                _json.dumps({"text": "نوقشت الخطة وأوصت اللجنة بالمتابعة"}).encode("utf-8")
+            )
+
+        with patch("reports.voice_report.urlopen", fake_urlopen):
+            text = transcribe_meeting_audio(b"0" * 5000, "webm")
+
+        self.assertEqual(text, "نوقشت الخطة وأوصت اللجنة بالمتابعة")
+        self.assertIn(b'filename="meeting-minutes.webm"', captured["body"])
+        self.assertIn("القرار".encode("utf-8"), captured["body"])
+        self.assertIn("التوصية".encode("utf-8"), captured["body"])
+
+    def test_meeting_polish_keeps_raw_text_when_a_number_changes(self):
+        from reports.voice_report import polish_meeting_dictation
+
+        raw = "ناقشت اللجنة 3 توصيات واعتمدت تنفيذها خلال 5 أيام"
+        with patch(
+            "reports.voice_report._post",
+            return_value=self._polished("ناقشت اللجنة 4 توصيات واعتمدت تنفيذها خلال 5 أيام."),
+        ):
+            self.assertEqual(polish_meeting_dictation(raw), raw)
+
     def test_a_polish_failure_falls_back_to_the_raw_transcript(self):
         """تعثّر التجميل لا يجوز أن يضيّع كلام المعلّم."""
         from reports.voice_report import polish_dictation
@@ -260,3 +291,50 @@ class TranscriptionRequestTests(TestCase):
             side_effect=VoiceReportUnavailable("outage"),
         ):
             self.assertEqual(polish_dictation("نص خام بلا ترقيم"), "نص خام بلا ترقيم")
+
+    def _polished(self, text: str) -> dict:
+        return {
+            "output": [
+                {
+                    "type": "message",
+                    "content": [{"type": "output_text", "text": text}],
+                }
+            ]
+        }
+
+    def test_a_polish_that_changes_a_dictated_number_is_discarded(self):
+        """نصٌّ أنيق برقمٍ لم يقله المعلّم أسوأ من تفريغٍ بلا ترقيم."""
+        from reports.voice_report import polish_dictation
+
+        raw = "اليوم نفذت نشاط توعوي يعني وحضره ٤٥ طالب"
+
+        with patch(
+            "reports.voice_report._post",
+            return_value=self._polished("اليوم نُفِّذ نشاط توعوي وحضره 54 طالبًا."),
+        ):
+            self.assertEqual(polish_dictation(raw), raw)
+
+    def test_a_polish_that_keeps_the_numbers_is_accepted(self):
+        from reports.voice_report import polish_dictation
+
+        with patch(
+            "reports.voice_report._post",
+            return_value=self._polished("اليوم نُفِّذ نشاط توعوي وحضره 45 طالبًا."),
+        ):
+            polished = polish_dictation("اليوم نفذت نشاط توعوي يعني وحضره ٤٥ طالب")
+
+        self.assertEqual(polished, "اليوم نُفِّذ نشاط توعوي وحضره 45 طالبًا.")
+
+    def test_a_polish_that_swallows_most_of_the_dictation_is_discarded(self):
+        from reports.voice_report import polish_dictation
+
+        raw = (
+            "اليوم يعني نفذنا برنامج توعوي في الإذاعة المدرسية وشارك فيه معلمو القسم "
+            "وآآ تفاعل الطلاب معه بشكل جيد وحقق أهدافه"
+        )
+
+        with patch(
+            "reports.voice_report._post",
+            return_value=self._polished("نُفِّذ برنامج توعوي."),
+        ):
+            self.assertEqual(polish_dictation(raw), raw)

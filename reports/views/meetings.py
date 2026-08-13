@@ -11,20 +11,29 @@
 """
 from __future__ import annotations
 
+import json
+import logging
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Max, Q
-from django.http import Http404
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
 from .. import capabilities as caps
+from ..ai_features import (
+    FEATURE_REPORT_IMPROVEMENT,
+    FEATURE_VOICE_REPORT,
+    platform_ai_toggle_enabled,
+)
 from ..forms_meetings import (
     AgendaItemForm,
     DecisionForm,
@@ -33,6 +42,16 @@ from ..forms_meetings import (
 )
 from ..models import Meeting, MeetingAgendaItem, MeetingAttendee
 from ..permissions import capability_source, is_school_manager
+from ..report_ai import (
+    REPORT_AI_DAILY_LIMIT,
+    ReportAIError,
+    ReportAIUnavailable,
+    improve_meeting_minutes_text,
+    release_report_ai_daily_slot,
+    report_ai_daily_remaining,
+    reserve_report_ai_daily_slot,
+    validate_meeting_minutes_text,
+)
 from ..services_approval import (
     ACTION_DISPATCH,
     ApprovalError,
@@ -49,17 +68,76 @@ from ..services_meetings import (
     meetings_for_user,
     set_attendance,
 )
+from ..voice_report import (
+    VoiceReportError,
+    VoiceReportUnavailable,
+    is_enabled as voice_report_is_enabled,
+    polish_meeting_dictation,
+    release_voice_report_daily_slot,
+    reserve_voice_report_daily_slot,
+    transcribe_meeting_audio,
+    validate_audio_upload,
+    voice_report_daily_limit,
+    voice_report_daily_remaining,
+)
 from ._helpers import *  # noqa: F401,F403
 from ._helpers import _get_active_school
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "meeting_list",
     "meeting_create",
     "meeting_detail",
     "meeting_print",
+    "meeting_pdf",
     "meeting_action",
+    "improve_meeting_minutes",
+    "transcribe_meeting_minutes_voice",
     "minutes_approval_action",
 ]
+
+
+def _meeting_ai_feature_enabled() -> bool:
+    return bool(
+        platform_ai_toggle_enabled(FEATURE_REPORT_IMPROVEMENT)
+        and getattr(settings, "REPORT_AI_ENABLED", False)
+        and str(getattr(settings, "OPENAI_API_KEY", "") or "").strip()
+    )
+
+
+def _meeting_voice_feature_enabled() -> bool:
+    return bool(
+        platform_ai_toggle_enabled(FEATURE_VOICE_REPORT)
+        and voice_report_is_enabled()
+    )
+
+
+def _meeting_assistant_context(user) -> dict[str, int | bool]:
+    return {
+        "report_ai_enabled": _meeting_ai_feature_enabled(),
+        "report_ai_daily_limit": REPORT_AI_DAILY_LIMIT,
+        "report_ai_daily_remaining": report_ai_daily_remaining(user.pk),
+        "voice_report_enabled": _meeting_voice_feature_enabled(),
+        "voice_report_daily_limit": voice_report_daily_limit(),
+        "voice_report_daily_remaining": voice_report_daily_remaining(user.pk),
+        "voice_report_max_seconds": int(getattr(settings, "VOICE_REPORT_MAX_SECONDS", 180)),
+        "voice_report_max_bytes": int(
+            getattr(settings, "VOICE_REPORT_MAX_BYTES", 10 * 1024 * 1024)
+        ),
+        "voice_report_pwa_only": bool(getattr(settings, "VOICE_REPORT_PWA_ONLY", True)),
+    }
+
+
+def _request_is_from_installed_app(request: HttpRequest) -> bool:
+    surface = (request.headers.get("X-Tawtheeq-Surface") or "").strip().lower()
+    return surface == "standalone"
+
+
+def _meeting_ai_json(payload: dict, *, status: int = 200) -> JsonResponse:
+    response = JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 def _school_or_redirect(request):
@@ -153,7 +231,9 @@ def meeting_create(request):
             for person in form.cleaned_data["attendees"]:
                 MeetingAttendee.objects.create(meeting=meeting, person=person)
         messages.success(request, "أُنشئ الاجتماع ووُجّهت الدعوات.")
-        return redirect("reports:meeting_detail", pk=meeting.pk)
+        target = reverse("reports:meeting_detail", kwargs={"pk": meeting.pk})
+        draft_key = f"meeting-create-u{request.user.pk}-s{getattr(school, 'pk', 0) or 0}"
+        return redirect(f"{target}?draft_saved={draft_key}")
 
     if request.method == "POST":
         messages.error(request, "تعذّر إنشاء الاجتماع — تحقّق من الحقول.")
@@ -185,6 +265,9 @@ def meeting_detail(request, pk: int):
         if minutes is not None
         else []
     )
+    can_edit_minutes = bool(
+        is_organizer and minutes is not None and minutes.is_editable_by_owner
+    )
 
     return render(
         request,
@@ -194,6 +277,7 @@ def meeting_detail(request, pk: int):
             "active_school": school,
             "meeting": meeting,
             "is_organizer": is_organizer,
+            "can_edit_minutes": can_edit_minutes,
             "agenda": list(meeting.agenda_items.all()),
             "attendees": list(meeting.attendees.select_related("person")),
             "attendance": meeting.attendance_summary,
@@ -205,6 +289,7 @@ def meeting_detail(request, pk: int):
             "agenda_form": AgendaItemForm(),
             "decision_form": DecisionForm(meeting=meeting),
             "decisions": decision_followup_rows(meeting),
+            **(_meeting_assistant_context(request.user) if can_edit_minutes else {}),
         },
     )
 
@@ -224,24 +309,244 @@ def meeting_print(request, pk: int):
 
     meeting = _meeting_for(request, pk, school)
 
-    moe_logo_url = (getattr(settings, "MOE_LOGO_URL", "") or "").strip()
-    if not moe_logo_url:
-        moe_logo_url = static("img/UntiTtled-1.png")
+    from ..pdf_meeting import build_meeting_print_context
 
     return render(
         request,
         "reports/meeting_print.html",
+        build_meeting_print_context(meeting, active_school=school),
+    )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def meeting_pdf(request, pk: int):
+    """تنزيل محضر PDF مولّد من القالب الرسمي نفسه."""
+    school, redirect_response = _school_or_redirect(request)
+    if redirect_response is not None:
+        return redirect_response
+    meeting = _meeting_for(request, pk, school)
+    try:
+        from ..pdf_meeting import generate_meeting_pdf
+
+        pdf_bytes, filename = generate_meeting_pdf(request=request, meeting=meeting)
+    except Exception:
+        logger.exception("Failed to render meeting PDF meeting_id=%s", meeting.pk)
+        return HttpResponse(
+            "تعذر توليد ملف PDF حاليًا.",
+            status=503,
+            content_type="text/plain; charset=utf-8",
+        )
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+def _editable_minutes_or_error(request, meeting):
+    minutes = getattr(meeting, "minutes", None)
+    if meeting.organizer_id != request.user.pk:
+        return None, _meeting_ai_json(
+            {"ok": False, "message": "تحرير المحضر متاح لمنظّم الاجتماع فقط."},
+            status=403,
+        )
+    if minutes is None or not meeting.is_held:
+        return None, _meeting_ai_json(
+            {"ok": False, "message": "سجّل انعقاد الاجتماع أولًا لفتح المحضر."},
+            status=409,
+        )
+    if not minutes.is_editable_by_owner:
+        return None, _meeting_ai_json(
+            {"ok": False, "message": "المحضر ليس في حالة تسمح بتعديله."},
+            status=409,
+        )
+    return minutes, None
+
+
+@login_required(login_url="reports:login")
+@never_cache
+@require_http_methods(["POST"])
+def improve_meeting_minutes(request: HttpRequest, pk: int) -> JsonResponse:
+    """يعيد معاينة محسنة للمحضر دون تعديل المسودة المحفوظة."""
+    if not _meeting_ai_feature_enabled():
+        return _meeting_ai_json(
+            {"ok": False, "message": "ميزة تحسين المحاضر غير متاحة حاليًا."},
+            status=404,
+        )
+
+    school, redirect_response = _school_or_redirect(request)
+    if redirect_response is not None:
+        return redirect_response
+    meeting = _meeting_for(request, pk, school)
+    _minutes, error = _editable_minutes_or_error(request, meeting)
+    if error is not None:
+        return error
+
+    if request.content_type != "application/json":
+        return _meeting_ai_json(
+            {"ok": False, "message": "صيغة الطلب غير صحيحة."}, status=415
+        )
+    if len(request.body) > 30000:
+        return _meeting_ai_json(
+            {"ok": False, "message": "نص المحضر أطول من الحد المسموح."},
+            status=413,
+        )
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        payload = None
+    if not isinstance(payload, dict):
+        return _meeting_ai_json(
+            {"ok": False, "message": "تعذر قراءة نص المحضر."}, status=400
+        )
+
+    try:
+        original_text = validate_meeting_minutes_text(payload.get("text"))
+    except ReportAIError as exc:
+        return _meeting_ai_json({"ok": False, "message": str(exc)}, status=400)
+
+    try:
+        remaining = reserve_report_ai_daily_slot(request.user.pk)
+    except ReportAIUnavailable as exc:
+        return _meeting_ai_json({"ok": False, "message": str(exc)}, status=503)
+    if remaining is None:
+        return _meeting_ai_json(
+            {
+                "ok": False,
+                "message": "استخدمت تحسيناتك الثلاثة المتاحة اليوم. يعود الرصيد تلقائيًا غدًا.",
+                "remaining": 0,
+                "daily_limit": REPORT_AI_DAILY_LIMIT,
+            },
+            status=429,
+        )
+
+    try:
+        improved_text = improve_meeting_minutes_text(original_text)
+    except ReportAIUnavailable as exc:
+        release_report_ai_daily_slot(request.user.pk)
+        return _meeting_ai_json(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": report_ai_daily_remaining(request.user.pk),
+                "daily_limit": REPORT_AI_DAILY_LIMIT,
+            },
+            status=503,
+        )
+    except ReportAIError as exc:
+        release_report_ai_daily_slot(request.user.pk)
+        return _meeting_ai_json(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": report_ai_daily_remaining(request.user.pk),
+                "daily_limit": REPORT_AI_DAILY_LIMIT,
+            },
+            status=400,
+        )
+
+    return _meeting_ai_json(
         {
-            "active_school": school,
-            "meeting": meeting,
-            "agenda": list(meeting.agenda_items.all()),
-            "attendees": list(meeting.attendees.select_related("person")),
-            "attendance": meeting.attendance_summary,
-            "minutes": getattr(meeting, "minutes", None),
-            "decisions": decision_followup_rows(meeting),
-            "now": timezone.localtime(timezone.now()),
-            "MOE_LOGO_URL": moe_logo_url,
-        },
+            "ok": True,
+            "improved_text": improved_text,
+            "remaining": remaining,
+            "daily_limit": REPORT_AI_DAILY_LIMIT,
+        }
+    )
+
+
+@login_required(login_url="reports:login")
+@never_cache
+@ratelimit(key="user", rate="6/m", method="POST", block=True)
+@require_http_methods(["POST"])
+def transcribe_meeting_minutes_voice(request: HttpRequest, pk: int) -> JsonResponse:
+    """يفرّغ التسجيل وينظّمه كمحضر مقترح دون حفظ الملف أو النص."""
+    if not _meeting_voice_feature_enabled():
+        return _meeting_ai_json(
+            {"ok": False, "message": "خدمة التسجيل الصوتي للمحاضر غير متاحة حاليًا."},
+            status=404,
+        )
+
+    school, redirect_response = _school_or_redirect(request)
+    if redirect_response is not None:
+        return redirect_response
+    meeting = _meeting_for(request, pk, school)
+    _minutes, error = _editable_minutes_or_error(request, meeting)
+    if error is not None:
+        return error
+
+    if getattr(settings, "VOICE_REPORT_PWA_ONLY", True) and not _request_is_from_installed_app(request):
+        return _meeting_ai_json(
+            {
+                "ok": False,
+                "message": "التسجيل الصوتي متاح داخل تطبيق توثيق المثبّت على جهازك.",
+                "reason": "pwa_required",
+            },
+            status=403,
+        )
+
+    limit = voice_report_daily_limit()
+    try:
+        audio_bytes, extension = validate_audio_upload(request.FILES.get("audio"))
+    except VoiceReportError as exc:
+        return _meeting_ai_json(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": voice_report_daily_remaining(request.user.pk),
+                "daily_limit": limit,
+            },
+            status=400,
+        )
+
+    try:
+        remaining = reserve_voice_report_daily_slot(request.user.pk)
+    except VoiceReportUnavailable as exc:
+        return _meeting_ai_json({"ok": False, "message": str(exc)}, status=503)
+    if remaining is None:
+        return _meeting_ai_json(
+            {
+                "ok": False,
+                "message": f"استخدمت تسجيلاتك الـ{limit} المتاحة اليوم. يعود الرصيد تلقائيًا غدًا.",
+                "remaining": 0,
+                "daily_limit": limit,
+            },
+            status=429,
+        )
+
+    try:
+        raw_text = transcribe_meeting_audio(audio_bytes, extension)
+        text = polish_meeting_dictation(raw_text)
+    except VoiceReportUnavailable as exc:
+        release_voice_report_daily_slot(request.user.pk)
+        return _meeting_ai_json(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": voice_report_daily_remaining(request.user.pk),
+                "daily_limit": limit,
+            },
+            status=503,
+        )
+    except VoiceReportError as exc:
+        release_voice_report_daily_slot(request.user.pk)
+        return _meeting_ai_json(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": voice_report_daily_remaining(request.user.pk),
+                "daily_limit": limit,
+            },
+            status=400,
+        )
+
+    return _meeting_ai_json(
+        {
+            "ok": True,
+            "text": text,
+            "raw_text": raw_text,
+            "remaining": remaining,
+            "daily_limit": limit,
+        }
     )
 
 
@@ -255,6 +560,7 @@ def meeting_action(request, pk: int):
 
     meeting = _meeting_for(request, pk, school)
     action = (request.POST.get("meeting_action") or "").strip()
+    saved_draft_key = ""
 
     try:
         if action == "add_agenda":
@@ -300,6 +606,8 @@ def meeting_action(request, pk: int):
             messages.success(request, "سُجِّل الحضور.")
 
         elif action == "save_minutes":
+            if meeting.organizer_id != request.user.pk:
+                raise PermissionDenied("تحرير المحضر متاح لمنظّم الاجتماع فقط.")
             minutes = ensure_minutes(meeting, recorder=request.user)
             if minutes.recorder_id not in (None, request.user.pk):
                 raise PermissionDenied("المحضر يكتبه من فُتح باسمه.")
@@ -314,6 +622,7 @@ def meeting_action(request, pk: int):
                     obj.recorder = request.user
                 obj.save()
                 messages.success(request, "حُفظ المحضر.")
+                saved_draft_key = f"meeting-minutes-{meeting.pk}-u{request.user.pk}"
 
         elif action == "add_decision":
             if meeting.organizer_id != request.user.pk:
@@ -348,7 +657,10 @@ def meeting_action(request, pk: int):
         detail = getattr(exc, "messages", None) or [str(exc)]
         messages.error(request, detail[0])
 
-    return redirect("reports:meeting_detail", pk=pk)
+    target = reverse("reports:meeting_detail", kwargs={"pk": pk})
+    if saved_draft_key:
+        target = f"{target}?draft_saved={saved_draft_key}"
+    return redirect(target)
 
 
 @login_required(login_url="reports:login")

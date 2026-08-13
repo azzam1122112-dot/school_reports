@@ -581,7 +581,8 @@ body.guide-drawer-open {
   margin-top: 3px;
   overflow: hidden;
   color: var(--guide-muted);
-  font-size: .65rem;
+  /* وصفُ التبويب في دليل الاستخدام: ‎.65rem‎ = ‎10.4px‎ على الجوال. */
+  font-size: .72rem;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -790,7 +791,7 @@ body.guide-drawer-open {
   border-radius: 999px;
   color: var(--guide-green-800);
   background: var(--guide-green-50);
-  font-size: .68rem;
+  font-size: .72rem;
   font-weight: 900;
 }
 
@@ -1421,13 +1422,24 @@ body.guide-drawer-open {
   gap: 16px;
 }
 
-.guide-footer__inner > div a {
+.guide-footer__inner > div a,
+.guide-install {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
   color: var(--guide-muted);
   font-size: .7rem;
   font-weight: 800;
+}
+
+/* زرّ التثبيت يقف بين روابط التذييل فيرث مظهرها. */
+.guide-install {
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .back-to-top {

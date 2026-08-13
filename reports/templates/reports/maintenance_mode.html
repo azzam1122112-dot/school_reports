@@ -3,27 +3,67 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#006c35">
   <meta name="color-scheme" content="light dark">
   {% include "reports/partials/theme_bootstrap.html" %}
-  <!-- إعادة محاولة تلقائية: تعود المنصة للمستخدم فور انتهاء الصيانة دون أي إجراء منه -->
+  {% comment %}
+  إعادة المحاولة مضمونة بترويسة المتصفّح لا بالجافاسكربت: صفحةٌ تُعرض أثناء
+  عطل يجب أن تعود وحدها حتى لو حُجب السكربت. والحلقة أدناه تعرض العدّ نفسه
+  بصرياً، فإن غاب السكربت بقيت الترويسة تعمل بصمت.
+  {% endcomment %}
   <meta http-equiv="refresh" content="60">
   <title>الموقع تحت الصيانة والتطوير</title>
   {% include "reports/partials/pwa_install_head.html" %}
+  <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
   <style nonce="{{ CSP_NONCE }}">
+    /* اللوحة الفاتحة. والقيم الداكنة تطابق ما تفرضه dark-mode.css على
+       ‎.main-panel‎ و‎.status-panel‎ حتى لا تتنازع الطبقتان على اللون. */
     :root {
       --brand: #006c35;
-      --brand-dark: #064e3b;
+      --brand-deep: #064e3b;
+      --brand-night: #04301f;
       --brand-soft: #ecf8f1;
       --gold: #b9975b;
-      --gold-soft: #fbf4e6;
-      --ink: #101828;
-      --muted: #667085;
-      --line: #dce8df;
-      --paper: #ffffff;
-      --shadow: 0 28px 90px rgba(16, 24, 40, .12);
+      --gold-bright: #e6cf9a;
+      --gold-soft: #fbf6ec;
+      --gold-ink: #8a6a2b;
+      --ink: #10231b;
+      --muted: #647a70;
+      --line: #dfe9e3;
+      --surface: #ffffff;
+      --surface-sunken: #f5f9f7;
+      --canvas: #eef4f0;
+      --shadow: 0 34px 90px rgba(12, 40, 28, .16);
+    }
+    html[data-theme="dark"] {
+      --brand-soft: rgba(0, 108, 53, .22);
+      --gold-soft: #2b2719;
+      --gold-ink: #d6c59d;
+      --ink: #edf6f1;
+      --muted: #a9bfb5;
+      --line: rgba(205, 225, 216, .18);
+      --surface: #0d241d;
+      --surface-sunken: #102920;
+      --canvas: #05140f;
+      --shadow: 0 34px 90px rgba(0, 0, 0, .5);
+    }
+    /* شبكة أمان إن حُجب سكربت السمة: النظام وحده يقرر. */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --brand-soft: rgba(0, 108, 53, .22);
+        --gold-soft: #2b2719;
+        --gold-ink: #d6c59d;
+        --ink: #edf6f1;
+        --muted: #a9bfb5;
+        --line: rgba(205, 225, 216, .18);
+        --surface: #0d241d;
+        --surface-sunken: #102920;
+        --canvas: #05140f;
+        --shadow: 0 34px 90px rgba(0, 0, 0, .5);
+      }
     }
 
     * { box-sizing: border-box; }
@@ -31,51 +71,53 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: Tahoma, Arial, sans-serif;
-      color: var(--ink);
-      background:
-        linear-gradient(160deg, rgba(255,255,255,.92), rgba(238,247,242,.86)),
-        radial-gradient(circle at 78% 12%, rgba(0,108,53,.16), transparent 30%),
-        radial-gradient(circle at 12% 88%, rgba(185,151,91,.16), transparent 28%);
+      min-height: 100dvh;
       display: grid;
       place-items: center;
       padding: clamp(14px, 3vw, 34px);
+      color: var(--ink);
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background:
+        radial-gradient(60% 55% at 82% 6%, rgba(0, 108, 53, .16), transparent 62%),
+        radial-gradient(52% 48% at 10% 92%, rgba(185, 151, 91, .18), transparent 60%),
+        var(--canvas);
     }
 
     .maintenance-shell {
       width: min(1120px, 100%);
-      min-height: min(760px, calc(100vh - 48px));
       display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
-      gap: clamp(16px, 2vw, 24px);
+      grid-template-columns: minmax(0, 1.32fr) minmax(288px, .68fr);
+      gap: clamp(16px, 2vw, 22px);
       align-items: stretch;
     }
 
     .main-panel,
     .status-panel {
-      background: rgba(255,255,255,.92);
-      border: 1px solid rgba(185,151,91,.24);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: var(--surface);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
     }
 
     .main-panel {
-      border-radius: 26px;
-      padding: clamp(24px, 5vw, 54px);
-      position: relative;
-      overflow: hidden;
+      padding: clamp(26px, 5vw, 54px);
       display: grid;
       align-content: center;
     }
 
+    /* خيط ذهبي يمسح ببطء — الإشارة الوحيدة المتحرّكة في اللوحة الرئيسية. */
     .main-panel::before {
       content: "";
       position: absolute;
-      inset-inline: 28px;
+      inset-inline: 0;
       top: 0;
-      height: 5px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, var(--gold), var(--brand), #78c29b);
+      height: 4px;
+      background: linear-gradient(90deg, transparent, var(--gold) 22%, var(--gold-bright) 50%, var(--gold) 78%, transparent);
+      background-size: 220% 100%;
+      animation: mtShimmer 7s linear infinite;
     }
 
     .brand-row {
@@ -83,288 +125,295 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: clamp(24px, 4vw, 42px);
+      margin-bottom: clamp(22px, 4vw, 38px);
     }
 
-    .brand-copy {
-      min-width: 0;
-    }
+    .brand-copy { min-width: 0; }
 
     .brand-name {
-      margin: 0 0 8px;
-      color: var(--brand-dark);
-      font-size: clamp(.98rem, 2vw, 1.1rem);
-      font-weight: 950;
+      margin: 0 0 9px;
+      color: var(--ink);
+      font-size: clamp(1rem, 2vw, 1.14rem);
+      font-weight: 900;
+      letter-spacing: -.2px;
+    }
+    .brand-name small {
+      display: block;
+      margin-top: 3px;
+      color: var(--gold-ink);
+      font-size: .74rem;
+      font-weight: 700;
     }
 
     .logo {
-      width: 64px;
-      height: 64px;
+      flex: 0 0 auto;
+      width: 66px;
+      height: 66px;
+      padding: 10px;
+      border: 1px solid var(--line);
       border-radius: 20px;
-      border: 1px solid rgba(0,108,53,.16);
       background: #fff;
       object-fit: contain;
-      padding: 9px;
-      box-shadow: 0 16px 36px rgba(16,24,40,.10);
-      flex: 0 0 auto;
+      box-shadow: 0 16px 36px rgba(12, 40, 28, .12);
     }
 
     .status-pill {
       display: inline-flex;
       align-items: center;
       gap: 9px;
-      min-height: 36px;
-      padding: 7px 13px;
+      min-height: 34px;
+      padding: 6px 14px;
+      border: 1px solid rgba(0, 108, 53, .18);
       border-radius: 999px;
-      color: var(--brand-dark);
+      color: var(--brand);
       background: var(--brand-soft);
-      border: 1px solid rgba(0,108,53,.16);
-      font-size: .9rem;
-      font-weight: 900;
+      font-size: .82rem;
+      font-weight: 800;
     }
+    html[data-theme="dark"] .status-pill { color: #7fd0a4; border-color: rgba(127, 208, 164, .26); }
 
     .status-dot {
-      width: 10px;
-      height: 10px;
+      flex: 0 0 auto;
+      width: 9px;
+      height: 9px;
       border-radius: 999px;
       background: var(--gold);
-      box-shadow: 0 0 0 6px rgba(185,151,91,.16);
-      flex: 0 0 auto;
+      box-shadow: 0 0 0 5px rgba(185, 151, 91, .18);
+      animation: mtPulse 2.2s ease-in-out infinite;
     }
 
     h1 {
       margin: 0;
-      max-width: 10ch;
-      color: #111827;
-      font-size: clamp(2.5rem, 8vw, 5.6rem);
-      line-height: .98;
-      letter-spacing: 0;
-      font-weight: 950;
+      max-width: 17ch;
+      color: var(--ink);
+      font-size: clamp(1.85rem, 4vw, 3.15rem);
+      /* العربية تحتاج فسحةً رأسية أكبر من اللاتينية: مع 1.04 كانت همزة
+         «الصيانة» تلامس السطر الذي فوقها. */
+      line-height: 1.32;
+      font-weight: 900;
+      letter-spacing: -.6px;
     }
 
     .lead {
-      margin: 22px 0 0;
-      max-width: 58ch;
+      margin: 20px 0 0;
+      max-width: 56ch;
       color: var(--muted);
-      font-size: clamp(1.02rem, 2.2vw, 1.25rem);
+      font-size: clamp(1rem, 2.1vw, 1.16rem);
       line-height: 1.95;
-      font-weight: 800;
+      font-weight: 600;
     }
 
     .message {
-      margin-top: clamp(22px, 4vw, 34px);
-      padding: clamp(18px, 3vw, 28px);
-      border-radius: 18px;
-      border: 1px solid rgba(0,108,53,.18);
-      background:
-        linear-gradient(135deg, rgba(236,248,241,.92), rgba(255,251,244,.86));
-      color: var(--brand-dark);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+      margin-top: clamp(22px, 4vw, 32px);
+      padding: clamp(18px, 3vw, 26px);
+      border: 1px solid rgba(185, 151, 91, .3);
+      border-inline-start: 4px solid var(--gold);
+      border-radius: 16px;
+      color: var(--gold-ink);
+      background: var(--gold-soft);
     }
-
     .message h1,
     .message h2,
     .message h3 {
-      margin: 0 0 12px;
+      margin: 0 0 10px;
       max-width: none;
-      color: var(--brand-dark);
-      font-size: clamp(1.32rem, 3vw, 1.75rem);
-      line-height: 1.45;
-      font-weight: 950;
+      color: var(--ink);
+      font-size: clamp(1.24rem, 3vw, 1.6rem);
+      line-height: 1.5;
+      font-weight: 900;
+      letter-spacing: -.4px;
     }
-
-    .message p {
-      margin: 0 0 14px;
-      color: #064e3b;
-      font-size: clamp(1rem, 2vw, 1.08rem);
-      line-height: 2;
-      font-weight: 800;
-    }
-
+    .message p { margin: 0 0 12px; font-size: clamp(.96rem, 2vw, 1.04rem); line-height: 2; font-weight: 600; }
     .message p:last-child { margin-bottom: 0; }
-    .message strong { color: #002f24; font-weight: 950; }
-    .message ul { margin: 0 0 14px; padding: 0 1.25rem 0 0; }
-    .message li { margin: 6px 0; color: #064e3b; line-height: 1.9; font-weight: 800; }
+    .message strong { color: var(--ink); font-weight: 900; }
+    .message ul { margin: 0 0 12px; padding: 0 1.15rem 0 0; }
+    .message li { margin: 6px 0; line-height: 1.9; font-weight: 600; }
 
+    /* ── اللوحة الجانبية ─────────────────────────────────────────────── */
     .status-panel {
-      border-radius: 24px;
-      padding: clamp(20px, 3vw, 30px);
+      padding: clamp(22px, 3vw, 30px);
       display: grid;
-      align-content: center;
-      gap: 22px;
-      position: relative;
-      overflow: hidden;
+      align-content: start;
+      gap: 20px;
     }
-
     .status-panel::after {
       content: "";
       position: absolute;
-      inset-inline: 26px;
+      inset-inline: 0;
       bottom: 0;
-      height: 4px;
-      border-radius: 999px;
+      height: 3px;
       background: linear-gradient(90deg, transparent, var(--gold), transparent);
     }
 
-    .tool-icon {
-      width: 74px;
-      height: 74px;
-      border-radius: 22px;
+    /* حلقة العدّ التنازلي: تعرض المهلة نفسها التي تحملها ترويسة التحديث. */
+    .countdown {
+      /* القيمة الابتدائية هنا لا في سمة ``style``: ميزانية الأنماط المضمَّنة
+         بلغت واحداً، وإضافة سمة جديدة تُسقط حارسها. والجافاسكربت يكتبها بعد
+         ذلك عبر ``setProperty`` وهو مسار لا يحكمه ``style-src``. */
+      --progress: 100;
+      justify-self: center;
+      position: relative;
       display: grid;
       place-items: center;
-      background: linear-gradient(135deg, var(--brand), #008f58);
-      color: #fff;
-      box-shadow: 0 18px 42px rgba(0,108,53,.24);
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      background:
+        conic-gradient(var(--brand) calc(var(--progress) * 1%), rgba(120, 145, 133, .16) 0);
+      transition: background .95s linear;
+    }
+    .countdown::before {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-radius: 50%;
+      background: var(--surface);
+      box-shadow: inset 0 2px 10px rgba(12, 40, 28, .07);
+    }
+    .countdown-value {
+      position: relative;
+      color: var(--ink);
+      font-size: 1.75rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -.5px;
+    }
+    /* التسمية تحت الحلقة لا داخلها: عرض النص العربي يتجاوز قطر الدائرة
+       الداخلية فيطفح فوق حافة الحلقة. */
+    .countdown-label {
+      justify-self: center;
+      margin: -8px 0 2px;
+      color: var(--muted);
+      font-size: .74rem;
+      font-weight: 800;
     }
 
-    .tool-icon svg {
-      width: 36px;
-      height: 36px;
-      display: block;
+    .tool-icon {
+      justify-self: center;
+      display: grid;
+      place-items: center;
+      width: 62px;
+      height: 62px;
+      border-radius: 20px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand), var(--brand-night));
+      box-shadow: 0 16px 36px rgba(0, 108, 53, .26);
+      animation: mtFloat 4.5s ease-in-out infinite;
     }
+    .tool-icon svg { display: block; width: 30px; height: 30px; }
 
     .side-title {
-      margin: 0;
-      font-size: 1.15rem;
-      font-weight: 950;
-      color: var(--brand-dark);
+      margin: 0 0 12px;
+      color: var(--ink);
+      font-size: 1.02rem;
+      font-weight: 900;
     }
 
-    .steps {
-      display: grid;
-      gap: 12px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-
+    .steps { display: grid; gap: 11px; margin: 0; padding: 0; list-style: none; }
     .steps li {
       display: grid;
-      grid-template-columns: 34px minmax(0, 1fr);
+      grid-template-columns: 30px minmax(0, 1fr);
       gap: 10px;
       align-items: start;
       color: var(--muted);
-      font-weight: 850;
-      line-height: 1.72;
+      font-size: .87rem;
+      font-weight: 650;
+      line-height: 1.78;
     }
-
     .step-mark {
-      width: 34px;
-      height: 34px;
-      border-radius: 999px;
-      background: var(--gold-soft);
-      color: #8a6a2d;
       display: grid;
       place-items: center;
-      font-weight: 950;
-      font-size: .88rem;
-      border: 1px solid rgba(185,151,91,.22);
+      width: 30px;
+      height: 30px;
+      border: 1px solid rgba(185, 151, 91, .3);
+      border-radius: 999px;
+      color: var(--gold-ink);
+      background: var(--gold-soft);
+      font-size: .8rem;
+      font-weight: 900;
     }
 
     .refresh-note {
-      margin: 2px 0 0;
-      color: var(--brand-dark);
-      background: rgba(0,108,53,.065);
-      border: 1px solid rgba(0,108,53,.10);
-      border-radius: 14px;
-      padding: 13px 14px;
-      font-size: .94rem;
+      margin: 0;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      color: var(--muted);
+      background: var(--surface-sunken);
+      font-size: .82rem;
+      font-weight: 650;
       line-height: 1.85;
-      font-weight: 850;
     }
 
-    @media (max-width: 820px) {
-      body { align-items: start; }
-
-      .maintenance-shell {
-        grid-template-columns: 1fr;
-        min-height: auto;
-      }
-
-      h1 { max-width: 12ch; }
-
-      .status-panel {
-        align-content: start;
-      }
-    }
-
-    @media (max-width: 520px) {
-      body { padding: 10px; }
-
-      .main-panel,
-      .status-panel {
-        border-radius: 18px;
-      }
-
-      .brand-row {
-        align-items: flex-start;
-        margin-bottom: 24px;
-      }
-
-      .logo {
-        width: 54px;
-        height: 54px;
-        border-radius: 16px;
-      }
-
-      .message {
-        padding: 16px;
-      }
-    }
-
-    /* ===== حركات لطيفة تُضفي إحساساً بالحياة دون إزعاج ===== */
-    @keyframes mtPulse {
-      0%, 100% { box-shadow: 0 0 0 6px rgba(185,151,91,.16); }
-      50%      { box-shadow: 0 0 0 11px rgba(185,151,91,.05); }
-    }
-    @keyframes mtFloat {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-7px); }
-    }
-    @keyframes mtShimmer {
-      0%   { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
-    .status-dot { animation: mtPulse 2.2s ease-in-out infinite; }
-    .tool-icon  { animation: mtFloat 4.5s ease-in-out infinite; }
-    .main-panel::before {
-      background: linear-gradient(90deg, var(--gold), var(--brand), #78c29b, var(--gold), var(--brand));
-      background-size: 200% 100%;
-      animation: mtShimmer 6s linear infinite;
-    }
-
-    /* زر المحاولة الآن */
     .retry-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 9px;
-      min-height: 46px;
+      min-height: 48px;
       padding: 11px 20px;
       border-radius: 14px;
-      text-decoration: none;
-      font-weight: 950;
-      font-size: 1rem;
       color: #fff;
-      background: linear-gradient(135deg, var(--brand), #008f58);
-      box-shadow: 0 14px 30px rgba(0,108,53,.22);
+      background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+      box-shadow: 0 14px 30px rgba(0, 108, 53, .24);
+      text-decoration: none;
+      font-size: .95rem;
+      font-weight: 800;
       transition: transform .15s ease, box-shadow .15s ease;
     }
-    .retry-btn:hover { transform: translateY(-2px); box-shadow: 0 18px 36px rgba(0,108,53,.28); }
-    .retry-btn svg { width: 19px; height: 19px; }
+    .retry-btn:hover { transform: translateY(-2px); box-shadow: 0 18px 38px rgba(0, 108, 53, .3); }
+    .retry-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+    .retry-btn svg { width: 18px; height: 18px; }
 
     .auto-note {
       margin: 0;
       color: var(--muted);
-      font-size: .86rem;
-      font-weight: 800;
+      font-size: .78rem;
+      font-weight: 650;
       text-align: center;
+      line-height: 1.8;
+    }
+
+    @keyframes mtPulse {
+      0%, 100% { box-shadow: 0 0 0 5px rgba(185, 151, 91, .18); }
+      50%      { box-shadow: 0 0 0 10px rgba(185, 151, 91, .04); }
+    }
+    @keyframes mtFloat {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-6px); }
+    }
+    @keyframes mtShimmer {
+      0%   { background-position: 220% 0; }
+      100% { background-position: -220% 0; }
+    }
+
+    @media (max-width: 860px) {
+      body { align-items: start; }
+      .maintenance-shell { grid-template-columns: 1fr; }
+      h1 { max-width: 13ch; }
+      .status-panel { grid-template-columns: auto minmax(0, 1fr); align-items: center; }
+      .countdown { grid-row: span 2; }
+      .tool-icon { display: none; }
+      .status-panel > .side-block,
+      .status-panel > .refresh-note,
+      .status-panel > .retry-btn,
+      .status-panel > .auto-note { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 520px) {
+      body { padding: 10px; }
+      .main-panel, .status-panel { border-radius: 18px; }
+      .brand-row { align-items: flex-start; margin-bottom: 22px; }
+      .logo { width: 54px; height: 54px; border-radius: 16px; }
+      .message { padding: 16px; }
+      .status-panel { grid-template-columns: 1fr; }
+      .countdown { grid-row: auto; }
+      .retry-btn { width: 100%; }
     }
 
     @media (prefers-reduced-motion: reduce) {
       .status-dot, .tool-icon, .main-panel::before { animation: none !important; }
-      .retry-btn { transition: none !important; }
+      .retry-btn, .countdown { transition: none !important; }
     }
   </style>
   <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260808.1">
@@ -375,7 +424,7 @@
     <section class="main-panel">
       <div class="brand-row">
         <div class="brand-copy">
-          <p class="brand-name">منصة توثيق</p>
+          <p class="brand-name">منصة توثيق<small>توثيق أدق، متابعة أوضح</small></p>
           <span class="status-pill"><span class="status-dot" aria-hidden="true"></span> صيانة وتطوير</span>
         </div>
         <img class="logo" src="{% static 'img/brand-mark.svg' %}" alt="شعار منصة توثيق">
@@ -392,21 +441,29 @@
     </section>
 
     <aside class="status-panel" aria-label="حالة العمل">
+      <div class="countdown" data-countdown>
+        <span class="countdown-value" dir="ltr" data-countdown-value>1:00</span>
+      </div>
+      <p class="countdown-label">حتى المحاولة التالية</p>
+
       <div class="tool-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none">
           <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4.6 16.4a2.1 2.1 0 1 0 3 3l4.7-4.7a4 4 0 0 0 5.4-5.4l-2.8 2.8-3-3 2.8-2.8Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M16 17.5h3.5M17.75 15.75v3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </div>
-      <div>
+
+      <div class="side-block">
         <p class="side-title">ما الذي يحدث الآن؟</p>
         <ul class="steps">
-          <li><span class="step-mark">1</span><span>تحسينات على الأداء وتجربة الاستخدام.</span></li>
-          <li><span class="step-mark">2</span><span>فحص الاستقرار على الجوال والتابلت.</span></li>
-          <li><span class="step-mark">3</span><span>إعادة فتح المنصة مباشرة بعد انتهاء العمل.</span></li>
+          <li><span class="step-mark">١</span><span>تحسينات على الأداء وتجربة الاستخدام.</span></li>
+          <li><span class="step-mark">٢</span><span>فحص الاستقرار على الجوال والتابلت.</span></li>
+          <li><span class="step-mark">٣</span><span>إعادة فتح المنصة مباشرة بعد انتهاء العمل.</span></li>
         </ul>
       </div>
+
       <p class="refresh-note">ستعود المنصة للعمل تلقائياً فور انتهاء الصيانة — تُحدَّث هذه الصفحة كل دقيقة من تلقاء نفسها.</p>
+
       <a class="retry-btn" href="/" aria-label="إعادة المحاولة الآن">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -417,5 +474,34 @@
     </aside>
   </main>
   {% include "reports/partials/pwa_install.html" %}
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    /* الحلقة تعرض ما تفعله ترويسة ``refresh`` أصلاً — لا تتحكم فيه. غيابُ
+       السكربت يترك الصفحة تُحدَّث بلا عدّاد، لا بلا تحديث. */
+    (function () {
+      "use strict";
+      var ring = document.querySelector("[data-countdown]");
+      var value = document.querySelector("[data-countdown-value]");
+      if (!ring || !value) return;
+
+      var total = 60;
+      var left = total;
+
+      function paint() {
+        var mins = Math.floor(left / 60);
+        var secs = left % 60;
+        value.textContent = mins + ":" + (secs < 10 ? "0" : "") + secs;
+        ring.style.setProperty("--progress", String((left / total) * 100));
+        if (left <= 0) {
+          value.textContent = "الآن";
+          window.clearInterval(timer);
+          return;
+        }
+        left -= 1;
+      }
+
+      paint();
+      var timer = window.setInterval(paint, 1000);
+    }());
+  </script>
 </body>
 </html>

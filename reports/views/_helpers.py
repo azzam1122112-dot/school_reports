@@ -119,6 +119,7 @@ def user_guide_download_pdf(request: HttpRequest) -> HttpResponse:
 # ===== فورمات =====
 from ..forms import (
     ReportForm,
+    ReportEvidenceFormSet,
     TeacherCreateForm,
     TeacherEditForm,
     MyProfileEmailForm,

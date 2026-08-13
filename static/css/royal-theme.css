@@ -397,23 +397,45 @@ button.secondary:hover {
   color: var(--brand-700) !important;
 }
 
-.badge.success,
-.msg.success {
+.badge.success {
   background: rgba(22, 132, 91, .10) !important;
   border-color: rgba(22, 132, 91, .24) !important;
   color: #146747 !important;
 }
 
-.badge.warning,
-.msg.warning {
+.badge.warning {
   background: rgba(185, 151, 91, .15) !important;
   border-color: rgba(185, 151, 91, .30) !important;
   color: #7c5b23 !important;
 }
 
-.badge.danger,
-.msg.error {
+.badge.danger {
   background: rgba(180, 35, 47, .10) !important;
+  border-color: rgba(180, 35, 47, .24) !important;
+  color: #8f1d28 !important;
+}
+
+/* الشارة تجلس على بطاقة مصمتة، أما شريط التنبيه فيطفو فوق محتوى الصفحة —
+   فالصبغة الشفافة التي تليق بالأولى تجعل الثانية زجاجاً يُقرأ ما خلفه. قيس
+   على الجوال: ‎rgba(185,151,91,.15)‎ أي ‎15%‎ فقط. تبقى الصبغة نفسها هنا لكن
+   فوق سطحٍ معتم. */
+.msg.success {
+  background-color: var(--surface) !important;
+  background-image: linear-gradient(rgba(22, 132, 91, .10), rgba(22, 132, 91, .10)) !important;
+  border-color: rgba(22, 132, 91, .24) !important;
+  color: #146747 !important;
+}
+
+.msg.warning {
+  background-color: var(--surface) !important;
+  background-image: linear-gradient(rgba(185, 151, 91, .15), rgba(185, 151, 91, .15)) !important;
+  border-color: rgba(185, 151, 91, .30) !important;
+  color: #7c5b23 !important;
+}
+
+.msg.error {
+  background-color: var(--surface) !important;
+  background-image: linear-gradient(rgba(180, 35, 47, .10), rgba(180, 35, 47, .10)) !important;
   border-color: rgba(180, 35, 47, .24) !important;
   color: #8f1d28 !important;
 }

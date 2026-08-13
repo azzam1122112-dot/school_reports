@@ -20,8 +20,9 @@ class LandingPageTests(TestCase):
         response = self.client.get(reverse("reports:landing"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "إدارة المدرسة")
-        self.assertContains(response, "تبدأ من صورة واضحة")
+        self.assertContains(response, "منصة واحدة لإدارة تقارير المدرسة وطلباتها وتعاميمها")
+        self.assertContains(response, "وتحويل العمل اليومي إلى إنجاز موثّق")
+        self.assertContains(response, "لوحة للمدير، مساحة للفريق، وأرشيف يبقى")
         self.assertContains(response, "ملفات إنجاز المعلمين")
         self.assertContains(response, "التعاميم")
         self.assertContains(response, "الأرشيف")
@@ -98,6 +99,10 @@ class LandingPageTests(TestCase):
         )
         self.assertGreaterEqual(html.count('class="feature-proof"'), 6)
         self.assertContains(response, "PDF بهوية المدرسة")
+        self.assertContains(response, "كتابة التقرير بالصوت")
+        self.assertContains(response, "تحسين الصياغة بالذكاء الاصطناعي")
+        self.assertContains(response, "إدخال المحضر بالصوت")
+        self.assertContains(response, "تحسين المحضر بالذكاء الاصطناعي")
         self.assertContains(response, "بصمة تحقق SHA-256")
         self.assertContains(response, "سجل اطلاع وتوقيع")
 

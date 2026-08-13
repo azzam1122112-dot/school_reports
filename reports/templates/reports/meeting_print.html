@@ -212,6 +212,17 @@
       .footer { display: grid; grid-template-columns: 1fr; text-align: center; }
     }
   </style>
+  <style nonce="{{ CSP_NONCE }}">
+    {% include "reports/partials/report_print_official_styles.html" %}
+    .meeting-stamp { margin: 0 0 4mm; }
+    .meeting-section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+    .meeting-section-grid .section { min-width: 0; }
+    .meeting-section-grid .section-body { min-height: 0; }
+    .people-table thead { display: table-header-group; }
+    .people-table tr { break-inside: avoid; page-break-inside: avoid; }
+    @media print { .meeting-section-grid { gap: 2mm; } }
+    @media screen and (max-width: 720px) { .meeting-section-grid { grid-template-columns: 1fr; } }
+  </style>
 <link rel="stylesheet" href="{% static 'css/utilities.css' %}?v=20260812.1">
 </head>
 <body>
@@ -221,6 +232,9 @@
     <button type="button" id="mtgPrintBtn" class="btn btn-print">
       <i class="fas fa-print"></i> طباعة / حفظ كـ PDF
     </button>
+    <a href="{% url 'reports:meeting_pdf' meeting.pk %}" class="btn">
+      <i class="fas fa-file-pdf"></i> تنزيل PDF
+    </a>
     <a href="{% url 'reports:meeting_detail' meeting.pk %}" class="btn">
       <i class="fas fa-arrow-right"></i> عودة
     </a>
@@ -249,17 +263,23 @@
       </div>
     </header>
 
-    <div class="title">محضر اجتماع{% if meeting.is_cancelled %} (ملغى){% endif %}</div>
-    <div class="subtitle">الموضوع: {% firstof meeting.title "—" %}</div>
+    <section class="report-identity">
+      <div class="identity-kicker">محضر اجتماع رسمي · MTG-{{ meeting.id }}</div>
+      <h1>{% firstof meeting.title "محضر اجتماع" %}</h1>
+      <div class="identity-tags">
+        <span><i class="fas fa-calendar"></i> موعد الانعقاد: <b>{{ meeting.scheduled_at|hijri }} هـ</b></span>
+        <span><i class="fas fa-location-dot"></i> المكان: <b>{% firstof meeting.location "—" %}</b></span>
+      </div>
+    </section>
 
     {% if minutes and minutes.is_final %}
-      <div class="stamp stamp--final">محضر معتمد — {{ minutes.get_approval_state_display }}</div>
+      <div class="stamp stamp--final meeting-stamp">محضر معتمد — {{ minutes.get_approval_state_display }}</div>
     {% elif minutes %}
-      <div class="stamp stamp--draft">مسودة غير معتمدة — {{ minutes.get_approval_state_display }}</div>
+      <div class="stamp stamp--draft meeting-stamp">مسودة غير معتمدة — {{ minutes.get_approval_state_display }}</div>
     {% elif meeting.is_held %}
-      <div class="stamp stamp--draft">لم يُكتب المحضر بعد</div>
+      <div class="stamp stamp--draft meeting-stamp">لم يُكتب المحضر بعد</div>
     {% else %}
-      <div class="stamp stamp--draft">دعوة اجتماع — لم ينعقد بعد</div>
+      <div class="stamp stamp--draft meeting-stamp">دعوة اجتماع — لم ينعقد بعد</div>
     {% endif %}
 
     <table class="meta-table">
@@ -324,10 +344,20 @@
       {% endif %}
     </section>
 
-    <section class="section">
-      <div class="section-h">نص المحضر</div>
-      <div class="section-body">{% firstof minutes.body "—" %}</div>
-    </section>
+    {% if minutes.format_mode == 'structured' %}
+      <div class="meeting-section-grid">
+        {% if minutes.proceedings %}<section class="section"><div class="section-h">مجريات الاجتماع</div><div class="section-body">{{ minutes.proceedings }}</div></section>{% endif %}
+        {% if minutes.discussions %}<section class="section"><div class="section-h">أبرز النقاشات</div><div class="section-body">{{ minutes.discussions }}</div></section>{% endif %}
+        {% if minutes.decisions_summary %}<section class="section"><div class="section-h">ملخص القرارات</div><div class="section-body">{{ minutes.decisions_summary }}</div></section>{% endif %}
+        {% if minutes.recommendations %}<section class="section"><div class="section-h">التوصيات</div><div class="section-body">{{ minutes.recommendations }}</div></section>{% endif %}
+        {% if minutes.assignments_summary %}<section class="section"><div class="section-h">التكليفات</div><div class="section-body">{{ minutes.assignments_summary }}</div></section>{% endif %}
+      </div>
+    {% else %}
+      <section class="section">
+        <div class="section-h">نص المحضر</div>
+        <div class="section-body">{% firstof minutes.body "—" %}</div>
+      </section>
+    {% endif %}
 
     <section class="section">
       <div class="section-h">القرارات والتوصيات</div>
@@ -402,9 +432,10 @@
       </div>
     </div>
 
-    <div class="footer">
-      <span>منصة توثيق — {% firstof meeting.school.name active_school.name "المدرسة" %}</span>
-      <span>طُبعت في {{ now|hijri }} هـ الساعة {{ now|time:"H:i" }}</span>
+    <div class="report-footer">
+      <div>تم الإصدار إلكترونيًا: {{ now|hijri }} هـ · {{ now|time:"H:i" }}</div>
+      <div class="footer-brand">منصة توثيق</div>
+      <div class="footer-ref">MTG-{{ meeting.id }}</div>
     </div>
   </div>
 

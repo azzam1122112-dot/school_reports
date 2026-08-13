@@ -1647,13 +1647,14 @@ msgstr "4. Disclosure, service providers and geographic scope"
 
 #: .\reports\templates\reports\privacy_policy.html:51
 msgid ""
-"عند استخدام مساعد منصور أو تحسين التقارير، يُرسل نص السؤال أو المسودة وسياق "
-"الطلب الضروري إلى مزود خدمة الذكاء الاصطناعي OpenAI لتوليد النتيجة المطلوبة. "
-"تُرسل الطلبات دون طلب حفظ حالة الاستجابة، إلا أن OpenAI قد تحتفظ افتراضيًا "
-"بسجلات مراقبة إساءة الاستخدام لمدة تصل إلى 30 يومًا. استخدام هذه الميزة "
-"اختياري، ويجب عدم إدخال أرقام الهوية أو البيانات الصحية أو الأسرار أو أي "
-"بيانات شخصية لا تلزم للمهمة."
-msgstr "When you use the Mansour assistant or report enhancement, the text of your question or draft and the necessary request context are sent to the AI provider OpenAI to generate the result. Requests are sent without asking for response state to be retained; however, OpenAI may by default keep abuse-monitoring logs for up to 30 days. Use of this feature is optional, and you must not enter ID numbers, health data, secrets, or any personal data not required for the task."
+"عند استخدام مساعد منصور أو تحسين التقارير والمحاضر أو التفريغ الصوتي، يُرسل "
+"نص السؤال أو المسودة أو ملف التسجيل وسياق الطلب الضروري إلى مزود خدمة الذكاء "
+"الاصطناعي OpenAI لتوليد النتيجة المطلوبة. لا تحفظ منصة توثيق التسجيل الصوتي، "
+"وتُرسل طلبات إنشاء النص دون طلب حفظ حالة الاستجابة، إلا أن OpenAI قد تحتفظ "
+"افتراضيًا بسجلات مراقبة إساءة الاستخدام لمدة تصل إلى 30 يومًا. استخدام هذه "
+"الميزات اختياري، ويجب عدم إدخال أرقام الهوية أو البيانات الصحية أو الأسرار أو "
+"أي بيانات شخصية لا تلزم للمهمة."
+msgstr "When you use the Mansour assistant, report or meeting-minutes enhancement, or voice transcription, your question, draft, audio recording, and the necessary request context are sent to the AI provider OpenAI to generate the requested result. Tawtheeq does not store the audio recording, and text-generation requests are sent without asking for response state to be retained; however, OpenAI may by default keep abuse-monitoring logs for up to 30 days. These features are optional, and you must not enter ID numbers, health data, secrets, or personal data not required for the task."
 
 #: .\reports\templates\reports\privacy_policy.html:52
 msgid ""
@@ -2085,3 +2086,90 @@ msgid ""
 "الشكاوى، دون إخلال بحق العميل في اللجوء إلى وزارة التجارة أو الجهات المختصة "
 "والمحاكم السعودية."
 msgstr "The relationship is governed by the laws of the Kingdom of Saudi Arabia. Any dispute is first addressed through the complaints channel, without prejudice to the customer’s right to approach the Ministry of Commerce, the competent authorities, or the Saudi courts."
+
+msgid "منصة سعودية لتشغيل المدرسة وتوثيق أعمالها"
+msgstr "A Saudi platform for school operations and documentation"
+
+msgid "منصة واحدة لإدارة تقارير المدرسة وطلباتها وتعاميمها"
+msgstr "One platform for school reports, requests and circulars"
+
+msgid "وتحويل العمل اليومي إلى إنجاز موثّق."
+msgstr "and turning daily work into documented achievement."
+
+msgid "لوحة للمدير، مساحة للفريق، وأرشيف يبقى."
+msgstr "A principal dashboard, a team workspace, and an archive that lasts."
+
+msgid ""
+"اجمع التقارير المصورة، ملفات الإنجاز، التعاميم والتوقيعات، الطلبات، الخطط، "
+"الاجتماعات، التكليفات، الاعتمادات والأرشيف في مسار واحد واضح؛ لتعرف الإدارة "
+"ما يحدث الآن، ومن المسؤول، وما الدليل المتاح عند المراجعة."
+msgstr ""
+"Bring photo reports, portfolios, circulars and signatures, requests, plans, "
+"meetings, assignments, approvals and archives into one clear workflow, so "
+"leadership knows what is happening now, who owns it, and what evidence is "
+"ready for review."
+
+msgid "قرار ومتابعة"
+msgstr "Decisions and follow-up"
+
+msgid "رؤية موحّدة"
+msgstr "Unified visibility"
+
+msgid "تنفيذ منظم"
+msgstr "Organized execution"
+
+msgid "ابدأ تجربة مجانية %(days)s يوم"
+msgstr "Start a free %(days)s-day trial"
+
+msgid "شاهد المنصة حسب دورك"
+msgstr "See the platform for your role"
+
+msgid "دون بطاقة ائتمانية"
+msgstr "No credit card required"
+
+msgid "تفعيل مباشر ودون تعقيد تقني"
+msgstr "Instant activation with no technical setup"
+
+msgid "تجربة عربية على الويب والجوال"
+msgstr "Arabic web and mobile experience"
+
+msgid "لقطة حقيقية من النظام · بيانات تجريبية"
+msgstr "Real system screenshot · demo data"
+
+msgid "تسعير مباشر حسب عدد المعلمين"
+msgstr "Straightforward pricing by teacher count"
+
+msgid ""
+"يرفع المعلم التقرير من الجوال أو يكتبه بالصوت، ثم يساعده الذكاء الاصطناعي "
+"على تحسين الصياغة قبل إخراجه بصيغة PDF رسمية قابلة للطباعة."
+msgstr ""
+"The teacher can submit a report from mobile or write it by voice, then AI "
+"helps improve the wording before it is exported as an official printable PDF."
+
+msgid "كتابة التقرير بالصوت"
+msgstr "Write the report by voice"
+
+msgid "تحسين الصياغة بالذكاء الاصطناعي"
+msgstr "AI wording enhancement"
+
+msgid ""
+"جدول الأعمال والحضور والقرارات في مكان واحد، مع إدخال المحضر بالصوت وتحسين "
+"صياغته بالذكاء الاصطناعي قبل الطباعة أو الاعتماد."
+msgstr ""
+"Agenda, attendance and decisions stay in one place, with voice entry for "
+"minutes and AI wording enhancement before printing or approval."
+
+msgid "إدخال المحضر بالصوت"
+msgstr "Enter minutes by voice"
+
+msgid "تحسين المحضر بالذكاء الاصطناعي"
+msgstr "AI minutes enhancement"
+
+msgid "مساعد ذكي لتحسين التقارير ومحاضر الاجتماعات"
+msgstr "Smart assistant for improving reports and meeting minutes"
+
+msgid "كتابة التقارير والمحاضر بالصوت"
+msgstr "Write reports and minutes by voice"
+
+msgid "تثبيت التطبيق"
+msgstr "Install the app"

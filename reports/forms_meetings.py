@@ -175,11 +175,25 @@ class AgendaItemForm(forms.ModelForm):
 class MinutesForm(forms.ModelForm):
     class Meta:
         model = MeetingMinutes
-        fields = ("body",)
+        fields = (
+            "format_mode",
+            "body",
+            "proceedings",
+            "discussions",
+            "decisions_summary",
+            "recommendations",
+            "assignments_summary",
+        )
         widgets = {
+            "format_mode": forms.RadioSelect,
             "body": forms.Textarea(
-                attrs={"rows": 12, "placeholder": "ما دار في الاجتماع…"}
-            )
+                attrs={"rows": 12, "placeholder": "ما دار في الاجتماع…", "data-minutes-freeform": ""}
+            ),
+            "proceedings": forms.Textarea(attrs={"rows": 5, "placeholder": "تسلسل ما جرى منذ افتتاح الاجتماع…"}),
+            "discussions": forms.Textarea(attrs={"rows": 5, "placeholder": "أهم الآراء والنقاط التي نوقشت…"}),
+            "decisions_summary": forms.Textarea(attrs={"rows": 4, "placeholder": "ملخص القرارات المتفق عليها…"}),
+            "recommendations": forms.Textarea(attrs={"rows": 4, "placeholder": "التوصيات وفرص التحسين…"}),
+            "assignments_summary": forms.Textarea(attrs={"rows": 4, "placeholder": "المهام، المسؤولون، والمواعيد…"}),
         }
         labels = {"body": "نص المحضر"}
 

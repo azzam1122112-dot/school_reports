@@ -215,7 +215,22 @@ class MeetingMinutes(ApprovalMixin):
         Teacher, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="minutes_written", verbose_name="كاتب المحضر",
     )
+    class FormatMode(models.TextChoices):
+        FREEFORM = "freeform", "نص موحد"
+        STRUCTURED = "structured", "محضر منظم"
+
+    format_mode = models.CharField(
+        "صيغة المحضر",
+        max_length=12,
+        choices=FormatMode.choices,
+        default=FormatMode.FREEFORM,
+    )
     body = models.TextField("نص المحضر", blank=True, default="")
+    proceedings = models.TextField("مجريات الاجتماع", blank=True, default="")
+    discussions = models.TextField("أبرز النقاشات", blank=True, default="")
+    decisions_summary = models.TextField("ملخص القرارات", blank=True, default="")
+    recommendations = models.TextField("التوصيات", blank=True, default="")
+    assignments_summary = models.TextField("التكليفات", blank=True, default="")
     created_at = models.DateTimeField("أُنشئ في", auto_now_add=True)
     updated_at = models.DateTimeField("آخر تعديل", auto_now=True)
 
@@ -239,7 +254,15 @@ class MeetingMinutes(ApprovalMixin):
         )
 
     def assert_ready_for_submission(self) -> None:
-        if not (self.body or "").strip():
+        content = [
+            self.body,
+            self.proceedings,
+            self.discussions,
+            self.decisions_summary,
+            self.recommendations,
+            self.assignments_summary,
+        ]
+        if not any((value or "").strip() for value in content):
             raise ValidationError("لا يُرسَل محضر فارغ للاعتماد.")
         if not getattr(self.meeting, "is_held", False):
             raise ValidationError("لم يُسجَّل انعقاد الاجتماع بعد.")

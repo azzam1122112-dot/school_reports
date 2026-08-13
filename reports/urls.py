@@ -188,7 +188,18 @@ urlpatterns = [
     path("meetings/new/", views.meeting_create, name="meeting_create"),
     path("meetings/<int:pk>/", views.meeting_detail, name="meeting_detail"),
     path("meetings/<int:pk>/print/", views.meeting_print, name="meeting_print"),
+    path("meetings/<int:pk>/pdf/", views.meeting_pdf, name="meeting_pdf"),
     path("meetings/<int:pk>/action/", views.meeting_action, name="meeting_action"),
+    path(
+        "meetings/<int:pk>/minutes/ai/improve/",
+        views.improve_meeting_minutes,
+        name="improve_meeting_minutes",
+    ),
+    path(
+        "meetings/<int:pk>/minutes/ai/voice/",
+        views.transcribe_meeting_minutes_voice,
+        name="transcribe_meeting_minutes_voice",
+    ),
     path(
         "meetings/<int:pk>/minutes/approval/",
         views.minutes_approval_action,

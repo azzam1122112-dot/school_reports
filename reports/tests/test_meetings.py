@@ -10,9 +10,13 @@
 """
 from __future__ import annotations
 
+import json
 from datetime import timedelta
+from unittest.mock import patch
 
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -495,6 +499,65 @@ class MeetingScreenTests(MeetingBase):
         self.assertTrue(meeting.is_held)
         self.assertTrue(MeetingMinutes.objects.filter(meeting=meeting).exists())
 
+    def test_an_invitee_cannot_create_or_save_minutes_by_direct_post(self):
+        meeting = self._meeting()
+        Meeting.objects.filter(pk=meeting.pk).update(
+            status=Meeting.Status.HELD,
+            held_at=timezone.now(),
+        )
+        self._enter(self.staff)
+
+        response = self.client.post(
+            reverse("reports:meeting_action", args=[meeting.pk]),
+            {
+                "meeting_action": "save_minutes",
+                "format_mode": MeetingMinutes.FormatMode.FREEFORM,
+                "body": "محضر أرسله مدعو مباشرة.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(MeetingMinutes.objects.filter(meeting=meeting).exists())
+
+    def test_structured_minutes_are_saved_and_printed(self):
+        meeting = self._meeting()
+        mark_held(meeting, self.manager)
+        self._enter(self.manager)
+
+        self.client.post(
+            reverse("reports:meeting_action", args=[meeting.pk]),
+            {
+                "meeting_action": "save_minutes",
+                "format_mode": MeetingMinutes.FormatMode.STRUCTURED,
+                "body": "",
+                "proceedings": "افتتح المنظم الاجتماع واستعرض جدول الأعمال.",
+                "discussions": "نوقشت مؤشرات التحصيل.",
+                "decisions_summary": "اعتماد خطة التحسين.",
+                "recommendations": "مراجعة الأثر بعد شهر.",
+                "assignments_summary": "إعداد التقرير من مسؤول اللجنة.",
+            },
+        )
+        minutes = MeetingMinutes.objects.get(meeting=meeting)
+        self.assertEqual(minutes.format_mode, MeetingMinutes.FormatMode.STRUCTURED)
+
+        response = self.client.get(reverse("reports:meeting_print", args=[meeting.pk]))
+        self.assertContains(response, "مجريات الاجتماع")
+        self.assertContains(response, "مراجعة الأثر بعد شهر")
+
+    def test_meeting_pdf_download_returns_a_pdf(self):
+        meeting = self._meeting()
+        mark_held(meeting, self.manager)
+        minutes = ensure_minutes(meeting, recorder=self.manager)
+        minutes.body = "ناقش المجتمعون خطة التحسين واعتمدوها."
+        minutes.save()
+        self._enter(self.manager)
+
+        response = self.client.get(reverse("reports:meeting_pdf", args=[meeting.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF-"))
+
     def test_the_decision_is_converted_from_the_screen(self):
         meeting = self._meeting()
         mark_held(meeting, self.manager)
@@ -530,3 +593,143 @@ class MeetingScreenTests(MeetingBase):
         self._enter(self.staff)
         response = self.client.get(reverse("reports:my_assignments"))
         self.assertContains(response, "تجهيز قاعة المصادر")
+
+
+@override_settings(
+    ALLOWED_HOSTS=["testserver"],
+    OPENAI_API_KEY="sk-meeting-test",
+    REPORT_AI_ENABLED=True,
+    VOICE_REPORT_ENABLED=True,
+    VOICE_REPORT_PWA_ONLY=True,
+    VOICE_REPORT_DAILY_LIMIT=3,
+    RATELIMIT_ENABLE=False,
+)
+class MeetingAIAssistantTests(MeetingBase):
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+
+    def _enter(self, user):
+        self.client.force_login(user)
+        session = self.client.session
+        session["active_school_id"] = self.school.pk
+        session.save()
+
+    def _held_meeting(self):
+        meeting = self._meeting()
+        mark_held(meeting, self.manager)
+        minutes = ensure_minutes(meeting, recorder=self.manager)
+        return meeting, minutes
+
+    @staticmethod
+    def _audio():
+        return SimpleUploadedFile(
+            "meeting.webm",
+            b"\x1a\x45\xdf\xa3" + b"0" * 39996,
+            content_type="audio/webm;codecs=opus",
+        )
+
+    def test_editable_minutes_show_voice_and_ai_assistance(self):
+        meeting, _minutes = self._held_meeting()
+        self._enter(self.manager)
+
+        response = self.client.get(reverse("reports:meeting_detail", args=[meeting.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "مساعد المحضر الذكي")
+        self.assertContains(response, "سجّل مجريات الاجتماع بصوتك")
+        self.assertContains(response, "تحسين الصياغة بالذكاء الاصطناعي")
+        self.assertContains(response, reverse("reports:improve_meeting_minutes", args=[meeting.pk]))
+        self.assertContains(
+            response,
+            reverse("reports:transcribe_meeting_minutes_voice", args=[meeting.pk]),
+        )
+        self.assertContains(response, "js/report-ai-improver.js")
+        self.assertContains(response, "js/report-voice.js")
+
+    @patch(
+        "reports.views.meetings.improve_meeting_minutes_text",
+        return_value="نوقشت الخطة، ثم اعتُمد تنفيذها خلال 5 أيام.",
+    )
+    def test_ai_returns_a_preview_without_saving_minutes(self, improve):
+        meeting, minutes = self._held_meeting()
+        minutes.body = "ناقشنا الخطة وقررنا تنفيذها خلال 5 أيام"
+        minutes.save(update_fields=["body"])
+        self._enter(self.manager)
+
+        response = self.client.post(
+            reverse("reports:improve_meeting_minutes", args=[meeting.pk]),
+            data=json.dumps({"text": minutes.body}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["improved_text"],
+            "نوقشت الخطة، ثم اعتُمد تنفيذها خلال 5 أيام.",
+        )
+        self.assertEqual(response.json()["remaining"], 2)
+        minutes.refresh_from_db()
+        self.assertEqual(minutes.body, "ناقشنا الخطة وقررنا تنفيذها خلال 5 أيام")
+        improve.assert_called_once_with(minutes.body)
+
+    @patch(
+        "reports.views.meetings.polish_meeting_dictation",
+        return_value="نوقشت نتائج الفصل، وأوصى المجتمعون بإعداد خطة تحسين.",
+    )
+    @patch(
+        "reports.views.meetings.transcribe_meeting_audio",
+        return_value="ناقشنا نتائج الفصل يعني وأوصينا بإعداد خطة تحسين",
+    )
+    def test_voice_recording_is_polished_as_minutes_without_being_saved(
+        self, transcribe, polish
+    ):
+        meeting, minutes = self._held_meeting()
+        self._enter(self.manager)
+
+        response = self.client.post(
+            reverse("reports:transcribe_meeting_minutes_voice", args=[meeting.pk]),
+            {"audio": self._audio()},
+            HTTP_X_TAWTHEEQ_SURFACE="standalone",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["text"],
+            "نوقشت نتائج الفصل، وأوصى المجتمعون بإعداد خطة تحسين.",
+        )
+        self.assertEqual(response.json()["remaining"], 2)
+        minutes.refresh_from_db()
+        self.assertEqual(minutes.body, "")
+        transcribe.assert_called_once()
+        polish.assert_called_once_with("ناقشنا نتائج الفصل يعني وأوصينا بإعداد خطة تحسين")
+
+    def test_an_invitee_cannot_use_the_minutes_assistant(self):
+        meeting, _minutes = self._held_meeting()
+        self._enter(self.staff)
+
+        ai_response = self.client.post(
+            reverse("reports:improve_meeting_minutes", args=[meeting.pk]),
+            data=json.dumps({"text": "هذا نص محضر مكتمل يحتاج إلى تحسين الصياغة."}),
+            content_type="application/json",
+        )
+        voice_response = self.client.post(
+            reverse("reports:transcribe_meeting_minutes_voice", args=[meeting.pk]),
+            {"audio": self._audio()},
+            HTTP_X_TAWTHEEQ_SURFACE="standalone",
+        )
+
+        self.assertEqual(ai_response.status_code, 403)
+        self.assertEqual(voice_response.status_code, 403)
+
+    def test_plain_browser_cannot_use_minutes_voice_recording(self):
+        meeting, _minutes = self._held_meeting()
+        self._enter(self.manager)
+
+        response = self.client.post(
+            reverse("reports:transcribe_meeting_minutes_voice", args=[meeting.pk]),
+            {"audio": self._audio()},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["reason"], "pwa_required")

@@ -19,9 +19,14 @@ from reports.models import (
     AchievementSection,
     Department,
     DepartmentMembership,
+    Document,
+    Initiative,
     Payment,
+    Meeting,
+    MeetingMinutes,
     Notification,
     NotificationRecipient,
+    Plan,
     Report,
     LeadershipEvidenceImage,
     LeadershipPortfolioSection,
@@ -473,6 +478,126 @@ class SchoolArchiveManagerExperienceTests(TestCase):
             self.assertEqual(metadata["report_count"], 1)
         finally:
             package.close()
+
+    def test_year_archive_includes_documents_meeting_minutes_plans_and_initiatives(self):
+        document = Document.objects.create(
+            school=self.school,
+            uploaded_by=self.manager,
+            owner=self.manager,
+            title="محضر لجنة الجودة المرفوع",
+            academic_year="1447-1448",
+            kind=Document.Kind.MINUTES,
+            file=SimpleUploadedFile(
+                "quality-minutes.pdf",
+                b"%PDF-quality-minutes",
+                content_type="application/pdf",
+            ),
+        )
+        meeting = Meeting.objects.create(
+            school=self.school,
+            organizer=self.manager,
+            title="اجتماع متابعة المبادرات",
+            purpose="متابعة المبادرات النوعية.",
+            scheduled_at=timezone.now(),
+            status=Meeting.Status.HELD,
+            held_at=timezone.now(),
+        )
+        MeetingMinutes.objects.create(
+            meeting=meeting,
+            recorder=self.manager,
+            body="تمت مناقشة المبادرات واعتماد إجراءات المتابعة.",
+        )
+        plan = Plan.objects.create(
+            school=self.school,
+            owner=self.manager,
+            title="خطة تحسين المبادرات",
+            academic_year="1447-1448",
+            description="خطة تشغيلية مرتبطة بالمبادرات.",
+        )
+        initiative = Initiative.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            plan=plan,
+            title="مبادرة القراءة اليومية",
+            summary="رفع أثر القراءة اليومية داخل المدرسة.",
+            is_best_practice=True,
+        )
+
+        with (
+            patch(
+                "reports.pdf_report.generate_report_pdf",
+                return_value=(b"%PDF-report", "report.pdf"),
+            ),
+            patch(
+                "reports.pdf_meeting.generate_meeting_pdf",
+                return_value=(b"%PDF-meeting-minutes", "meeting.pdf"),
+            ),
+        ):
+            package, metadata = build_school_export_zip_file(
+                self.school,
+                academic_year="1447-1448",
+                teacher=self.manager,
+                school_wide=True,
+                return_metadata=True,
+            )
+        try:
+            self.assertEqual(metadata["document_count"], 1)
+            self.assertEqual(metadata["meeting_count"], 1)
+            self.assertEqual(metadata["plan_count"], 1)
+            self.assertEqual(metadata["initiative_count"], 1)
+            self.assertEqual(metadata["generated_meeting_pdf_count"], 1)
+            with zipfile.ZipFile(package) as zipped:
+                names = zipped.namelist()
+                self.assertTrue(
+                    any(
+                        name.startswith("الوثائق/1447-1448/محضر/")
+                        and name.endswith(f"-{document.id}.pdf")
+                        for name in names
+                    )
+                )
+                self.assertTrue(
+                    any(
+                        name.startswith("الاجتماعات-والمحاضر/")
+                        and name.endswith("/محضر-الاجتماع.pdf")
+                        for name in names
+                    )
+                )
+
+                workbook = load_workbook(
+                    BytesIO(zipped.read("فهرس-السنة.xlsx")),
+                    read_only=True,
+                    data_only=True,
+                )
+                self.addCleanup(workbook.close)
+                self.assertTrue(
+                    {
+                        "الوثائق",
+                        "الاجتماعات والمحاضر",
+                        "الخطط",
+                        "المبادرات",
+                    }.issubset(set(workbook.sheetnames))
+                )
+                document_rows = list(workbook["الوثائق"].iter_rows(values_only=True))
+                self.assertTrue(any(row[1] == document.title for row in document_rows[1:]))
+                meeting_rows = list(
+                    workbook["الاجتماعات والمحاضر"].iter_rows(values_only=True)
+                )
+                self.assertTrue(any(row[1] == meeting.title for row in meeting_rows[1:]))
+                plan_rows = list(workbook["الخطط"].iter_rows(values_only=True))
+                self.assertTrue(any(row[1] == plan.title for row in plan_rows[1:]))
+                initiative_rows = list(workbook["المبادرات"].iter_rows(values_only=True))
+                self.assertTrue(any(row[1] == initiative.title for row in initiative_rows[1:]))
+        finally:
+            package.close()
+
+        full_workbook = load_workbook(
+            BytesIO(build_school_export_bytes(self.school)),
+            read_only=True,
+            data_only=True,
+        )
+        self.addCleanup(full_workbook.close)
+        self.assertIn("الاجتماعات", full_workbook.sheetnames)
+        self.assertIn("المبادرات", full_workbook.sheetnames)
 
     def test_snapshot_contains_pdf_and_original_files_for_tickets_and_circulars(self):
         ticket = Ticket.objects.create(

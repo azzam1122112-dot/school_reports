@@ -7,10 +7,18 @@ from typing import Optional
 
 from django.core.cache import cache
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Q, QuerySet, Count
+from django.db.models import Q, QuerySet, Count, Prefetch
 from django.shortcuts import get_object_or_404
 
-from .models import Report, School
+from .models import Report, ReportEvidence, School
+
+
+REPORT_EVIDENCE_PREFETCH = Prefetch(
+    "evidences",
+    queryset=ReportEvidence.objects.only(
+        "id", "report_id", "image", "order", "description", "fit_mode", "show_in_print"
+    ).order_by("order", "id"),
+)
 
 # موديلات مرجعية اختيارية
 try:
@@ -65,6 +73,7 @@ def paginate(qs: QuerySet, *, per_page: int, page: str | int | None):
 def get_teacher_reports_queryset(*, user, active_school: Optional[School]) -> QuerySet:
     qs = (
         Report.objects.select_related("teacher", "category", "school")
+        .prefetch_related(REPORT_EVIDENCE_PREFETCH)
         .only(
             "id",
             "title",
@@ -128,6 +137,7 @@ def teacher_report_stats(qs: QuerySet) -> dict:
 def get_admin_reports_queryset(*, user, active_school: Optional[School]) -> QuerySet:
     qs = (
         Report.objects.select_related("teacher", "category", "school")
+        .prefetch_related(REPORT_EVIDENCE_PREFETCH)
         .only(
             "id",
             "title",

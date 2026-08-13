@@ -6,6 +6,7 @@
   data-audience=""
   data-internal="{% if mansour_internal %}true{% else %}false{% endif %}"
   data-role-label="{% if mansour_internal %}{{ USER_ROLE_LABEL|default:'' }}{% endif %}"
+  data-chat-scope="{{ MANSOUR_CHAT_SCOPE|default:'anon' }}"
   aria-label="المساعد الذكي منصور"
 >
   <button

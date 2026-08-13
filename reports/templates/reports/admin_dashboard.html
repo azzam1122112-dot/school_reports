@@ -909,7 +909,8 @@
   }
   .manager-hero__pulse a:hover { transform: translateY(-2px); background: rgba(255, 255, 255, .13); }
   .manager-hero__pulse strong { color: var(--id-gold-300); font-size: 1.05rem; font-weight: 950; }
-  .manager-hero__pulse span { overflow: hidden; color: var(--id-hero-ink-soft); font-size: .68rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+  /* عنوان المؤشّر السريع: ‎.68rem‎ = ‎10.9px‎ على الجوال، وهو الرقم الذي يشرحه. */
+  .manager-hero__pulse span { overflow: hidden; color: var(--id-hero-ink-soft); font-size: .72rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 
   .manager-alert-stack { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 10px; margin-bottom: 14px; }
   .manager-alert-stack .manager-subscription-alert { margin: 0; padding: 11px 14px; box-shadow: var(--id-e1); }

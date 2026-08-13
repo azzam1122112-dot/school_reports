@@ -180,7 +180,8 @@
   .lab-field .errorlist { margin: 0; padding-inline-start: 1rem; color: var(--lab-danger); font-size: 12px; }
   .lab-required, .lab-submit-required {
     display: inline-flex; align-items: center; border-radius: 999px;
-    padding: 2px 7px; font-size: 10px; font-weight: 850;
+    /* علامة «مطلوب» تُقرأ أو لا تعني شيئاً؛ ‎10px‎ لا تُقرأ على الجوال. */
+    padding: 2px 7px; font-size: 11.5px; font-weight: 850;
   }
   .lab-required { color: var(--lab-danger); background: var(--lab-danger-soft); }
   .lab-submit-required { color: var(--lab-warn); background: var(--lab-warn-soft); }

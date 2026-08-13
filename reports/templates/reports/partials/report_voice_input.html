@@ -8,8 +8,10 @@
 <div
   class="report-voice"
   data-report-voice
-  data-endpoint="{% url 'reports:transcribe_report_voice' %}"
+  data-endpoint="{% if assistant_endpoint %}{{ assistant_endpoint }}{% else %}{% url 'reports:transcribe_report_voice' %}{% endif %}"
   data-target-id="{{ target_id|default:'id_idea' }}"
+  data-document-name="{% if meeting_minutes_mode %}المحضر{% else %}التقرير{% endif %}"
+  data-recording-prompt="{% if meeting_minutes_mode %}جارٍ التسجيل… تحدّث بوضوح عن المناقشات والقرارات والتوصيات.{% else %}جارٍ التسجيل… تحدّث بوضوح عن تفاصيل التقرير.{% endif %}"
   data-daily-limit="{{ voice_report_daily_limit|default:3 }}"
   data-remaining="{{ voice_report_daily_remaining|default:3 }}"
   data-max-seconds="{{ voice_report_max_seconds|default:180 }}"
@@ -20,8 +22,8 @@
   <div class="report-voice-head">
     <span class="report-voice-icon"><i class="fa-solid fa-microphone-lines" aria-hidden="true"></i></span>
     <div class="report-voice-copy">
-      <strong>اكتب تقريرك بصوتك</strong>
-      <span data-voice-subtitle>تحدّث بالتفاصيل، ونحوّلها إلى نص مكتوب تراجعه قبل اعتماده.</span>
+      <strong>{% if meeting_minutes_mode %}سجّل مجريات الاجتماع بصوتك{% else %}اكتب تقريرك بصوتك{% endif %}</strong>
+      <span data-voice-subtitle>{% if meeting_minutes_mode %}نفرّغ التسجيل وننظّمه كمحضر مهني تراجعه قبل إدراجه.{% else %}تحدّث بالتفاصيل، ونحوّلها إلى نص مكتوب تراجعه قبل اعتماده.{% endif %}</span>
     </div>
     <div class="report-voice-quota" data-voice-quota>
       <span>المتبقي اليوم</span>
@@ -34,7 +36,7 @@
     <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
     <p data-voice-locked-message>
       التسجيل الصوتي متاح داخل تطبيق توثيق المثبَّت على جهازك. ثبّت التطبيق من زر
-      «تثبيت التطبيق» ثم افتح إضافة تقرير من داخله.
+      «تثبيت التطبيق» ثم افتح {% if meeting_minutes_mode %}المحضر{% else %}إضافة تقرير{% endif %} من داخله.
     </p>
   </div>
 
@@ -71,10 +73,10 @@
   <p class="report-voice-status" data-voice-status role="status" aria-live="polite"></p>
 
   {# ── النص الناتج: لا يدخل التقرير إلا باختيار المعلّم ── #}
-  <section class="report-voice-result" data-voice-result hidden aria-label="النص المفرَّغ من التسجيل">
+  <section class="report-voice-result" data-voice-result hidden aria-label="النص المحرر من التسجيل">
     <div class="report-voice-result-head">
-      <strong><i class="fa-solid fa-file-lines" aria-hidden="true"></i> النص المفرَّغ</strong>
-      <span>راجعه قبل إدراجه — لن يتغيّر التقرير حتى تختار</span>
+      <strong><i class="fa-solid fa-file-lines" aria-hidden="true"></i> {% if meeting_minutes_mode %}المحضر المقترح{% else %}النص المفرَّغ{% endif %}</strong>
+      <span>راجعه قبل إدراجه — لن يتغيّر {% if meeting_minutes_mode %}المحضر{% else %}التقرير{% endif %} حتى تختار</span>
     </div>
     <div class="report-voice-result-text" data-voice-output></div>
     <div class="report-voice-result-actions">
@@ -90,6 +92,6 @@
 
   <p class="report-voice-note">
     لا يُحفظ التسجيل في المنصة؛ يُفرَّغ ثم يُحذف. ولا تُملِ أرقام هوية أو بيانات
-    صحية أو أي بيانات شخصية لا يحتاجها التقرير.
+    صحية أو أي بيانات شخصية لا يحتاجها {% if meeting_minutes_mode %}المحضر{% else %}التقرير{% endif %}.
   </p>
 </div>

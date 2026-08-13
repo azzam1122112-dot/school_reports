@@ -7,8 +7,10 @@ from decimal import Decimal
 from io import BytesIO
 import os
 import logging
+import uuid
 
 from django import forms
+from django.forms.models import BaseInlineFormSet
 from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm, SetPasswordForm
 from django.contrib.auth.password_validation import (
     CommonPasswordValidator,
@@ -40,6 +42,7 @@ from .models import (
     DepartmentMembership,
     ReportType,
     Report,
+    ReportEvidence,
     Ticket,
     TicketNote,
     Notification,
@@ -479,14 +482,19 @@ def _is_teacher_in_department(teacher: Teacher, department: Optional[Department]
 
 
 def _compress_image_upload(f, *, max_px: int = 1600, quality: int = 85) -> InMemoryUploadedFile:
-    """ضغط ملف صورة واحد قبل التخزين (يُستخدم للتقارير والتذاكر).
+    """توحيد صورة مرفوعة قبل التخزين مع تصحيح EXIF وحفظ الشفافية.
 
     - يقلّص الأبعاد القصوى إلى max_px.
     - يحاول الحفظ بصيغة WEBP، مع fallback إلى PNG/JPEG.
     """
-    from PIL import Image
+    from PIL import Image, ImageOps
 
+    try:
+        f.seek(0)
+    except (AttributeError, OSError, ValueError):
+        pass
     img = Image.open(f)
+    img = ImageOps.exif_transpose(img)
     has_alpha = img.mode in ("RGBA", "LA", "P")
     img = img.convert("RGBA" if has_alpha else "RGB")
 
@@ -495,7 +503,7 @@ def _compress_image_upload(f, *, max_px: int = 1600, quality: int = 85) -> InMem
 
     buf = BytesIO()
     try:
-        img.save(buf, format="WEBP", quality=quality, optimize=True)
+        img.save(buf, format="WEBP", quality=quality, method=6, exact=has_alpha)
         new_ext, ctype = ".webp", "image/webp"
     except Exception:
         buf = BytesIO()
@@ -519,6 +527,146 @@ def _compress_image_upload(f, *, max_px: int = 1600, quality: int = 85) -> InMem
     )
 
 
+class ReportEvidenceForm(forms.ModelForm):
+    class Meta:
+        model = ReportEvidence
+        fields = (
+            "image",
+            "order",
+            "description",
+            "display_size",
+            "fit_mode",
+            "show_in_print",
+        )
+        widgets = {
+            "image": forms.ClearableFileInput(
+                attrs={
+                    "accept": "image/jpeg,image/png,image/webp",
+                    "data-evidence-file": "",
+                }
+            ),
+            "order": forms.HiddenInput(),
+            "description": forms.TextInput(
+                attrs={"placeholder": "مثال: صورة من تنفيذ النشاط", "maxlength": "220"}
+            ),
+            "display_size": forms.Select(),
+            "fit_mode": forms.Select(),
+            "show_in_print": forms.CheckboxInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk and not self.is_bound:
+            try:
+                index = int(str(self.prefix).rsplit("-", 1)[-1])
+            except (TypeError, ValueError):
+                index = 0
+            self.initial.setdefault("order", index + 1)
+            self.initial.setdefault("show_in_print", True)
+
+    def clean_image(self):
+        image = self.cleaned_data.get("image")
+        if not image:
+            return image
+        # الملفات الموجودة اجتازت المعالجة عند رفعها، فلا نعيد ضغطها عند كل تعديل.
+        if not hasattr(image, "temporary_file_path") and not hasattr(image, "content_type"):
+            return image
+        try:
+            image = _compress_image_upload(image, max_px=2000, quality=86)
+            if image.size > 2 * 1024 * 1024:
+                raise ValidationError("حجم الصورة بعد التحسين ما زال أكبر من 2MB.")
+            from PIL import Image
+
+            with Image.open(image) as normalized:
+                self._normalized_dimensions = normalized.size
+            image.seek(0)
+            return image
+        except ValidationError:
+            raise
+        except Exception as exc:
+            _degraded("forms.compress_report_evidence", error=type(exc).__name__)
+            raise ValidationError(
+                "تعذر تجهيز الصورة. جرّب ملف JPG أو PNG أو WebP صالحًا."
+            ) from exc
+
+    def clean(self):
+        cleaned = super().clean()
+        image = cleaned.get("image") or getattr(self.instance, "image", None)
+        if image and not (cleaned.get("description") or "").strip():
+            self.add_error("description", "أضف وصفًا موجزًا يوضح ما يظهر في الشاهد.")
+        return cleaned
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        dimensions = getattr(self, "_normalized_dimensions", None)
+        if dimensions:
+            instance.width_px, instance.height_px = dimensions
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
+class BaseReportEvidenceFormSet(BaseInlineFormSet):
+    """يحفظ إعادة الترتيب دون اصطدام بالقيد الفريد أثناء تبديل موضعين."""
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        active_forms = [
+            form
+            for form in self.forms
+            if form.cleaned_data
+            and not form.cleaned_data.get("DELETE")
+            and (form.cleaned_data.get("image") or getattr(form.instance.image, "name", ""))
+        ]
+        active_forms.sort(key=lambda form: (form.cleaned_data.get("order") or 999, form.prefix))
+        for order, form in enumerate(active_forms, start=1):
+            form.cleaned_data["order"] = order
+            form.instance.order = order
+
+    def save(self, commit=True):
+        if not commit:
+            return super().save(commit=False)
+        with transaction.atomic():
+            if self.instance.pk:
+                self.instance.evidences.update(order=models.F("order") + 100)
+            saved = []
+            active_forms = []
+            for form in self.forms:
+                if not getattr(form, "cleaned_data", None):
+                    continue
+                if form.cleaned_data.get("DELETE"):
+                    if form.instance.pk:
+                        form.instance.delete()
+                    continue
+                image = form.cleaned_data.get("image") or getattr(form.instance.image, "name", "")
+                if image:
+                    active_forms.append(form)
+            active_forms.sort(key=lambda form: (form.cleaned_data.get("order") or 999, form.prefix))
+            for order, form in enumerate(active_forms, start=1):
+                obj = form.save(commit=False)
+                obj.report = self.instance
+                obj.order = order
+                obj.save()
+                saved.append(obj)
+            return saved
+
+
+ReportEvidenceFormSet = forms.inlineformset_factory(
+    Report,
+    ReportEvidence,
+    form=ReportEvidenceForm,
+    formset=BaseReportEvidenceFormSet,
+    fields=("image", "order", "description", "display_size", "fit_mode", "show_in_print"),
+    extra=4,
+    can_delete=True,
+    max_num=8,
+    validate_max=True,
+)
+
+
 # ==============================
 # 📌 نموذج التقرير العام
 # ==============================
@@ -533,6 +681,7 @@ class ReportForm(forms.ModelForm):
         initial=True,
         widget=forms.HiddenInput(),
     )
+    client_submission_id = forms.UUIDField(required=False, widget=forms.HiddenInput())
 
     class Meta:
         model = Report
@@ -553,10 +702,7 @@ class ReportForm(forms.ModelForm):
             "show_beneficiaries",
             "beneficiaries_count",
             "category",
-            "image1",
-            "image2",
-            "image3",
-            "image4",
+            "evidence_page_mode",
         ]
         widgets = {
             "title": forms.TextInput(
@@ -581,6 +727,7 @@ class ReportForm(forms.ModelForm):
             "show_results": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
             "show_recommendations": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
             "show_beneficiaries": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
+            "evidence_page_mode": forms.Select(attrs={"class": "form-select"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -600,6 +747,10 @@ class ReportForm(forms.ModelForm):
 
         super().__init__(*args, **kwargs)
 
+        if not self.is_bound:
+            current_key = getattr(self.instance, "submission_key", None)
+            self.fields["client_submission_id"].initial = current_key or uuid.uuid4()
+
         qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
         if active_school is not None and hasattr(ReportType, "school"):
             qs = qs.filter(school=active_school)
@@ -613,6 +764,12 @@ class ReportForm(forms.ModelForm):
             widget=forms.Select(attrs={"class": "form-select"}),
         )
         self.fields["beneficiaries_count"].label = f"عدد {self.gender_labels['beneficiaries_object']}"
+        # تطبيقات أو تبويبات فُتحت قبل إضافة الخيار لا ترسله في POST؛ الوضع
+        # التلقائي هو التوافق الآمن ولا ينبغي أن يمنع حفظ تقرير مكتمل.
+        self.fields["evidence_page_mode"].required = False
+
+    def clean_evidence_page_mode(self):
+        return self.cleaned_data.get("evidence_page_mode") or Report.EvidencePageMode.AUTO
 
     def clean_beneficiaries_count(self):
         val = self.cleaned_data.get("beneficiaries_count")
@@ -648,32 +805,6 @@ class ReportForm(forms.ModelForm):
                 "beneficiaries_count",
                 f"أدخل عدد {self.gender_labels['beneficiaries_object']} أو ألغِ اختيار هذا البند.",
             )
-
-        # ضغط الصور قبل الرفع + التحقق من الحجم بعد الضغط
-        for field_name in ["image1", "image2", "image3", "image4"]:
-            img = cleaned.get(field_name)
-            if not img:
-                continue
-
-            ctype = (getattr(img, "content_type", "") or "").lower()
-            if ctype and not ctype.startswith("image/"):
-                self.add_error(field_name, "الملف يجب أن يكون صورة صالحة.")
-                continue
-
-            try:
-                compressed = _compress_image_upload(img, max_px=1600, quality=85)
-                cleaned[field_name] = compressed
-                # تحديث self.files حتى يستخدمها model.save()
-                if hasattr(self, "files"):
-                    self.files[field_name] = compressed
-                img = compressed
-            except Exception:
-                _degraded("forms.compress_image_upload", field=field_name)
-                # في حال فشل الضغط نستخدم الملف كما هو مع فحص الحجم فقط
-                pass
-
-            if hasattr(img, "size") and img.size > 2 * 1024 * 1024:
-                self.add_error(field_name, "حجم الصورة بعد الضغط ما زال أكبر من 2MB.")
 
         return cleaned
 
@@ -2753,9 +2884,9 @@ class PlatformSettingsForm(forms.ModelForm):
             "maintenance_mode_enabled": "تفعيل وضع الصيانة والتطوير",
             "maintenance_message": "رسالة تظهر للمستخدمين",
             "mansour_public_enabled": "المساعد منصور",
-            "report_ai_enabled": "تحسين التقارير",
+            "report_ai_enabled": "تحسين التقارير ومحاضر الاجتماعات",
             "internal_ai_help_enabled": "المساعدة داخل النظام",
-            "voice_report_enabled": "كتابة التقرير بالصوت",
+            "voice_report_enabled": "الكتابة بالصوت للتقارير والمحاضر",
             "archive_addon_annual_price": "سعر الأرشفة السنوي",
             "archive_included_storage_gb": "المساحة المضمنة مع الأرشفة (GB)",
             "storage_mb_per_teacher": "مساحة عمل المدرسة لكل معلم (ميجابايت)",

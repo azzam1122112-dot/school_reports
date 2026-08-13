@@ -8,10 +8,10 @@
   <meta name="color-scheme" content="light dark">
   {% include "reports/partials/theme_bootstrap.html" %}
 
-  <title>دليل استخدام منصة توثيق للمعلم ومدير المدرسة</title>
+  <title>دليل استخدام منصة توثيق — لكل دور في المدرسة</title>
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
   {% url 'reports:user_guide' as canonical_path %}
-  {% include "reports/partials/public_seo.html" with seo_title="دليل استخدام منصة توثيق للمعلم ومدير المدرسة" seo_description="دليل مبسط ومصور لاستخدام منصة توثيق: التقارير، ملف الإنجاز، الطلبات، التعاميم، إدارة المعلمين ومتابعة المدرسة." seo_image_alt="دليل استخدام منصة توثيق للمعلم ومدير المدرسة" canonical_path=canonical_path social_type="article" %}
+  {% include "reports/partials/public_seo.html" with seo_title="دليل استخدام منصة توثيق — لكل دور في المدرسة" seo_description="دليل مصوّر خطوة بخطوة لمنصة توثيق حسب دورك: المعلم، وكيل المدرسة، الموظف الإداري، مدير المدرسة، والمدير التنفيذي — التقارير وملف الإنجاز والتكليفات والاعتماد والتعاميم والاجتماعات والأرشيف." seo_image_alt="دليل استخدام منصة توثيق لكل دور في المدرسة" canonical_path=canonical_path social_type="article" %}
 
   <link rel="icon" href="{% static 'img/brand-mark.svg' %}" type="image/svg+xml">
   {% include "reports/partials/pwa_install_head.html" %}
@@ -29,8 +29,8 @@
     "@type": "TechArticle",
     "@id": "{{ SITE_URL }}{% url 'reports:user_guide' %}#article",
     "headline": "دليل استخدام منصة توثيق",
-    "name": "دليل استخدام منصة توثيق للمعلم ومدير المدرسة",
-    "description": "دليل مبسط لاستخدام منصة توثيق للمعلم ومدير المدرسة.",
+    "name": "دليل استخدام منصة توثيق لكل دور في المدرسة",
+    "description": "دليل خطوة بخطوة لمنصة توثيق حسب الدور: المعلم، وكيل المدرسة، الموظف الإداري، مدير المدرسة، والمدير التنفيذي.",
     "inLanguage": "ar-SA",
     "url": "{{ SITE_URL }}{% url 'reports:user_guide' %}",
     "image": "{{ SITE_URL }}{% static 'img/landing/dashboard-system.png' %}",
@@ -38,9 +38,11 @@
     "publisher": {"@id": "{{ SITE_URL }}/#organization"},
     "audience": [
       {"@type": "EducationalAudience", "educationalRole": "teacher"},
-      {"@type": "EducationalAudience", "educationalRole": "school administrator"}
+      {"@type": "EducationalAudience", "educationalRole": "school administrator"},
+      {"@type": "EducationalAudience", "educationalRole": "deputy head teacher"},
+      {"@type": "EducationalAudience", "educationalRole": "administrative staff"}
     ],
-    "about": ["التقارير المدرسية", "ملف إنجاز المعلم", "الطلبات والتعاميم", "إدارة المدرسة"]
+    "about": ["التقارير المدرسية", "ملف إنجاز المعلم", "التكليفات والاعتماد", "الطلبات والتعاميم", "الاجتماعات والمحاضر", "الأرشيف السنوي", "إدارة المدرسة"]
   }
   </script>
 <link rel="stylesheet" href="{% static 'css/utilities.css' %}?v=20260812.1">
@@ -92,7 +94,7 @@
         <div class="guide-hero__copy">
           <span class="hero-badge"><i class="fa-solid fa-book-open" aria-hidden="true"></i> دليل بسيط، خطوة بخطوة</span>
           <h1>أنجز عملك في منصة توثيق<br><span>بوضوح وثقة.</span></h1>
-          <p>اختر دورك، وابحث عن المهمة التي تريدها، ثم اتبع خطوات قصيرة وواضحة دون أي مصطلحات تقنية.</p>
+          <p>خمسة أدوار في المدرسة، ولكل دور شاشاته ومسؤولياته. اختر دورك واتبع خطوات قصيرة وواضحة دون أي مصطلحات تقنية.</p>
 
           <form class="guide-search" role="search" id="guideSearchForm">
             <label for="guideSearch">ما المهمة التي تريد تنفيذها؟</label>
@@ -140,11 +142,23 @@
           </button>
           <button type="button" class="role-tab" data-guide-filter="teacher" aria-pressed="false">
             <span class="role-tab__icon"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i></span>
-            <span><strong>أنا معلم</strong><small>التقارير والإنجاز والطلبات</small></span>
+            <span><strong>أنا معلم</strong><small>التقارير والإنجاز والتكليفات</small></span>
+          </button>
+          <button type="button" class="role-tab" data-guide-filter="deputy" aria-pressed="false">
+            <span class="role-tab__icon"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></span>
+            <span><strong>أنا وكيل مدرسة</strong><small>المراجعة والتوصية ضمن نطاقك</small></span>
+          </button>
+          <button type="button" class="role-tab" data-guide-filter="admin-staff" aria-pressed="false">
+            <span class="role-tab__icon"><i class="fa-solid fa-user-gear" aria-hidden="true"></i></span>
+            <span><strong>أنا موظف إداري</strong><small>ما يُسند إليك ومختبر المدرسة</small></span>
           </button>
           <button type="button" class="role-tab" data-guide-filter="manager" aria-pressed="false">
             <span class="role-tab__icon"><i class="fa-solid fa-user-tie" aria-hidden="true"></i></span>
-            <span><strong>أنا مدير مدرسة</strong><small>الفريق والمتابعة والتواصل</small></span>
+            <span><strong>أنا مدير مدرسة</strong><small>الفريق والاعتماد والمتابعة</small></span>
+          </button>
+          <button type="button" class="role-tab" data-guide-filter="executive" aria-pressed="false">
+            <span class="role-tab__icon"><i class="fa-solid fa-sitemap" aria-hidden="true"></i></span>
+            <span><strong>أنا مدير تنفيذي</strong><small>مجموعة مدارس</small></span>
           </button>
         </div>
       </div>
@@ -168,28 +182,58 @@
           </div>
           <nav class="guide-index">
             <a href="#start" data-index-role="all"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i> ابدأ من هنا</a>
+            <a href="#approval-cycle" data-index-role="all"><i class="fa-solid fa-route" aria-hidden="true"></i> رحلة العمل حتى الاعتماد</a>
             <div class="index-group" data-index-role="teacher">
               <span>دليل {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</span>
               <a href="#teacher-home">مساحة العمل</a>
               <a href="#teacher-report">إنشاء تقرير</a>
+              <a href="#teacher-voice">الإملاء الصوتي وتحسين الصياغة</a>
               <a href="#teacher-achievement">ملف الإنجاز</a>
               <a href="#teacher-circulars">التعاميم</a>
               <a href="#teacher-requests">الطلبات</a>
+              <a href="#teacher-assignments">التكليفات</a>
+              <a href="#teacher-sharing">المشاركة وسلة المحذوفات</a>
+            </div>
+            <div class="index-group" data-index-role="deputy">
+              <span>دليل وكيل المدرسة</span>
+              <a href="#deputy-scope">نطاقك وصلاحياتك</a>
+              <a href="#deputy-review">المراجعة والتوصية</a>
+              <a href="#deputy-tools">التعاميم والتكليفات والاجتماعات</a>
+            </div>
+            <div class="index-group" data-index-role="admin-staff">
+              <span>دليل الموظف الإداري</span>
+              <a href="#staff-scope">ما المتاح لك</a>
+              <a href="#staff-lab">المختبر والعهدة والتجارب</a>
             </div>
             <div class="index-group" data-index-role="manager">
               <span>دليل {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</span>
               <a href="#manager-dashboard">لوحة {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}</a>
-              <a href="#manager-teachers">إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</a>
+              <a href="#manager-teachers">إدارة الفريق</a>
+              <a href="#manager-roles">الأدوار والنطاقات</a>
+              <a href="#manager-report-types">أنواع التقارير ومسارها</a>
+              <a href="#manager-approvals">صندوق الاعتماد</a>
               <a href="#manager-reports">تقارير المدرسة</a>
+              <a href="#manager-achievement">اعتماد ملفات الإنجاز</a>
               <a href="#manager-leadership">الأداء القيادي</a>
               <a href="#manager-communication">التواصل</a>
+              <a href="#manager-meetings">الاجتماعات والمجالس</a>
+              <a href="#manager-plans">الخطط والمبادرات</a>
               <a href="#manager-requests">متابعة الطلبات</a>
+              <a href="#manager-archive">الأرشيف والتصدير والمساحة</a>
+              <a href="#manager-audit">سجل العمليات</a>
               <a href="#manager-subscription">الاشتراك</a>
+            </div>
+            <div class="index-group" data-index-role="executive">
+              <span>دليل المدير التنفيذي</span>
+              <a href="#executive-overview">لوحة المجموعة</a>
             </div>
             <div class="index-group" data-index-role="all">
               <span>للجميع</span>
               <a href="#switch-school">تبديل المدرسة</a>
               <a href="#account-security">الحساب والأمان</a>
+              <a href="#app-install">التطبيق وإشعارات الجهاز</a>
+              <a href="#assistant">المساعد الذكي منصور</a>
+              <a href="#my-data">بياناتك وسجل نشاطك</a>
               <a href="#help">مساعدة سريعة</a>
             </div>
           </nav>
@@ -237,6 +281,13 @@
       <div>
         <a href="{% url 'reports:faq' %}">الأسئلة الشائعة</a>
         <a href="{% url 'reports:privacy_policy' %}">الخصوصية</a>
+        {% if PWA_INSTALL_ENABLED %}
+          {# الدليل صفحة يصلها الزائر كثيراً، فله المدخل نفسه: بالضغط لا تلقائياً. #}
+          <button class="guide-install" type="button" data-pwa-install-trigger data-pwa-install-mobile-only>
+            <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
+            <span>تثبيت التطبيق</span>
+          </button>
+        {% endif %}
       </div>
     </div>
   </footer>

@@ -75,6 +75,73 @@ def _moe_logo_url() -> str:
     return moe_logo_url
 
 
+def build_report_evidence_context(report, *, for_pdf: bool = False) -> dict:
+    """يبني قائمة شواهد واحدة للطباعة مع fallback للحقول التاريخية."""
+    records = []
+    try:
+        records = list(report.evidences.filter(show_in_print=True).order_by("order", "id"))
+    except Exception:
+        records = []
+
+    items = []
+    if records:
+        for index, evidence in enumerate(records, start=1):
+            field = evidence.image
+            try:
+                src = _file_data_uri(field) if for_pdf else field.url
+            except Exception:
+                src = ""
+            if not src:
+                continue
+            items.append(
+                {
+                    "number": index,
+                    "field": field,
+                    "src": src,
+                    "description": evidence.description or f"مرفق توثيقي ({index})",
+                    "display_size": evidence.display_size,
+                    "fit_mode": evidence.fit_mode,
+                    "width_px": evidence.width_px,
+                    "height_px": evidence.height_px,
+                }
+            )
+    else:
+        for index in range(1, 5):
+            field = getattr(report, f"image{index}", None)
+            if not getattr(field, "name", ""):
+                continue
+            try:
+                src = _file_data_uri(field) if for_pdf else field.url
+            except Exception:
+                src = ""
+            if src:
+                items.append(
+                    {
+                        "number": index,
+                        "field": field,
+                        "src": src,
+                        "description": f"مرفق توثيقي ({index})",
+                        "display_size": "auto",
+                        "fit_mode": "contain",
+                        "width_px": None,
+                        "height_px": None,
+                    }
+                )
+
+    count = len(items)
+    mode = getattr(report, "evidence_page_mode", "auto") or "auto"
+    separate = mode == "separate" or (
+        mode == "auto"
+        and (count >= 3 or any(item["display_size"] == "large" for item in items))
+    )
+    return {
+        "EVIDENCE_ITEMS": items,
+        "EVIDENCE_COUNT": count,
+        "EVIDENCE_LAYOUT": min(count, 4),
+        "EVIDENCE_SEPARATE_PAGE": separate,
+    }
+
+
 def build_report_print_context(report) -> dict:
     """يبني نفس سياق report_print.html (لكن بوضع PDF وبدون التعليقات الخاصة)."""
     school = getattr(report, "school", None)
@@ -108,13 +175,10 @@ def build_report_print_context(report) -> dict:
         "MOE_LOGO_URL": _moe_logo_url(),
         **school_gender_template_context(school),
         "executor_label": labels["executor"],
-        "EVIDENCE_COUNT": sum(
-            bool(getattr(getattr(report, f"image{index}", None), "name", ""))
-            for index in range(1, 5)
-        ),
         "show_comments": False,
         "for_pdf": True,
     }
+    context.update(build_report_evidence_context(report, for_pdf=True))
     for index in range(1, 5):
         context[f"PDF_IMAGE{index}_URL"] = _file_data_uri(
             getattr(report, f"image{index}", None)
@@ -445,9 +509,7 @@ def _generate_report_pdf_fallback(report, *, context: dict | None = None) -> byt
         text_sections.append(("التوصيات", getattr(report, "recommendations", "")))
 
     section_number = 0
-    has_attached_images = any(
-        bool(getattr(report, f"image{index}", None)) for index in range(1, 5)
-    )
+    has_attached_images = bool(context.get("EVIDENCE_ITEMS"))
     for index, (heading, value) in enumerate(text_sections):
         section_number += 1
         is_last_text_section = index == len(text_sections) - 1
@@ -460,14 +522,14 @@ def _generate_report_pdf_fallback(report, *, context: dict | None = None) -> byt
         )
 
     images = []
-    for index in range(1, 5):
-        field = getattr(report, f"image{index}", None)
+    for item in context.get("EVIDENCE_ITEMS", []):
+        field = item.get("field")
         try:
             data = _fallback_image_bytes(field)
         except Exception:
             data = b""
         if data:
-            images.append((index, data))
+            images.append((item.get("number"), data, item.get("description") or "مرفق توثيقي"))
 
     def prepared_image_reader(data):
         original = BytesIO(data)
@@ -508,7 +570,7 @@ def _generate_report_pdf_fallback(report, *, context: dict | None = None) -> byt
             else:
                 box_width = (content_width - gap) / 2
                 row_positions = [page_width - margin - box_width, margin]
-            for column, (index, data) in enumerate(row):
+            for column, (_index, data, description) in enumerate(row):
                 left = row_positions[column]
                 pdf.setFillColor(white)
                 pdf.setStrokeColor(line_color)
@@ -533,7 +595,7 @@ def _generate_report_pdf_fallback(report, *, context: dict | None = None) -> byt
                     )
                 except Exception:
                     draw_center("تعذرت قراءة الصورة", left + (box_width / 2), y - 58, 9, color=muted)
-                draw_right(f"مرفق ({index})", left + box_width - 8, y - box_height + 9, 7.5, bold=True, color=muted)
+                draw_right(description, left + box_width - 8, y - box_height + 9, 7.5, bold=True, color=muted)
             y -= row_height
         y -= 5
 

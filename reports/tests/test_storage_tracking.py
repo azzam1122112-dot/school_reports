@@ -3,7 +3,7 @@ import datetime
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
-from reports.models import Notification, Report, School, Teacher, Ticket, TicketImage
+from reports.models import Notification, Report, ReportEvidence, School, Teacher, Ticket, TicketImage
 from reports.services_archive import school_storage_overview
 
 
@@ -77,6 +77,24 @@ class StorageTrackingSignalsTests(TestCase):
             title="t",
             report_date=datetime.date(2026, 1, 1),
         )
+        self.assertEqual(self._school_used(), 0)
+
+    def test_report_evidence_increments_and_decrements_school_total(self):
+        report = Report.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            title="t",
+            report_date=datetime.date(2026, 1, 1),
+        )
+        evidence = ReportEvidence.objects.create(
+            report=report,
+            image=SimpleUploadedFile("evidence.png", _png(3200), content_type="image/png"),
+            description="صورة من تنفيذ النشاط",
+        )
+        self.assertGreater(evidence.storage_bytes, 0)
+        self.assertEqual(self._school_used(), evidence.storage_bytes)
+
+        evidence.delete()
         self.assertEqual(self._school_used(), 0)
 
     def test_tickets_images_and_circular_attachments_are_counted_and_deleted(self):

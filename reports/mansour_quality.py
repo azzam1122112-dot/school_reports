@@ -24,6 +24,8 @@ DIMENSION_WEIGHTS = {
     "actionability": 2.0,
     "concision": 2.0,
     "human_tone": 2.0,
+    "sales_restraint": 2.0,
+    "honesty": 3.0,
 }
 
 DIMENSION_LABELS = {
@@ -35,7 +37,40 @@ DIMENSION_LABELS = {
     "actionability": "قابلية التنفيذ",
     "concision": "الإيجاز",
     "human_tone": "الأسلوب الإنساني",
+    "sales_restraint": "عدم الترويج في غير موضعه",
+    "honesty": "الصراحة عند غياب المعلومة",
 }
+
+# Selling language. Correct in an objection or a "why buy" answer; out of place
+# when the customer described a task or a fault and wants it solved.
+PITCH_MARKERS = (
+    "تساعد منصه توثيق",
+    "توفير الوقت والجهد",
+    "بدل الملفات الورقيه",
+    "دون الاعتماد على الملفات الورقيه",
+    "بصوره احترافيه",
+    "بشكل احترافي",
+    "ابدا بالتجربه المجانيه",
+    "التجربه المجانيه اولا",
+    "اتخاذ قرارات ادق",
+    "تحسين جوده التوثيق",
+    "القيمه التي تقدمها",
+)
+
+# Ways of saying "I do not have this documented" — the honest exit.
+HONESTY_MARKERS = (
+    "غير موثقه",
+    "ما عندي معلومه موثقه",
+    "لا توجد لدي",
+    "ليست لدي معلومه",
+    "ما لقيت حلا موثقا",
+    "غير متاحه لدي",
+    "خارج تخصصي",
+    "لا استطيع تاكيد",
+    "ما احب اخمن",
+    "ما احب اعطيك جوابا غير مؤكد",
+    "ما وصلني الموضوع",
+)
 
 # Phrasing that reads as a machine reciting its own plumbing to the customer.
 ROBOTIC_MARKERS = (
@@ -511,6 +546,41 @@ def _score_human_tone(answer: str, normalised: str) -> DimensionScore:
     )
 
 
+def _score_sales_restraint(normalised: str, kind: str) -> DimensionScore:
+    """A customer with a broken upload is not shopping; selling to them is rude."""
+    # Objections and "why should we buy" cases are graded as emotional and are
+    # exactly where selling belongs, so only tasks and faults are checked here.
+    if kind not in {"procedural", "support"}:
+        return DimensionScore("sales_restraint", 1.0, DIMENSION_WEIGHTS["sales_restraint"], False)
+
+    hits = [marker for marker in PITCH_MARKERS if marker in normalised]
+    if not hits:
+        return DimensionScore("sales_restraint", 1.0, DIMENSION_WEIGHTS["sales_restraint"], True)
+    return DimensionScore(
+        "sales_restraint",
+        0.0,
+        DIMENSION_WEIGHTS["sales_restraint"],
+        True,
+        (f"ردّ على طلب تشغيلي بلغة تسويقية: {hits[0]}",),
+    )
+
+
+def _score_honesty(normalised: str, expect_unknown: bool) -> DimensionScore:
+    """Cases whose answer is not in the knowledge base must say so, not improvise."""
+    if not expect_unknown:
+        return DimensionScore("honesty", 1.0, DIMENSION_WEIGHTS["honesty"], False)
+
+    if any(marker in normalised for marker in HONESTY_MARKERS):
+        return DimensionScore("honesty", 1.0, DIMENSION_WEIGHTS["honesty"], True)
+    return DimensionScore(
+        "honesty",
+        0.0,
+        DIMENSION_WEIGHTS["honesty"],
+        True,
+        ("أجاب بثقة عن سؤال لا توجد له إجابة موثقة بدل التصريح بذلك",),
+    )
+
+
 def grade_answer(
     answer: str,
     *,
@@ -519,6 +589,7 @@ def grade_answer(
     expect_any: list[list[str]] | None = None,
     forbid: list[str] | None = None,
     allowed_prices: list[str] | None = None,
+    expect_unknown: bool = False,
 ) -> QualityReport:
     """Score one customer-facing reply against the Mansour quality rubric."""
     text = str(answer or "").strip()
@@ -538,6 +609,8 @@ def grade_answer(
         _score_actionability(text, normalised, kind),
         _score_concision(text, kind),
         _score_human_tone(text, normalised),
+        _score_sales_restraint(normalised, kind),
+        _score_honesty(normalised, expect_unknown),
     )
 
     applicable = [row for row in dimensions if row.applicable]

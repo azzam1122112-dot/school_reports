@@ -20,6 +20,7 @@ def _pin_migration_callable_paths() -> None:
         "_leadership_evidence_upload_to",
         "_payment_receipt_upload_to",
         "_report_image_upload_to",
+        "_report_evidence_upload_to",
         "_ticket_attachment_upload_to",
         "_notification_attachment_upload_to",
         "_school_logo_upload_to",

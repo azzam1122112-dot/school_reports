@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.conf import settings
 from django.core.cache import cache
 from django.http import JsonResponse
+from django.db import IntegrityError
 from django.db.models import F, Q
 from django.views.decorators.cache import never_cache
 
@@ -55,6 +56,19 @@ from ._helpers import (
     _ensure_achievement_sections,
     _clean_query_value, _clean_query_params,
 )
+
+
+def _report_evidence_post_data(request: HttpRequest):
+    """طبقة توافق لعميل فتح نموذج التقرير قبل إطلاق formset الشواهد."""
+    data = request.POST
+    if "evidence-TOTAL_FORMS" in data:
+        return data
+    data = data.copy()
+    data["evidence-TOTAL_FORMS"] = "0"
+    data["evidence-INITIAL_FORMS"] = "0"
+    data["evidence-MIN_NUM_FORMS"] = "0"
+    data["evidence-MAX_NUM_FORMS"] = "8"
+    return data
 
 from ..utils import _resolve_department_for_category, _build_head_decision
 from core import opmetrics
@@ -206,8 +220,21 @@ def add_report(request: HttpRequest) -> HttpResponse:
             return True
     if request.method == "POST":
         form = ReportForm(request.POST, request.FILES, active_school=active_school)
-        if form.is_valid():
-            capacity_error = archive_storage_capacity_error(active_school, form.files.values())
+        evidence_formset = ReportEvidenceFormSet(
+            _report_evidence_post_data(request), request.FILES, instance=form.instance, prefix="evidence"
+        )
+        if form.is_valid() and evidence_formset.is_valid():
+            submission_key = form.cleaned_data.get("client_submission_id")
+            if submission_key:
+                duplicate = Report.objects.filter(
+                    teacher=request.user,
+                    school=active_school,
+                    submission_key=submission_key,
+                ).first()
+                if duplicate is not None:
+                    messages.success(request, "التقرير محفوظ مسبقًا، وتم فتح النسخة الموجودة.")
+                    return redirect("reports:my_reports")
+            capacity_error = archive_storage_capacity_error(active_school, request.FILES.values())
             if capacity_error:
                 messages.error(request, capacity_error)
                 return render(
@@ -215,6 +242,7 @@ def add_report(request: HttpRequest) -> HttpResponse:
                     "reports/add_report.html",
                     {
                         "form": form,
+                        "evidence_formset": evidence_formset,
                         "leadership_section": leadership_section,
                         "has_report_types": _has_report_types(form),
                         **_report_ai_template_context(request.user),
@@ -222,6 +250,8 @@ def add_report(request: HttpRequest) -> HttpResponse:
                 )
 
             report = form.save(commit=False)
+            if submission_key:
+                report.submission_key = submission_key
             report.teacher = request.user
             if hasattr(report, "school") and active_school is not None:
                 report.school = active_school
@@ -245,12 +275,30 @@ def add_report(request: HttpRequest) -> HttpResponse:
                 report.approval_state = ApprovalState.APPROVED
                 report.decided_at = timezone.now()
 
-            report.save()
-            if leadership_section is not None:
-                LeadershipEvidenceReport.objects.get_or_create(
-                    section=leadership_section,
-                    report=report,
+            try:
+                with transaction.atomic():
+                    report.save()
+                    evidence_formset.instance = report
+                    evidence_formset.save()
+                    if leadership_section is not None:
+                        LeadershipEvidenceReport.objects.get_or_create(
+                            section=leadership_section,
+                            report=report,
+                        )
+            except IntegrityError:
+                duplicate = (
+                    Report.objects.filter(
+                        teacher=request.user,
+                        school=active_school,
+                        submission_key=submission_key,
+                    ).first()
+                    if submission_key
+                    else None
                 )
+                if duplicate is None:
+                    raise
+                messages.success(request, "التقرير محفوظ مسبقًا، وتم منع إنشاء نسخة مكررة.")
+                return redirect("reports:my_reports")
             sync_school_archive_storage_usage(getattr(report, "school", active_school))
 
             # إشعار مدير المدرسة ورئيس القسم بتقرير جديد
@@ -287,12 +335,14 @@ def add_report(request: HttpRequest) -> HttpResponse:
         messages.error(request, "فضلاً تحقق من الحقول وأعد المحاولة.")
     else:
         form = ReportForm(active_school=active_school)
+        evidence_formset = ReportEvidenceFormSet(instance=form.instance, prefix="evidence")
 
     return render(
         request,
         "reports/add_report.html",
         {
             "form": form,
+            "evidence_formset": evidence_formset,
             "leadership_section": leadership_section,
             "has_report_types": _has_report_types(form),
             **_report_ai_template_context(request.user),
@@ -1282,7 +1332,7 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
     teacher_name = _clean_query_value(request.GET.get("teacher_name"))
     category = _clean_query_value(request.GET.get("category"))
 
-    qs = Report.objects.select_related("teacher", "category", "school").filter(category__in=allowed_cats_qs)
+    qs = Report.objects.select_related("teacher", "category", "school").prefetch_related("evidences").filter(category__in=allowed_cats_qs)
     qs = _filter_by_school(qs, active_school)
 
     if start_date is not None:
@@ -1434,7 +1484,7 @@ def department_reports(request: HttpRequest) -> HttpResponse:
     teacher_name = _clean_query_value(request.GET.get("teacher_name"))
     category = _clean_query_value(request.GET.get("category"))
 
-    qs = Report.objects.select_related("teacher", "category", "school").filter(category__in=allowed_cats_qs)
+    qs = Report.objects.select_related("teacher", "category", "school").prefetch_related("evidences").filter(category__in=allowed_cats_qs)
     qs = _filter_by_school(qs, active_school)
 
     if start_date is not None:
@@ -1561,7 +1611,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
 
         # ✅ المدير/الموظف/السوبر يجب أن يستطيع طباعة أي تقرير ضمن نطاق المدرسة النشطة
         if getattr(user, "is_superuser", False) or _is_staff(user):
-            qs = Report.objects.select_related("teacher", "category")
+            qs = Report.objects.select_related("teacher", "category").prefetch_related("evidences")
             if (not getattr(user, "is_superuser", False)) and active_school is None:
                 messages.error(request, "فضلاً اختر مدرسة أولاً.")
                 return redirect("reports:select_school")
@@ -1783,6 +1833,10 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
         if is_superuser_val or is_manager or is_staff_user:
             back_url = "reports:admin_reports"
         
+        from ..pdf_report import build_report_evidence_context
+
+        evidence_context = build_report_evidence_context(r)
+
         return render(
             request,
             "reports/report_print.html",
@@ -1804,6 +1858,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                 "private_comments": private_comments,
                 "comment_form": comment_form,
                 "back_url": back_url,
+                **evidence_context,
             },
         )
     except Http404:
@@ -2198,6 +2253,12 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
         # مسمّى المنفّذ حسب نوع المدرسة (بنين/بنات)
         executor_label = school_gender_labels(school_scope)["executor"]
 
+        from ..pdf_report import build_report_evidence_context
+
+        evidence_context = build_report_evidence_context(r)
+        for index, item in enumerate(evidence_context["EVIDENCE_ITEMS"], start=1):
+            item["src"] = reverse("reports:share_report_image", args=[token, index])
+
         return render(
             request,
             "reports/report_print.html",
@@ -2214,6 +2275,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
                 "show_comments": False,
                 "private_comments": [],
                 "comment_form": None,
+                **evidence_context,
                 "image1_url": reverse("reports:share_report_image", args=[token, 1]),
                 "image2_url": reverse("reports:share_report_image", args=[token, 2]),
                 "image3_url": reverse("reports:share_report_image", args=[token, 3]),
@@ -2283,7 +2345,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
     return render(request, "reports/share_invalid.html", status=404)
 
 
-# أربع صور لكل تقرير، فالسقف أعلى من سقف الصفحة نفسها بمقدارها.
+# الشواهد مرتبة، وسقف المعدل يسمح بمعاينة التقرير دون كشف رابط التخزين.
 @ratelimit(key="ip", rate="480/h", method="GET", block=True)
 @require_http_methods(["GET"])
 def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpResponse:
@@ -2292,9 +2354,13 @@ def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpRespo
     if r is None or r.trashed_at is not None:
         raise Http404
 
-    if slot not in (1, 2, 3, 4):
+    if slot < 1 or slot > 8:
         raise Http404
-    field = getattr(r, f"image{slot}", None)
+
+    evidences = list(r.evidences.order_by("order", "id")[:8])
+    field = evidences[slot - 1].image if len(evidences) >= slot else None
+    if not field and slot <= 4:
+        field = getattr(r, f"image{slot}", None)
     if not field:
         raise Http404
 
@@ -2422,16 +2488,28 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
 
     if request.method == "POST":
         form = ReportForm(request.POST, request.FILES, instance=r, active_school=form_school)
-        if form.is_valid():
+        evidence_submitted = "evidence-TOTAL_FORMS" in request.POST
+        evidence_formset = ReportEvidenceFormSet(
+            request.POST if evidence_submitted else None,
+            request.FILES if evidence_submitted else None,
+            instance=r,
+            prefix="evidence",
+        )
+        if form.is_valid() and (not evidence_submitted or evidence_formset.is_valid()):
             report_school = form_school or getattr(r, "school", None)
             replacing_files = [
-                getattr(r, field_name, None)
-                for field_name in ("image1", "image2", "image3", "image4")
-                if field_name in form.files
+                evidence_form.instance.image
+                for evidence_form in evidence_formset.forms
+                if evidence_submitted
+                if evidence_form.instance.pk
+                and (
+                    evidence_form.cleaned_data.get("DELETE")
+                    or "image" in evidence_form.changed_data
+                )
             ]
             capacity_error = archive_storage_capacity_error(
                 report_school,
-                form.files.values(),
+                request.FILES.values(),
                 replacing_files=replacing_files,
             )
             if capacity_error:
@@ -2442,11 +2520,15 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
                     {
                         "form": form,
                         "report": r,
+                        "evidence_formset": evidence_formset,
                         **_report_ai_template_context(request.user),
                     },
                 )
 
-            form.save()
+            with transaction.atomic():
+                form.save()
+                if evidence_submitted:
+                    evidence_formset.save()
             sync_school_archive_storage_usage(report_school)
             messages.success(request, "تم تحديث التقرير بنجاح.")
             nxt = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
@@ -2459,6 +2541,7 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
         messages.error(request, "تحقّق من الحقول.")
     else:
         form = ReportForm(instance=r, active_school=form_school)
+        evidence_formset = ReportEvidenceFormSet(instance=r, prefix="evidence")
 
     return render(
         request,
@@ -2466,6 +2549,7 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
         {
             "form": form,
             "report": r,
+            "evidence_formset": evidence_formset,
             **_report_ai_template_context(request.user),
         },
     )
