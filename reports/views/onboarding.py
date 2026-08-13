@@ -21,7 +21,6 @@ from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
-from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods
 from django_ratelimit.decorators import ratelimit
@@ -73,52 +72,37 @@ def _generate_unique_school_code(school_name: str) -> str:
 
 # ── Registration form ───────────────────────────────────────────────
 class SchoolRegistrationForm(forms.Form):
-    # The model keeps its choice labels in Arabic — they are written into the
-    # database's verbose names and read by the admin and every internal screen.
-    # The public form restates them so a visitor reading English sees English,
-    # without a migration that changes nothing but display text.
-    STAGE_CHOICES = (
-        (School.Stage.KG, _("رياض أطفال")),
-        (School.Stage.PRIMARY, _("ابتدائي")),
-        (School.Stage.MIDDLE, _("متوسط")),
-        (School.Stage.HIGH, _("ثانوي")),
-    )
-    GENDER_CHOICES = (
-        (School.Gender.BOYS, _("بنين")),
-        (School.Gender.GIRLS, _("بنات")),
-    )
-
     # School info
     school_name = forms.CharField(
-        label=_("اسم المدرسة"), max_length=200,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": _("مثال: مدرسة الأمل الابتدائية")}),
+        label="اسم المدرسة", max_length=200,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "مثال: مدرسة الأمل الابتدائية"}),
     )
     stage = forms.ChoiceField(
-        label=_("المرحلة"), choices=STAGE_CHOICES,
+        label="المرحلة", choices=School.Stage.choices,
         widget=forms.Select(attrs={"class": "form-select"}),
     )
     gender = forms.ChoiceField(
-        label=_("بنين / بنات"), choices=GENDER_CHOICES,
+        label="بنين / بنات", choices=School.Gender.choices,
         widget=forms.Select(attrs={"class": "form-select"}),
     )
     city = forms.CharField(
-        label=_("المدينة"), max_length=120, required=False,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": _("مثال: الرياض")}),
+        label="المدينة", max_length=120, required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "مثال: الرياض"}),
     )
 
     # Manager info
     manager_name = forms.CharField(
-        label=_("اسم المسؤول عن إدارة المدرسة"), max_length=120,
+        label="اسم المسؤول عن إدارة المدرسة", max_length=120,
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": _("الاسم الكامل"),
+                "placeholder": "الاسم الكامل",
                 "autocomplete": "name",
             }
         ),
     )
     manager_phone = forms.CharField(
-        label=_("رقم الجوال"), max_length=16,
+        label="رقم الجوال", max_length=16,
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
@@ -130,7 +114,7 @@ class SchoolRegistrationForm(forms.Form):
         ),
     )
     manager_email = forms.EmailField(
-        label=_("البريد الإلكتروني لإدارة المدرسة"),
+        label="البريد الإلكتروني لإدارة المدرسة",
         required=True,
         widget=forms.EmailInput(
             attrs={
@@ -142,29 +126,29 @@ class SchoolRegistrationForm(forms.Form):
         ),
     )
     password = forms.CharField(
-        label=_("كلمة المرور"), min_length=8,
+        label="كلمة المرور", min_length=8,
         widget=forms.PasswordInput(
             attrs={
                 "class": "form-control",
                 "autocomplete": "new-password",
-                "placeholder": _("8 أحرف على الأقل"),
+                "placeholder": "8 أحرف على الأقل",
             }
         ),
     )
     password_confirm = forms.CharField(
-        label=_("تأكيد كلمة المرور"),
+        label="تأكيد كلمة المرور",
         widget=forms.PasswordInput(
             attrs={
                 "class": "form-control",
                 "autocomplete": "new-password",
-                "placeholder": _("أعد كتابة كلمة المرور"),
+                "placeholder": "أعد كتابة كلمة المرور",
             }
         ),
     )
     accept_policies = forms.BooleanField(
-        label=_("أوافق على الشروط والأحكام وسياسة الخصوصية وسياسة الإلغاء والاسترجاع"),
+        label="أوافق على الشروط والأحكام وسياسة الخصوصية وسياسة الإلغاء والاسترجاع",
         required=True,
-        error_messages={"required": _("يلزم الاطلاع على السياسات والموافقة عليها قبل إنشاء الحساب.")},
+        error_messages={"required": "يلزم الاطلاع على السياسات والموافقة عليها قبل إنشاء الحساب."},
     )
 
     def clean_manager_phone(self):
@@ -177,16 +161,16 @@ class SchoolRegistrationForm(forms.Form):
             phone = f"0{phone}"
 
         if len(phone) != 10 or not phone.startswith("05"):
-            raise forms.ValidationError(_("أدخل رقم جوال سعودي صحيحًا يبدأ بـ 05 ويتكون من 10 أرقام."))
+            raise forms.ValidationError("أدخل رقم جوال سعودي صحيحًا يبدأ بـ 05 ويتكون من 10 أرقام.")
         if Teacher.objects.filter(phone=phone).exists():
-            raise forms.ValidationError(_("رقم الجوال مسجّل مسبقاً. استخدم صفحة الدخول."))
+            raise forms.ValidationError("رقم الجوال مسجّل مسبقاً. استخدم صفحة الدخول.")
         return phone
 
     def clean(self):
         cleaned = super().clean()
         if cleaned.get("password") and cleaned.get("password_confirm"):
             if cleaned["password"] != cleaned["password_confirm"]:
-                self.add_error("password_confirm", _("كلمتا المرور غير متطابقتين."))
+                self.add_error("password_confirm", "كلمتا المرور غير متطابقتين.")
         return cleaned
 
 

@@ -148,8 +148,11 @@ button { font: inherit; }
 .hero-note i { flex: 0 0 auto; color: var(--brand-700); }
 .hero-note b { color: var(--brand-900); font-weight: 900; }
 .trust-bar { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 46px; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.72); box-shadow: var(--shadow-soft); }
-.trust-bar > div { min-height: 84px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; border-inline-end: 1px solid var(--line-soft); text-align: center; }
-.trust-bar > div:last-child { border-inline-end: 0; }
+.trust-bar > div, .trust-bar > .trust-bar-link { min-height: 84px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; border-inline-end: 1px solid var(--line-soft); text-align: center; }
+.trust-bar > :last-child { border-inline-end: 0; }
+.trust-bar-link { transition: background .2s ease; }
+.trust-bar-link:hover { background: rgba(43,182,132,.09); }
+.trust-bar-link:hover span { color: var(--brand-800); }
 .trust-bar strong { color: var(--brand-800); font-size: 1.55rem; }
 .trust-bar i { color: var(--brand-700); font-size: 1.1rem; }
 .trust-bar span { color: var(--ink-soft); font-size: .75rem; font-weight: 800; }
@@ -177,28 +180,50 @@ button { font: inherit; }
 .multi-school-note strong { color: var(--brand-900); font-size: .9rem; }
 .multi-school-note p { margin: 2px 0 0; color: var(--muted); font-size: .76rem; }
 .multi-school-note .text-link { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font-size: .76rem; }
-.value-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-.problem-section { background: var(--paper); }
-.value-card { position: relative; min-height: 340px; padding: 32px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); box-shadow: 0 10px 30px rgba(13,74,53,.05); transition: transform .25s, border-color .25s; }
-.value-card:hover { transform: translateY(-6px); border-color: var(--brand-400); }
-/* The middle card used to be a dark slab; a mint wash keeps the emphasis
-   without reintroducing a dark block mid-page. */
-.value-card.featured { border-color: var(--brand-300); background: linear-gradient(150deg, #e8f9f1, #f7fdfa 62%, #fff); box-shadow: 0 22px 48px rgba(15,122,86,.12); }
-.value-card.featured:hover { transform: translateY(-6px); }
-.card-number { position: absolute; inset: 18px auto auto 24px; color: rgba(15,122,86,.1); font-size: 3.8rem; font-weight: 900; line-height: 1; }
-.featured .card-number { color: rgba(15,122,86,.16); }
-.value-icon { width: 56px; height: 56px; display: grid; place-items: center; margin-bottom: 26px; border-radius: 17px; color: var(--brand-800); background: var(--brand-100); font-size: 1.25rem; }
-.featured .value-icon { color: var(--white); background: var(--brand-800); }
-.value-grid > .value-card:nth-child(3) .value-icon { color: var(--accent-sky); background: var(--accent-sky-tint); }
-.value-grid > .value-card:nth-child(3) .card-number { color: rgba(16,101,143,.12); }
-.value-grid > .value-card:nth-child(3) li::before { color: var(--accent-sky); }
-.value-card h3 { margin: 0 0 10px; font-size: 1.25rem; color: var(--brand-950); }
-.value-card p { margin: 0; color: var(--muted); font-size: .9rem; }
-.value-card.featured p { color: var(--ink-soft); }
-.value-card ul { display: grid; gap: 8px; margin: 22px 0 0; padding: 19px 0 0; border-top: 1px solid var(--line); list-style: none; font-size: .79rem; font-weight: 700; }
-.featured ul { border-color: var(--brand-300); }
-.value-card li::before { content: "✓"; margin-inline-end: 8px; color: var(--brand-700); }
-.featured li::before { color: var(--brand-800); }
+/* ── Voice + AI ───────────────────────────────────────────────────────── */
+/* لوح مائل الخلفية يفصل القسم عمّا حوله دون لوح داكن ثانٍ وسط الصفحة. */
+.voice-section { background: var(--paper); }
+.voice-stage { display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 54px; padding: 46px; border: 1px solid var(--line); border-radius: 26px; background: linear-gradient(155deg, #e9f9f1, #f8fdfb 58%, #fff); box-shadow: var(--shadow-soft); }
+.voice-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-800); font-size: .74rem; font-weight: 900; letter-spacing: .03em; }
+.voice-copy h2 { margin: 13px 0 16px; font-size: clamp(1.8rem, 3.2vw, 2.6rem); line-height: 1.32; letter-spacing: -.03em; color: var(--brand-950); }
+.voice-copy > p { margin: 0; color: var(--muted); font-size: .93rem; }
+.voice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; margin-top: 28px; }
+.voice-flow { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; counter-reset: voice; }
+.voice-flow li { position: relative; display: flex; align-items: center; gap: 14px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 17px; background: rgba(255,255,255,.9); box-shadow: 0 10px 26px rgba(13,74,53,.05); }
+/* السهم بين الخطوات: يقرأ المسار كتتابع لا كقائمة. */
+.voice-flow li:not(:last-child)::after { content: ""; position: absolute; inset-block-end: -8px; inset-inline-start: 44px; width: 10px; height: 10px; border-inline-start: 2px solid var(--brand-300); border-block-end: 2px solid var(--brand-300); transform: rotate(-45deg); }
+.voice-step-icon { width: 46px; height: 46px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 14px; color: var(--brand-800); background: var(--brand-100); font-size: 1.05rem; }
+.voice-flow li:nth-child(2) .voice-step-icon { color: var(--accent-teal); background: var(--accent-teal-tint); }
+.voice-flow li:nth-child(3) .voice-step-icon { color: var(--accent-sky); background: var(--accent-sky-tint); }
+.voice-flow strong, .voice-flow small { display: block; }
+.voice-flow strong { color: var(--brand-950); font-size: .88rem; }
+.voice-flow small { color: var(--muted); font-size: .72rem; }
+.voice-note { display: flex; align-items: center; justify-content: center; gap: 9px; max-width: 780px; margin: 24px auto 0; color: var(--muted); font-size: .78rem; text-align: center; }
+.voice-note i { flex: 0 0 auto; color: var(--brand-700); }
+
+/* ── Verify-before-you-pay ────────────────────────────────────────────── */
+.verify-section { padding-bottom: 60px; background: var(--white); }
+.verify-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.verify-card { display: flex; flex-direction: column; padding: 26px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(180deg, #fff, #f8fdfb); box-shadow: 0 10px 28px rgba(13,74,53,.05); transition: transform .25s ease, border-color .25s ease; }
+.verify-card:hover { transform: translateY(-4px); border-color: var(--brand-400); }
+.verify-card-icon { width: 50px; height: 50px; display: grid; place-items: center; margin-bottom: 20px; border-radius: 15px; color: var(--brand-800); background: var(--brand-100); font-size: 1.1rem; }
+.verify-grid > :nth-child(2) .verify-card-icon { color: var(--accent-teal); background: var(--accent-teal-tint); }
+.verify-grid > :nth-child(3) .verify-card-icon { color: var(--accent-sky); background: var(--accent-sky-tint); }
+.verify-grid > :nth-child(4) .verify-card-icon { color: var(--accent-slate); background: var(--accent-slate-tint); }
+.verify-card h3 { margin: 0 0 9px; font-size: 1.03rem; color: var(--brand-950); }
+.verify-card p { margin: 0 0 16px; color: var(--muted); font-size: .82rem; }
+/* ‎min-height‎ لا حشوة: الرابط آخر عنصر في البطاقة، فالحشوة تزيح النص عن حافته
+   بينما الارتفاع الأدنى يوسّع مساحة اللمس وحدها إلى ٤٤px. */
+.verify-card .text-link { min-height: 44px; margin-top: auto; display: inline-flex; align-items: center; gap: 7px; font-size: .77rem; }
+
+/* جدار الشهادات: معطّل في القالب حتى تتوفر اقتباسات حقيقية، ونمطه جاهز. */
+.quote-wall { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 22px; }
+.quote-card { margin: 0; padding: 26px; border: 1px solid var(--line); border-radius: 18px; background: var(--white); box-shadow: var(--shadow-soft); }
+.quote-card blockquote { margin: 0 0 18px; color: var(--ink-soft); font-size: .9rem; line-height: 1.9; }
+.quote-card blockquote::before { content: "\201D"; display: block; margin-bottom: -12px; color: var(--brand-300); font-size: 2.6rem; font-weight: 900; line-height: 1; }
+.quote-card figcaption { padding-top: 15px; border-top: 1px solid var(--line); }
+.quote-card strong { display: block; color: var(--brand-900); font-size: .84rem; }
+.quote-card small { color: var(--muted); font-size: .72rem; }
 
 /* Before / after comparison — answers the objection principals actually raise:
    "we already use WhatsApp groups and Drive folders, what changes?" */
@@ -337,6 +362,10 @@ button { font: inherit; }
 .showcase { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
 .showcase-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: 0 14px 40px rgba(13,74,53,.06); }
 .showcase-dashboard { grid-column: 1 / -1; display: grid; grid-template-columns: .75fr 1.25fr; align-items: stretch; }
+/* البطاقة الرابعة عريضة أيضًا لتقفل الصف، لكن بالصورة في الجهة المقابلة. */
+.showcase-flip { grid-column: 1 / -1; display: grid; grid-template-columns: 1.25fr .75fr; align-items: stretch; }
+.showcase-flip .showcase-copy { order: 2; }
+.showcase-flip .showcase-image { order: 1; width: calc(100% - 18px); margin: 0; padding: 18px 18px 18px 0; }
 .showcase-copy { padding: 30px; }
 .showcase-copy > span { color: var(--brand-800); font-size: .72rem; font-weight: 900; }
 .showcase-copy h3 { margin: 9px 0; font-size: 1.22rem; color: var(--brand-950); }
@@ -414,7 +443,7 @@ button { font: inherit; }
 .security-intro h2 { margin-top: 4px; }
 .security-intro p { color: var(--muted); }
 .security-shield { width: 65px; height: 65px; display: grid; place-items: center; border: 1px solid var(--brand-300); border-radius: 19px; color: var(--white); background: var(--brand-800); font-size: 1.45rem; }
-.security-points { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 38px; padding-top: 28px; border-top: 1px solid var(--brand-300); }
+.security-points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 38px; padding-top: 28px; border-top: 1px solid var(--brand-300); }
 .security-points > div { display: flex; gap: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.8); }
 .security-points > div > i { margin-top: 5px; color: var(--brand-800); }
 .security-points strong, .security-points small { display: block; }
@@ -482,6 +511,14 @@ button { font: inherit; }
 .faq-section { background: var(--white); }
 .faq-layout { display: grid; grid-template-columns: .7fr 1.3fr; gap: 80px; }
 .faq-intro { position: sticky; top: 120px; align-self: start; }
+.faq-links { display: grid; gap: 9px; margin: 26px 0 24px; }
+.faq-links a { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); transition: transform .2s ease, border-color .2s ease; }
+.faq-links a:hover { transform: translateX(-4px); border-color: var(--brand-400); }
+.faq-links i { width: 20px; flex: 0 0 auto; color: var(--brand-700); text-align: center; }
+.faq-links strong, .faq-links small { display: block; }
+.faq-links strong { color: var(--brand-900); font-size: .82rem; }
+.faq-links small { color: var(--muted); font-size: .7rem; word-break: break-word; }
+.faq-cta { width: 100%; }
 .arrow-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 22px; }
 .faq-list { display: grid; gap: 11px; }
 .faq-list details { border: 1px solid var(--line); border-radius: 14px; background: var(--white); overflow: hidden; }
@@ -594,6 +631,8 @@ button { font: inherit; }
   .hero-orb-two { display: none; }
   .leadership-stage { grid-template-columns: 1fr; gap: 40px; }
   .leadership-copy { max-width: 760px; }
+  .voice-stage { grid-template-columns: 1fr; gap: 34px; padding: 38px; }
+  .verify-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .faq-layout { gap: 44px; }
   .security-points { grid-template-columns: repeat(2, 1fr); }
   .group-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -627,7 +666,7 @@ button { font: inherit; }
   .start-steps { grid-template-columns: 1fr; }
   .start-steps::before { display: none; }
   .start-step { min-height: 0; }
-  .value-grid, .feature-grid, .group-layout { grid-template-columns: 1fr; }
+  .feature-grid, .group-layout { grid-template-columns: 1fr; }
   /* Stacked, the paired cells interleave; each one names its own side so the
      contrast still reads without the column headers. */
   .compare-panel { grid-template-columns: 1fr; border-radius: 20px; }
@@ -637,15 +676,14 @@ button { font: inherit; }
   .compare-before .compare-cell-label { color: #8b978f; }
   .compare-after .compare-cell-label { color: var(--brand-700); }
   .compare-after { border-inline-start: 3px solid var(--brand-700); }
-  .value-card { min-height: 0; }
-  .value-card.featured { transform: none; }
-  .value-card.featured:hover { transform: translateY(-6px); }
+  .voice-stage { padding: 32px 26px; border-radius: 22px; }
+  .voice-flow li:not(:last-child)::after { display: none; }
   .feature-card-wide { grid-column: auto; min-height: 270px; display: block; }
   .feature-card-wide .feature-icon { margin-bottom: 28px; }
   .feature-arrow { display: none; }
   .showcase { grid-template-columns: 1fr; }
-  .showcase-dashboard { grid-column: auto; display: block; }
-  .showcase-dashboard .showcase-image { width: calc(100% - 36px); margin: 0 18px 18px; padding: 0; }
+  .showcase-dashboard, .showcase-flip { grid-column: auto; display: block; }
+  .showcase-dashboard .showcase-image, .showcase-flip .showcase-image { width: calc(100% - 36px); margin: 0 18px 18px; padding: 0; }
   .role-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .role-panel { grid-template-columns: 1fr; gap: 30px; padding: 38px 30px; }
   .role-outcomes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -681,13 +719,19 @@ button { font: inherit; }
   .hero-note { align-items: flex-start; margin-top: 24px; padding: 13px 16px; text-align: start; font-size: .76rem; }
   .hero-note i { margin-top: 5px; }
   .trust-bar { margin-top: 26px; }
-  .trust-bar > div { min-height: 76px; flex-direction: column; gap: 3px; padding: 10px; }
+  .trust-bar > div, .trust-bar > .trust-bar-link { min-height: 76px; flex-direction: column; gap: 3px; padding: 10px; }
   .trust-bar strong { font-size: 1.3rem; }
   .trust-bar span { font-size: .66rem; }
   .section { padding: 65px 0; }
   .section-heading { text-align: start; }
   .section-heading h2, .roles-copy h2, .security-intro h2, .faq-intro h2 { font-size: 1.75rem; }
-  .value-card, .feature-card, .showcase-copy, .price-card, .group-card { padding: 23px; }
+  .feature-card, .showcase-copy, .price-card, .group-card, .verify-card { padding: 23px; }
+  .verify-grid { grid-template-columns: 1fr; }
+  .voice-copy h2 { font-size: 1.75rem; }
+  .voice-actions { display: grid; align-items: stretch; }
+  .voice-actions .button { width: 100%; }
+  .voice-flow li { padding: 15px 16px; }
+  .voice-note { align-items: flex-start; text-align: start; }
   .feature-extras { padding: 20px; }
   .feature-extras ul { grid-template-columns: 1fr; }
   .multi-school-note, .group-note { grid-template-columns: auto 1fr; }
@@ -703,7 +747,7 @@ button { font: inherit; }
   .executive-card { min-height: 0; }
   .executive-card-wide { grid-column: auto; align-items: flex-start; }
   .product-proof { align-items: flex-start; margin-top: -8px; }
-  .showcase-image, .showcase-dashboard .showcase-image { width: calc(100% - 20px); margin: 0 10px 10px; padding: 0; }
+  .showcase-image, .showcase-dashboard .showcase-image, .showcase-flip .showcase-image { width: calc(100% - 20px); margin: 0 10px 10px; padding: 0; }
   .image-zoom { inset: auto 8px 8px auto; padding: 6px 8px; }
   .product-lightbox { width: calc(100% - 16px); max-height: calc(100dvh - 16px); padding: 8px; border-radius: 15px; }
   .lightbox-head { align-items: flex-start; }

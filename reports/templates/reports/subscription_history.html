@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block title %}سجل عمليات الاشتراك{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/billing-invoice.css' %}?v=20260813.1">{% endblock %}
 
 {% block content %}
 <div class="royal-page">
@@ -60,6 +61,16 @@
                  <span class="royal-status danger"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> استرجاع</span>
                {% elif payment.status == 'approved' %}
                  <span class="royal-status ok"><i class="fa-solid fa-check" aria-hidden="true"></i> تم التفعيل</span>
+                 {% if payment.invoice_available %}
+                   <div class="billing-invoice-actions">
+                     <a href="{% url 'reports:subscription_invoice' payment.invoice_anchor_id %}{% if acting_on_behalf %}?school={{ school.pk }}{% endif %}" class="billing-invoice-link">
+                       <i class="fa-regular fa-file-lines" aria-hidden="true"></i> عرض الفاتورة
+                     </a>
+                     <a href="{% url 'reports:subscription_invoice_pdf' payment.invoice_anchor_id %}{% if acting_on_behalf %}?school={{ school.pk }}{% endif %}" class="billing-invoice-link billing-invoice-link--download">
+                       <i class="fa-solid fa-download" aria-hidden="true"></i> PDF
+                     </a>
+                   </div>
+                 {% endif %}
                {% elif payment.status == 'cancelled' %}
                  <span class="royal-status"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
                {% elif payment.status == 'rejected' %}
@@ -67,7 +78,7 @@
                {% elif payment.payment_method == 'moyasar' %}
                  <span class="royal-status warn"><i class="fa-solid fa-wallet" aria-hidden="true"></i> بانتظار إكمال دفع ميّسر</span>
                {% else %}
-                 <span class="royal-status warn"><i class="fa-solid fa-clock" aria-hidden="true"></i> قيد المراجعة</span>
+                 <span class="royal-status warn"><i class="fa-solid fa-clock" aria-hidden="true"></i> قيد المراجعة · التفعيل قبل {{ payment.bank_review_due_date|date:"Y-m-d" }}</span>
                {% endif %}
             </td>
             <td class="xs-subscription-history-1">

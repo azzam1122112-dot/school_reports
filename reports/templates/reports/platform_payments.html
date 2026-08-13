@@ -426,7 +426,11 @@
                 {% elif payment.status == 'pending' and payment.payment_method == 'moyasar' %}
                   <span class="badge warning"><i class="fa-solid fa-clock"></i> بانتظار ميّسر</span>
                 {% elif payment.status == 'pending' %}
-                  <span class="badge warning"><i class="fa-solid fa-hourglass-half"></i> قيد المراجعة</span>
+                  {% if payment.bank_review_is_overdue %}
+                    <span class="badge danger"><i class="fa-solid fa-triangle-exclamation"></i> تجاوز يوم العمل</span>
+                  {% else %}
+                    <span class="badge warning"><i class="fa-solid fa-hourglass-half"></i> قبل {{ payment.bank_review_due_date|date:"Y-m-d" }}</span>
+                  {% endif %}
                 {% elif payment.status == 'rejected' %}
                   <span class="badge danger"><i class="fa-solid fa-circle-xmark"></i> مرفوض</span>
                 {% elif payment.status == 'cancelled' %}

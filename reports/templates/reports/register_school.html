@@ -1,15 +1,15 @@
-{% load i18n static %}
+{% load static %}
 <!doctype html>
-<html {% include "reports/partials/html_lang.html" %}>
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#071d15">
   <meta name="color-scheme" content="light dark">
   {% include "reports/partials/theme_bootstrap.html" %}
-  <meta name="description" content="{% translate "أنشئ حساب مدرستك وابدأ تجربة منصة توثيق الكاملة." %}">
+  <meta name="description" content="أنشئ حساب مدرستك وابدأ تجربة منصة توثيق الكاملة.">
   <meta name="robots" content="noindex,follow">
-  <title>{% translate "ابدأ تجربة مدرستك | منصة توثيق" %}</title>
+  <title>ابدأ تجربة مدرستك | منصة توثيق</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
   {% include "reports/partials/pwa_install_head.html" %}
   {% comment %}الخط والأيقونات محلياً: لا طلب لطرف ثالث قبل أول حرف، ولا نطاق خارجي في سياسة المحتوى.{% endcomment %}
@@ -368,43 +368,43 @@
 </head>
 <body>
   <main class="registration-shell">
-    <aside class="experience-panel" aria-label="{% translate "مزايا التجربة المجانية" %}">
+    <aside class="experience-panel" aria-label="مزايا التجربة المجانية">
       <a class="brand" href="{% url 'reports:landing' %}">
         <img src="{% static 'img/brand-mark.svg' %}" alt="" width="44" height="44">
-        <span><strong>{% translate "منصة توثيق" %}</strong><small>{% translate "لتشغيل وتوثيق العمل المدرسي" %}</small></span>
+        <span><strong>منصة توثيق</strong><small>لتشغيل وتوثيق العمل المدرسي</small></span>
       </a>
 
       <div class="experience-copy">
-        <span class="trial-label"><i class="fa-solid fa-sparkles"></i> {% blocktranslate with days=trial_days %}تجربة كاملة لمدة {{ days }} يومًا{% endblocktranslate %}</span>
-        <h1>{% translate "ابدأ بمدرستك الحقيقية، لا بنسخة محدودة." %}</h1>
-        <p>{% translate "بعد التسجيل ستدخل مباشرة إلى لوحة المدرسة، وتستطيع تجربة مسارات المنصة الأساسية قبل اتخاذ قرار الاشتراك." %}</p>
+        <span class="trial-label"><i class="fa-solid fa-sparkles"></i> تجربة كاملة لمدة {{ trial_days }} يومًا</span>
+        <h1>ابدأ بمدرستك الحقيقية، لا بنسخة محدودة.</h1>
+        <p>بعد التسجيل ستدخل مباشرة إلى لوحة المدرسة، وتستطيع تجربة مسارات المنصة الأساسية قبل اتخاذ قرار الاشتراك.</p>
         <ul class="benefit-list">
-          <li><i class="fa-solid fa-check"></i><span>{% translate "التقارير وملفات الإنجاز والمخرجات بصيغة PDF" %}</span></li>
-          <li><i class="fa-solid fa-check"></i><span>{% translate "الطلبات والتذاكر والتعاميم والتوقيعات" %}</span></li>
-          <li><i class="fa-solid fa-check"></i><span>{% blocktranslate with limit=trial_teacher_limit %}إضافة حتى {{ limit }} من أعضاء الكادر لتجربة العمل الجماعي{% endblocktranslate %}</span></li>
-          <li><i class="fa-solid fa-check"></i><span>{% blocktranslate with gb=trial_archive_storage_gb %}أرشيف تجريبي بسعة {{ gb }}GB طوال فترة التجربة{% endblocktranslate %}</span></li>
+          <li><i class="fa-solid fa-check"></i><span>التقارير وملفات الإنجاز والمخرجات بصيغة PDF</span></li>
+          <li><i class="fa-solid fa-check"></i><span>الطلبات والتذاكر والتعاميم والتوقيعات</span></li>
+          <li><i class="fa-solid fa-check"></i><span>إضافة حتى {{ trial_teacher_limit }} من أعضاء الكادر لتجربة العمل الجماعي</span></li>
+          <li><i class="fa-solid fa-check"></i><span>أرشيف تجريبي بسعة {{ trial_archive_storage_gb }}GB طوال فترة التجربة</span></li>
         </ul>
       </div>
 
       <div class="privacy-note">
         <i class="fa-solid fa-shield-halved"></i>
-        <span>{% translate "بيانات المدرسة معزولة، ولا تحتاج إلى بطاقة ائتمانية لبدء التجربة." %}</span>
+        <span>بيانات المدرسة معزولة، ولا تحتاج إلى بطاقة ائتمانية لبدء التجربة.</span>
       </div>
     </aside>
 
     <section class="form-panel">
       <a class="back-link" href="{% url 'reports:landing' %}">
-        <i class="fa-solid fa-arrow-right"></i> {% translate "العودة للصفحة الرئيسية" %}
+        <i class="fa-solid fa-arrow-right"></i> العودة للصفحة الرئيسية
       </a>
 
       <header class="form-head">
-        <div class="steps" aria-label="{% translate "خطوات البدء" %}">
-          <span data-step="1">{% translate "بيانات المدرسة" %}</span><i></i>
-          <span data-step="2">{% translate "حساب إدارة المدرسة" %}</span><i></i>
-          <span data-step="3">{% translate "ابدأ التجربة" %}</span>
+        <div class="steps" aria-label="خطوات البدء">
+          <span data-step="1">بيانات المدرسة</span><i></i>
+          <span data-step="2">حساب إدارة المدرسة</span><i></i>
+          <span data-step="3">ابدأ التجربة</span>
         </div>
-        <h2>{% translate "أنشئ حساب المدرسة" %}</h2>
-        <p>{% translate "أدخل البيانات الأساسية فقط. بعد الإنشاء سنعرض لك بيانات الدخول بوضوح في صفحة مستقلة." %}</p>
+        <h2>أنشئ حساب المدرسة</h2>
+        <p>أدخل البيانات الأساسية فقط. بعد الإنشاء سنعرض لك بيانات الدخول بوضوح في صفحة مستقلة.</p>
       </header>
 
       {% if messages %}
@@ -420,7 +420,7 @@
         {% endif %}
 
         <section class="form-section">
-          <div class="section-title"><i class="fa-solid fa-school"></i> {% translate "معلومات المدرسة" %}</div>
+          <div class="section-title"><i class="fa-solid fa-school"></i> معلومات المدرسة</div>
           <div class="field-grid">
             <div class="form-group full">
               <label for="id_school_name">{{ form.school_name.label }}</label>
@@ -438,7 +438,7 @@
               {% if form.gender.errors %}<ul class="error-list">{% for error in form.gender.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             </div>
             <div class="form-group full">
-              <label for="id_city">{{ form.city.label }} <span class="optional">{% translate "اختياري" %}</span></label>
+              <label for="id_city">{{ form.city.label }} <span class="optional">اختياري</span></label>
               {{ form.city }}
               {% if form.city.errors %}<ul class="error-list">{% for error in form.city.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             </div>
@@ -446,7 +446,7 @@
         </section>
 
         <section class="form-section">
-          <div class="section-title"><i class="fa-solid fa-user-shield"></i> {% translate "حساب إدارة المدرسة" %}</div>
+          <div class="section-title"><i class="fa-solid fa-user-shield"></i> حساب إدارة المدرسة</div>
           <div class="field-grid">
             <div class="form-group full">
               <label for="id_manager_name">{{ form.manager_name.label }}</label>
@@ -456,20 +456,20 @@
             <div class="form-group full">
               <label for="id_manager_phone">{{ form.manager_phone.label }}</label>
               {{ form.manager_phone }}
-              <p class="field-help">{% translate "سيكون رقم الجوال هو اسم المستخدم عند تسجيل الدخول." %}</p>
+              <p class="field-help">سيكون رقم الجوال هو اسم المستخدم عند تسجيل الدخول.</p>
               {% if form.manager_phone.errors %}<ul class="error-list">{% for error in form.manager_phone.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             </div>
             <div class="form-group full">
               <label for="id_manager_email">{{ form.manager_email.label }}</label>
               {{ form.manager_email }}
-              <p class="field-help"> {% translate "ميس." %}</p>
+              <p class="field-help"> ميس.</p>
               {% if form.manager_email.errors %}<ul class="error-list">{% for error in form.manager_email.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             </div>
             <div class="form-group">
               <label for="id_password">{{ form.password.label }}</label>
               <div class="password-wrap">
                 {{ form.password }}
-                <button class="password-toggle" type="button" data-password-toggle="id_password" aria-label="{% translate "إظهار كلمة المرور" %}"><i class="fa-regular fa-eye"></i></button>
+                <button class="password-toggle" type="button" data-password-toggle="id_password" aria-label="إظهار كلمة المرور"><i class="fa-regular fa-eye"></i></button>
               </div>
               {% if form.password.errors %}<ul class="error-list">{% for error in form.password.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             </div>
@@ -477,7 +477,7 @@
               <label for="id_password_confirm">{{ form.password_confirm.label }}</label>
               <div class="password-wrap">
                 {{ form.password_confirm }}
-                <button class="password-toggle" type="button" data-password-toggle="id_password_confirm" aria-label="{% translate "إظهار تأكيد كلمة المرور" %}"><i class="fa-regular fa-eye"></i></button>
+                <button class="password-toggle" type="button" data-password-toggle="id_password_confirm" aria-label="إظهار تأكيد كلمة المرور"><i class="fa-regular fa-eye"></i></button>
               </div>
               {% if form.password_confirm.errors %}<ul class="error-list">{% for error in form.password_confirm.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             </div>
@@ -487,35 +487,26 @@
         <div class="policy-consent">
           {{ form.accept_policies }}
           <label for="id_accept_policies">
-            {% comment %}
-              الجملة كاملةً في وسمٍ واحد: ترتيبُ الروابط داخلها جزءٌ من الجملة،
-              وتقطيعُها إلى «أوافق على» و«،» يعطي المترجم كلماتٍ لا معنى لها.
-            {% endcomment %}
-            {% url 'reports:terms_conditions' as terms_url %}
-            {% url 'reports:privacy_policy' as privacy_url %}
-            {% url 'reports:refund_policy' as refund_url %}
-            {% blocktranslate %}أوافق على <a href="{{ terms_url }}" target="_blank" rel="noopener">الشروط والأحكام</a>، <a href="{{ privacy_url }}" target="_blank" rel="noopener">سياسة الخصوصية</a>، و<a href="{{ refund_url }}" target="_blank" rel="noopener">سياسة الإلغاء والاسترجاع</a>.{% endblocktranslate %}
+            أوافق على
+            <a href="{% url 'reports:terms_conditions' %}" target="_blank" rel="noopener">الشروط والأحكام</a>،
+            <a href="{% url 'reports:privacy_policy' %}" target="_blank" rel="noopener">سياسة الخصوصية</a>،
+            و<a href="{% url 'reports:refund_policy' %}" target="_blank" rel="noopener">سياسة الإلغاء والاسترجاع</a>.
             {% if form.accept_policies.errors %}<span class="error-list">{{ form.accept_policies.errors|striptags }}</span>{% endif %}
           </label>
         </div>
 
         <div class="submit-row">
           <button class="submit-button" type="submit" id="submitButton">
-            <span>{% translate "إنشاء المدرسة وبدء التجربة" %}</span>
+            <span>إنشاء المدرسة وبدء التجربة</span>
             <i class="fa-solid fa-arrow-left"></i>
           </button>
-          <span class="login-link">{% translate "لديك حساب؟" %} <a href="{% url 'reports:login' %}">{% translate "سجّل الدخول" %}</a></span>
+          <span class="login-link">لديك حساب؟ <a href="{% url 'reports:login' %}">سجّل الدخول</a></span>
         </div>
       </form>
     </section>
   </main>
 
   <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
-    const REGISTER_TEXT = {
-      showPassword: '{% translate "إظهار كلمة المرور" as t %}{{ t|escapejs }}',
-      hidePassword: '{% translate "إخفاء كلمة المرور" as t %}{{ t|escapejs }}',
-      preparing: '{% translate "جارٍ تجهيز مدرستك..." as t %}{{ t|escapejs }}',
-    };
     (function () {
       document.querySelectorAll("[data-password-toggle]").forEach(function (button) {
         button.addEventListener("click", function () {
@@ -523,7 +514,7 @@
           if (!input) return;
           var show = input.type === "password";
           input.type = show ? "text" : "password";
-          button.setAttribute("aria-label", show ? REGISTER_TEXT.hidePassword : REGISTER_TEXT.showPassword);
+          button.setAttribute("aria-label", show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
           var icon = button.querySelector("i");
           if (icon) {
             icon.classList.toggle("fa-eye", !show);
@@ -538,7 +529,7 @@
         form.addEventListener("submit", function () {
           if (!form.checkValidity()) return;
           submit.disabled = true;
-          submit.querySelector("span").textContent = REGISTER_TEXT.preparing;
+          submit.querySelector("span").textContent = 'جارٍ تجهيز مدرستك...';
           submit.querySelector("i").className = "fa-solid fa-circle-notch fa-spin";
         });
       }

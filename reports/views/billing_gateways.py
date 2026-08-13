@@ -191,11 +191,11 @@ def _sync_moyasar_batch(batch_ref: str) -> str:
 @ratelimit(key="user", rate="5/m", method="POST", block=True)
 @require_http_methods(["POST"])
 def moyasar_checkout_create(request):
+    membership = _manager_payment_membership(request)
     if not moyasar_is_enabled():
         messages.error(request, "الدفع الإلكتروني غير متاح حاليًا.")
         return _subscription_redirect(membership)
 
-    membership = _manager_payment_membership(request)
     if not membership:
         messages.error(request, "هذه الخدمة مخصصة لإدارة المدرسة.")
         return redirect("reports:home")
@@ -275,7 +275,12 @@ def moyasar_checkout_create(request):
 
     if warnings:
         messages.warning(request, "لم تُضف بعض العناصر: " + " ، ".join(warnings))
-    _notify_managers_of_group_payment(membership, total=total, labels=labels)
+    _notify_managers_of_group_payment(
+        membership,
+        total=total,
+        labels=labels,
+        payment_method=Payment.Method.MOYASAR,
+    )
     return redirect(checkout_url)
 
 
@@ -291,7 +296,10 @@ def moyasar_return(request, batch_ref: str):
         messages.error(request, "تعذّر التحقق من نتيجة الدفع الإلكتروني. سيُعاد التحقق تلقائيًا.")
     else:
         if invoice_status == "paid":
-            messages.success(request, "تم تأكيد الدفع الإلكتروني وتفعيل الخدمات المختارة.")
+            messages.success(
+                request,
+                "تم تأكيد نجاح الدفع الإلكتروني وتفعيل الباقة والخدمات المختارة تلقائيًا.",
+            )
         elif invoice_status in {"failed", "canceled", "expired", "voided"}:
             messages.error(request, "لم تكتمل عملية الدفع الإلكتروني. يمكنك إنشاء طلب جديد.")
         else:

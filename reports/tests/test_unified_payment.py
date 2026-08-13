@@ -1,5 +1,6 @@
 from io import BytesIO
 
+from django.contrib.messages import get_messages
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -29,7 +30,7 @@ def _receipt():
     return SimpleUploadedFile("receipt.png", _png_bytes(), content_type="image/png")
 
 
-@override_settings(ALLOWED_HOSTS=["testserver"])
+@override_settings(ALLOWED_HOSTS=["testserver"], RATELIMIT_ENABLE=False)
 class UnifiedPaymentTests(TestCase):
     def setUp(self):
         self.plan = SubscriptionPlan.objects.create(
@@ -83,6 +84,27 @@ class UnifiedPaymentTests(TestCase):
         self.assertTrue(all(p.status == Payment.Status.PENDING for p in payments))
         receipt_names = {p.receipt_image.name for p in payments}
         self.assertEqual(len(receipt_names), 1)
+
+    def test_bank_transfer_sets_pending_status_and_one_business_day_notice(self):
+        response = self.client.post(
+            reverse("reports:payment_create"),
+            {
+                "unified": "1",
+                "include_subscription": "1",
+                "plan_id": str(self.plan.id),
+                "receipt_image": _receipt(),
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        message_text = " ".join(
+            str(message) for message in get_messages(response.wsgi_request)
+        )
+        self.assertIn("خلال يوم عمل واحد كحد أقصى", message_text)
+        payment = Payment.objects.get(school=self.school)
+        self.assertEqual(payment.payment_method, Payment.Method.BANK_TRANSFER)
+        self.assertEqual(payment.status, Payment.Status.PENDING)
 
     def test_storage_can_be_bought_without_the_archive_addon(self):
         """Storage is its own product. Requiring the yearly-archive add-on first

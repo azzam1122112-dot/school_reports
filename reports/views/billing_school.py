@@ -25,6 +25,12 @@ from ._helpers import (
 from ..mansour_knowledge import AUDIENCE_LABELS
 from ..permissions import executive_director_schools_qs
 from ..utils import create_system_notification
+from ..billing_invoices import (
+    InvoiceUnavailable,
+    build_invoice_context,
+    decorate_payments_with_invoice_access,
+)
+from ..pdf_invoice import generate_invoice_pdf
 from ..flexible_pricing import (
     ANCHOR_CAPACITIES,
     PERIODS,
@@ -169,7 +175,12 @@ def my_subscription(request):
     ).order_by("-created_at").first()
 
     # تظهر آخر 4 عمليات فقط
-    payments = Payment.objects.filter(school=membership.school).order_by('-created_at')[:4]
+    payments = list(
+        Payment.objects.filter(school=membership.school)
+        .select_related("requested_plan", "payer_group")
+        .order_by("-created_at")[:4]
+    )
+    decorate_payments_with_invoice_access(payments)
     renewal_catalog = _renewal_plan_catalog(
         subscription.plan_id if subscription else None
     )
@@ -269,6 +280,8 @@ def subscription_history(request):
 
     paginator = Paginator(payments, 30)
     page_obj = paginator.get_page(request.GET.get("page"))
+    page_obj.object_list = list(page_obj.object_list)
+    decorate_payments_with_invoice_access(page_obj.object_list)
     
     context = {
         "school": membership.school,
@@ -278,6 +291,51 @@ def subscription_history(request):
         "acting_group": membership.group,
     }
     return render(request, 'reports/subscription_history.html', context)
+
+
+def _customer_invoice_context(request, payment_id: int) -> tuple[dict, _PaymentActor]:
+    actor = _resolve_payment_actor(request)
+    if actor is None:
+        raise Http404("الفاتورة غير متاحة.")
+    payment = get_object_or_404(
+        Payment.objects.select_related("school", "requested_plan", "payer_group"),
+        pk=payment_id,
+        school=actor.school,
+    )
+    try:
+        context = build_invoice_context(payment)
+    except InvoiceUnavailable as exc:
+        raise Http404(str(exc)) from exc
+    context.update(
+        {
+            "school": actor.school,
+            "acting_on_behalf": actor.is_on_behalf,
+            "school_query": f"?school={actor.school_id}" if actor.is_on_behalf else "",
+        }
+    )
+    return context, actor
+
+
+@login_required(login_url="reports:login")
+@never_cache
+def subscription_invoice(request, payment_id: int):
+    context, _actor = _customer_invoice_context(request, payment_id)
+    response = render(request, "reports/billing_invoice.html", context)
+    response["X-Robots-Tag"] = "noindex, nofollow"
+    response["Cache-Control"] = "private, no-store"
+    return response
+
+
+@login_required(login_url="reports:login")
+@never_cache
+def subscription_invoice_pdf(request, payment_id: int):
+    context, _actor = _customer_invoice_context(request, payment_id)
+    pdf_bytes, filename = generate_invoice_pdf(context=context, request=request)
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response["X-Robots-Tag"] = "noindex, nofollow"
+    response["Cache-Control"] = "private, no-store"
+    return response
 
 
 @login_required(login_url="reports:login")

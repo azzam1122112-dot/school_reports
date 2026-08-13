@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}الفاتورة {{ invoice_number }}{% endblock %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/billing-invoice.css' %}?v=20260813.1">{% endblock %}
+
+{% block content %}
+<main class="invoice-page">
+  <nav class="invoice-toolbar" aria-label="إجراءات الفاتورة">
+    <a href="{% url 'reports:my_subscription' %}{{ school_query }}" class="invoice-toolbar__button">
+      <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+      العودة للاشتراك
+    </a>
+    <div class="invoice-toolbar__group">
+      <a href="{% url 'reports:subscription_history' %}{{ school_query }}" class="invoice-toolbar__button">
+        <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+        سجل المدفوعات
+      </a>
+      <a href="{% url 'reports:subscription_invoice_pdf' anchor_payment_id %}{{ school_query }}" class="invoice-toolbar__button invoice-toolbar__button--primary">
+        <i class="fa-solid fa-download" aria-hidden="true"></i>
+        تنزيل PDF
+      </a>
+    </div>
+  </nav>
+
+  <article class="invoice-sheet" aria-labelledby="invoiceTitle">
+    <div class="invoice-sheet__stripe" aria-hidden="true"><span></span><span></span></div>
+    <header class="invoice-header">
+      <div class="invoice-brand">
+        <img src="{{ logo_url }}" alt="شعار منصة توثيق" width="58" height="58">
+        <div>
+          <strong>منصة توثيق</strong>
+          <small>إدارة مدرسية رقمية موثوقة</small>
+        </div>
+      </div>
+      <div class="invoice-title">
+        <h1 id="invoiceTitle">فاتورة دفع</h1>
+        <p dir="ltr">{{ invoice_number }}</p>
+        <span class="invoice-paid-badge"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> {{ status_label }}</span>
+      </div>
+    </header>
+
+    <div class="invoice-content">
+      <section class="invoice-meta" aria-label="بيانات الفاتورة">
+        <div class="invoice-meta__item"><span>رقم الفاتورة</span><strong dir="ltr">{{ invoice_number }}</strong></div>
+        <div class="invoice-meta__item"><span>تاريخ الإصدار</span><strong dir="ltr">{{ issued_at|date:"Y-m-d H:i" }}</strong></div>
+        <div class="invoice-meta__item"><span>طريقة الدفع</span><strong>{{ payment_method }}</strong></div>
+        <div class="invoice-meta__item"><span>مرجع الدفع</span><strong dir="ltr">{{ payment_reference }}</strong></div>
+      </section>
+
+      <section class="invoice-parties" aria-label="أطراف الفاتورة">
+        <div class="invoice-party">
+          <h2>مقدم الخدمة</h2>
+          <strong>{{ business.legal_name }}</strong>
+          {% if business.commercial_registration %}<p>السجل التجاري: <span dir="ltr">{{ business.commercial_registration }}</span></p>{% endif %}
+          {% if not business.commercial_registration and business.freelance_document_number %}<p>وثيقة العمل الحر: <span dir="ltr">{{ business.freelance_document_number }}</span></p>{% endif %}
+          {% if business.tax_number %}<p>الرقم الضريبي: <span dir="ltr">{{ business.tax_number }}</span></p>{% endif %}
+          {% if business.address %}<p>{{ business.address }}</p>{% endif %}
+          {% if business.support_email %}<p dir="ltr">{{ business.support_email }}</p>{% endif %}
+        </div>
+        <div class="invoice-party">
+          <h2>مفوتر إلى</h2>
+          <strong>{{ customer.name }}</strong>
+          <p>رمز المدرسة: <span dir="ltr">{{ customer.code }}</span></p>
+          {% if customer.city %}<p>{{ customer.city }}</p>{% endif %}
+          {% if customer.phone %}<p dir="ltr">{{ customer.phone }}</p>{% endif %}
+          {% if customer.email %}<p dir="ltr">{{ customer.email }}</p>{% endif %}
+        </div>
+      </section>
+
+      <div class="invoice-table-wrap">
+        <table class="invoice-table">
+          <thead><tr><th>#</th><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead>
+          <tbody>
+            {% for item in items %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ item.description }}</td>
+              <td>{{ item.quantity }}</td>
+              <td dir="ltr">{{ item.unit_price|floatformat:2|intcomma }} SAR</td>
+              <td dir="ltr">{{ item.amount|floatformat:2|intcomma }} SAR</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <section class="invoice-summary" aria-label="إجمالي الفاتورة">
+        <div class="invoice-summary__row"><span>المجموع قبل الضريبة</span><strong dir="ltr">{{ subtotal|floatformat:2|intcomma }} SAR</strong></div>
+        <div class="invoice-summary__row"><span>ضريبة القيمة المضافة</span><strong dir="ltr">{{ tax_amount|floatformat:2|intcomma }} SAR</strong></div>
+        <div class="invoice-summary__row invoice-summary__row--total"><span>الإجمالي المدفوع</span><strong dir="ltr">{{ total|floatformat:2|intcomma }} SAR</strong></div>
+      </section>
+
+      <section class="invoice-payment-note" aria-label="تفاصيل السداد">
+        <div><span>حالة السداد</span><strong>{{ status_label }}</strong></div>
+        <div><span>تاريخ السداد</span><strong dir="ltr">{{ paid_at|date:"Y-m-d H:i" }}</strong></div>
+        <div><span>الدافع</span><strong>{{ payer_name }}</strong></div>
+      </section>
+    </div>
+
+    <footer class="invoice-footer">
+      فاتورة إلكترونية صادرة آليًا من منصة توثيق ولا تتطلب توقيعًا. لا تُحتسب ضريبة قيمة مضافة على هذه العملية.
+    </footer>
+  </article>
+</main>
+{% endblock %}

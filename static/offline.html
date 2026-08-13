@@ -70,30 +70,10 @@
       <path d="M46 53h28M46 65h22" fill="none" stroke="#0a6a45" stroke-width="6" stroke-linecap="round" opacity=".45"/>
       <path d="m49 80 9 9 22-25" fill="none" stroke="#c79a42" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    <div class="status" data-en="Offline mode">وضع عدم الاتصال</div>
-    <h1 data-en="You are offline">أنت الآن دون اتصال</h1>
-    <p data-en="The network could not be reached. Check your internet connection and try again; your saved data is not affected.">تعذّر الوصول إلى الشبكة. تحقق من اتصال الإنترنت ثم أعد المحاولة؛ لن يؤثر ذلك في بياناتك المحفوظة.</p>
-    <a href="/" data-en="Try again">إعادة المحاولة</a>
+    <div class="status">وضع عدم الاتصال</div>
+    <h1>أنت الآن دون اتصال</h1>
+    <p>تعذّر الوصول إلى الشبكة. تحقق من اتصال الإنترنت ثم أعد المحاولة؛ لن يؤثر ذلك في بياناتك المحفوظة.</p>
+    <a href="/">إعادة المحاولة</a>
   </main>
-  <script>
-    /* هذه الصفحة يقدّمها عامل الخدمة من الكاش، فلا تمرّ بـDjango ولا يبلغها
-       وسمُ ترجمة. فالعربية هي المكتوبة، والإنجليزية تُبدَّل هنا اعتماداً على
-       كوكي اللغة نفسه الذي يكتبه ``set_language`` — وهو متاح دون شبكة. */
-    (function () {
-      var match = document.cookie.match(/(?:^|;\s*)django_language=([^;]*)/);
-      var language = match ? decodeURIComponent(match[1]) : "";
-      if (language.slice(0, 2).toLowerCase() !== "en") return;
-
-      var root = document.documentElement;
-      root.lang = "en";
-      root.dir = "ltr";
-      document.title = "No connection | Tawtheeq";
-      var logo = document.querySelector("svg[role='img']");
-      if (logo) logo.setAttribute("aria-label", "Tawtheeq logo");
-      document.querySelectorAll("[data-en]").forEach(function (node) {
-        node.textContent = node.getAttribute("data-en");
-      });
-    }());
-  </script>
 </body>
 </html>

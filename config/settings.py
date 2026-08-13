@@ -665,10 +665,6 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    # موضعُها إلزامي: بعد الجلسة لأنها تقرأ لغة المستخدم منها، وقبل
-    # ``CommonMiddleware`` لأن الأخيرة قد تُعيد التوجيه قبل أن تُضبط اللغة
-    # فتصل الصفحة بلغةٍ غير المطلوبة.
-    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "reports.middleware.CanonicalHostMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -708,9 +704,6 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
-                # يوفّر ``LANGUAGE_CODE`` و``LANGUAGE_BIDI`` للقوالب، وعليهما
-                # يُبنى اتجاه الصفحة — راجع ``partials/html_lang.html``.
-                "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "reports.context_processors.nav_context",
@@ -990,21 +983,15 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # ----------------- I18N / TZ -----------------
-# ── اللغات ──────────────────────────────────────────────────────────────
-# العربية هي الأصل ولغةُ الاحتياط: المنصة تخدم مدارس سعودية، وكل شاشة عملٍ
-# فيها عربية. والإنجليزية مضافة **للطبقة العامة وحدها** — صفحةُ الهبوط
-# والدخول والتسجيل والسياسات — أي ما يراه من يقرّر الاشتراك قبل أن يملك حساباً،
-# ومن بينهم المدارس العالمية العاملة في المملكة.
+# ── اللغة ───────────────────────────────────────────────────────────────
+# المنصة عربية، والعربية وحدها: نصوص القوالب والنماذج مكتوبة بالعربية مباشرة،
+# ولا كتالوج ترجمة ولا مبدّل لغة ولا تفاوض عليها. ومع غياب ``LocaleMiddleware``
+# تبقى اللغة النشطة ``LANGUAGE_CODE`` في كل طلب.
 #
-# ولم تُترجم شاشات العمل الداخلية: ثلاثة ميغابايت من القوالب، وترجمتُها بلا
-# طلبٍ حقيقي تُنتج نصّاً يشيخ بلا أن يقرأه أحد. والتوسّع متاحٌ متى ظهر الطلب،
-# فالبنية كلها قائمة الآن.
+# و``USE_I18N`` يبقى مفعّلاً — لا لترجمة نصوصنا، بل لأن جانغو يترجم نصوصه هو:
+# رسائل تحقّق النماذج ولوحة الإدارة، وله كتالوج عربي جاهز. وإطفاؤه يُرجعها
+# إنجليزية، أي أن تعطيل الترجمة يُنجليز ما كان عربياً.
 LANGUAGE_CODE = "ar"
-LANGUAGES = [
-    ("ar", "العربية"),
-    ("en", "English"),
-]
-LOCALE_PATHS = [BASE_DIR / "locale"]
 TIME_ZONE = "Asia/Riyadh"
 USE_I18N = True
 USE_TZ = True
@@ -1459,13 +1446,6 @@ if ENV == "production":
     CSRF_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
     CSRF_COOKIE_SAMESITE = os.getenv("CSRF_COOKIE_SAMESITE", "Lax")
-
-    # كوكي اللغة يضعه ``set_language`` — تفضيلٌ لا سرّ، لكنه يُشدّ كبقيّة
-    # الكوكيز: لا يُقرأ من JavaScript ولا يُرسل على HTTP، فلا يصير ثغرةً
-    # صغيرةً في صفحةٍ عامة.
-    LANGUAGE_COOKIE_SECURE = True
-    LANGUAGE_COOKIE_HTTPONLY = True
-    LANGUAGE_COOKIE_SAMESITE = os.getenv("LANGUAGE_COOKIE_SAMESITE", "Lax")
 
     CSP_ENABLED = _env_bool("CSP_ENABLED", True)
     CSP_REPORT_ONLY = _env_bool("CSP_REPORT_ONLY", False)

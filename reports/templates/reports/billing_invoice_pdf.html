@@ -1,0 +1,109 @@
+{% load static humanize %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>{{ invoice_number }}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 15mm 18mm;
+      @bottom-right { content: "منصة توثيق"; color: #66736d; font-size: 8pt; }
+      @bottom-left { content: "صفحة " counter(page) " من " counter(pages); color: #66736d; font-size: 8pt; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #17251f; background: #fff; font-family: "Noto Sans Arabic", Tahoma, Arial, sans-serif; font-size: 10pt; }
+    .stripe { display: table; width: 100%; height: 4px; margin-bottom: 8mm; }
+    .stripe span { display: table-cell; }
+    .stripe .green { width: 75%; background: #075c36; }
+    .stripe .gold { width: 25%; background: #b9975b; }
+    .header { display: table; width: 100%; padding-bottom: 7mm; border-bottom: 1px solid #dce5e0; }
+    .brand, .title { display: table-cell; width: 50%; vertical-align: top; }
+    .brand img { display: inline-block; width: 18mm; height: 18mm; object-fit: contain; vertical-align: middle; }
+    .brand-copy { display: inline-block; margin-right: 3mm; vertical-align: middle; }
+    .brand strong { display: block; color: #075c36; font-size: 15pt; }
+    .brand small { color: #66736d; font-size: 8pt; }
+    .title { text-align: left; }
+    .title h1 { margin: 0; color: #075c36; font-size: 23pt; }
+    .title p { margin: 1mm 0; color: #66736d; direction: ltr; }
+    .paid { display: inline-block; padding: 1.5mm 4mm; border: 1px solid #b8ddca; border-radius: 9mm; color: #075c36; background: #eaf7f0; font-weight: 700; }
+    .meta { width: 100%; margin: 7mm 0; border-collapse: separate; border-spacing: 3mm; }
+    .meta td { width: 25%; padding: 3mm; border: 1px solid #e3ebe7; border-radius: 2mm; background: #f7faf8; vertical-align: top; }
+    .label { display: block; margin-bottom: 1mm; color: #66736d; font-size: 7.5pt; }
+    .value { display: block; overflow-wrap: anywhere; font-weight: 700; }
+    .parties { display: table; width: 100%; margin-bottom: 7mm; }
+    .party { display: table-cell; width: 50%; padding-right: 4mm; border-right: 1mm solid #b9975b; vertical-align: top; }
+    .party + .party { padding-right: 8mm; }
+    .party h2 { margin: 0 0 2mm; color: #66736d; font-size: 8pt; }
+    .party strong { color: #075c36; font-size: 11pt; }
+    .party p { margin: 1mm 0 0; color: #66736d; font-size: 8pt; }
+    .items { width: 100%; border: 1px solid #dce5e0; border-collapse: collapse; }
+    .items th { padding: 3mm; color: #fff; background: #075c36; font-size: 8pt; text-align: right; }
+    .items td { padding: 3.5mm 3mm; border-bottom: 1px solid #e3ebe7; font-size: 9pt; text-align: right; }
+    .items td:first-child { width: 9mm; text-align: center; }
+    .totals { width: 47%; margin: 6mm 0 0 auto; }
+    .totals-row { display: table; width: 100%; padding: 2mm 0; color: #66736d; }
+    .totals-row span, .totals-row strong { display: table-cell; width: 50%; }
+    .totals-row strong { text-align: left; direction: ltr; color: #17251f; }
+    .totals-row.total { padding: 3mm; border-radius: 2mm; color: #fff; background: #075c36; font-size: 11pt; font-weight: 700; }
+    .totals-row.total strong { color: #fff; }
+    .payment { display: table; width: 100%; margin-top: 8mm; padding-top: 5mm; border-top: 1px solid #dce5e0; }
+    .payment div { display: table-cell; width: 33.33%; }
+    .note { margin-top: 10mm; padding: 4mm; border: 1px solid #e3ebe7; border-radius: 2mm; color: #66736d; background: #f7faf8; font-size: 8pt; text-align: center; }
+    .ltr { direction: ltr; unicode-bidi: embed; }
+  </style>
+</head>
+<body>
+  <div class="stripe"><span class="green"></span><span class="gold"></span></div>
+  <header class="header">
+    <div class="brand">
+      <img src="{{ logo_url }}" alt="">
+      <div class="brand-copy"><strong>منصة توثيق</strong><small>إدارة مدرسية رقمية موثوقة</small></div>
+    </div>
+    <div class="title"><h1>فاتورة دفع</h1><p>{{ invoice_number }}</p><span class="paid">{{ status_label }}</span></div>
+  </header>
+
+  <table class="meta"><tr>
+    <td><span class="label">رقم الفاتورة</span><span class="value ltr">{{ invoice_number }}</span></td>
+    <td><span class="label">تاريخ الإصدار</span><span class="value ltr">{{ issued_at|date:"Y-m-d H:i" }}</span></td>
+    <td><span class="label">طريقة الدفع</span><span class="value">{{ payment_method }}</span></td>
+    <td><span class="label">مرجع الدفع</span><span class="value ltr">{{ payment_reference }}</span></td>
+  </tr></table>
+
+  <section class="parties">
+    <div class="party">
+      <h2>مقدم الخدمة</h2><strong>{{ business.legal_name }}</strong>
+      {% if business.commercial_registration %}<p>السجل التجاري: <span class="ltr">{{ business.commercial_registration }}</span></p>{% endif %}
+      {% if not business.commercial_registration and business.freelance_document_number %}<p>وثيقة العمل الحر: <span class="ltr">{{ business.freelance_document_number }}</span></p>{% endif %}
+      {% if business.tax_number %}<p>الرقم الضريبي: <span class="ltr">{{ business.tax_number }}</span></p>{% endif %}
+      {% if business.address %}<p>{{ business.address }}</p>{% endif %}
+      {% if business.support_email %}<p class="ltr">{{ business.support_email }}</p>{% endif %}
+    </div>
+    <div class="party">
+      <h2>مفوتر إلى</h2><strong>{{ customer.name }}</strong>
+      <p>رمز المدرسة: <span class="ltr">{{ customer.code }}</span></p>
+      {% if customer.city %}<p>{{ customer.city }}</p>{% endif %}
+      {% if customer.phone %}<p class="ltr">{{ customer.phone }}</p>{% endif %}
+      {% if customer.email %}<p class="ltr">{{ customer.email }}</p>{% endif %}
+    </div>
+  </section>
+
+  <table class="items">
+    <thead><tr><th>#</th><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead>
+    <tbody>{% for item in items %}<tr><td>{{ forloop.counter }}</td><td>{{ item.description }}</td><td>{{ item.quantity }}</td><td class="ltr">{{ item.unit_price|floatformat:2|intcomma }} SAR</td><td class="ltr">{{ item.amount|floatformat:2|intcomma }} SAR</td></tr>{% endfor %}</tbody>
+  </table>
+
+  <section class="totals">
+    <div class="totals-row"><span>المجموع قبل الضريبة</span><strong>{{ subtotal|floatformat:2|intcomma }} SAR</strong></div>
+    <div class="totals-row"><span>ضريبة القيمة المضافة</span><strong>{{ tax_amount|floatformat:2|intcomma }} SAR</strong></div>
+    <div class="totals-row total"><span>الإجمالي المدفوع</span><strong>{{ total|floatformat:2|intcomma }} SAR</strong></div>
+  </section>
+
+  <section class="payment">
+    <div><span class="label">حالة السداد</span><span class="value">{{ status_label }}</span></div>
+    <div><span class="label">تاريخ السداد</span><span class="value ltr">{{ paid_at|date:"Y-m-d H:i" }}</span></div>
+    <div><span class="label">الدافع</span><span class="value">{{ payer_name }}</span></div>
+  </section>
+  <div class="note">فاتورة إلكترونية صادرة آليًا من منصة توثيق ولا تتطلب توقيعًا. لا تُحتسب ضريبة قيمة مضافة على هذه العملية.</div>
+</body>
+</html>

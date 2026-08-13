@@ -375,7 +375,7 @@ def _apply_payment_effects(payment, today, pricing):
                     payer = getattr(payment.payer_group, "name", "") or "مجموعة مدارسك"
                     detail = f"{message}\nهذه الدفعة أنشأتها {payer} نيابةً عن مدرستك."
                 create_system_notification(
-                    title="تم اعتماد طلب المدرسة",
+                    title="تم تفعيل خدمات المدرسة",
                     message=detail,
                     school=payment.school,
                     teacher_ids=manager_ids,
@@ -673,7 +673,7 @@ def _stamp_payer(payment_kwargs: dict, actor) -> dict:
     return payment_kwargs
 
 
-def _notify_managers_of_group_payment(actor, *, total, labels) -> None:
+def _notify_managers_of_group_payment(actor, *, total, labels, payment_method) -> None:
     """يُعلم مديري المدرسة فور إنشاء المجموعة طلباً نيابةً عنهم.
 
     الإشعار عند الاعتماد وحده لا يكفي: بين الطلب واعتماده قد يشتري المدير
@@ -692,12 +692,16 @@ def _notify_managers_of_group_payment(actor, *, total, labels) -> None:
         if not manager_ids:
             return
         group_name = getattr(actor.group, "name", "") or "مجموعة المدارس"
+        if payment_method == Payment.Method.MOYASAR:
+            activation_detail = "ستُفعّل تلقائيًا فور تأكيد نجاح الدفع من البوابة."
+        else:
+            activation_detail = "ستُراجع صورة التحويل وتُفعّل خلال يوم عمل واحد كحد أقصى."
         create_system_notification(
             title="طلب دفع أنشأته مجموعتك لمدرستك",
             message=(
                 f"أنشأ المدير التنفيذي لـ{group_name} طلب دفع لمدرستك: {labels} "
                 f"— الإجمالي {total} ريال. لا حاجة لدفع هذه البنود مرة أخرى؛ "
-                "ستُفعَّل فور اعتماد الدفعة."
+                f"{activation_detail}"
             ),
             school=actor.school,
             teacher_ids=manager_ids,
@@ -940,6 +944,7 @@ def _create_unified_payment(request, membership, subscription):
                         "archive_storage_gb": it.get("archive_storage_gb", 0),
                         "notes": base_note,
                         "batch_ref": batch if len(items) > 1 else "",
+                        "payment_method": Payment.Method.BANK_TRANSFER,
                         "created_by": request.user,
                     },
                     membership,
@@ -957,9 +962,9 @@ def _create_unified_payment(request, membership, subscription):
     msg = format_html(
         """
         <div style="text-align:center; line-height:1.7;">
-            <p style="margin:0 0 .4rem; font-weight:800; font-size:1.1rem;">تم استلام طلبك الموحّد بنجاح ✅</p>
+            <p style="margin:0 0 .4rem; font-weight:800; font-size:1.1rem;">تم استلام طلب التحويل البنكي بنجاح</p>
             <p style="margin:0 0 .5rem;">عدد العناصر: {} &bull; الإجمالي: {} ريال</p>
-            <p style="margin:0; font-size:.9rem; opacity:.85;">سيتم تفعيل كل عنصر فور اعتماد مدير النظام.</p>
+            <p style="margin:0; font-size:.9rem; opacity:.85;">الطلب قيد المراجعة، وسيتم تفعيل الباقة والخدمات المختارة خلال يوم عمل واحد كحد أقصى بعد التحقق من الإيصال.</p>
         </div>
         """,
         len(items),
@@ -968,7 +973,12 @@ def _create_unified_payment(request, membership, subscription):
     messages.success(request, msg)
     if warnings:
         messages.warning(request, "لم تُضف بعض العناصر: " + " ، ".join(warnings))
-    _notify_managers_of_group_payment(membership, total=total, labels=labels)
+    _notify_managers_of_group_payment(
+        membership,
+        total=total,
+        labels=labels,
+        payment_method=Payment.Method.BANK_TRANSFER,
+    )
     return _subscription_redirect(membership)
 
 
