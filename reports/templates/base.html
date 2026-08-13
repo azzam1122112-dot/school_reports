@@ -1,4 +1,4 @@
-{% load static %}
+{% load i18n static %}
 <!DOCTYPE html>
 <html {% include "reports/partials/html_lang.html" %} data-theme="light">
 <head>
@@ -63,14 +63,14 @@
   <link rel="stylesheet" href="{% static 'css/utilities.css' %}?v=20260812.1" />
   <link rel="stylesheet" href="{% static 'css/extracted.css' %}?v=20260812.1" />
   <link rel="stylesheet" href="{% static 'css/language-switcher.css' %}?v=20260812.1" />
-  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260808.1" />
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260813.1" />
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
   <script src="{% static 'js/progress-bars.js' %}?v=20260812.1" defer></script>
   {% if request.user.is_authenticated %}<script src="{% static 'js/global-search.js' %}?v=20260812.1" defer></script>{% endif %}
 </head>
 
 <body class="page {% if request.resolver_match and request.resolver_match.url_name == 'home' %}is-home{% else %}not-home{% endif %}"{% if request.user.is_authenticated %} data-pwa-user-id="{{ request.user.id }}"{% endif %}>
-  <a class="skip-link" href="#mainContent">تخطي إلى المحتوى</a>
+  <a class="skip-link" href="#mainContent">{% translate "تخطي إلى المحتوى" %}</a>
   <div class="progress-bar" id="scrollProgress"></div>
 
   <form id="__csrf" hidden aria-hidden="true">{% csrf_token %}</form>
@@ -78,20 +78,20 @@
   <header class="site-header{% if IS_SCHOOL_MANAGER or IS_EXECUTIVE_DIRECTOR or SHOW_SUPERVISION_GROUP or SHOW_LAB_NAV %} hdr-grouped{% endif %}" id="siteHeader">
     <div class="container hdr">
 
-      <button class="hamburger" id="hamburger" type="button" aria-label="فتح القائمة" aria-controls="mobileDrawer" aria-expanded="false">
+      <button class="hamburger" id="hamburger" type="button" aria-label="{% translate "فتح القائمة" %}" aria-controls="mobileDrawer" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
 
       <a class="hdr-brand" href="{% if request.user.is_superuser %}{% url 'reports:platform_admin_dashboard' %}{% elif IS_SCHOOL_MANAGER %}{% url 'reports:admin_dashboard' %}{% elif IS_EXECUTIVE_DIRECTOR and not SCHOOL_NAME %}{% url 'reports:executive_dashboard' %}{% else %}{% url 'reports:home' %}{% endif %}">
-        <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/brand-mark.svg' %}{% endif %}" alt="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}شعار المدرسة{% else %}شعار منصة توثيق{% endif %}" width="42" height="42" loading="eager" decoding="async">
+        <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/brand-mark.svg' %}{% endif %}" alt="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}شعار المدرسة{% else %}{% translate "شعار منصة توثيق" %}{% endif %}" width="42" height="42" loading="eager" decoding="async">
         <div class="hdr-brand-txt">
-          <div class="hdr-brand-name">{% if request.user.is_superuser %}إدارة المنصة{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% elif GROUP_NAME %}{{ GROUP_NAME }}{% else %}منصة توثيق{% endif %}</div>
-          <div class="hdr-brand-sub">{% if request.user.is_superuser %}مركز التشغيل{% else %}منصة توثيق{% endif %}</div>
+          <div class="hdr-brand-name">{% if request.user.is_superuser %}إدارة المنصة{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% elif GROUP_NAME %}{{ GROUP_NAME }}{% else %}{% translate "منصة توثيق" %}{% endif %}</div>
+          <div class="hdr-brand-sub">{% if request.user.is_superuser %}مركز التشغيل{% else %}{% translate "منصة توثيق" %}{% endif %}</div>
         </div>
       </a>
 
       {% with active=request.resolver_match.url_name %}
-      <nav class="hdr-nav" aria-label="روابط">
+      <nav class="hdr-nav" aria-label="{% translate "روابط" %}">
         {% if request.user.is_authenticated %}
           {% if request.user.is_superuser %}
             <a class="tab {% if active == 'platform_admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">نظرة عامة</a>
@@ -433,7 +433,7 @@
             {% endif %}
           {% endif %}
         {% else %}
-          <a class="tab is-active" href="{% url 'reports:login' %}">تسجيل الدخول</a>
+          <a class="tab is-active" href="{% url 'reports:login' %}">{% translate "تسجيل الدخول" %}</a>
         {% endif %}
       </nav>
       {% endwith %}
@@ -632,7 +632,7 @@
           </div>
 
         {% else %}
-          <a class="tab is-active" href="{% url 'reports:login' %}">تسجيل الدخول</a>
+          <a class="tab is-active" href="{% url 'reports:login' %}">{% translate "تسجيل الدخول" %}</a>
         {% endif %}
       </div>
     </div>
@@ -641,8 +641,8 @@
   <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
   <aside class="drawer" id="mobileDrawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="drawerTitle" inert>
     <div class="drawer-head">
-      <div id="drawerTitle" class="drawer-title">القائمة</div>
-      <button class="btn btn-sm" id="drawerClose" type="button" aria-label="إغلاق">إغلاق</button>
+      <div id="drawerTitle" class="drawer-title">{% translate "القائمة" %}</div>
+      <button class="btn btn-sm" id="drawerClose" type="button" aria-label="{% translate "إغلاق" %}">{% translate "إغلاق" %}</button>
     </div>
 
     {% if request.user.is_authenticated %}
@@ -703,7 +703,7 @@
     {% endif %}
 
     {% with active=request.resolver_match.url_name %}
-    <nav class="drawer-nav" aria-label="القائمة الجانبية">
+    <nav class="drawer-nav" aria-label="{% translate "القائمة الجانبية" %}">
       {% if request.user.is_authenticated %}
 
         {% if request.user.is_superuser %}
@@ -1007,7 +1007,7 @@
 
       {% else %}
         <a class="{% if active == 'login' %}is-active{% endif %}" href="{% url 'reports:login' %}">
-          <span>تسجيل الدخول</span>
+          <span>{% translate "تسجيل الدخول" %}</span>
           <i class="fa-solid fa-right-to-bracket"></i>
         </a>
       {% endif %}
@@ -1091,27 +1091,27 @@
     {% include "reports/partials/mansour_assistant.html" with mansour_internal=True %}
   {% endif %}
 
-  <footer class="site-footer" aria-label="تذييل النظام">
+  <footer class="site-footer" aria-label="{% translate "تذييل النظام" %}">
     <div class="container">
       <div class="footer-grid">
         
         {# About Section #}
         <div class="footer-col footer-about">
           <div class="footer-logo">
-            <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/brand-mark.svg' %}{% endif %}" alt="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}شعار المدرسة{% else %}شعار منصة توثيق{% endif %}">
+            <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/brand-mark.svg' %}{% endif %}" alt="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}شعار المدرسة{% else %}{% translate "شعار منصة توثيق" %}{% endif %}">
             <div class="footer-logo-text">
-              <h3>{% if request.user.is_superuser %}إدارة منصة توثيق{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}منصة توثيق{% endif %}</h3>
-              <p>منصة توثيق</p>
+              <h3>{% if request.user.is_superuser %}إدارة منصة توثيق{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}{% translate "منصة توثيق" %}{% endif %}</h3>
+              <p>{% translate "منصة توثيق" %}</p>
             </div>
           </div>
           <p class="footer-desc">
-            نظام متكامل لإدارة التقارير والطلبات والإشعارات وملفات الإنجاز، مصمم خصيصاً للمدارس السعودية.
+            {% translate "نظام متكامل لإدارة التقارير والطلبات والإشعارات وملفات الإنجاز، مصمم خصيصاً للمدارس السعودية." %}
           </p>
         </div>
 
         {# Quick Links #}
         <div class="footer-col">
-          <h4><i class="fa-solid fa-link"></i> روابط سريعة</h4>
+          <h4><i class="fa-solid fa-link"></i> {% translate "روابط سريعة" %}</h4>
           <ul class="footer-links">
             {% if request.user.is_authenticated %}
               {% if request.user.is_superuser %}
@@ -1133,27 +1133,27 @@
                 <li><a href="{% url 'reports:my_notifications' %}"><i class="fa-solid fa-chevron-left"></i> إشعاراتي</a></li>
               {% endif %}
             {% else %}
-              <li><a href="{% url 'reports:landing' %}"><i class="fa-solid fa-chevron-left"></i> الصفحة الرئيسية</a></li>
-              <li><a href="{% url 'reports:login' %}"><i class="fa-solid fa-chevron-left"></i> تسجيل الدخول</a></li>
+              <li><a href="{% url 'reports:landing' %}"><i class="fa-solid fa-chevron-left"></i> {% translate "الصفحة الرئيسية" %}</a></li>
+              <li><a href="{% url 'reports:login' %}"><i class="fa-solid fa-chevron-left"></i> {% translate "تسجيل الدخول" %}</a></li>
             {% endif %}
           </ul>
         </div>
 
         {# Resources #}
         <div class="footer-col">
-          <h4><i class="fa-solid fa-book"></i> الموارد</h4>
+          <h4><i class="fa-solid fa-book"></i> {% translate "الموارد" %}</h4>
           <ul class="footer-links">
-            <li><a href="{% url 'reports:user_guide' %}"><i class="fa-solid fa-chevron-left"></i> دليل الاستخدام</a></li>
+            <li><a href="{% url 'reports:user_guide' %}"><i class="fa-solid fa-chevron-left"></i> {% translate "دليل الاستخدام" %}</a></li>
             {% if request.user.is_authenticated %}<li><a href="{% url 'reports:role_guidance' %}"><i class="fa-solid fa-chevron-left"></i> مركز إرشاد دوري</a></li>{% endif %}
-            <li><a href="{% url 'reports:faq' %}"><i class="fa-solid fa-chevron-left"></i> الأسئلة الشائعة</a></li>
+            <li><a href="{% url 'reports:faq' %}"><i class="fa-solid fa-chevron-left"></i> {% translate "الأسئلة الشائعة" %}</a></li>
             {% if IS_SCHOOL_MANAGER or request.user.is_superuser %}
               <li><a href="{% url 'reports:support_ticket_create' %}"><i class="fa-solid fa-chevron-left"></i> الدعم الفني</a></li>
             {% endif %}
-            <li><a href="{% url 'reports:privacy_policy' %}"><i class="fa-solid fa-chevron-left"></i> سياسة الخصوصية</a></li>
-            <li><a href="{% url 'reports:terms_conditions' %}"><i class="fa-solid fa-chevron-left"></i> الشروط والأحكام</a></li>
-            <li><a href="{% url 'reports:refund_policy' %}"><i class="fa-solid fa-chevron-left"></i> الإلغاء والاسترجاع</a></li>
-            <li><a href="{% url 'reports:service_delivery_policy' %}"><i class="fa-solid fa-chevron-left"></i> تقديم الخدمة</a></li>
-            <li><a href="{% url 'reports:complaints_policy' %}"><i class="fa-solid fa-chevron-left"></i> الشكاوى والمقترحات</a></li>
+            <li><a href="{% url 'reports:privacy_policy' %}"><i class="fa-solid fa-chevron-left"></i> {% translate "سياسة الخصوصية" %}</a></li>
+            <li><a href="{% url 'reports:terms_conditions' %}"><i class="fa-solid fa-chevron-left"></i> {% translate "الشروط والأحكام" %}</a></li>
+            <li><a href="{% url 'reports:refund_policy' %}"><i class="fa-solid fa-chevron-left"></i> {% translate "الإلغاء والاسترجاع" %}</a></li>
+            <li><a href="{% url 'reports:service_delivery_policy' %}"><i class="fa-solid fa-chevron-left"></i> {% translate "تقديم الخدمة" %}</a></li>
+            <li><a href="{% url 'reports:complaints_policy' %}"><i class="fa-solid fa-chevron-left"></i> {% translate "الشكاوى والمقترحات" %}</a></li>
           </ul>
         </div>
 
@@ -1162,27 +1162,27 @@
       {# Bottom Bar #}
       <div class="footer-bottom">
         <div class="footer-copyright">
-          © {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.  <i class="fa-solid fa-heart"></i> 
+          © {% now "Y" as copyright_year %}{% blocktranslate %}{{ copyright_year }} منصة توثيق. جميع الحقوق محفوظة.{% endblocktranslate %}  <i class="fa-solid fa-heart"></i>
         </div>
         <div class="footer-badges">
           <span class="footer-badge">
             <i class="fa-solid fa-shield-halved"></i>
-            آمن ومشفر
+            {% translate "آمن ومشفر" %}
           </span>
           <span class="footer-badge">
             <i class="fa-solid fa-mobile-screen-button"></i>
-            متوافق مع الجوال
+            {% translate "متوافق مع الجوال" %}
           </span>
           <span class="footer-badge">
             <i class="fa-solid fa-bolt"></i>
-            سريع وموثوق
+            {% translate "سريع وموثوق" %}
           </span>
         </div>
       </div>
     </div>
   </footer>
 
-  <button class="to-top" id="toTop" aria-label="العودة للأعلى">
+  <button class="to-top" id="toTop" aria-label="{% translate "العودة للأعلى" %}">
     <i class="fa-solid fa-arrow-left-long xs-base-4"></i>
   </button>
 
@@ -1843,16 +1843,16 @@
     <div class="rc-dialog" role="alertdialog" aria-modal="true" aria-labelledby="rcTitle" aria-describedby="rcBody" dir="rtl" tabindex="-1">
       <span class="rc-accent" aria-hidden="true"></span>
       <div class="rc-icon" aria-hidden="true"><i class="fa-solid fa-circle-question"></i></div>
-      <h3 class="rc-title" id="rcTitle">تأكيد</h3>
+      <h3 class="rc-title" id="rcTitle">{% translate "تأكيد" %}</h3>
       <p class="rc-body" id="rcBody"></p>
       <div class="rc-field" id="rcField" hidden>
-        <label class="sr-only" for="rcInput">القيمة المطلوبة</label>
+        <label class="sr-only" for="rcInput">{% translate "القيمة المطلوبة" %}</label>
         <input class="rc-input" id="rcInput" type="text" autocomplete="off">
         <p class="rc-input-error" id="rcInputError" role="alert" hidden></p>
       </div>
       <div class="rc-actions">
-        <button type="button" class="rc-btn rc-cancel" data-rc-cancel>إلغاء الأمر</button>
-        <button type="button" class="rc-btn rc-ok" id="rcOk">تأكيد</button>
+        <button type="button" class="rc-btn rc-cancel" data-rc-cancel>{% translate "إلغاء الأمر" %}</button>
+        <button type="button" class="rc-btn rc-ok" id="rcOk">{% translate "تأكيد" %}</button>
       </div>
     </div>
   </div>
@@ -1873,8 +1873,20 @@
     var btnCancel = overlay.querySelector('.rc-cancel');
 
     var ICONS = { danger:'fa-trash-can', warning:'fa-triangle-exclamation', info:'fa-circle-info', confirm:'fa-circle-question' };
-    var TITLES = { danger:'تأكيد الحذف', warning:'تنبيه', info:'تأكيد', confirm:'تأكيد العملية' };
-    var OKTEXT = { danger:'نعم، احذف', warning:'متابعة', info:'تأكيد', confirm:'تأكيد' };
+    {% translate "تأكيد" as rc_confirm %}
+    var rcConfirm = '{{ rc_confirm|escapejs }}';
+    var TITLES = {
+      danger:  '{% translate "تأكيد الحذف" as t %}{{ t|escapejs }}',
+      warning: '{% translate "تنبيه" as t %}{{ t|escapejs }}',
+      info:    '{{ rc_confirm|escapejs }}',
+      confirm: '{% translate "تأكيد العملية" as t %}{{ t|escapejs }}'
+    };
+    var OKTEXT = {
+      danger:  '{% translate "نعم، احذف" as t %}{{ t|escapejs }}',
+      warning: '{% translate "متابعة" as t %}{{ t|escapejs }}',
+      info:    '{{ rc_confirm|escapejs }}',
+      confirm: '{{ rc_confirm|escapejs }}'
+    };
 
     function inferType(msg){
       var s = (msg||'').toString();
@@ -1900,10 +1912,10 @@
       if(!ICONS[type]) type = 'confirm';
       overlay.setAttribute('data-type', type);
       elIcon.className = 'fa-solid ' + ICONS[type];
-      elTitle.textContent = opts.title || TITLES[type] || 'تأكيد';
-      elBody.textContent = opts.message || 'هل تريد متابعة هذه العملية؟';
-      btnOk.textContent = opts.okText || OKTEXT[type] || 'تأكيد';
-      btnCancel.textContent = opts.cancelText || 'إلغاء الأمر';
+      elTitle.textContent = opts.title || TITLES[type] || rcConfirm;
+      elBody.textContent = opts.message || '{% translate "هل تريد متابعة هذه العملية؟" as t %}{{ t|escapejs }}';
+      btnOk.textContent = opts.okText || OKTEXT[type] || rcConfirm;
+      btnCancel.textContent = opts.cancelText || '{% translate "إلغاء الأمر" as t %}{{ t|escapejs }}';
       btnCancel.hidden = currentMode === 'alert';
       field.hidden = currentMode !== 'prompt';
       input.disabled = currentMode !== 'prompt';
@@ -1926,7 +1938,7 @@
     // واجهة برمجية عامة لأي سكربت آخر
     window.rcConfirm = open;
     window.rcAlert = function(message, opts){
-      opts = Object.assign({}, opts || {}, { message: message, mode: 'alert', type: (opts && opts.type) || 'info', okText: (opts && opts.okText) || 'حسنًا' });
+      opts = Object.assign({}, opts || {}, { message: message, mode: 'alert', type: (opts && opts.type) || 'info', okText: (opts && opts.okText) || '{% translate "حسنًا" as t %}{{ t|escapejs }}' });
       return open(opts);
     };
     window.rcPrompt = function(message, defaultValue, opts){
@@ -1938,7 +1950,7 @@
       if(currentMode === 'prompt'){
         var value = input.value.trim();
         if(input.required && !value){
-          inputError.textContent = 'هذا الحقل مطلوب.';
+          inputError.textContent = '{% translate "هذا الحقل مطلوب." as t %}{{ t|escapejs }}';
           inputError.hidden = false;
           input.focus();
           return;

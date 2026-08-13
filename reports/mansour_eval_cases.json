@@ -138,6 +138,55 @@
       "question": "كم سعر الباقة السنوية؟",
       "expected_slugs": ["plans-and-pricing"],
       "expected_intent": "pricing"
+    },
+    {
+      "id": "visitor-complete-platform-map",
+      "audience": "general",
+      "question": "أعطني صورة كاملة ومختصرة عن كل ما تقدمه منصة توثيق للمدرسة",
+      "expected_slugs": ["platform-capabilities-map"],
+      "expected_intent": "general"
+    },
+    {
+      "id": "visitor-pwa-offline-draft",
+      "audience": "general",
+      "question": "هل المنصة تطبيق جوال؟ وهل تحفظ التقرير إذا انقطع النت وأنا أرفع الصور؟",
+      "expected_slugs": ["pwa-mobile-and-drafts", "device-compatibility"],
+      "expected_intent": "general"
+    },
+    {
+      "id": "report-evidence-print-controls",
+      "audience": "teacher",
+      "question": "كيف أرتب شواهد التقرير وأتحكم في ظهور الصور في الطباعة؟",
+      "expected_slugs": ["report-evidence-layout"],
+      "expected_intent": "general"
+    },
+    {
+      "id": "meeting-minutes-pdf",
+      "audience": "manager",
+      "question": "هل أقدر أنظم اجتماع وأكتب محضرًا رسميًا وأنزله PDF؟",
+      "expected_slugs": ["meetings-and-minutes"],
+      "expected_intent": "general"
+    },
+    {
+      "id": "deputy-role-boundaries",
+      "audience": "general",
+      "question": "أنا وكيل مدرسة، ما الذي أستطيع عمله وما الذي يبقى للمدير؟",
+      "expected_slugs": ["school-role-model"],
+      "expected_intent": "general"
+    },
+    {
+      "id": "ai-voice-reports-minutes",
+      "audience": "general",
+      "question": "هل يوجد إملاء صوتي وتحسين بالذكاء الاصطناعي للتقارير والمحاضر؟",
+      "expected_slugs": ["report-ai-and-voice"],
+      "expected_intent": "general"
+    },
+    {
+      "id": "documentation-record-types",
+      "audience": "general",
+      "question": "وش الفرق العملي بين التقرير وملف الإنجاز وملف الأداء القيادي؟",
+      "expected_slugs": ["documentation-record-types"],
+      "expected_intent": "general"
     }
   ]
 }

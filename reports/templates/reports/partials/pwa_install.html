@@ -1,4 +1,4 @@
-{% load static %}
+{% load i18n static %}
 {% if PWA_INSTALL_ENABLED %}
 <section
   class="pwa-install"
@@ -7,24 +7,43 @@
   aria-labelledby="pwaInstallTitle"
   aria-describedby="pwaInstallDescription"
   data-auto-prompt="{% if request.user.is_authenticated %}true{% else %}false{% endif %}"
+  {% comment %}
+    نصوص السكربت تُرسَم هنا: ``pwa-install.js`` ملفٌ ثابت لا يمرّ بـDjango،
+    فلا يبلغه وسمُ ترجمة. فتُمرَّر إليه مترجَمةً عبر ``data-text-*``.
+  {% endcomment %}
+  data-text-native="{% translate "ثبّت منصة توثيق للوصول السريع وفتحها بواجهة مستقلة من شاشتك الرئيسية." %}"
+  data-text-install-now="{% translate "تثبيت الآن" %}"
+  data-text-acknowledge="{% translate "حسنًا" %}"
+  data-text-available="{% translate "يتوفر تثبيت منصة توثيق على هذا الجوال." %}"
+  data-text-ios-safari="{% translate "أضف منصة توثيق إلى شاشة iPhone أو iPad الرئيسية وافتحها كتطبيق مستقل." %}"
+  data-text-ios-safari-step-1="{% translate "اضغط زر المشاركة في Safari." %}"
+  data-text-ios-safari-step-2="{% translate "اختر «إضافة إلى الشاشة الرئيسية»." %}"
+  data-text-ios-safari-step-3="{% translate "فعّل «فتح كتطبيق ويب» ثم اضغط «إضافة»." %}"
+  data-text-ios-other="{% translate "للتثبيت على iPhone أو iPad افتح هذه الصفحة في Safari أولًا." %}"
+  data-text-ios-other-step-1="{% translate "انسخ رابط الصفحة وافتحه في Safari." %}"
+  data-text-ios-other-step-2="{% translate "اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية»." %}"
+  data-text-generic="{% translate "يمكنك إضافة منصة توثيق من قائمة المتصفح إلى الشاشة الرئيسية." %}"
+  data-text-generic-step-1="{% translate "افتح قائمة المتصفح ⋮." %}"
+  data-text-generic-step-2="{% translate "اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»." %}"
+  data-text-generic-step-3="{% translate "وافق على الإضافة." %}"
   aria-hidden="true"
   hidden
 >
   <div class="pwa-install__card">
-    <button class="pwa-install__close" id="pwaInstallClose" type="button" aria-label="إغلاق رسالة التثبيت">
+    <button class="pwa-install__close" id="pwaInstallClose" type="button" aria-label="{% translate "إغلاق رسالة التثبيت" %}">
       <span aria-hidden="true">×</span>
     </button>
 
     <div class="pwa-install__heading">
       <img src="{% static 'img/pwa/icon-192.png' %}" alt="" width="54" height="54">
       <div>
-        <p class="pwa-install__eyebrow">وصول أسرع من جوالك</p>
-        <h2 id="pwaInstallTitle">ثبّت منصة توثيق</h2>
+        <p class="pwa-install__eyebrow">{% translate "وصول أسرع من جوالك" %}</p>
+        <h2 id="pwaInstallTitle">{% translate "ثبّت منصة توثيق" %}</h2>
       </div>
     </div>
 
     <p class="pwa-install__description" id="pwaInstallDescription">
-      أضف منصة توثيق إلى الشاشة الرئيسية وافتحها مثل أي تطبيق.
+      {% translate "أضف منصة توثيق إلى الشاشة الرئيسية وافتحها مثل أي تطبيق." %}
     </p>
 
     <p
@@ -35,19 +54,19 @@
       aria-atomic="true"
     ></p>
 
-    <div class="pwa-install__benefits" aria-label="مزايا تثبيت منصة توثيق">
-      <span>وصول بنقرة</span>
-      <span>بدون كتابة الرابط</span>
-      <span>تجربة كتطبيق</span>
+    <div class="pwa-install__benefits" aria-label="{% translate "مزايا تثبيت منصة توثيق" %}">
+      <span>{% translate "وصول بنقرة" %}</span>
+      <span>{% translate "بدون كتابة الرابط" %}</span>
+      <span>{% translate "تجربة كتطبيق" %}</span>
     </div>
 
     <ol class="pwa-install__steps" id="pwaInstallSteps" hidden></ol>
 
     <div class="pwa-install__actions">
       <button class="pwa-install__primary" id="pwaInstallAction" type="button">
-        تثبيت على الجوال
+        {% translate "تثبيت على الجوال" %}
       </button>
-      <button class="pwa-install__later" id="pwaInstallLater" type="button">لاحقًا</button>
+      <button class="pwa-install__later" id="pwaInstallLater" type="button">{% translate "لاحقًا" %}</button>
     </div>
   </div>
 </section>

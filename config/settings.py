@@ -284,20 +284,39 @@ MANSOUR_ASSISTANT_ENABLED = _env_bool(
     "MANSOUR_ASSISTANT_ENABLED",
     bool(OPENAI_API_KEY),
 )
-MANSOUR_ASSISTANT_MODEL = (
+_mansour_configured_model = (
     os.getenv("MANSOUR_ASSISTANT_MODEL") or "gpt-5-mini"
 ).strip()
+MANSOUR_ASSISTANT_QUALITY_MODE = _env_bool(
+    "MANSOUR_ASSISTANT_QUALITY_MODE",
+    True,
+)
+# ``gpt-5-nano`` is useful for classification and very high-volume extraction,
+# but customer-facing Arabic support needs stronger instruction following and
+# synthesis. Keep an explicit escape hatch for cost-sensitive installations.
+MANSOUR_ASSISTANT_MODEL = (
+    "gpt-5-mini"
+    if MANSOUR_ASSISTANT_QUALITY_MODE and _mansour_configured_model == "gpt-5-nano"
+    else _mansour_configured_model
+)
 
 _mansour_reasoning_effort = (
-    os.getenv("MANSOUR_ASSISTANT_REASONING_EFFORT") or "minimal"
+    os.getenv("MANSOUR_ASSISTANT_REASONING_EFFORT") or "low"
 ).strip().lower()
 if _mansour_reasoning_effort not in {"minimal", "low", "medium", "high"}:
     _mansour_reasoning_effort = "minimal"
 MANSOUR_ASSISTANT_REASONING_EFFORT = _mansour_reasoning_effort
 
+_mansour_text_verbosity = (
+    os.getenv("MANSOUR_ASSISTANT_TEXT_VERBOSITY") or "medium"
+).strip().lower()
+if _mansour_text_verbosity not in {"low", "medium", "high"}:
+    _mansour_text_verbosity = "medium"
+MANSOUR_ASSISTANT_TEXT_VERBOSITY = _mansour_text_verbosity
+
 try:
     MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS = max(
-        100,
+        700 if MANSOUR_ASSISTANT_QUALITY_MODE else 100,
         min(900, int(os.getenv("MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS", "700"))),
     )
 except (TypeError, ValueError):

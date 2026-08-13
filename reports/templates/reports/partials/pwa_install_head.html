@@ -1,11 +1,16 @@
-{% load static %}
+{% load i18n static %}
 {% if PWA_INSTALL_ENABLED %}
-<link rel="manifest" href="{% static 'manifest.json' %}">
-<meta name="application-name" content="منصة توثيق">
+{% comment %}
+  البيان يتبع لغة الصفحة: الاسم والاتجاه داخله هما ما يظهر على شاشة الجهاز
+  بعد التثبيت، فلو بقي عربياً دائماً لظهر تطبيقٌ عربي لمن ثبّته من واجهة
+  إنجليزية. ولكل لغة ملفٌ مستقل لأن البيان يُقرأ كملف ثابت لا كقالب.
+{% endcomment %}
+<link rel="manifest" href="{% if LANGUAGE_CODE == 'en' %}{% static 'manifest.en.json' %}{% else %}{% static 'manifest.json' %}{% endif %}">
+<meta name="application-name" content="{% translate "منصة توثيق" %}">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="منصة توثيق">
+<meta name="apple-mobile-web-app-title" content="{% translate "منصة توثيق" %}">
 <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/pwa/apple-touch-icon-180.png' %}">
 
 {# iOS/iPadOS startup images: portrait and landscape, matched to the exact device canvas. #}

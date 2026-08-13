@@ -1,13 +1,13 @@
 {% extends "reports/legal_base.html" %}
 
 {% load i18n %}
-{% block title %}سياسة الإلغاء والاسترجاع واسترداد الأموال | منصة توثيق{% endblock %}
+{% block title %}{% translate "سياسة الإلغاء والاسترجاع واسترداد الأموال | منصة توثيق" %}{% endblock %}
 {% block seo_meta %}
 {% url 'reports:refund_policy' as canonical_path %}
-{% include "reports/partials/public_seo.html" with seo_title="سياسة الإلغاء والاسترجاع واسترداد الأموال | منصة توثيق" seo_description="سياسة إلغاء اشتراكات منصة توثيق الرقمية واسترداد الأموال والمدد والإجراءات والاستثناءات النظامية." seo_image_alt="سياسة الإلغاء والاسترجاع في منصة توثيق" canonical_path=canonical_path social_type="article" include_schema=True schema_type="WebPage" modified_date="2026-08-02" %}
+{% include "reports/partials/public_seo.html" with seo_title=_("سياسة الإلغاء والاسترجاع واسترداد الأموال | منصة توثيق") seo_description=_("سياسة إلغاء اشتراكات منصة توثيق الرقمية واسترداد الأموال والمدد والإجراءات والاستثناءات النظامية.") seo_image_alt=_("سياسة الإلغاء والاسترجاع في منصة توثيق") canonical_path=canonical_path social_type="article" include_schema=True schema_type="WebPage" modified_date="2026-08-02" %}
 {% endblock %}
-{% block legal_title %}سياسة الإلغاء والاسترجاع واسترداد الأموال{% endblock %}
-{% block legal_intro %}تبين هذه السياسة متى يمكن إلغاء الاشتراك الرقمي، وكيفية طلب الاسترداد، ومدة إعادة المبلغ، دون إخلال بحقوق المستهلك النظامية.{% endblock %}
+{% block legal_title %}{% translate "سياسة الإلغاء والاسترجاع واسترداد الأموال" %}{% endblock %}
+{% block legal_intro %}{% translate "تبين هذه السياسة متى يمكن إلغاء الاشتراك الرقمي، وكيفية طلب الاسترداد، ومدة إعادة المبلغ، دون إخلال بحقوق المستهلك النظامية." %}{% endblock %}
 {% block refund_current %}aria-current="page"{% endblock %}
 
 {% block legal_content %}

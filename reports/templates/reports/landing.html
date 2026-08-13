@@ -8,29 +8,31 @@
   <meta name="color-scheme" content="light dark">
   {% include "reports/partials/theme_bootstrap.html" %}
   <meta name="domain-verification" content="044a91f3309b001cf46a66e8ee43e60ad827a8f7dadc1ba694212035d9f099a5">
-  <title>منصة توثيق | إدارة وتشغيل المدارس والتقارير والإنجاز</title>
-  <meta name="description" content="منصة سعودية تجمع مدير المدرسة والمعلم والمدير التنفيذي والموظف الإداري في تشغيل مدرسي واحد: تقارير وإنجاز وطلبات وتعاميم وخطط واجتماعات وتكليفات واعتمادات وأرشيف موثّق. ابدأ تجربة مجانية لمدة 30 يومًا.">
+  <title>{% translate "منصة توثيق | إدارة وتشغيل المدارس والتقارير والإنجاز" %}</title>
+  <meta name="description" content="{% translate "منصة سعودية تجمع مدير المدرسة والمعلم والمدير التنفيذي والموظف الإداري في تشغيل مدرسي واحد: تقارير وإنجاز وطلبات وتعاميم وخطط واجتماعات وتكليفات واعتمادات وأرشيف موثّق. ابدأ تجربة مجانية لمدة 30 يومًا." %}">
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-  <meta name="author" content="منصة توثيق">
-  <meta property="og:locale" content="ar_SA">
+  <meta name="author" content="{% translate "منصة توثيق" %}">
+  <meta property="og:locale" content="{% if LANGUAGE_CODE == 'en' %}en_US{% else %}ar_SA{% endif %}">
+  <meta property="og:locale:alternate" content="{% if LANGUAGE_CODE == 'en' %}ar_SA{% else %}en_US{% endif %}">
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="منصة توثيق">
-  <meta property="og:title" content="منصة توثيق | قرار أوضح وتشغيل مدرسي منضبط">
-  <meta property="og:description" content="لكل دور مساحة واضحة: قيادة للمدير، إنجاز أسرع للمعلم، متابعة موحدة للمدير التنفيذي، وتنفيذ منظم للموظف الإداري.">
+  <meta property="og:site_name" content="{% translate "منصة توثيق" %}">
+  <meta property="og:title" content="{% translate "منصة توثيق | قرار أوضح وتشغيل مدرسي منضبط" %}">
+  <meta property="og:description" content="{% translate "لكل دور مساحة واضحة: قيادة للمدير، إنجاز أسرع للمعلم، متابعة موحدة للمدير التنفيذي، وتنفيذ منظم للموظف الإداري." %}">
   <meta property="og:url" content="{{ SITE_URL }}/">
   <meta property="og:image" content="{{ SITE_URL }}{% static 'img/landing/dashboard-system.png' %}">
   <meta property="og:image:secure_url" content="{{ SITE_URL }}{% static 'img/landing/dashboard-system.png' %}">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="1920">
   <meta property="og:image:height" content="799">
-  <meta property="og:image:alt" content="لوحة إدارة المدرسة في منصة توثيق">
+  <meta property="og:image:alt" content="{% translate "لوحة إدارة المدرسة في منصة توثيق" %}">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="منصة توثيق | تشغيل مدرسي يضع القرار أولًا">
-  <meta name="twitter:description" content="صورة أوضح للمدير والمالك، ومسارات أقصر للفريق، وسجل مهني لكل ما أُنجز.">
+  <meta name="twitter:title" content="{% translate "منصة توثيق | تشغيل مدرسي يضع القرار أولًا" %}">
+  <meta name="twitter:description" content="{% translate "صورة أوضح للمدير والمالك، ومسارات أقصر للفريق، وسجل مهني لكل ما أُنجز." %}">
   <meta name="twitter:image" content="{{ SITE_URL }}{% static 'img/landing/dashboard-system.png' %}">
-  <meta name="twitter:image:alt" content="لوحة إدارة المدرسة في منصة توثيق">
+  <meta name="twitter:image:alt" content="{% translate "لوحة إدارة المدرسة في منصة توثيق" %}">
   <link rel="canonical" href="{{ SITE_URL }}/">
   <link rel="alternate" hreflang="ar-SA" href="{{ SITE_URL }}/">
+  <link rel="alternate" hreflang="en" href="{{ SITE_URL }}/">
   <link rel="alternate" hreflang="x-default" href="{{ SITE_URL }}/">
   <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
   {% include "reports/partials/pwa_install_head.html" %}
@@ -38,12 +40,12 @@
   <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
-  <link rel="stylesheet" href="{% static 'css/landing.css' %}?v=20260810.1">
+  <link rel="stylesheet" href="{% static 'css/landing.css' %}?v=20260813.1">
   <link rel="stylesheet" href="{% static 'css/flexible-pricing.css' %}?v=20260806.1">
   {% if AI_MANSOUR_PUBLIC_ENABLED %}
     <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260801.2">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260808.1">
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260813.1">
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
   <noscript><style nonce="{{ CSP_NONCE }}">.reveal{opacity:1!important;transform:none!important}</style></noscript>
   <script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
@@ -53,7 +55,7 @@
       {
         "@type": "Organization",
         "@id": "{{ SITE_URL }}/#organization",
-        "name": "منصة توثيق",
+        "name": "{% translate "منصة توثيق" as brand_name %}{{ brand_name|escapejs }}",
         "url": "{{ SITE_URL }}/",
         "logo": {
           "@type": "ImageObject",
@@ -72,45 +74,45 @@
         "@type": "WebSite",
         "@id": "{{ SITE_URL }}/#website",
         "url": "{{ SITE_URL }}/",
-        "name": "منصة توثيق",
+        "name": "{{ brand_name|escapejs }}",
         "alternateName": ["توثيق", "Tawtheeq"],
-        "inLanguage": "ar-SA",
+        "inLanguage": "{% if LANGUAGE_CODE == 'en' %}en{% else %}ar-SA{% endif %}",
         "publisher": {"@id": "{{ SITE_URL }}/#organization"}
       },
       {
         "@type": "SoftwareApplication",
         "additionalType": "https://schema.org/WebApplication",
         "@id": "{{ SITE_URL }}/#software",
-        "name": "منصة توثيق",
+        "name": "{{ brand_name|escapejs }}",
         "url": "{{ SITE_URL }}/",
         "image": "{{ SITE_URL }}{% static 'img/landing/dashboard-system.png' %}",
         "applicationCategory": "BusinessApplication",
         "applicationSubCategory": "School Management Software",
         "operatingSystem": "Web",
-        "browserRequirements": "متصفح ويب حديث مع اتصال بالإنترنت",
-        "inLanguage": "ar-SA",
-        "description": "منصة سعودية لمديري المدارس ومُلّاكها ومجموعات المدارس لإدارة التشغيل والتوثيق: التقارير، ملفات الإنجاز، الطلبات، التعاميم، الخطط والمبادرات، الاجتماعات والمحاضر، التكليفات، الاعتمادات، الأقسام، الأرشيف السنوي، والحوكمة وسجل التدقيق.",
+        "browserRequirements": "{% translate "متصفح ويب حديث مع اتصال بالإنترنت" as v %}{{ v|escapejs }}",
+        "inLanguage": "{% if LANGUAGE_CODE == 'en' %}en{% else %}ar-SA{% endif %}",
+        "description": "{% translate "منصة سعودية لمديري المدارس ومُلّاكها ومجموعات المدارس لإدارة التشغيل والتوثيق: التقارير، ملفات الإنجاز، الطلبات، التعاميم، الخطط والمبادرات، الاجتماعات والمحاضر، التكليفات، الاعتمادات، الأقسام، الأرشيف السنوي، والحوكمة وسجل التدقيق." as v %}{{ v|escapejs }}",
         "featureList": [
-          "لوحة قيادة لمدير المدرسة",
-          "تقارير مصورة ومخرجات PDF رسمية",
-          "ملفات إنجاز المعلمين والحقائب القيادية",
-          "الطلبات والتذاكر الداخلية",
-          "التعاميم مع سجل اطلاع وتوقيع",
-          "الخطط والمبادرات المدرسية",
-          "الاجتماعات والمحاضر",
-          "التكليفات ولوحة المهام",
-          "مسار الاعتمادات والموافقات",
-          "الأقسام الإدارية والصلاحيات والتفويض",
-          "أرشيف الوثائق والأرشيف السنوي ببصمة تحقق",
-          "إدارة مجموعة مدارس بحساب مدير تنفيذي",
-          "سجل تدقيق للعمليات",
-          "مساعد ذكي وتحسين نصوص التقارير"
+          "{% translate "لوحة قيادة لمدير المدرسة" as v %}{{ v|escapejs }}",
+          "{% translate "تقارير مصورة ومخرجات PDF رسمية" as v %}{{ v|escapejs }}",
+          "{% translate "ملفات إنجاز المعلمين والحقائب القيادية" as v %}{{ v|escapejs }}",
+          "{% translate "الطلبات والتذاكر الداخلية" as v %}{{ v|escapejs }}",
+          "{% translate "التعاميم مع سجل اطلاع وتوقيع" as v %}{{ v|escapejs }}",
+          "{% translate "الخطط والمبادرات المدرسية" as v %}{{ v|escapejs }}",
+          "{% translate "الاجتماعات والمحاضر" as v %}{{ v|escapejs }}",
+          "{% translate "التكليفات ولوحة المهام" as v %}{{ v|escapejs }}",
+          "{% translate "مسار الاعتمادات والموافقات" as v %}{{ v|escapejs }}",
+          "{% translate "الأقسام الإدارية والصلاحيات والتفويض" as v %}{{ v|escapejs }}",
+          "{% translate "أرشيف الوثائق والأرشيف السنوي ببصمة تحقق" as v %}{{ v|escapejs }}",
+          "{% translate "إدارة مجموعة مدارس بحساب مدير تنفيذي" as v %}{{ v|escapejs }}",
+          "{% translate "سجل تدقيق للعمليات" as v %}{{ v|escapejs }}",
+          "{% translate "مساعد ذكي وتحسين نصوص التقارير" as v %}{{ v|escapejs }}"
         ],
         "audience": {"@type": "EducationalAudience", "educationalRole": "school administrator"},
         "provider": {"@id": "{{ SITE_URL }}/#organization"},
         "offers": {
           "@type": "Offer",
-          "name": "تجربة مجانية",
+          "name": "{% translate "تجربة مجانية" as v %}{{ v|escapejs }}",
           "price": "0",
           "priceCurrency": "SAR",
           "url": "{{ SITE_URL }}{% url 'reports:register_school' %}"
@@ -123,35 +125,35 @@
 <link rel="stylesheet" href="{% static 'css/language-switcher.css' %}?v=20260812.1">
 </head>
 <body class="landing-page">
-  <a class="skip-link" href="#mainContent">انتقل إلى المحتوى</a>
+  <a class="skip-link" href="#mainContent">{% translate "انتقل إلى المحتوى" %}</a>
 
   <header class="site-header" id="top">
     <div class="shell">
-      <nav class="main-nav" aria-label="التنقل الرئيسي">
-        <a class="brand" href="#top" aria-label="منصة توثيق — الرئيسية">
+      <nav class="main-nav" aria-label="{% translate "التنقل الرئيسي" %}">
+        <a class="brand" href="#top" aria-label="{% translate "منصة توثيق — الرئيسية" %}">
           <span class="brand-mark"><img src="{% static 'img/brand-mark.svg' %}" alt="" width="44" height="44"></span>
           <span class="brand-text"><strong>{% translate "منصة توثيق" %}</strong><small>{% translate "للعمل المدرسي" %}</small></span>
         </a>
 
         <div class="nav-links" id="navLinks">
-          <a href="#roles">حسب الدور</a>
-          <a href="#start">كيف تبدأ</a>
-          <a href="#compare">ما الذي يتغير</a>
-          <a href="#features">الحلول</a>
-          <a href="#group">مجموعة المدارس</a>
-          <a href="#product">شاهد المنصة</a>
-          <a href="#pricing">الباقات</a>
-          <a href="#faq">الأسئلة</a>
+          <a href="#roles">{% translate "حسب الدور" %}</a>
+          <a href="#start">{% translate "كيف تبدأ" %}</a>
+          <a href="#compare">{% translate "ما الذي يتغير" %}</a>
+          <a href="#features">{% translate "الحلول" %}</a>
+          <a href="#group">{% translate "مجموعة المدارس" %}</a>
+          <a href="#product">{% translate "شاهد المنصة" %}</a>
+          <a href="#pricing">{% translate "الباقات" %}</a>
+          <a href="#faq">{% translate "الأسئلة" %}</a>
         </div>
 
         <div class="nav-actions">
           {% include "reports/partials/language_switcher.html" %}
-          <a class="text-link desktop-login" href="{% url 'reports:login' %}">تسجيل الدخول</a>
+          <a class="text-link desktop-login" href="{% url 'reports:login' %}">{% translate "تسجيل الدخول" %}</a>
           <a class="button button-primary nav-cta" href="{% url 'reports:register_school' %}">
-            ابدأ مجانًا
+            {% translate "ابدأ مجانًا" %}
             <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
           </a>
-          <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="فتح القائمة">
+          <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="{% translate "فتح القائمة" %}">
             <i class="fa-solid fa-bars-staggered" aria-hidden="true"></i>
           </button>
         </div>
@@ -159,24 +161,24 @@
     </div>
   </header>
 
-  <div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="قائمة التنقل" hidden>
+  <div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="{% translate "قائمة التنقل" %}" hidden>
     <div class="mobile-menu-panel">
       <div class="mobile-menu-head">
         <span>{% translate "استكشف منصة توثيق" %}</span>
-        <button id="menuClose" type="button" aria-label="إغلاق القائمة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        <button id="menuClose" type="button" aria-label="{% translate "إغلاق القائمة" %}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
       </div>
-      <a href="#roles">حسب الدور</a>
-      <a href="#start">كيف تبدأ</a>
-      <a href="#value">الأثر الإداري</a>
-      <a href="#compare">ما الذي يتغير</a>
-      <a href="#features">حلول المنصة</a>
-      <a href="#group">مجموعة المدارس</a>
-      <a href="#product">شاهد المنصة</a>
-      <a href="#pricing">الباقات</a>
-      <a href="#faq">الأسئلة الشائعة</a>
+      <a href="#roles">{% translate "حسب الدور" %}</a>
+      <a href="#start">{% translate "كيف تبدأ" %}</a>
+      <a href="#value">{% translate "الأثر الإداري" %}</a>
+      <a href="#compare">{% translate "ما الذي يتغير" %}</a>
+      <a href="#features">{% translate "حلول المنصة" %}</a>
+      <a href="#group">{% translate "مجموعة المدارس" %}</a>
+      <a href="#product">{% translate "شاهد المنصة" %}</a>
+      <a href="#pricing">{% translate "الباقات" %}</a>
+      <a href="#faq">{% translate "الأسئلة الشائعة" %}</a>
       <div class="mobile-menu-actions">
-        <a class="button button-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
-        <a class="button button-quiet" href="{% url 'reports:login' %}">تسجيل الدخول</a>
+        <a class="button button-primary" href="{% url 'reports:register_school' %}">{% translate "ابدأ التجربة المجانية" %}</a>
+        <a class="button button-quiet" href="{% url 'reports:login' %}">{% translate "تسجيل الدخول" %}</a>
       </div>
     </div>
   </div>
@@ -185,9 +187,9 @@
     <section class="hero">
       <div class="hero-orb hero-orb-one" aria-hidden="true"></div>
       <div class="hero-orb hero-orb-two" aria-hidden="true"></div>
-      <div class="shell hero-grid">
-        <div class="hero-copy reveal">
-          <div class="overline"><span></span> {% translate "منصة سعودية لتشغيل المدرسة وتوثيق أعمالها" %}</div>
+      <div class="shell hero-stage">
+        <div class="hero-intro reveal">
+          <div class="overline"><span aria-hidden="true"></span> {% translate "منصة سعودية لتشغيل المدرسة وتوثيق أعمالها" %}</div>
           <h1>
             {% translate "منصة واحدة لإدارة تقارير المدرسة وطلباتها وتعاميمها" %}
             <span>{% translate "وتحويل العمل اليومي إلى إنجاز موثّق." %}</span>
@@ -196,57 +198,60 @@
           <p class="hero-lead">
             {% translate "اجمع التقارير المصورة، ملفات الإنجاز، التعاميم والتوقيعات، الطلبات، الخطط، الاجتماعات، التكليفات، الاعتمادات والأرشيف في مسار واحد واضح؛ لتعرف الإدارة ما يحدث الآن، ومن المسؤول، وما الدليل المتاح عند المراجعة." %}
           </p>
-          <div class="hero-personas" aria-label="القيمة حسب دور المستخدم">
-            <span><i class="fa-solid fa-user-tie" aria-hidden="true"></i><b>{% translate "مدير المدرسة" %}</b> {% translate "قرار ومتابعة" %}</span>
-            <span><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i><b>{% translate "المعلم" %}</b> {% translate "إنجاز وشواهد" %}</span>
-            <span><i class="fa-solid fa-sitemap" aria-hidden="true"></i><b>{% translate "المدير التنفيذي" %}</b> {% translate "رؤية موحّدة" %}</span>
-            <span><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i><b>{% translate "الموظف الإداري" %}</b> {% translate "تنفيذ منظم" %}</span>
-          </div>
           <div class="hero-actions">
             <a class="button button-primary button-large" href="{% url 'reports:register_school' %}">
               {% blocktranslate with days=trial_days|default:30 %}ابدأ تجربة مجانية {{ days }} يوم{% endblocktranslate %}
               <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </a>
-            <a class="button button-quiet button-large" href="#roles">
-              <i class="fa-solid fa-users-viewfinder" aria-hidden="true"></i>
-              {% translate "شاهد المنصة حسب دورك" %}
+            <a class="button button-quiet button-large" href="#product">
+              <i class="fa-solid fa-display" aria-hidden="true"></i>
+              {% translate "شاهد شاشات حقيقية من النظام" %}
             </a>
           </div>
-          <div class="assurance" aria-label="مزايا البدء">
+          <div class="assurance" aria-label="{% translate "مزايا البدء" %}">
             <span><i class="fa-solid fa-check"></i> {% translate "دون بطاقة ائتمانية" %}</span>
             <span><i class="fa-solid fa-check"></i> {% translate "تفعيل مباشر ودون تعقيد تقني" %}</span>
             <span><i class="fa-solid fa-check"></i> {% translate "تجربة عربية على الويب والجوال" %}</span>
           </div>
-          <div class="hero-quote">
-            <div class="quote-icon"><i class="fa-solid fa-quote-right"></i></div>
-            <div>
-              <strong>{% translate "قرارك مبني على منتج تراه وتجرّبه" %}</strong>
-              <p>{% translate "شاشات فعلية، سعر منشور، وتجربة كاملة قبل أي التزام مالي." %}</p>
-            </div>
-          </div>
         </div>
 
-        <div class="hero-product reveal">
-          <div class="product-halo" aria-hidden="true"></div>
-          <div class="browser-frame">
-            <div class="browser-top">
-              <span class="browser-label"><i class="fa-solid fa-lock"></i> app.tawtheeq-ksa.com</span>
-              <span class="browser-dots"><i></i><i></i><i></i></span>
-            </div>
-            <div class="hero-shot">
-              <img src="{% static 'img/landing/dashboard-system.png' %}" alt="لقطة حقيقية من لوحة مدير المدرسة في منصة توثيق" width="1920" height="799" fetchpriority="high" decoding="async">
-            </div>
-            <span class="system-shot-label"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> {% translate "لقطة حقيقية من النظام · بيانات تجريبية" %}</span>
-          </div>
-          <div class="float-card float-card-top">
-            <span class="float-icon"><i class="fa-solid fa-chart-pie"></i></span>
-            <div><strong>{% translate "اعرف أين تتدخل" %}</strong><small>{% translate "أولوية، مسؤول، وإجراء تالٍ" %}</small></div>
-          </div>
-          <div class="float-card float-card-bottom">
-            <span class="float-icon gold"><i class="fa-solid fa-file-pdf"></i></span>
-            <div><strong>{% translate "وثائق تليق باسم المدرسة" %}</strong><small>{% translate "PDF منظم للطباعة والمشاركة" %}</small></div>
-          </div>
-        </div>
+        {% comment %}بدل صورة واحدة بجانب النص، الأدوار الأربعة هي بطل الهيرو: الزائر
+        يتعرّف على نفسه أولاً ثم ينتقل إلى تبويب دوره في قسم «حسب الدور».{% endcomment %}
+        <ul class="hero-personas reveal" aria-label="{% translate "القيمة حسب دور المستخدم" %}">
+          <li>
+            <a class="hero-persona" href="#roles" data-role-jump="rolePanelManager">
+              <span class="hero-persona-icon"><i class="fa-solid fa-user-tie" aria-hidden="true"></i></span>
+              <strong>{% translate "مدير المدرسة" %}</strong>
+              <small>{% translate "قرار ومتابعة" %}</small>
+            </a>
+          </li>
+          <li>
+            <a class="hero-persona" href="#roles" data-role-jump="rolePanelTeacher">
+              <span class="hero-persona-icon"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i></span>
+              <strong>{% translate "المعلم" %}</strong>
+              <small>{% translate "إنجاز وشواهد" %}</small>
+            </a>
+          </li>
+          <li>
+            <a class="hero-persona" href="#roles" data-role-jump="rolePanelExecutive">
+              <span class="hero-persona-icon"><i class="fa-solid fa-sitemap" aria-hidden="true"></i></span>
+              <strong>{% translate "المدير التنفيذي" %}</strong>
+              <small>{% translate "رؤية موحّدة" %}</small>
+            </a>
+          </li>
+          <li>
+            <a class="hero-persona" href="#roles" data-role-jump="rolePanelAdmin">
+              <span class="hero-persona-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
+              <strong>{% translate "الموظف الإداري" %}</strong>
+              <small>{% translate "تنفيذ منظم" %}</small>
+            </a>
+          </li>
+        </ul>
+
+        <p class="hero-note reveal">
+          <i class="fa-solid fa-quote-right" aria-hidden="true"></i>
+          <span><b>{% translate "قرارك مبني على منتج تراه وتجرّبه:" %}</b> {% translate "شاشات فعلية، سعر منشور، وتجربة كاملة قبل أي التزام مالي." %}</span>
+        </p>
       </div>
 
       <div class="shell">
@@ -268,7 +273,7 @@
         </header>
 
         <div class="role-experience reveal">
-          <div class="role-tabs" role="tablist" aria-label="عرض قيمة منصة توثيق حسب الدور">
+          <div class="role-tabs" role="tablist" aria-label="{% translate "عرض قيمة منصة توثيق حسب الدور" %}">
             <button id="roleTabManager" class="role-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="rolePanelManager" tabindex="0" data-role-target="rolePanelManager">
               <span class="role-tab-icon"><i class="fa-solid fa-user-tie" aria-hidden="true"></i></span>
               <span><strong>{% translate "مدير المدرسة" %}</strong><small>{% translate "قيادة واعتماد" %}</small></span>
@@ -290,15 +295,15 @@
           <div class="role-panels">
             <article id="rolePanelManager" class="role-panel is-active" role="tabpanel" aria-labelledby="roleTabManager" data-role-panel>
               <div class="role-panel-copy">
-                <span class="role-eyebrow"><i class="fa-solid fa-compass" aria-hidden="true"></i> صاحب قرار التشغيل والاشتراك</span>
+                <span class="role-eyebrow"><i class="fa-solid fa-compass" aria-hidden="true"></i> {% translate "صاحب قرار التشغيل والاشتراك" %}</span>
                 <h3>{% translate "ابدأ يومك بما يحتاج قرارك، لا بما يحتاج بحثك" %}</h3>
                 <p>{% translate "ترى الأولويات والاعتمادات والتقارير والطلبات من لوحة قيادة واحدة، ثم تنتقل للإجراء مباشرةً دون مطاردة الفريق بين القنوات." %}</p>
                 <div class="role-actions">
-                  <a class="button button-primary" href="{% url 'reports:register_school' %}">أنشئ مدرستك مجانًا <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
-                  <a class="role-secondary-link" href="#product">شاهد لوحة المدير</a>
+                  <a class="button button-primary" href="{% url 'reports:register_school' %}">{% translate "أنشئ مدرستك مجانًا" %} <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+                  <a class="role-secondary-link" href="#product">{% translate "شاهد لوحة المدير" %}</a>
                 </div>
               </div>
-              <ul class="role-outcomes" aria-label="ما يحصل عليه مدير المدرسة">
+              <ul class="role-outcomes" aria-label="{% translate "ما يحصل عليه مدير المدرسة" %}">
                 <li><i class="fa-solid fa-gauge-high" aria-hidden="true"></i><span><strong>{% translate "لوحة قيادة يومية" %}</strong><small>{% translate "الأولوية والمسؤول والإجراء التالي" %}</small></span></li>
                 <li><i class="fa-solid fa-stamp" aria-hidden="true"></i><span><strong>{% translate "اعتمادات في مكان واحد" %}</strong><small>{% translate "اعتماد أو إعادة أو رفض بسبب موثّق" %}</small></span></li>
                 <li><i class="fa-solid fa-box-archive" aria-hidden="true"></i><span><strong>{% translate "ذاكرة مدرسية ثابتة" %}</strong><small>{% translate "تقارير ووثائق وأرشيف قابل للرجوع" %}</small></span></li>
@@ -307,15 +312,15 @@
 
             <article id="rolePanelTeacher" class="role-panel" role="tabpanel" aria-labelledby="roleTabTeacher" data-role-panel hidden>
               <div class="role-panel-copy">
-                <span class="role-eyebrow"><i class="fa-solid fa-bolt" aria-hidden="true"></i> مستخدم مدعو من إدارة المدرسة</span>
+                <span class="role-eyebrow"><i class="fa-solid fa-bolt" aria-hidden="true"></i> {% translate "مستخدم مدعو من إدارة المدرسة" %}</span>
                 <h3>{% translate "وثّق عملك مرة واحدة، وابنِ إنجازك طوال العام" %}</h3>
                 <p>{% translate "ارفع التقرير والصور من الجوال، أضف الشواهد إلى ملف إنجازك، وتابع التكليفات والطلبات والاجتماعات والتعاميم من مساحة عمل قصيرة وواضحة." %}</p>
                 <div class="role-actions">
-                  <a class="button button-primary" href="{% url 'reports:login' %}">دخول المعلم <i class="fa-solid fa-arrow-left-to-bracket" aria-hidden="true"></i></a>
-                  <a class="role-secondary-link" href="{% url 'reports:user_guide' %}">استعرض دليل الاستخدام</a>
+                  <a class="button button-primary" href="{% url 'reports:login' %}">{% translate "دخول المعلم" %} <i class="fa-solid fa-arrow-left-to-bracket" aria-hidden="true"></i></a>
+                  <a class="role-secondary-link" href="{% url 'reports:user_guide' %}">{% translate "استعرض دليل الاستخدام" %}</a>
                 </div>
               </div>
-              <ul class="role-outcomes" aria-label="ما يحصل عليه المعلم">
+              <ul class="role-outcomes" aria-label="{% translate "ما يحصل عليه المعلم" %}">
                 <li><i class="fa-solid fa-camera-retro" aria-hidden="true"></i><span><strong>{% translate "تقارير من الجوال" %}</strong><small>{% translate "صور وبيانات ومخرج PDF بهوية المدرسة" %}</small></span></li>
                 <li><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span><strong>{% translate "ملف إنجاز يتراكم تلقائياً" %}</strong><small>{% translate "محاور وشواهد ومراجعة واعتماد" %}</small></span></li>
                 <li><i class="fa-solid fa-list-check" aria-hidden="true"></i><span><strong>{% translate "كل ما يخصك أمامك" %}</strong><small>{% translate "تكليفات وطلبات واجتماعات وتعاميم" %}</small></span></li>
@@ -324,15 +329,15 @@
 
             <article id="rolePanelExecutive" class="role-panel" role="tabpanel" aria-labelledby="roleTabExecutive" data-role-panel hidden>
               <div class="role-panel-copy">
-                <span class="role-eyebrow"><i class="fa-solid fa-building-shield" aria-hidden="true"></i> قيادة مجموعة مدارس</span>
+                <span class="role-eyebrow"><i class="fa-solid fa-building-shield" aria-hidden="true"></i> {% translate "قيادة مجموعة مدارس" %}</span>
                 <h3>{% translate "قارن مدارس مجموعتك واتخذ قرارك من مستوى واحد" %}</h3>
                 <p>{% translate "لوحة موحّدة للمؤشرات والتقارير والتكليفات والمجالس والتعاميم والتدقيق، مع بقاء بيانات واشتراك كل مدرسة مستقلين." %}</p>
                 <div class="role-actions">
-                  {% if BUSINESS.support_email %}<a class="button button-primary" href="mailto:{{ BUSINESS.support_email }}?subject=طلب عرض تنفيذي لمنصة توثيق">اطلب عرضًا تنفيذيًا <i class="fa-solid fa-calendar-check" aria-hidden="true"></i></a>{% else %}<a class="button button-primary" href="#group">استعرض إدارة المجموعة <i class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>{% endif %}
-                  <a class="role-secondary-link" href="#group">شاهد قدرات المجموعة</a>
+                  {% if BUSINESS.support_email %}<a class="button button-primary" href="mailto:{{ BUSINESS.support_email }}?subject={% translate "طلب عرض تنفيذي لمنصة توثيق" %}">{% translate "اطلب عرضًا تنفيذيًا" %} <i class="fa-solid fa-calendar-check" aria-hidden="true"></i></a>{% else %}<a class="button button-primary" href="#group">{% translate "استعرض إدارة المجموعة" %} <i class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>{% endif %}
+                  <a class="role-secondary-link" href="#group">{% translate "شاهد قدرات المجموعة" %}</a>
                 </div>
               </div>
-              <ul class="role-outcomes" aria-label="ما يحصل عليه المدير التنفيذي">
+              <ul class="role-outcomes" aria-label="{% translate "ما يحصل عليه المدير التنفيذي" %}">
                 <li><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span><strong>{% translate "مؤشرات المدارس جنبًا إلى جنب" %}</strong><small>{% translate "اعرف من يتقدم ومن يحتاج تدخلك" %}</small></span></li>
                 <li><i class="fa-solid fa-file-export" aria-hidden="true"></i><span><strong>{% translate "تقرير موحّد للمجموعة" %}</strong><small>{% translate "Excel وPDF للعرض والمراجعة" %}</small></span></li>
                 <li><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span><strong>{% translate "حوكمة دون خلط البيانات" %}</strong><small>{% translate "نطاق مستقل لكل مدرسة وسجل تدقيق" %}</small></span></li>
@@ -341,15 +346,15 @@
 
             <article id="rolePanelAdmin" class="role-panel" role="tabpanel" aria-labelledby="roleTabAdmin" data-role-panel hidden>
               <div class="role-panel-copy">
-                <span class="role-eyebrow"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> مستخدم مدعو بصلاحيات محددة</span>
+                <span class="role-eyebrow"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> {% translate "مستخدم مدعو بصلاحيات محددة" %}</span>
                 <h3>{% translate "اعرف ما أُسند إليك، نفّذه، واترك أثرًا واضحًا" %}</h3>
                 <p>{% translate "تصل إلى الطلبات والتكليفات والوثائق والاجتماعات والخطط والتقارير التي تدخل ضمن نطاق عملك فقط، مع حالة وموعد ومسؤولية لا تحتمل الالتباس." %}</p>
                 <div class="role-actions">
-                  <a class="button button-primary" href="{% url 'reports:login' %}">دخول الموظف الإداري <i class="fa-solid fa-arrow-left-to-bracket" aria-hidden="true"></i></a>
-                  <a class="role-secondary-link" href="{% url 'reports:user_guide' %}">تعرّف على مساحة العمل</a>
+                  <a class="button button-primary" href="{% url 'reports:login' %}">{% translate "دخول الموظف الإداري" %} <i class="fa-solid fa-arrow-left-to-bracket" aria-hidden="true"></i></a>
+                  <a class="role-secondary-link" href="{% url 'reports:user_guide' %}">{% translate "تعرّف على مساحة العمل" %}</a>
                 </div>
               </div>
-              <ul class="role-outcomes" aria-label="ما يحصل عليه الموظف الإداري">
+              <ul class="role-outcomes" aria-label="{% translate "ما يحصل عليه الموظف الإداري" %}">
                 <li><i class="fa-solid fa-inbox" aria-hidden="true"></i><span><strong>{% translate "صندوق عمل شخصي" %}</strong><small>{% translate "طلبات وتكليفات مرتبة حسب الحالة والأولوية" %}</small></span></li>
                 <li><i class="fa-solid fa-file-lines" aria-hidden="true"></i><span><strong>{% translate "تنفيذ موثّق بالمرفقات" %}</strong><small>{% translate "ملاحظات وشواهد وتاريخ لكل إجراء" %}</small></span></li>
                 <li><i class="fa-solid fa-lock" aria-hidden="true"></i><span><strong>{% translate "صلاحية بقدر المهمة" %}</strong><small>{% translate "تظهر الأدوات والبيانات اللازمة فقط" %}</small></span></li>
@@ -360,8 +365,8 @@
 
         <div class="role-entry-note reveal">
           <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-          <p><strong>{% translate "مساران واضحان للدخول:" %}</strong> مدير المدرسة ينشئ المدرسة ويبدأ التجربة، أما المعلم والموظف الإداري فيدخلان بعد إضافتهما من إدارة المدرسة.</p>
-          <a href="{% url 'reports:login' %}">لدي حساب بالفعل <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+          <p><strong>{% translate "مساران واضحان للدخول:" %}</strong> {% translate "مدير المدرسة ينشئ المدرسة ويبدأ التجربة، أما المعلم والموظف الإداري فيدخلان بعد إضافتهما من إدارة المدرسة." %}</p>
+          <a href="{% url 'reports:login' %}">{% translate "لدي حساب بالفعل" %} <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
         </div>
       </div>
     </section>
@@ -374,7 +379,7 @@
           <p>{% translate "أنشئ حساب المدرسة، أضف فريقك، ثم جرّب مسارات العمل كاملة قبل اختيار الباقة المناسبة لحجم المدرسة." %}</p>
         </header>
 
-        <div class="start-steps" aria-label="خطوات بدء استخدام منصة توثيق">
+        <div class="start-steps" aria-label="{% translate "خطوات بدء استخدام منصة توثيق" %}">
           <article class="start-step reveal">
             <span class="start-step-number">1</span>
             <span class="start-step-icon"><i class="fa-solid fa-school" aria-hidden="true"></i></span>
@@ -395,13 +400,13 @@
           </article>
         </div>
 
-        <aside class="multi-school-note reveal" aria-label="إدارة أكثر من مدرسة">
+        <aside class="multi-school-note reveal" aria-label="{% translate "إدارة أكثر من مدرسة" %}">
           <span class="multi-school-note-icon"><i class="fa-solid fa-school-flag" aria-hidden="true"></i></span>
           <div>
             <strong>{% translate "تدير أكثر من مدرسة؟" %}</strong>
             <p>{% translate "أضف مدرسة أخرى من حساب المدير وانتقل بينها بسهولة. لكل مدرسة بياناتها وتجربتها وباقتها ودفعها المستقل." %}</p>
           </div>
-          <a class="text-link" href="{% url 'reports:register_school' %}">ابدأ بالمدرسة الأولى <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+          <a class="text-link" href="{% url 'reports:register_school' %}">{% translate "ابدأ بالمدرسة الأولى" %} <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
         </aside>
       </div>
     </section>
@@ -457,7 +462,7 @@
           <p>{% translate "لا شيء ضد الطريقة الحالية؛ المشكلة أنها تحفظ الملفات ولا تحفظ المسؤولية. هذا هو الفرق العملي كما ستراه في مدرستك." %}</p>
         </header>
 
-        <div class="compare-panel reveal" aria-label="مقارنة بين الطريقة الحالية ومنصة توثيق">
+        <div class="compare-panel reveal" aria-label="{% translate "مقارنة بين الطريقة الحالية ومنصة توثيق" %}">
           <div class="compare-head compare-head-before">
             <span class="compare-head-icon"><i class="fa-regular fa-folder-open" aria-hidden="true"></i></span>
             <div><strong>{% translate "الطريقة الحالية" %}</strong><small>{% translate "مجلدات ورسائل متفرقة" %}</small></div>
@@ -469,53 +474,53 @@
 
           <div class="compare-cell compare-before">
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <span><span class="compare-cell-label">{% translate "الطريقة الحالية" %}</span><b>تبحث عن الشاهد وقت ما تحتاجه</b>تقارير المعلمين موزعة بين محادثات ومجلدات، ولا أحد متأكد أين آخر نسخة.</span>
+            <span><span class="compare-cell-label">{% translate "الطريقة الحالية" %}</span><b>{% translate "تبحث عن الشاهد وقت ما تحتاجه" %}</b>{% translate "تقارير المعلمين موزعة بين محادثات ومجلدات، ولا أحد متأكد أين آخر نسخة." %}</span>
           </div>
           <div class="compare-cell compare-after">
             <i class="fa-solid fa-filter" aria-hidden="true"></i>
-            <span><span class="compare-cell-label">{% translate "مع منصة توثيق" %}</span><b>تصل للتقرير بالبحث والتصفية</b>كل تقرير بعنوانه وتاريخه ونوعه وصوره، يُفتح بالبحث باسم المعلم أو النوع أو الفترة.</span>
+            <span><span class="compare-cell-label">{% translate "مع منصة توثيق" %}</span><b>{% translate "تصل للتقرير بالبحث والتصفية" %}</b>{% translate "كل تقرير بعنوانه وتاريخه ونوعه وصوره، يُفتح بالبحث باسم المعلم أو النوع أو الفترة." %}</span>
           </div>
 
           <div class="compare-cell compare-before">
             <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
-            <span><span class="compare-cell-label">{% translate "الطريقة الحالية" %}</span><b>ترسل التعميم ثم تتابع بنفسك</b>تسأل واحدًا واحدًا من قرأ ومن وقّع، ولا يبقى دليل مرتب على ذلك.</span>
+            <span><span class="compare-cell-label">{% translate "الطريقة الحالية" %}</span><b>{% translate "ترسل التعميم ثم تتابع بنفسك" %}</b>{% translate "تسأل واحدًا واحدًا من قرأ ومن وقّع، ولا يبقى دليل مرتب على ذلك." %}</span>
           </div>
           <div class="compare-cell compare-after">
             <i class="fa-solid fa-signature" aria-hidden="true"></i>
-            <span><span class="compare-cell-label">{% translate "مع منصة توثيق" %}</span><b>الاطلاع والتوقيع يُسجَّلان تلقائيًا</b>تعرف من اطّلع ومن وقّع باسم المستخدم والتاريخ، من صفحة المحتوى المرسل.</span>
+            <span><span class="compare-cell-label">{% translate "مع منصة توثيق" %}</span><b>{% translate "الاطلاع والتوقيع يُسجَّلان تلقائيًا" %}</b>{% translate "تعرف من اطّلع ومن وقّع باسم المستخدم والتاريخ، من صفحة المحتوى المرسل." %}</span>
           </div>
 
           <div class="compare-cell compare-before">
             <i class="fa-regular fa-circle-question" aria-hidden="true"></i>
-            <span><span class="compare-cell-label">{% translate "الطريقة الحالية" %}</span><b>الطلب يضيع بين الرسائل</b>يُطلب شيء في محادثة ثم تُنسى، ولا تعرف من يتولاه ولا أين وصل.</span>
+            <span><span class="compare-cell-label">{% translate "الطريقة الحالية" %}</span><b>{% translate "الطلب يضيع بين الرسائل" %}</b>{% translate "يُطلب شيء في محادثة ثم تُنسى، ولا تعرف من يتولاه ولا أين وصل." %}</span>
           </div>
           <div class="compare-cell compare-after">
             <i class="fa-solid fa-list-check" aria-hidden="true"></i>
-            <span><span class="compare-cell-label">{% translate "مع منصة توثيق" %}</span><b>لكل طلب مسؤول وحالة ونهاية</b>إسناد للقسم أو الشخص، وملاحظات ومرفقات، ومتابعة حتى الإغلاق.</span>
+            <span><span class="compare-cell-label">{% translate "مع منصة توثيق" %}</span><b>{% translate "لكل طلب مسؤول وحالة ونهاية" %}</b>{% translate "إسناد للقسم أو الشخص، وملاحظات ومرفقات، ومتابعة حتى الإغلاق." %}</span>
           </div>
 
           <div class="compare-cell compare-before">
             <i class="fa-regular fa-clock" aria-hidden="true"></i>
-            <span><span class="compare-cell-label">{% translate "الطريقة الحالية" %}</span><b>ملف الإنجاز يُجمع على عجل آخر السنة</b>أسابيع من المطاردة لجمع شواهد كان يفترض أن تُحفظ أولًا بأول.</span>
+            <span><span class="compare-cell-label">{% translate "الطريقة الحالية" %}</span><b>{% translate "ملف الإنجاز يُجمع على عجل آخر السنة" %}</b>{% translate "أسابيع من المطاردة لجمع شواهد كان يفترض أن تُحفظ أولًا بأول." %}</span>
           </div>
           <div class="compare-cell compare-after">
             <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
-            <span><span class="compare-cell-label">{% translate "مع منصة توثيق" %}</span><b>يُبنى تدريجيًا طوال السنة</b>محاور وشواهد تُضاف مع العمل اليومي، ثم مراجعة واعتماد ومخرج PDF جاهز.</span>
+            <span><span class="compare-cell-label">{% translate "مع منصة توثيق" %}</span><b>{% translate "يُبنى تدريجيًا طوال السنة" %}</b>{% translate "محاور وشواهد تُضاف مع العمل اليومي، ثم مراجعة واعتماد ومخرج PDF جاهز." %}</span>
           </div>
 
           <div class="compare-cell compare-before">
             <i class="fa-solid fa-user-slash" aria-hidden="true"></i>
-            <span><span class="compare-cell-label">{% translate "الطريقة الحالية" %}</span><b>تغيّر الفريق يعني ضياع الذاكرة</b>يرحل من يعرف أين الملفات، فتبدأ المدرسة من الصفر في التوثيق.</span>
+            <span><span class="compare-cell-label">{% translate "الطريقة الحالية" %}</span><b>{% translate "تغيّر الفريق يعني ضياع الذاكرة" %}</b>{% translate "يرحل من يعرف أين الملفات، فتبدأ المدرسة من الصفر في التوثيق." %}</span>
           </div>
           <div class="compare-cell compare-after">
             <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
-            <span><span class="compare-cell-label">{% translate "مع منصة توثيق" %}</span><b>سجل السنة يبقى بعد رحيل الفريق</b>أرشيف سنوي بنسخة ثابتة قابلة للتنزيل، مع فهرس Excel وبصمة تحقق.</span>
+            <span><span class="compare-cell-label">{% translate "مع منصة توثيق" %}</span><b>{% translate "سجل السنة يبقى بعد رحيل الفريق" %}</b>{% translate "أرشيف سنوي بنسخة ثابتة قابلة للتنزيل، مع فهرس Excel وبصمة تحقق." %}</span>
           </div>
         </div>
 
         <p class="compare-footnote reveal">
           <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
-          لن نطلب منك تصديق ذلك؛ جرّبه على أعمال أسبوع واحد داخل مدرستك وقارن بنفسك.
+          {% translate "لن نطلب منك تصديق ذلك؛ جرّبه على أعمال أسبوع واحد داخل مدرستك وقارن بنفسك." %}
         </p>
       </div>
     </section>
@@ -524,16 +529,16 @@
       <div class="shell">
         <div class="leadership-stage reveal">
           <div class="leadership-copy">
-            <span class="leadership-eyebrow"><i class="fa-solid fa-crown" aria-hidden="true"></i> للمدير والمالك</span>
-            <h2>لا تحتاج مزيدًا من التقارير.<br><span>{% translate "تحتاج صورة تقود بها." %}</span></h2>
+            <span class="leadership-eyebrow"><i class="fa-solid fa-crown" aria-hidden="true"></i> {% translate "للمدير والمالك" %}</span>
+            <h2>{% translate "لا تحتاج مزيدًا من التقارير." %}<br><span>{% translate "تحتاج صورة تقود بها." %}</span></h2>
             <p>{% translate "صُممت منصة توثيق حول أسئلة الإدارة الفعلية: ماذا يحدث الآن؟ أين التعثر؟ من المسؤول؟ وما الدليل المتاح عند المراجعة؟" %}</p>
             <div class="leadership-actions">
-              <a class="button button-gold button-large" href="{% url 'reports:register_school' %}">ابدأ بمدرسة واحدة <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
-              <a class="leadership-link" href="#product">شاهد الشاشات الحقيقية <i class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>
+              <a class="button button-gold button-large" href="{% url 'reports:register_school' %}">{% translate "ابدأ بمدرسة واحدة" %} <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+              <a class="leadership-link" href="#product">{% translate "شاهد الشاشات الحقيقية" %} <i class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>
             </div>
           </div>
 
-          <div class="executive-board" aria-label="قيمة المنصة للقيادة المدرسية">
+          <div class="executive-board" aria-label="{% translate "قيمة المنصة للقيادة المدرسية" %}">
             <article class="executive-card executive-card-main">
               <span class="executive-card-icon"><i class="fa-solid fa-compass"></i></span>
               <small>{% translate "الرؤية التنفيذية" %}</small>
@@ -703,19 +708,19 @@
           </article>
         </div>
 
-        <div class="feature-extras reveal" aria-label="إمكانات إضافية داخل المنصة">
-          <strong><i class="fa-solid fa-plus" aria-hidden="true"></i> ومعها في الحساب نفسه</strong>
+        <div class="feature-extras reveal" aria-label="{% translate "إمكانات إضافية داخل المنصة" %}">
+          <strong><i class="fa-solid fa-plus" aria-hidden="true"></i> {% translate "ومعها في الحساب نفسه" %}</strong>
           <ul>
-            <li><i class="fa-solid fa-file-import" aria-hidden="true"></i> استيراد المعلمين دفعة واحدة من Excel</li>
+            <li><i class="fa-solid fa-file-import" aria-hidden="true"></i> {% translate "استيراد المعلمين دفعة واحدة من Excel" %}</li>
             <li><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> {% translate "مساعد ذكي لتحسين التقارير ومحاضر الاجتماعات" %}</li>
             <li><i class="fa-solid fa-microphone-lines" aria-hidden="true"></i> {% translate "كتابة التقارير والمحاضر بالصوت" %}</li>
-            <li><i class="fa-solid fa-fingerprint" aria-hidden="true"></i> دخول بمفتاح المرور دون كلمة سر</li>
-            <li><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i> تثبيت المنصة كتطبيق على الجوال</li>
-            <li><i class="fa-solid fa-bell" aria-hidden="true"></i> إشعارات داخل المنصة وبالبريد</li>
-            <li><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> إدارة عهدة المختبر وتوثيق التجارب</li>
-            <li><i class="fa-solid fa-file-export" aria-hidden="true"></i> تصدير بيانات مدرستك متى شئت</li>
-            <li><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> سجل نشاطك الشخصي وأعمالك السابقة</li>
-            <li><i class="fa-solid fa-headset" aria-hidden="true"></i> تذاكر دعم فني من داخل الحساب</li>
+            <li><i class="fa-solid fa-fingerprint" aria-hidden="true"></i> {% translate "دخول بمفتاح المرور دون كلمة سر" %}</li>
+            <li><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i> {% translate "تثبيت المنصة كتطبيق على الجوال" %}</li>
+            <li><i class="fa-solid fa-bell" aria-hidden="true"></i> {% translate "إشعارات داخل المنصة وبالبريد" %}</li>
+            <li><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> {% translate "إدارة عهدة المختبر وتوثيق التجارب" %}</li>
+            <li><i class="fa-solid fa-file-export" aria-hidden="true"></i> {% translate "تصدير بيانات مدرستك متى شئت" %}</li>
+            <li><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> {% translate "سجل نشاطك الشخصي وأعمالك السابقة" %}</li>
+            <li><i class="fa-solid fa-headset" aria-hidden="true"></i> {% translate "تذاكر دعم فني من داخل الحساب" %}</li>
           </ul>
         </div>
       </div>
@@ -762,15 +767,15 @@
           </article>
         </div>
 
-        <aside class="group-note reveal" aria-label="ملاحظة عن اشتراكات المجموعة">
+        <aside class="group-note reveal" aria-label="{% translate "ملاحظة عن اشتراكات المجموعة" %}">
           <span class="group-note-icon"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></span>
           <div>
             <strong>{% translate "الاشتراك يبقى لكل مدرسة على حدة" %}</strong>
             <p>{% translate "المستوى التنفيذي يمنحك الصورة الموحدة، بينما تحتفظ كل مدرسة ببياناتها وباقتها ودفعها المستقل — فلا تدفع عن مدرسة لا تستخدم المنصة." %}</p>
           </div>
           <div class="group-note-actions">
-            {% if BUSINESS.support_email %}<a class="button button-primary" href="mailto:{{ BUSINESS.support_email }}?subject=طلب عرض تنفيذي لمنصة توثيق">اطلب عرضًا للمجموعة</a>{% endif %}
-            <a class="text-link" href="{% url 'reports:register_school' %}">ابدأ بمدرسة <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+            {% if BUSINESS.support_email %}<a class="button button-primary" href="mailto:{{ BUSINESS.support_email }}?subject={% translate "طلب عرض تنفيذي لمنصة توثيق" %}">{% translate "اطلب عرضًا للمجموعة" %}</a>{% endif %}
+            <a class="text-link" href="{% url 'reports:register_school' %}">{% translate "ابدأ بمدرسة" %} <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
           </div>
         </aside>
       </div>
@@ -795,9 +800,9 @@
               <h3>{% translate "ابدأ يومك من الأولوية، لا من البحث" %}</h3>
               <p>{% translate "الإجراءات الأكثر استخدامًا أمامك، والفترة الزمنية قابلة للتغيير، وكل مسار على بُعد خطوة." %}</p>
             </div>
-            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/dashboard-system.png' %}" data-product-caption="لوحة مدير المدرسة: الأولويات، المؤشرات، والإجراءات السريعة في شاشة واحدة." aria-label="عرض لوحة مدير المدرسة بالحجم الكامل">
-              <img src="{% static 'img/landing/dashboard-system.png' %}" alt="لقطة حقيقية من لوحة مدير المدرسة" width="1920" height="799" loading="lazy" decoding="async">
-              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/dashboard-system.png' %}" data-product-caption="{% translate "لوحة مدير المدرسة: الأولويات، المؤشرات، والإجراءات السريعة في شاشة واحدة." %}" aria-label="{% translate "عرض لوحة مدير المدرسة بالحجم الكامل" %}">
+              <img src="{% static 'img/landing/dashboard-system.png' %}" alt="{% translate "لقطة حقيقية من لوحة مدير المدرسة" %}" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> {% translate "عرض واضح" %}</span>
             </button>
           </article>
 
@@ -807,9 +812,9 @@
               <h3>{% translate "كل طلب يعرف وجهته وحالته" %}</h3>
               <p>{% translate "بحث وتصفية وإسناد ومتابعة، مع تاريخ يحفظ ما حدث دون رسائل متفرقة." %}</p>
             </div>
-            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/tickets-system.png' %}" data-product-caption="قائمة الطلبات والتذاكر: بحث، تصفية، مسؤول، أولوية، وحالة متابعة واضحة." aria-label="عرض شاشة طلبات المدرسة بالحجم الكامل">
-              <img src="{% static 'img/landing/tickets-system.png' %}" alt="لقطة حقيقية من إدارة طلبات المدرسة" width="1920" height="799" loading="lazy" decoding="async">
-              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/tickets-system.png' %}" data-product-caption="{% translate "قائمة الطلبات والتذاكر: بحث، تصفية، مسؤول، أولوية، وحالة متابعة واضحة." %}" aria-label="{% translate "عرض شاشة طلبات المدرسة بالحجم الكامل" %}">
+              <img src="{% static 'img/landing/tickets-system.png' %}" alt="{% translate "لقطة حقيقية من إدارة طلبات المدرسة" %}" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> {% translate "عرض واضح" %}</span>
             </button>
           </article>
 
@@ -819,9 +824,9 @@
               <h3>{% translate "من إدخال بسيط إلى وثيقة رسمية" %}</h3>
               <p>{% translate "هوية المدرسة ومعلومات التقرير والصور في PDF مرتب وجاهز للحفظ والطباعة." %}</p>
             </div>
-            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/report-system.png' %}" data-product-caption="معاينة التقرير الرسمي: هوية المدرسة وبيانات النشاط في مخرج منظم للطباعة والحفظ." aria-label="عرض التقرير المدرسي بالحجم الكامل">
-              <img src="{% static 'img/landing/report-system.png' %}" alt="لقطة حقيقية من تقرير مدرسي رسمي بصيغة PDF" width="1920" height="799" loading="lazy" decoding="async">
-              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/report-system.png' %}" data-product-caption="{% translate "معاينة التقرير الرسمي: هوية المدرسة وبيانات النشاط في مخرج منظم للطباعة والحفظ." %}" aria-label="{% translate "عرض التقرير المدرسي بالحجم الكامل" %}">
+              <img src="{% static 'img/landing/report-system.png' %}" alt="{% translate "لقطة حقيقية من تقرير مدرسي رسمي بصيغة PDF" %}" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> {% translate "عرض واضح" %}</span>
             </button>
           </article>
 
@@ -831,9 +836,9 @@
               <h3>{% translate "المساحة والنسخ السنوية أمام المدير" %}</h3>
               <p>{% translate "استهلاك التخزين، سنوات الأرشيف، وحالة كل نسخة ثابتة في شاشة واحدة سهلة الرجوع." %}</p>
             </div>
-            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/archive-system.png' %}" data-product-caption="الأرشيف المدرسي: مساحة التخزين، التصفية حسب السنة، والنسخ السنوية الثابتة." aria-label="عرض شاشة الأرشيف بالحجم الكامل">
-              <img src="{% static 'img/landing/archive-system.png' %}" alt="لقطة حقيقية من أرشيف المدرسة ومساحة التخزين" width="1920" height="799" loading="lazy" decoding="async">
-              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/archive-system.png' %}" data-product-caption="{% translate "الأرشيف المدرسي: مساحة التخزين، التصفية حسب السنة، والنسخ السنوية الثابتة." %}" aria-label="{% translate "عرض شاشة الأرشيف بالحجم الكامل" %}">
+              <img src="{% static 'img/landing/archive-system.png' %}" alt="{% translate "لقطة حقيقية من أرشيف المدرسة ومساحة التخزين" %}" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> {% translate "عرض واضح" %}</span>
             </button>
           </article>
         </div>
@@ -869,7 +874,7 @@
           <p>{% translate "أدخل عدد معلمي مدرستك واختر المدة؛ سنحسب أصغر سعة عملية تناسبك، مع بقاء أدوات التشغيل والتوثيق الأساسية مشمولة." %}</p>
         </header>
 
-        <div class="pricing-guide reveal" aria-label="طريقة اختيار اشتراك المدرسة">
+        <div class="pricing-guide reveal" aria-label="{% translate "طريقة اختيار اشتراك المدرسة" %}">
           <div><i class="fa-solid fa-users" aria-hidden="true"></i><span><strong>{% translate "1. أدخل عدد المعلمين" %}</strong><small>{% translate "الرقم الفعلي في مدرستك" %}</small></span></div>
           <div><i class="fa-regular fa-calendar" aria-hidden="true"></i><span><strong>{% translate "2. اختر المدة" %}</strong><small>{% translate "شهري، 6 أشهر، أو سنوي" %}</small></span></div>
           <div><i class="fa-solid fa-school-lock" aria-hidden="true"></i><span><strong>{% translate "3. فعّل المدرسة" %}</strong><small>{% translate "اشتراك مستقل لا يختلط بمدرسة أخرى" %}</small></span></div>
@@ -877,18 +882,18 @@
 
         {% if flexible_pricing_catalog %}
           {{ flexible_pricing_json|json_script:"landingFlexiblePricingData" }}
-          <section class="flex-pricing-shell reveal" data-flex-pricing data-flex-pricing-source="landingFlexiblePricingData" data-initial-period="{{ pricing_initial_period|default:'1y' }}" data-flex-summary-target="#landingIncludesSummary" data-min-teacher-count="1" aria-label="حاسبة اشتراك المدرسة">
+          <section class="flex-pricing-shell reveal" data-flex-pricing data-flex-pricing-source="landingFlexiblePricingData" data-initial-period="{{ pricing_initial_period|default:'1y' }}" data-flex-summary-target="#landingIncludesSummary" data-min-teacher-count="1" aria-label="{% translate "حاسبة اشتراك المدرسة" %}">
             <div class="flex-pricing-controls">
-              <span class="flex-pricing-eyebrow"><i class="fa-solid fa-wand-magic-sparkles"></i> سعر على مقاس مدرستك</span>
+              <span class="flex-pricing-eyebrow"><i class="fa-solid fa-wand-magic-sparkles"></i> {% translate "سعر على مقاس مدرستك" %}</span>
               <h3 class="flex-pricing-title">{% translate "كم معلماً سيستخدم المنصة؟" %}</h3>
               <p class="flex-pricing-copy">{% translate "أدخل العدد الفعلي. نختار تلقائياً أقرب سعة مناسبة مع مساحة بسيطة للنمو، دون أن تضطر مباشرةً إلى باقة 50 معلماً." %}</p>
               <label class="flex-count-label" for="landingTeacherCount">{% translate "عدد المعلمين" %}</label>
               <div class="flex-count-control">
-                <button type="button" data-flex-decrease aria-label="إنقاص عدد المعلمين"><i class="fa-solid fa-minus"></i></button>
+                <button type="button" data-flex-decrease aria-label="{% translate "إنقاص عدد المعلمين" %}"><i class="fa-solid fa-minus"></i></button>
                 <input id="landingTeacherCount" data-flex-teacher-count type="number" value="27" min="1" max="150" inputmode="numeric" aria-describedby="landingPricingStatus">
-                <button type="button" data-flex-increase aria-label="زيادة عدد المعلمين"><i class="fa-solid fa-plus"></i></button>
+                <button type="button" data-flex-increase aria-label="{% translate "زيادة عدد المعلمين" %}"><i class="fa-solid fa-plus"></i></button>
               </div>
-              <div class="flex-periods" role="group" aria-label="مدة الاشتراك">
+              <div class="flex-periods" role="group" aria-label="{% translate "مدة الاشتراك" %}">
                 {% for period in pricing_periods %}
                   {% if period.available %}
                     <button type="button" data-flex-period="{{ period.key }}" data-period="{{ period.key }}" class="{% if period.active %}is-active{% endif %}" aria-pressed="{% if period.active %}true{% else %}false{% endif %}">{{ period.label }}</button>
@@ -898,12 +903,12 @@
             </div>
             <div class="flex-pricing-result" data-flex-result>
               <span class="flex-result-label">{% translate "السعة الأنسب لمدرستك" %}</span>
-              <strong class="flex-result-capacity">حتى <span data-flex-capacity>—</span> معلماً</strong>
+              <strong class="flex-result-capacity">{% translate "حتى" %} <span data-flex-capacity>—</span> {% translate "معلماً" %}</strong>
               <div class="flex-result-price"><strong data-flex-price>—</strong><span>{% translate "ريال" %}</span></div>
               <span class="flex-result-monthly" data-flex-monthly>{% translate "يُحتسب السعر فوراً" %}</span>
               <div class="flex-result-proof">
-                <div><small>{% translate "عدد فريقك" %}</small><strong><span data-flex-count-output>27</span> معلماً</strong></div>
-                <div><small>{% translate "مقاعد للنمو" %}</small><strong><span data-flex-spare>—</span> مقاعد</strong></div>
+                <div><small>{% translate "عدد فريقك" %}</small><strong><span data-flex-count-output>27</span> {% translate "معلماً" %}</strong></div>
+                <div><small>{% translate "مقاعد للنمو" %}</small><strong><span data-flex-spare>—</span> {% translate "مقاعد" %}</strong></div>
                 <div><small>{% translate "مساحة التخزين" %}</small><strong data-flex-storage>—</strong></div>
               </div>
               <p class="flex-result-status" id="landingPricingStatus"><i class="fa-solid fa-circle-check"></i><span data-flex-status>{% translate "نختار لك السعة الأقل تكلفة تلقائياً." %}</span></p>
@@ -913,9 +918,9 @@
           {% if subscription_included_features %}
             <section class="sub-includes reveal" aria-labelledby="landingIncludesTitle">
               <div class="sub-includes-head">
-                <h4 id="landingIncludesTitle"><i class="fa-solid fa-circle-check"></i> ما الذي يشمله الاشتراك؟</h4>
+                <h4 id="landingIncludesTitle"><i class="fa-solid fa-circle-check"></i> {% translate "ما الذي يشمله الاشتراك؟" %}</h4>
                 <p>
-                  نفس المزايا لكل السعات والمدد — السعر وحده يتغير حسب عدد المعلمين،
+                  {% translate "نفس المزايا لكل السعات والمدد — السعر وحده يتغير حسب عدد المعلمين،" %}
                   <span id="landingIncludesSummary">{% translate "وتظهر السعة والمبلغ أعلاه قبل التسجيل" %}</span>.
                 </p>
               </div>
@@ -932,27 +937,27 @@
               </ul>
               {% if subscription_addon_notes %}
                 <div class="sub-includes-note">
-                  <strong><i class="fa-solid fa-circle-info"></i> خدمات تُشترى بشكل منفصل</strong>
+                  <strong><i class="fa-solid fa-circle-info"></i> {% translate "خدمات تُشترى بشكل منفصل" %}</strong>
                   <ul>{% for note in subscription_addon_notes %}<li>{{ note }}</li>{% endfor %}</ul>
                 </div>
               {% endif %}
             </section>
           {% endif %}
         {% elif pricing_cards %}
-          <div class="period-switch reveal" role="group" aria-label="مدة الاشتراك">
+          <div class="period-switch reveal" role="group" aria-label="{% translate "مدة الاشتراك" %}">
             {% for period in pricing_periods %}{% if period.available %}<button type="button" data-period="{{ period.key }}" class="{% if period.active %}active{% endif %}">{{ period.label }}</button>{% endif %}{% endfor %}
           </div>
         {% endif %}
 
         <div class="pricing-grid{% if flexible_pricing_catalog %} pricing-grid--trial-only{% endif %}">
           <article class="price-card trial-card reveal">
-            <div class="price-badge">ابدأ من هنا</div>
+            <div class="price-badge">{% translate "ابدأ من هنا" %}</div>
             <div class="price-head">
               <span class="price-icon"><i class="fa-solid fa-rocket"></i></span>
               <div><h3>{% translate "التجربة المجانية" %}</h3><p>{% translate "اختبر المنصة داخل مدرستك قبل الاشتراك" %}</p></div>
             </div>
             <div class="price-value"><strong>0</strong><span>{% translate "ريال" %}</span></div>
-            <div class="price-duration">لمدة {{ trial_days|default:30 }} يوم</div>
+            <div class="price-duration">{% blocktranslate with days=trial_days|default:30 %}لمدة {{ days }} يوم{% endblocktranslate %}</div>
             {% if flexible_pricing_catalog %}
               <p class="trial-card-note">{% translate "بعد التجربة تدفع حسب عدد معلميك فقط — احسب مبلغك أعلاه." %}</p>
             {% endif %}
@@ -960,12 +965,12 @@
               {% if pricing_trial_plan %}
                 {% for feature in pricing_trial_plan.features %}<li><i class="fa-solid fa-check"></i>{{ feature }}</li>{% endfor %}
               {% else %}
-                <li><i class="fa-solid fa-check"></i>تفعيل مباشر للمدرسة</li>
-                <li><i class="fa-solid fa-check"></i>تجربة التقارير والطلبات والإنجاز</li>
-                <li><i class="fa-solid fa-check"></i>دون بطاقة ائتمانية</li>
+                <li><i class="fa-solid fa-check"></i>{% translate "تفعيل مباشر للمدرسة" %}</li>
+                <li><i class="fa-solid fa-check"></i>{% translate "تجربة التقارير والطلبات والإنجاز" %}</li>
+                <li><i class="fa-solid fa-check"></i>{% translate "دون بطاقة ائتمانية" %}</li>
               {% endif %}
             </ul>
-            <a class="button button-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة الآن</a>
+            <a class="button button-primary" href="{% url 'reports:register_school' %}">{% translate "ابدأ التجربة الآن" %}</a>
           </article>
 
           {% comment %}
@@ -984,7 +989,7 @@
                 <div class="period-content {% if pricing_initial_period == '1m' %}active{% endif %}" data-period-content="1m">
                   <div class="price-value"><strong>{{ card.period_1m.price_display }}</strong><span>{% translate "ريال" %}</span></div>
                   <div class="price-duration">{{ card.period_1m.duration_label }} · {{ card.capacity_label }}</div>
-                  <div class="price-equivalent">مرونة شهرية دون التزام طويل</div>
+                  <div class="price-equivalent">{% translate "مرونة شهرية دون التزام طويل" %}</div>
                   <ul>{% for feature in card.period_1m.features %}<li><i class="fa-solid fa-check"></i>{{ feature }}</li>{% endfor %}</ul>
                 </div>
               {% endif %}
@@ -992,8 +997,8 @@
                 <div class="period-content {% if pricing_initial_period == '6m' %}active{% endif %}" data-period-content="6m">
                   <div class="price-value"><strong>{{ card.period_6m.price_display }}</strong><span>{% translate "ريال" %}</span></div>
                   <div class="price-duration">{{ card.period_6m.duration_label }} · {{ card.capacity_label }}</div>
-                  <div class="price-equivalent">ما يعادل {{ card.period_6m.monthly_equivalent_display }} ريال شهريًا</div>
-                  {% if card.period_6m.savings_display %}<div class="annual-saving"><i class="fa-solid fa-piggy-bank"></i> وفّر {{ card.period_6m.savings_display }} ريال مقارنة بالدفع الشهري</div>{% endif %}
+                  <div class="price-equivalent">{% blocktranslate with amount=card.period_6m.monthly_equivalent_display %}ما يعادل {{ amount }} ريال شهريًا{% endblocktranslate %}</div>
+                  {% if card.period_6m.savings_display %}<div class="annual-saving"><i class="fa-solid fa-piggy-bank"></i> {% blocktranslate with amount=card.period_6m.savings_display %}وفّر {{ amount }} ريال مقارنة بالدفع الشهري{% endblocktranslate %}</div>{% endif %}
                   <ul>{% for feature in card.period_6m.features %}<li><i class="fa-solid fa-check"></i>{{ feature }}</li>{% endfor %}</ul>
                 </div>
               {% endif %}
@@ -1001,30 +1006,30 @@
                 <div class="period-content {% if pricing_initial_period == '1y' or not card.period_6m %}active{% endif %}" data-period-content="1y">
                   <div class="price-value"><strong>{{ card.period_1y.price_display }}</strong><span>{% translate "ريال" %}</span></div>
                   <div class="price-duration">{{ card.period_1y.duration_label }} · {{ card.capacity_label }}</div>
-                  <div class="price-equivalent">ما يعادل {{ card.period_1y.monthly_equivalent_display }} ريال شهريًا</div>
+                  <div class="price-equivalent">{% blocktranslate with amount=card.period_1y.monthly_equivalent_display %}ما يعادل {{ amount }} ريال شهريًا{% endblocktranslate %}</div>
                   {% if card.period_1y.savings_display %}
-                    <div class="annual-saving"><i class="fa-solid fa-piggy-bank"></i> وفّر {{ card.period_1y.savings_display }} ريال مقارنة بالدفع الشهري</div>
+                    <div class="annual-saving"><i class="fa-solid fa-piggy-bank"></i> {% blocktranslate with amount=card.period_1y.savings_display %}وفّر {{ amount }} ريال مقارنة بالدفع الشهري{% endblocktranslate %}</div>
                   {% endif %}
                   <ul>{% for feature in card.period_1y.features %}<li><i class="fa-solid fa-check"></i>{{ feature }}</li>{% endfor %}</ul>
                 </div>
               {% endif %}
-              <a class="button {% if card.is_featured %}button-primary{% else %}button-quiet{% endif %}" href="{% url 'reports:register_school' %}">ابدأ بالتجربة ثم فعّل</a>
+              <a class="button {% if card.is_featured %}button-primary{% else %}button-quiet{% endif %}" href="{% url 'reports:register_school' %}">{% translate "ابدأ بالتجربة ثم فعّل" %}</a>
             </article>
           {% empty %}
             <article class="price-card reveal">
               <div class="price-head"><span class="price-icon"><i class="fa-solid fa-headset"></i></span><div><h3>{% translate "باقة مدرستك" %}</h3><p>{% translate "ابدأ مجانًا وسنساعدك في اختيار السعة المناسبة." %}</p></div></div>
-              <a class="button button-quiet" href="{% url 'reports:register_school' %}">ابدأ الآن</a>
+              <a class="button button-quiet" href="{% url 'reports:register_school' %}">{% translate "ابدأ الآن" %}</a>
             </article>
           {% endfor %}
           {% endif %}
         </div>
         <div class="pricing-disclosures">
-          <p class="pricing-note pricing-note-emphasis"><i class="fa-solid fa-school"></i> كل اشتراك ودفع يخص مدرسة واحدة، حتى عند إدارة عدة مدارس من الحساب نفسه.</p>
-          <p class="pricing-note"><i class="fa-solid fa-circle-info"></i> الأسعار نهائية، ولا توجد ضريبة قيمة مضافة أو رسوم خفية.</p>
-          <p class="pricing-note"><i class="fa-solid fa-box-archive"></i> احفظ سجل كل سنة دراسية في الأرشيف السنوي: 50GB بسعر 399 ريال، وكل 50GB إضافية بسعر 149 ريال.</p>
+          <p class="pricing-note pricing-note-emphasis"><i class="fa-solid fa-school"></i> {% translate "كل اشتراك ودفع يخص مدرسة واحدة، حتى عند إدارة عدة مدارس من الحساب نفسه." %}</p>
+          <p class="pricing-note"><i class="fa-solid fa-circle-info"></i> {% translate "الأسعار نهائية، ولا توجد ضريبة قيمة مضافة أو رسوم خفية." %}</p>
+          <p class="pricing-note"><i class="fa-solid fa-box-archive"></i> {% translate "احفظ سجل كل سنة دراسية في الأرشيف السنوي: 50GB بسعر 399 ريال، وكل 50GB إضافية بسعر 149 ريال." %}</p>
         </div>
 
-        <div class="service-catalog reveal" aria-label="تفاصيل المنتجات والخدمات">
+        <div class="service-catalog reveal" aria-label="{% translate "تفاصيل المنتجات والخدمات" %}">
           <article>
             <i class="fa-solid fa-layer-group"></i>
             <div><strong>{% translate "اشتراك منصة توثيق" %}</strong><p>{% translate "التقارير، ملفات الإنجاز، الطلبات، التعاميم، PDF والمشاركة الآمنة." %}</p></div>
@@ -1053,7 +1058,7 @@
           <article>
             <i class="fa-solid fa-chalkboard-user"></i>
             <div><strong>{% translate "جلسة تدريب إضافية" %}</strong><p>{% translate "جلسة إعداد وتدريب عن بُعد لفريق المدرسة." %}</p></div>
-            <span>{{ service_pricing.training_session_price|floatformat:0 }} ريال</span>
+            <span>{% blocktranslate with amount=service_pricing.training_session_price|floatformat:0 %}{{ amount }} ريال{% endblocktranslate %}</span>
           </article>
         </div>
         <p class="catalog-contract-note">{% translate "يظهر المبلغ النهائي وأي تكلفة إضافية — إن وجدت — قبل تأكيد الطلب. الخدمة رقمية ولا توجد رسوم شحن." %}</p>
@@ -1066,55 +1071,55 @@
           <span class="section-kicker">{% translate "أسئلة قبل البدء" %}</span>
           <h2>{% translate "إجابات مباشرة تساعدك على القرار" %}</h2>
           <p>{% translate "وإذا كان لديك سيناريو خاص بمدرستك، ابدأ التجربة واختبره على المنتج نفسه." %}</p>
-          <a class="text-link arrow-link" href="{% url 'reports:user_guide' %}">استعرض دليل المستخدم <i class="fa-solid fa-arrow-left"></i></a>
+          <a class="text-link arrow-link" href="{% url 'reports:user_guide' %}">{% translate "استعرض دليل المستخدم" %} <i class="fa-solid fa-arrow-left"></i></a>
         </div>
         <div class="faq-list">
           <details class="reveal">
-            <summary>هل يحتاج المعلم إلى تدريب طويل؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "هل يحتاج المعلم إلى تدريب طويل؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "لا. صُممت رحلة المعلم لتكون قصيرة: يختار المهمة، يدخل البيانات، يرفع الصور، ثم يحفظ أو يرسل للمراجعة." %}</p>
           </details>
           <details class="reveal">
-            <summary>عندنا نظام ورقي ومجلدات على درايف، هل يستحق التغيير؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "عندنا نظام ورقي ومجلدات على درايف، هل يستحق التغيير؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "القرار لك، ولن نعدك بأرقام لا نستطيع إثباتها. الفرق أن الملفات وحدها لا تحفظ المسؤولية ولا حالة العمل ولا التوقيعات. ابدأ بالتجربة المجانية وطبّقها على أعمال أسبوع واحد، ثم قارن الوقت والوضوح بنفسك قبل أي التزام مالي." %}</p>
           </details>
           <details class="reveal">
-            <summary>كم يستغرق تجهيز المدرسة قبل أول استخدام؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "كم يستغرق تجهيز المدرسة قبل أول استخدام؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "ثلاث خطوات فقط: تسجيل المدرسة، ثم إضافة المعلمين وتحديد الصلاحيات، ثم البدء بأول تقرير أو طلب أو تعميم. لا يلزم تجهيز تقني ولا تثبيت برامج؛ المنصة تعمل من المتصفح مباشرة." %}</p>
           </details>
           <details class="reveal">
-            <summary>هل تعمل المنصة من الجوال؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "هل تعمل المنصة من الجوال؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "نعم، الصفحات الأساسية مهيأة للجوال، خصوصًا رفع التقارير والشواهد ومتابعة الطلبات والتعاميم." %}</p>
           </details>
           <details class="reveal">
-            <summary>هل بيانات المدارس منفصلة؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "هل بيانات المدارس منفصلة؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "نعم. المدرسة النشطة والصلاحيات تحكمان الوصول، ولا تظهر بيانات مدرسة ضمن نطاق مدرسة أخرى." %}</p>
           </details>
           <details class="reveal">
-            <summary>أدير أكثر من مدرسة، هل أحتاج حسابًا مختلفًا لكل مدرسة؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "أدير أكثر من مدرسة، هل أحتاج حسابًا مختلفًا لكل مدرسة؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "لا يلزم حساب مختلف. يمكن لمدير المدارس التبديل بين المدارس المرتبطة به، لكن بيانات كل مدرسة وتجربتها وباقتها ودفعها تبقى مستقلة." %}</p>
           </details>
           <details class="reveal">
-            <summary>ماذا يحدث بعد انتهاء التجربة؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "ماذا يحدث بعد انتهاء التجربة؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "يمكن لمدير المدرسة اختيار سعة المعلمين والمدة المناسبة، ثم دفع وتفعيل اشتراك هذه المدرسة من حسابها وفق الأسعار المنشورة." %}</p>
           </details>
           <details class="reveal">
-            <summary>هل يمكن إخراج التقارير وملفات الإنجاز PDF؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "هل يمكن إخراج التقارير وملفات الإنجاز PDF؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "نعم. توفر المنصة مخرجات PDF منظمة للطباعة والحفظ، مع روابط مشاركة مؤقتة عند الحاجة." %}</p>
           </details>
           <details class="reveal">
-            <summary>ما الذي يضيفه حساب المدير التنفيذي للمجموعة؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "ما الذي يضيفه حساب المدير التنفيذي للمجموعة؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "يمنحك مستوى إداريًا أعلى فوق المدارس: لوحة تجمع مؤشراتها، تقرير موحد يُصدَّر Excel وPDF، تكليفات ومجالس وتعاميم على مستوى المجموعة، وسجل تدقيق وأرشيف. ومع ذلك يبقى اشتراك كل مدرسة ودفعها مستقلًا، وتبقى بيانات كل مدرسة داخل نطاقها." %}</p>
           </details>
           <details class="reveal">
-            <summary>هل تغطي المنصة الخطط والاجتماعات والتكليفات أم التقارير فقط؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "هل تغطي المنصة الخطط والاجتماعات والتكليفات أم التقارير فقط؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "تغطيها. إلى جانب التقارير وملفات الإنجاز، تجد الخطط والمبادرات، الاجتماعات ومحاضرها، التكليفات ولوحة المهام، صندوق الاعتمادات، الأقسام الإدارية والصلاحيات والتفويض، وأرشيف الوثائق — كلها ضمن الاشتراك نفسه دون وحدات تُشترى منفصلة." %}</p>
           </details>
           <details class="reveal">
-            <summary>هل بياناتي محبوسة داخل المنصة؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "هل بياناتي محبوسة داخل المنصة؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "لا. تستطيع إدارة المدرسة تصدير بيانات مدرستها وملفاتها في أي وقت، إضافة إلى مخرجات PDF وفهارس Excel والأرشيف السنوي القابل للتنزيل، فتبقى نسخة لديك مستقلة عن استمرار الاشتراك." %}</p>
           </details>
           <details class="reveal">
-            <summary>هل يوجد أرشيف للسنوات؟ <i class="fa-solid fa-plus"></i></summary>
+            <summary>{% translate "هل يوجد أرشيف للسنوات؟" %} <i class="fa-solid fa-plus"></i></summary>
             <p>{% translate "نعم. الأرشيف إضافة سنوية مستقلة تحفظ التقارير والإنجاز والطلبات والتعاميم والإشعارات وملفاتها في نسخة ثابتة قابلة للتنزيل، مع فهرس Excel وبصمة تحقق. وتبقى النسخ التي حفظتها متاحة بعد انتهاء الإضافة." %}</p>
           </details>
         </div>
@@ -1128,11 +1133,11 @@
           <div class="final-copy">
             <span>{% translate "القرار الأفضل يبدأ بتجربة حقيقية" %}</span>
             <h2>{% translate "ابدأ بمدرسة واحدة، واجعل أول مسار عمل أكثر وضوحًا من اليوم." %}</h2>
-            <p>تجربة مجانية لمدة {{ trial_days|default:30 }} يوم، دون بطاقة ائتمانية أو التزام مسبق.</p>
+            <p>{% blocktranslate with days=trial_days|default:30 %}تجربة مجانية لمدة {{ days }} يوم، دون بطاقة ائتمانية أو التزام مسبق.{% endblocktranslate %}</p>
           </div>
           <div class="final-actions">
-            <a class="button button-gold button-large" href="{% url 'reports:register_school' %}">أنشئ حساب المدرسة <i class="fa-solid fa-arrow-left"></i></a>
-            <a class="button button-dark-quiet" href="{% url 'reports:login' %}">لدي حساب بالفعل</a>
+            <a class="button button-gold button-large" href="{% url 'reports:register_school' %}">{% translate "أنشئ حساب المدرسة" %} <i class="fa-solid fa-arrow-left"></i></a>
+            <a class="button button-dark-quiet" href="{% url 'reports:login' %}">{% translate "لدي حساب بالفعل" %}</a>
           </div>
         </div>
       </div>
@@ -1149,8 +1154,8 @@
           </a>
           <p>{% translate "منصة تشغيل وتوثيق للمدير والمالك والمدير التنفيذي؛ تمنح المدرسة صورة واضحة عن العمل وسجلًا مهنيًا لما أُنجز." %}</p>
         </div>
-        <div class="footer-links"><strong>{% translate "المنصة" %}</strong><a href="#features">الحلول</a><a href="#group">مجموعة المدارس</a><a href="#product">الواجهات</a><a href="#pricing">الباقات</a></div>
-        <div class="footer-links"><strong>{% translate "المساعدة" %}</strong><a href="{% url 'reports:user_guide' %}">دليل المستخدم</a><a href="{% url 'reports:faq' %}">مركز الأسئلة</a><a href="{% url 'reports:login' %}">تسجيل الدخول</a>{% if PWA_INSTALL_ENABLED %}{% comment %}
+        <div class="footer-links"><strong>{% translate "المنصة" %}</strong><a href="#features">{% translate "الحلول" %}</a><a href="#group">{% translate "مجموعة المدارس" %}</a><a href="#product">{% translate "الواجهات" %}</a><a href="#pricing">{% translate "الباقات" %}</a></div>
+        <div class="footer-links"><strong>{% translate "المساعدة" %}</strong><a href="{% url 'reports:user_guide' %}">{% translate "دليل المستخدم" %}</a><a href="{% url 'reports:faq' %}">{% translate "مركز الأسئلة" %}</a><a href="{% url 'reports:login' %}">{% translate "تسجيل الدخول" %}</a>{% if PWA_INSTALL_ENABLED %}{% comment %}
           الزائر لا تظهر له بطاقة التثبيت تلقائياً عن قصد — طلبُ التثبيت قبل
           امتلاك حساب يقود إلى تطبيقٍ يفتح على شاشة دخول. لكنه كان بلا وسيلة
           أصلاً: لا زرّ ولا بطاقة، فمن أراد التثبيت وجب أن يعرف قائمة المتصفّح.
@@ -1160,19 +1165,19 @@
           <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
           <span>{% translate "تثبيت التطبيق" %}</span>
         </button>{% endif %}</div>
-        <div class="footer-links"><strong>{% translate "السياسات" %}</strong><a href="{% url 'reports:terms_conditions' %}">الشروط والأحكام</a><a href="{% url 'reports:privacy_policy' %}">سياسة الخصوصية</a><a href="{% url 'reports:refund_policy' %}">الإلغاء والاسترجاع</a><a href="{% url 'reports:service_delivery_policy' %}">تقديم الخدمة</a><a href="{% url 'reports:complaints_policy' %}">الشكاوى والمقترحات</a></div>
+        <div class="footer-links"><strong>{% translate "السياسات" %}</strong><a href="{% url 'reports:terms_conditions' %}">{% translate "الشروط والأحكام" %}</a><a href="{% url 'reports:privacy_policy' %}">{% translate "سياسة الخصوصية" %}</a><a href="{% url 'reports:refund_policy' %}">{% translate "الإلغاء والاسترجاع" %}</a><a href="{% url 'reports:service_delivery_policy' %}">{% translate "تقديم الخدمة" %}</a><a href="{% url 'reports:complaints_policy' %}">{% translate "الشكاوى والمقترحات" %}</a></div>
       </div>
       {% include "reports/partials/business_disclosure.html" with disclosure_variant="footer" %}
-      <section class="footer-payments" aria-label="وسائل الدفع المدعومة">
+      <section class="footer-payments" aria-label="{% translate "وسائل الدفع المدعومة" %}">
         <div class="footer-payments-copy">
-          <strong><i class="fa-solid fa-lock" aria-hidden="true"></i> دفع آمن وموثوق</strong>
+          <strong><i class="fa-solid fa-lock" aria-hidden="true"></i> {% translate "دفع آمن وموثوق" %}</strong>
           <small>{% translate "عبر ميسر · تظهر الوسائل المفعّلة والمتاحة عند إتمام الدفع" %}</small>
         </div>
-        <div class="payment-marks" role="list" aria-label="شبكات البطاقات والمحافظ الرقمية">
-          <span class="payment-mark payment-mark--mada" role="listitem" aria-label="مدى"><b>مدى</b><small>mada</small></span>
-          <span class="payment-mark payment-mark--visa" role="listitem" aria-label="فيزا">VISA</span>
-          <span class="payment-mark payment-mark--mastercard" role="listitem" aria-label="ماستركارد"><i aria-hidden="true"></i><small>mastercard</small></span>
-          <span class="payment-mark payment-mark--amex" role="listitem" aria-label="أمريكان إكسبريس">AMERICAN<br>EXPRESS</span>
+        <div class="payment-marks" role="list" aria-label="{% translate "شبكات البطاقات والمحافظ الرقمية" %}">
+          <span class="payment-mark payment-mark--mada" role="listitem" aria-label="{% translate "مدى" %}"><b>{% translate "مدى" %}</b><small>mada</small></span>
+          <span class="payment-mark payment-mark--visa" role="listitem" aria-label="{% translate "فيزا" %}">VISA</span>
+          <span class="payment-mark payment-mark--mastercard" role="listitem" aria-label="{% translate "ماستركارد" %}"><i aria-hidden="true"></i><small>mastercard</small></span>
+          <span class="payment-mark payment-mark--amex" role="listitem" aria-label="{% translate "أمريكان إكسبريس" %}">AMERICAN<br>EXPRESS</span>
           <span class="payment-mark payment-mark--apple" role="listitem" aria-label="Apple Pay"><i class="fa-brands fa-apple" aria-hidden="true"></i> Pay</span>
           <span class="payment-mark payment-mark--google" role="listitem" aria-label="Google Pay"><b>G</b> Pay</span>
           <span class="payment-mark payment-mark--samsung" role="listitem" aria-label="Samsung Pay">SAMSUNG Pay</span>
@@ -1180,11 +1185,11 @@
         </div>
       </section>
       <div class="footer-bottom">
-        <span>© {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.</span>
-        <div class="footer-verification" aria-label="توثيق المتجر الرسمي">
+        <span>© {% now "Y" as copyright_year %}{% blocktranslate %}{{ copyright_year }} منصة توثيق. جميع الحقوق محفوظة.{% endblocktranslate %}</span>
+        <div class="footer-verification" aria-label="{% translate "توثيق المتجر الرسمي" %}">
           <span class="footer-verification__label">
             <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-            توثيق رسمي
+            {% translate "توثيق رسمي" %}
           </span>
           {% comment %}
             البديل يظهر دائماً، ويخفيه السكربت الرسمي عند نجاح تركيبه عبر
@@ -1209,8 +1214,8 @@
     </div>
   </footer>
 
-  <div class="mobile-sticky" aria-label="ابدأ الآن">
-    <a class="button button-primary" href="{% url 'reports:register_school' %}">ابدأ مجانًا</a>
+  <div class="mobile-sticky" aria-label="{% translate "ابدأ الآن" %}">
+    <a class="button button-primary" href="{% url 'reports:register_school' %}">{% translate "ابدأ مجانًا" %}</a>
     <a class="mobile-login" href="{% url 'reports:login' %}">
       <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
       <span>{% translate "دخول" %}</span>
@@ -1220,7 +1225,7 @@
   <dialog class="product-lightbox" id="productLightbox" aria-labelledby="productLightboxCaption">
     <div class="lightbox-head">
       <p id="productLightboxCaption"></p>
-      <button class="lightbox-close" id="productLightboxClose" type="button" aria-label="إغلاق الصورة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <button class="lightbox-close" id="productLightboxClose" type="button" aria-label="{% translate "إغلاق الصورة" %}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
     <img id="productLightboxImage" src="" alt="">
   </dialog>
@@ -1236,7 +1241,7 @@
    data-cfasync="false"></script>
   {% include "reports/partials/pwa_install.html" %}
   <script src="{% static 'js/flexible-pricing.js' %}?v=20260804.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
-  <script src="{% static 'js/landing.js' %}?v=20260810.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+  <script src="{% static 'js/landing.js' %}?v=20260813.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
   {% if AI_MANSOUR_PUBLIC_ENABLED %}
     <script src="{% static 'js/mansour-assistant.js' %}?v=20260801.2" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
   {% endif %}

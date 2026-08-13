@@ -1,49 +1,49 @@
 {% extends "base.html" %}
 {% load i18n static %}
 
-{% block title %}الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق{% endblock %}
+{% block title %}{% translate "الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق" %}{% endblock %}
 {% block robots %}index,follow,max-image-preview:large,max-snippet:-1{% endblock %}
 {% block seo_meta %}
 {% url 'reports:faq' as canonical_path %}
-{% include "reports/partials/public_seo.html" with seo_title="الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق" seo_description="إجابات عن منصة توثيق للتقارير المدرسية وملفات الإنجاز والطلبات والتعاميم، وآلية الاستخدام والطباعة والصلاحيات وحماية بيانات المدرسة." seo_image_alt="الأسئلة الشائعة عن منصة توثيق" canonical_path=canonical_path %}
+{% include "reports/partials/public_seo.html" with seo_title=_("الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق") seo_description=_("إجابات عن منصة توثيق للتقارير المدرسية وملفات الإنجاز والطلبات والتعاميم، وآلية الاستخدام والطباعة والصلاحيات وحماية بيانات المدرسة.") seo_image_alt=_("الأسئلة الشائعة عن منصة توثيق") canonical_path=canonical_path %}
 <script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
 {
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "@id": "{{ SITE_URL }}{% url 'reports:faq' %}#faq",
   "url": "{{ SITE_URL }}{% url 'reports:faq' %}",
-  "inLanguage": "ar-SA",
+  "inLanguage": "{% if LANGUAGE_CODE == 'en' %}en{% else %}ar-SA{% endif %}",
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "ما هي منصة توثيق؟",
+      "name": "{% translate "ما هي منصة توثيق؟" as t %}{{ t|escapejs }}",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "منصة ويب عربية لإدارة التقارير المدرسية والطلبات الداخلية وملفات إنجاز المعلمين والتعاميم في مكان واحد."
+        "text": "{% translate "منصة ويب عربية لإدارة التقارير المدرسية والطلبات الداخلية وملفات إنجاز المعلمين والتعاميم في مكان واحد." as t %}{{ t|escapejs }}"
       }
     },
     {
       "@type": "Question",
-      "name": "هل المنصة مناسبة لمدرسة واحدة فقط؟",
+      "name": "{% translate "هل المنصة مناسبة لمدرسة واحدة فقط؟" as t %}{{ t|escapejs }}",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "لا، تدعم المنصة مدرسة واحدة أو عدة مدارس في الوقت نفسه، مع عزل واضح لبيانات وصلاحيات وكادر كل مدرسة."
+        "text": "{% translate "لا، تدعم المنصة مدرسة واحدة أو عدة مدارس في الوقت نفسه، مع عزل واضح لبيانات وصلاحيات وكادر كل مدرسة." as t %}{{ t|escapejs }}"
       }
     },
     {
       "@type": "Question",
-      "name": "هل يمكن استخراج ملف إنجاز PDF؟",
+      "name": "{% translate "هل يمكن استخراج ملف إنجاز PDF؟" as t %}{{ t|escapejs }}",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "نعم، تولد المنصة ملف PDF منظمًا لملف الإنجاز يتضمن البيانات والشواهد المرفقة وشعار المدرسة، ويكون جاهزًا للطباعة."
+        "text": "{% translate "نعم، تولد المنصة ملف PDF منظمًا لملف الإنجاز يتضمن البيانات والشواهد المرفقة وشعار المدرسة، ويكون جاهزًا للطباعة." as t %}{{ t|escapejs }}"
       }
     },
     {
       "@type": "Question",
-      "name": "هل المنصة آمنة وتحمي بيانات المدرسة؟",
+      "name": "{% translate "هل المنصة آمنة وتحمي بيانات المدرسة؟" as t %}{{ t|escapejs }}",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "تعزل المنصة بيانات كل مدرسة وتطبق صلاحيات حسب الدور وسجل تدقيق للعمليات الحساسة."
+        "text": "{% translate "تعزل المنصة بيانات كل مدرسة وتطبق صلاحيات حسب الدور وسجل تدقيق للعمليات الحساسة." as t %}{{ t|escapejs }}"
       }
     }
   ]
@@ -255,17 +255,17 @@
 <div class="faq-page">
   
   <div class="faq-hero">
-    <h1><i class="fa-solid fa-circle-question"></i> الأسئلة الشائعة</h1>
+    <h1><i class="fa-solid fa-circle-question"></i> {% translate "الأسئلة الشائعة" %}</h1>
     <p>{% translate "إجابات لأكثر الأسئلة شيوعاً حول منصة توثيق" %}</p>
   </div>
 
   <div class="faq-search">
     <label class="sr-only" for="faqSearch">{% translate "البحث في الأسئلة الشائعة" %}</label>
-    <input type="text" id="faqSearch" placeholder="ابحث عن سؤالك هنا...">
+    <input type="text" id="faqSearch" placeholder="{% translate "ابحث عن سؤالك هنا..." %}">
   </div>
 
   <div class="faq-category">
-    <h2><i class="fa-solid fa-circle-info"></i> عام</h2>
+    <h2><i class="fa-solid fa-circle-info"></i> {% translate "عام" %}</h2>
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
@@ -273,7 +273,7 @@
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>منصة توثيق هي نظام ويب عربي متكامل لإدارة احتياجات المدرسة اليومية في مكان واحد. تشمل: توثيق التقارير المدرسية مع صور وطباعة احترافية، إدارة الطلبات الداخلية بين {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} والأقسام، ملفات الإنجاز السنوية {{ SCHOOL_TEACHERS_DATIVE_LABEL|default:"للمعلمين" }} مع توليد PDF، والإشعارات الموجهة مع تتبع القراءة والتوقيع.</p>
+        <p>{% blocktranslate with teachers=SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" teachers_dative=SCHOOL_TEACHERS_DATIVE_LABEL|default:"للمعلمين" %}منصة توثيق هي نظام ويب عربي متكامل لإدارة احتياجات المدرسة اليومية في مكان واحد. تشمل: توثيق التقارير المدرسية مع صور وطباعة احترافية، إدارة الطلبات الداخلية بين {{ teachers }} والأقسام، ملفات الإنجاز السنوية {{ teachers_dative }} مع توليد PDF، والإشعارات الموجهة مع تتبع القراءة والتوقيع.{% endblocktranslate %}</p>
       </div>
     </div>
 
@@ -289,11 +289,11 @@
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>هل يوجد حد لعدد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}؟</h3>
+        <h3>{% blocktranslate with teachers=SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" %}هل يوجد حد لعدد {{ teachers }}؟{% endblocktranslate %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>يتم تحديد عدد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} حسب باقة الاشتراك التي تختارها المدرسة. يمكنك التواصل معنا لمعرفة الباقة المناسبة لعدد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} في مدرستك.</p>
+        <p>{% blocktranslate with teachers=SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" %}يتم تحديد عدد {{ teachers }} حسب باقة الاشتراك التي تختارها المدرسة. يمكنك التواصل معنا لمعرفة الباقة المناسبة لعدد {{ teachers }} في مدرستك.{% endblocktranslate %}</p>
       </div>
     </div>
 
@@ -309,7 +309,7 @@
   </div>
 
   <div class="faq-category">
-    <h2><i class="fa-solid fa-file-lines"></i> التقارير</h2>
+    <h2><i class="fa-solid fa-file-lines"></i> {% translate "التقارير" %}</h2>
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
@@ -327,7 +327,7 @@
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>نعم، يمكنك تعديل تقاريرك في أي وقت من صفحة "تقاريري" بالضغط على أيقونة التعديل (القلم) بجانب التقرير.</p>
+        <p>{% translate "نعم، يمكنك تعديل تقاريرك في أي وقت من صفحة «تقاريري» بالضغط على أيقونة التعديل (القلم) بجانب التقرير." %}</p>
       </div>
     </div>
 
@@ -337,7 +337,7 @@
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>من صفحة "تقاريري"، اضغط على أيقونة الطباعة بجانب التقرير المراد طباعته. سيتم فتح صفحة طباعة احترافية تحتوي على شعار المدرسة والصور المرفقة، يمكنك الطباعة مباشرة أو حفظها كملف PDF.</p>
+        <p>{% translate "من صفحة «تقاريري»، اضغط على أيقونة الطباعة بجانب التقرير المراد طباعته. سيتم فتح صفحة طباعة احترافية تحتوي على شعار المدرسة والصور المرفقة، يمكنك الطباعة مباشرة أو حفظها كملف PDF." %}</p>
       </div>
     </div>
 
@@ -347,13 +347,13 @@
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>نعم، يمكن {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} إضافة أنواع التقارير وتخصيصها من لوحة الإدارة وربطها بالأقسام المناسبة.</p>
+        <p>{% blocktranslate with manager_dative=SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" %}نعم، يمكن {{ manager_dative }} إضافة أنواع التقارير وتخصيصها من لوحة الإدارة وربطها بالأقسام المناسبة.{% endblocktranslate %}</p>
       </div>
     </div>
   </div>
 
   <div class="faq-category">
-    <h2><i class="fa-solid fa-ticket"></i> الطلبات والتذاكر</h2>
+    <h2><i class="fa-solid fa-ticket"></i> {% translate "الطلبات والتذاكر" %}</h2>
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
@@ -371,7 +371,7 @@
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>يمكنك متابعة جميع طلباتك من صفحة "طلباتي". ستظهر لك حالة كل طلب (جديد، قيد المعالجة، مكتمل، مرفوض) مع أي ملاحظات أو ردود من الجهة المختصة.</p>
+        <p>{% translate "يمكنك متابعة جميع طلباتك من صفحة «طلباتي». ستظهر لك حالة كل طلب (جديد، قيد المعالجة، مكتمل، مرفوض) مع أي ملاحظات أو ردود من الجهة المختصة." %}</p>
       </div>
     </div>
 
@@ -391,13 +391,13 @@
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>يتم توجيه الطلب إلى القسم المختص الذي اخترته عند إنشاء الطلب. مسؤول القسم سيستقبل الطلب في صندوق "الوارد" الخاص به ويقوم بمعالجته.</p>
+        <p>{% translate "يتم توجيه الطلب إلى القسم المختص الذي اخترته عند إنشاء الطلب. مسؤول القسم سيستقبل الطلب في صندوق «الوارد» الخاص به ويقوم بمعالجته." %}</p>
       </div>
     </div>
   </div>
 
   <div class="faq-category">
-    <h2><i class="fa-solid fa-award"></i> ملفات الإنجاز</h2>
+    <h2><i class="fa-solid fa-award"></i> {% translate "ملفات الإنجاز" %}</h2>
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
@@ -431,17 +431,17 @@
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>هل يمكن {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} مراجعة ملف الإنجاز؟</h3>
+        <h3>{% blocktranslate with manager_dative=SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" %}هل يمكن {{ manager_dative }} مراجعة ملف الإنجاز؟{% endblocktranslate %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>نعم، تتوفر {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} صلاحية مراجعة ملفات الإنجاز لجميع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} واعتمادها بعد التأكد من اكتمالها.</p>
+        <p>{% blocktranslate with teachers=SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" manager_dative=SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" %}نعم، تتوفر {{ manager_dative }} صلاحية مراجعة ملفات الإنجاز لجميع {{ teachers }} واعتمادها بعد التأكد من اكتمالها.{% endblocktranslate %}</p>
       </div>
     </div>
   </div>
 
   <div class="faq-category">
-    <h2><i class="fa-solid fa-bell"></i> الإشعارات والتعاميم</h2>
+    <h2><i class="fa-solid fa-bell"></i> {% translate "الإشعارات والتعاميم" %}</h2>
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
@@ -469,13 +469,13 @@
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>نعم، النظام يتتبع من قرأ التعميم ومن وقّع عليه، مع توقيت القراءة والتوقيع. ويمكن {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} مشاهدة تقرير شامل بذلك.</p>
+        <p>{% blocktranslate with manager_dative=SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" %}نعم، النظام يتتبع من قرأ التعميم ومن وقّع عليه، مع توقيت القراءة والتوقيع. ويمكن {{ manager_dative }} مشاهدة تقرير شامل بذلك.{% endblocktranslate %}</p>
       </div>
     </div>
   </div>
 
   <div class="faq-category">
-    <h2><i class="fa-solid fa-user-tie"></i> الإدارة والصلاحيات</h2>
+    <h2><i class="fa-solid fa-user-tie"></i> {% translate "الإدارة والصلاحيات" %}</h2>
     
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
@@ -483,7 +483,7 @@
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>يمكن {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} إضافة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} من «لوحة المدرسة ← فريق المدرسة»، إما فرديًا أو باستيراد قائمة Excel.</p>
+        <p>{% blocktranslate with teachers=SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" manager_dative=SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" %}يمكن {{ manager_dative }} إضافة {{ teachers }} من «لوحة المدرسة ← فريق المدرسة»، إما فرديًا أو باستيراد قائمة Excel.{% endblocktranslate %}</p>
       </div>
     </div>
 
@@ -493,13 +493,13 @@
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>لوحة المدرسة هي الصفحة الرئيسية لحساب {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}. إذا لم تظهر بعد تسجيل الدخول، فتأكد من ربط الحساب بدور إدارة المدرسة، أو تواصل مع الدعم الفني لضبط الصلاحية.</p>
+        <p>{% blocktranslate with manager=SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" %}لوحة المدرسة هي الصفحة الرئيسية لحساب {{ manager }}. إذا لم تظهر بعد تسجيل الدخول، فتأكد من ربط الحساب بدور إدارة المدرسة، أو تواصل مع الدعم الفني لضبط الصلاحية.{% endblocktranslate %}</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
-        <h3>هل يمكن تعيين صلاحيات مخصصة {{ SCHOOL_TEACHERS_DATIVE_LABEL|default:"للمعلمين" }}؟</h3>
+        <h3>{% blocktranslate with teachers_dative=SCHOOL_TEACHERS_DATIVE_LABEL|default:"للمعلمين" %}هل يمكن تعيين صلاحيات مخصصة {{ teachers_dative }}؟{% endblocktranslate %}</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
@@ -514,7 +514,7 @@
     <h3>{% translate "لم تجد إجابة لسؤالك؟" %}</h3>
     <p>{% translate "فريق الدعم الفني جاهز لمساعدتك" %}</p>
     <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-primary xs-faq-1">
-      <i class="fa-solid fa-life-ring"></i> تواصل معنا
+      <i class="fa-solid fa-life-ring"></i> {% translate "تواصل معنا" %}
     </a>
   </div>
 

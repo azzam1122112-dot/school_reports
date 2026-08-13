@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django import forms
+from django.utils.translation import gettext_lazy as _
 
 from .models import CustomerComplaint
 
@@ -21,6 +22,17 @@ class CustomerComplaintForm(forms.ModelForm):
     class Meta:
         model = CustomerComplaint
         fields = ("name", "email", "phone", "order_reference", "subject", "message")
+        # The public complaint form is part of the bilingual layer, so its
+        # labels are restated here rather than inherited from the model's
+        # Arabic verbose names — which the admin and internal screens still use.
+        labels = {
+            "name": _("الاسم"),
+            "email": _("البريد الإلكتروني"),
+            "phone": _("رقم الجوال"),
+            "order_reference": _("مرجع الطلب أو الاشتراك"),
+            "subject": _("موضوع الشكوى"),
+            "message": _("تفاصيل الشكوى"),
+        }
         widgets = {
             "name": forms.TextInput(attrs={"autocomplete": "name"}),
             "email": forms.EmailInput(attrs={"autocomplete": "email", "dir": "ltr"}),
@@ -34,7 +46,7 @@ class CustomerComplaintForm(forms.ModelForm):
     def clean_website(self):
         value = (self.cleaned_data.get("website") or "").strip()
         if value:
-            raise forms.ValidationError("تعذّر إرسال النموذج.")
+            raise forms.ValidationError(_("تعذّر إرسال النموذج."))
         return value
 
 class CustomerComplaintUpdateForm(forms.ModelForm):

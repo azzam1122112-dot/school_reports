@@ -174,6 +174,14 @@
     }
   }
 
+  /* نصوص البطاقة تُرسَم في القالب لأنها تُترجم هناك؛ والسكربت ثابتٌ لا يمرّ
+     بـDjango. فيقرأها من ``data-*`` ويُبقي العربية بديلاً إن كانت الصفحة
+     مخزّنة من نسخة أقدم من هذا التغيير. */
+  function copy(key, fallback) {
+    var value = promptRoot ? promptRoot.getAttribute("data-text-" + key) : "";
+    return value || fallback;
+  }
+
   function setSteps(items) {
     steps.innerHTML = "";
     items.forEach(function (item) {
@@ -185,8 +193,8 @@
 
   function configureNativePrompt() {
     steps.hidden = true;
-    description.textContent = "ثبّت منصة توثيق للوصول السريع وفتحها بواجهة مستقلة من شاشتك الرئيسية.";
-    installAction.textContent = "تثبيت الآن";
+    description.textContent = copy("native", "ثبّت منصة توثيق للوصول السريع وفتحها بواجهة مستقلة من شاشتك الرئيسية.");
+    installAction.textContent = copy("install-now", "تثبيت الآن");
   }
 
   function configureFallback() {
@@ -194,34 +202,34 @@
     steps.hidden = false;
 
     if (isIOS && isSafari) {
-      description.textContent = "أضف منصة توثيق إلى شاشة iPhone أو iPad الرئيسية وافتحها كتطبيق مستقل.";
+      description.textContent = copy("ios-safari", "أضف منصة توثيق إلى شاشة iPhone أو iPad الرئيسية وافتحها كتطبيق مستقل.");
       setSteps([
-        "اضغط زر المشاركة في Safari.",
-        "اختر «إضافة إلى الشاشة الرئيسية».",
-        "فعّل «فتح كتطبيق ويب» ثم اضغط «إضافة»."
+        copy("ios-safari-step-1", "اضغط زر المشاركة في Safari."),
+        copy("ios-safari-step-2", "اختر «إضافة إلى الشاشة الرئيسية»."),
+        copy("ios-safari-step-3", "فعّل «فتح كتطبيق ويب» ثم اضغط «إضافة».")
       ]);
-      installAction.textContent = "حسنًا";
+      installAction.textContent = copy("acknowledge", "حسنًا");
       return;
     }
 
     if (isIOS) {
-      description.textContent = "للتثبيت على iPhone أو iPad افتح هذه الصفحة في Safari أولًا.";
+      description.textContent = copy("ios-other", "للتثبيت على iPhone أو iPad افتح هذه الصفحة في Safari أولًا.");
       setSteps([
-        "انسخ رابط الصفحة وافتحه في Safari.",
-        "اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية».",
-        "فعّل «فتح كتطبيق ويب» ثم اضغط «إضافة»."
+        copy("ios-other-step-1", "انسخ رابط الصفحة وافتحه في Safari."),
+        copy("ios-other-step-2", "اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية»."),
+        copy("ios-safari-step-3", "فعّل «فتح كتطبيق ويب» ثم اضغط «إضافة».")
       ]);
-      installAction.textContent = "حسنًا";
+      installAction.textContent = copy("acknowledge", "حسنًا");
       return;
     }
 
-    description.textContent = "يمكنك إضافة منصة توثيق من قائمة المتصفح إلى الشاشة الرئيسية.";
+    description.textContent = copy("generic", "يمكنك إضافة منصة توثيق من قائمة المتصفح إلى الشاشة الرئيسية.");
     setSteps([
-      "افتح قائمة المتصفح ⋮.",
-      "اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».",
-      "وافق على الإضافة."
+      copy("generic-step-1", "افتح قائمة المتصفح ⋮."),
+      copy("generic-step-2", "اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»."),
+      copy("generic-step-3", "وافق على الإضافة.")
     ]);
-    installAction.textContent = "حسنًا";
+    installAction.textContent = copy("acknowledge", "حسنًا");
   }
 
   function showPrompt(options) {
@@ -237,7 +245,7 @@
     announcement.textContent = "";
     window.setTimeout(function () {
       if (!promptRoot.hidden) {
-        announcement.textContent = "يتوفر تثبيت منصة توثيق على هذا الجوال. " + description.textContent;
+        announcement.textContent = copy("available", "يتوفر تثبيت منصة توثيق على هذا الجوال.") + " " + description.textContent;
       }
     }, 80);
     return true;

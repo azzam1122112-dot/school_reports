@@ -9,7 +9,7 @@
   {% include "reports/partials/theme_bootstrap.html" %}
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="referrer" content="no-referrer">
-  <title>تم تجهيز مدرستك | منصة توثيق</title>
+  <title>{% translate "تم تجهيز مدرستك | منصة توثيق" %}</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
   {% include "reports/partials/pwa_install_head.html" %}
   {% comment %}الخط والأيقونات محلياً: لا طلب لطرف ثالث قبل أول حرف، ولا نطاق خارجي في سياسة المحتوى.{% endcomment %}
@@ -318,15 +318,15 @@
       *, *::before, *::after { transition: none !important; }
     }
   </style>
-  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260808.1">
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260813.1">
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 <body>
   <main class="success-shell">
     <header class="success-head">
       <span class="success-mark"><i class="fa-solid fa-check"></i></span>
-      <h1>تم إنشاء مدرسة «{{ receipt.school_name }}»</h1>
-      <p>مرحبًا {{ receipt.manager_name }}، حسابك جاهز والتجربة الكاملة مفعّلة الآن.</p>
+      <h1>{% blocktranslate with school=receipt.school_name %}تم إنشاء مدرسة «{{ school }}»{% endblocktranslate %}</h1>
+      <p>{% blocktranslate with manager=receipt.manager_name %}مرحبًا {{ manager }}، حسابك جاهز والتجربة الكاملة مفعّلة الآن.{% endblocktranslate %}</p>
     </header>
 
     <section class="success-body">
@@ -335,30 +335,30 @@
           <h2>{% translate "بيانات الدخول إلى حساب إدارة المدرسة" %}</h2>
           <p>{% translate "احتفظ بها في مكان آمن. أنت مسجّل الدخول حاليًا ويمكنك الانتقال مباشرة إلى لوحة المدرسة." %}</p>
         </div>
-        <span class="once-badge"><i class="fa-solid fa-eye-slash"></i> تظهر في هذه الصفحة مرة واحدة</span>
+        <span class="once-badge"><i class="fa-solid fa-eye-slash"></i> {% translate "تظهر في هذه الصفحة مرة واحدة" %}</span>
       </div>
 
       <div class="credentials" id="credentials">
         <div class="credential">
-          <span class="credential-label"><i class="fa-solid fa-mobile-screen-button"></i> اسم المستخدم — رقم الجوال</span>
+          <span class="credential-label"><i class="fa-solid fa-mobile-screen-button"></i> {% translate "اسم المستخدم — رقم الجوال" %}</span>
           <div class="credential-row">
-            <input id="loginPhone" type="text" value="{{ receipt.phone }}" readonly aria-label="رقم الجوال المستخدم للدخول">
-            <button class="icon-button" type="button" data-copy-target="loginPhone" aria-label="نسخ رقم الجوال"><i class="fa-regular fa-copy"></i></button>
+            <input id="loginPhone" type="text" value="{{ receipt.phone }}" readonly aria-label="{% translate "رقم الجوال المستخدم للدخول" %}">
+            <button class="icon-button" type="button" data-copy-target="loginPhone" aria-label="{% translate "نسخ رقم الجوال" %}"><i class="fa-regular fa-copy"></i></button>
           </div>
         </div>
         <div class="credential">
-          <span class="credential-label"><i class="fa-solid fa-key"></i> كلمة المرور</span>
+          <span class="credential-label"><i class="fa-solid fa-key"></i> {% translate "كلمة المرور" %}</span>
           <div class="credential-row">
-            <input id="loginPassword" type="text" value="{{ receipt.password }}" readonly aria-label="كلمة المرور">
-            <button class="icon-button" type="button" id="passwordVisibility" aria-label="إخفاء كلمة المرور"><i class="fa-regular fa-eye-slash"></i></button>
-            <button class="icon-button" type="button" data-copy-target="loginPassword" aria-label="نسخ كلمة المرور"><i class="fa-regular fa-copy"></i></button>
+            <input id="loginPassword" type="text" value="{{ receipt.password }}" readonly aria-label="{% translate "كلمة المرور" %}">
+            <button class="icon-button" type="button" id="passwordVisibility" aria-label="{% translate "إخفاء كلمة المرور" %}"><i class="fa-regular fa-eye-slash"></i></button>
+            <button class="icon-button" type="button" data-copy-target="loginPassword" aria-label="{% translate "نسخ كلمة المرور" %}"><i class="fa-regular fa-copy"></i></button>
           </div>
         </div>
       </div>
 
       <div class="receipt-actions">
-        <button class="quiet-button" type="button" id="copyCredentials"><i class="fa-regular fa-copy"></i> نسخ بيانات الدخول</button>
-        <button class="quiet-button" type="button" id="printReceipt"><i class="fa-solid fa-print"></i> طباعة الصفحة</button>
+        <button class="quiet-button" type="button" id="copyCredentials"><i class="fa-regular fa-copy"></i> {% translate "نسخ بيانات الدخول" %}</button>
+        <button class="quiet-button" type="button" id="printReceipt"><i class="fa-solid fa-print"></i> {% translate "طباعة الصفحة" %}</button>
       </div>
       <div class="login-address">
         <i class="fa-solid fa-link"></i>
@@ -366,31 +366,42 @@
         <a href="{% url 'reports:login' %}">{{ request.get_host }}{% url 'reports:login' %}</a>
       </div>
 
-      <div class="trial-summary" aria-label="تفاصيل التجربة">
-        <div><i class="fa-regular fa-calendar-check"></i><span><strong>{{ receipt.trial_days }} يومًا كاملة</strong><small>تنتهي في {{ receipt.trial_end_date }}</small></span></div>
-        <div><i class="fa-solid fa-users"></i><span><strong>حتى {{ receipt.teacher_limit }} من أعضاء الكادر</strong><small>{% translate "لتجربة العمل الجماعي" %}</small></span></div>
-        <div><i class="fa-solid fa-box-archive"></i><span><strong>أرشيف {{ receipt.archive_storage_gb }}GB</strong><small>{% translate "مفعّل طوال التجربة" %}</small></span></div>
+      <div class="trial-summary" aria-label="{% translate "تفاصيل التجربة" %}">
+        <div><i class="fa-regular fa-calendar-check"></i><span><strong>{% blocktranslate with days=receipt.trial_days %}{{ days }} يومًا كاملة{% endblocktranslate %}</strong><small>{% blocktranslate with end_date=receipt.trial_end_date %}تنتهي في {{ end_date }}{% endblocktranslate %}</small></span></div>
+        <div><i class="fa-solid fa-users"></i><span><strong>{% blocktranslate with limit=receipt.teacher_limit %}حتى {{ limit }} من أعضاء الكادر{% endblocktranslate %}</strong><small>{% translate "لتجربة العمل الجماعي" %}</small></span></div>
+        <div><i class="fa-solid fa-box-archive"></i><span><strong>{% blocktranslate with gb=receipt.archive_storage_gb %}أرشيف {{ gb }}GB{% endblocktranslate %}</strong><small>{% translate "مفعّل طوال التجربة" %}</small></span></div>
       </div>
 
       <section class="next-section">
         <h2>{% translate "ابدأ بهذه الخطوات الثلاث" %}</h2>
         <ol class="next-steps">
-          <li><span>1</span>راجع بيانات المدرسة وأضف شعارها وهويتها.</li>
-          <li><span>2</span>أضف حسابًا أو حسابين من الكادر لتجربة التقارير والطلبات.</li>
-          <li><span>3</span>أنشئ أول تقرير وشاهد ملف PDF النهائي.</li>
+          <li><span>1</span>{% translate "راجع بيانات المدرسة وأضف شعارها وهويتها." %}</li>
+          <li><span>2</span>{% translate "أضف حسابًا أو حسابين من الكادر لتجربة التقارير والطلبات." %}</li>
+          <li><span>3</span>{% translate "أنشئ أول تقرير وشاهد ملف PDF النهائي." %}</li>
         </ol>
       </section>
 
       <a class="primary-action" href="{% url 'reports:admin_dashboard' %}">
-        دخول لوحة المدرسة <i class="fa-solid fa-arrow-left"></i>
+        {% translate "دخول لوحة المدرسة" %} <i class="fa-solid fa-arrow-left"></i>
       </a>
-      <p class="security-note"><i class="fa-solid fa-shield-halved"></i> لأمانك، لن نعرض كلمة المرور بهذه الصورة مرة أخرى بعد مغادرة الصفحة.</p>
+      <p class="security-note"><i class="fa-solid fa-shield-halved"></i> {% translate "لأمانك، لن نعرض كلمة المرور بهذه الصورة مرة أخرى بعد مغادرة الصفحة." %}</p>
     </section>
   </main>
 
-  <div class="toast" id="toast" role="status" aria-live="polite">تم النسخ</div>
+  <div class="toast" id="toast" role="status" aria-live="polite">{% translate "تم النسخ" %}</div>
 
   <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    /* نصوص السكربت تُترجم هنا مرة واحدة، ويمرّ كل نص عبر ``escapejs``. */
+    const RECEIPT_TEXT = {
+      copied: '{% translate "تم النسخ" as t %}{{ t|escapejs }}',
+      credentialsCopied: '{% translate "تم نسخ بيانات الدخول" as t %}{{ t|escapejs }}',
+      brand: '{% translate "منصة توثيق" as t %}{{ t|escapejs }}',
+      loginUrlLabel: '{% translate "رابط الدخول" as t %}{{ t|escapejs }}',
+      phoneLabel: '{% translate "رقم الجوال" as t %}{{ t|escapejs }}',
+      passwordLabel: '{% translate "كلمة المرور" as t %}{{ t|escapejs }}',
+      showPassword: '{% translate "إظهار كلمة المرور" as t %}{{ t|escapejs }}',
+      hidePassword: '{% translate "إخفاء كلمة المرور" as t %}{{ t|escapejs }}',
+    };
     (function () {
       var toast = document.getElementById("toast");
       var toastTimer;
@@ -421,7 +432,7 @@
       document.querySelectorAll("[data-copy-target]").forEach(function (button) {
         button.addEventListener("click", function () {
           var input = document.getElementById(button.getAttribute("data-copy-target"));
-          if (input) copyText(input.value, "تم النسخ");
+          if (input) copyText(input.value, RECEIPT_TEXT.copied);
         });
       });
 
@@ -430,7 +441,7 @@
         var phone = document.getElementById("loginPhone").value;
         var password = document.getElementById("loginPassword").value;
         var loginUrl = window.location.origin + "{% url 'reports:login' %}";
-        copyText("منصة توثيق\nرابط الدخول: " + loginUrl + "\nرقم الجوال: " + phone + "\nكلمة المرور: " + password, "تم نسخ بيانات الدخول");
+        copyText(RECEIPT_TEXT.brand + "\n" + RECEIPT_TEXT.loginUrlLabel + ": " + loginUrl + "\n" + RECEIPT_TEXT.phoneLabel + ": " + phone + "\n" + RECEIPT_TEXT.passwordLabel + ": " + password, RECEIPT_TEXT.credentialsCopied);
       });
 
       document.getElementById("printReceipt").addEventListener("click", function () {
@@ -442,7 +453,7 @@
         var input = document.getElementById("loginPassword");
         var hide = input.type === "text";
         input.type = hide ? "password" : "text";
-        visibility.setAttribute("aria-label", hide ? "إظهار كلمة المرور" : "إخفاء كلمة المرور");
+        visibility.setAttribute("aria-label", hide ? RECEIPT_TEXT.showPassword : RECEIPT_TEXT.hidePassword);
         visibility.querySelector("i").className = hide ? "fa-regular fa-eye" : "fa-regular fa-eye-slash";
       });
     }());

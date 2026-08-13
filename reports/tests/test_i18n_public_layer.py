@@ -17,11 +17,12 @@
 """
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
 from django.conf import settings
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
 PO_PATH = Path(settings.BASE_DIR) / "locale" / "en" / "LC_MESSAGES" / "django.po"
@@ -123,6 +124,34 @@ class CatalogueCompletenessTests(SimpleTestCase):
         """حارسُ نطاق: إن انكمش الفهرس فجأة فقد فُقد وسمُ ترجمة من قالب."""
         self.assertGreaterEqual(len(self._entries()), 400)
 
+    def test_no_entry_is_left_marked_fuzzy(self):
+        """المُدخل «المشكوك فيه» يُترجَم عربياً في صفحةٍ إنجليزية بلا أي إنذار.
+
+        حين يضيف ``makemessages`` نصاً جديداً يبحث ``msgmerge`` عن أقرب نصٍّ
+        قديم ويضع ترجمته مكانه موسومةً ``#, fuzzy`` — أي «خمّنتُ، فراجِعْ».
+        و``msgfmt`` يتجاهل كل موسومٍ بذلك، فلا يدخل ``.mo`` أصلاً: العنوان
+        يبقى عربياً في صفحةٍ ``lang="en"``. والفحصان أعلاه لا يريانه، لأن
+        ``msgstr`` ليس فارغاً وليس عربياً — بل هو ترجمةُ نصٍّ آخر تماماً.
+
+        لذلك: كل تخمين يُراجَع ويُحذف وسمُه، أو يُعاد كتابته.
+        """
+        fuzzy: list[str] = []
+        marked = False
+        for line in PO_PATH.read_text(encoding="utf-8").splitlines():
+            if line.startswith("#,") and "fuzzy" in line:
+                marked = True
+            elif line.startswith("msgid ") and marked:
+                fuzzy.append(line[7:-1])
+                marked = False
+            elif not line.strip():
+                marked = False
+        self.assertEqual(
+            fuzzy,
+            [],
+            "تخميناتٌ لم تُراجَع — ``msgfmt`` يسقطها فتظهر عربية بالإنجليزية:\n"
+            + "\n".join(f"  - {msgid[:80]}" for msgid in fuzzy[:20]),
+        )
+
 
 class LanguageSwitchingTests(TestCase):
     def test_the_landing_page_is_arabic_and_rtl_by_default(self):
@@ -185,6 +214,156 @@ class LanguageSwitchingTests(TestCase):
         self._switch_to("en")
         html = self.client.get(reverse("reports:faq")).content.decode("utf-8")
         self.assertIn("What is Tawtheeq?", html)
+
+    def test_no_public_page_is_left_half_arabic(self):
+        """الفحص الحاسم: صفحةٌ إنجليزية لا تحمل نصاً عربياً مرئياً.
+
+        الترجمة الجزئية أسوأ من غيابها: القارئ يظنّ الصفحة مترجمة ثم يصطدم
+        بقائمة تنقّلٍ أو زرٍّ أو سؤالٍ شائعٍ عربي. فيُقرأ الجسدُ كلُّه لا عيّنةٌ
+        منه، وتُستثنى ثلاثة مواضع عربيتُها صحيحة:
+
+        * اسم اللغة داخل مبدّل اللغة — يُكتب دائماً بلغته.
+        * بيانات السجل التجاري — اسمٌ قانوني مقيَّد لا يُترجَم.
+        * تعليقات الجافاسكربت — لا يقرؤها زائر.
+        """
+        arabic = re.compile(r"[؀-ۿ]")
+        # قيمُ السجل التجاري تأتي من الإعدادات وتُغرَس داخل جملٍ مترجَمة، فتُزال
+        # من النص قبل الفحص بدل استثناء السطر كلّه ومعه ترجمتُه.
+        registered = [
+            str(getattr(settings, name, "") or "").strip()
+            for name in (
+                "BUSINESS_LEGAL_NAME",
+                "BUSINESS_ADDRESS",
+                "BUSINESS_FREELANCE_ACTIVITY",
+                "BUSINESS_LICENSES",
+            )
+        ]
+        registered = [value for value in registered if arabic.search(value)]
+        # واسمُ بوّابة الدفع المفعّلة كذلك: علامةٌ تجارية مسجّلة بالعربية.
+        payment_gateways = "ميسر"
+        self._switch_to("en")
+
+        for route in (
+            "reports:landing",
+            "reports:login",
+            "reports:register_school",
+            "reports:faq",
+            "reports:privacy_policy",
+            "reports:terms_conditions",
+            "reports:refund_policy",
+            "reports:complaints_policy",
+            "reports:service_delivery_policy",
+        ):
+            with self.subTest(route=route):
+                html = self.client.get(reverse(route)).content.decode("utf-8")
+                body = re.sub(r"<style\b.*?</style>", "", html, flags=re.S | re.I)
+                body = re.sub(r"<!--.*?-->", "", body, flags=re.S)
+                body = re.sub(r"/\*.*?\*/", "", body, flags=re.S)
+                # تعليقات الجافاسكربت، في أول السطر أو في ذيله. و``(?<!:)``
+                # تحمي ``https://`` من أن يُقرأ بدايةَ تعليق.
+                body = re.sub(r"(?<!:)//.*$", "", body, flags=re.M)
+                for value in registered:
+                    body = body.replace(value, "")
+                if payment_gateways:
+                    body = body.replace(payment_gateways, "")
+
+                offenders = [
+                    line.strip()
+                    for line in body.splitlines()
+                    if arabic.search(line)
+                    and "langswitch" not in line
+                    and "Switch the site language" not in line
+                    and "<span>العربية</span>" not in line
+                    and "<dd>" not in line
+                    and "legalName" not in line
+                    and "alternateName" not in line
+                    # مطابقةُ كلماتٍ مفتاحية داخل تعبير نمطي، لا نصٌّ معروض.
+                    and "test(s)" not in line
+                    # عناوينُ حوارٍ لا يفتحه إلا إجراءٌ داخلي على شاشةٍ داخلية.
+                    and "rcPrompt" not in line
+                    and not line.strip().startswith(("title:", "okText:"))
+                ]
+                self.assertEqual(
+                    offenders,
+                    [],
+                    f"نصٌّ عربي في صفحةٍ إنجليزية ({route}):\n"
+                    + "\n".join(f"  {line[:120]}" for line in offenders[:12]),
+                )
+
+
+class InstallableAppSpeaksBothLanguagesTests(TestCase):
+    """التطبيق المثبَّت يحمل لغته معه.
+
+    ثلاثةُ نصوصٍ في الـPWA لا يبلغها ``{% translate %}`` بطبيعتها، وكلٌّ منها
+    عولج بطريقته:
+
+    * **البيان** ملفٌّ ثابت يقرؤه النظام لا Django، والاسم الذي فيه هو ما
+      يظهر تحت الأيقونة بعد التثبيت — فلكل لغة ملفٌّ، والقالب يختار.
+    * **بطاقة التثبيت** نصُّها في ``pwa-install.js``، وهو ملفٌّ ثابت أيضاً،
+      فيُمرَّر إليه مترجَماً عبر ``data-text-*``.
+    * **صفحة انقطاع الاتصال** يقدّمها عامل الخدمة من الكاش بلا خادم، فتبدّل
+      نصَّها بنفسها اعتماداً على كوكي اللغة.
+    """
+
+    def _static(self, relative: str) -> str:
+        return (Path(settings.BASE_DIR) / relative).read_text(encoding="utf-8")
+
+    def test_each_language_has_its_own_manifest(self):
+        arabic = json.loads(self._static("static/manifest.json"))
+        english = json.loads(self._static("static/manifest.en.json"))
+
+        self.assertEqual((arabic["lang"], arabic["dir"]), ("ar", "rtl"))
+        self.assertEqual((english["lang"], english["dir"]), ("en", "ltr"))
+        self.assertEqual(english["name"], "Tawtheeq")
+        # نفس الهوية والنطاق: بيانان للغتين، لا تطبيقان.
+        for key in ("id", "start_url", "scope", "display", "theme_color"):
+            self.assertEqual(arabic[key], english[key], key)
+        self.assertEqual(
+            {icon["src"] for icon in arabic["icons"]},
+            {icon["src"] for icon in english["icons"]},
+        )
+
+    def test_the_service_worker_caches_both_manifests(self):
+        """بيانٌ غير مخزَّن يعني تطبيقاً بلا اسمٍ عند أول فتحٍ دون شبكة."""
+        worker = self._static("static/sw.js")
+        self.assertIn('"/static/manifest.json"', worker)
+        self.assertIn('"/static/manifest.en.json"', worker)
+
+    @override_settings(PWA_INSTALL_ENABLED=True)
+    def test_the_page_links_the_manifest_of_the_active_language(self):
+        self.client.post(
+            reverse("set_language"),
+            {"language": "en", "next": reverse("reports:landing")},
+        )
+        html = self.client.get(reverse("reports:landing")).content.decode("utf-8")
+        self.assertIn("manifest.en.json", html)
+
+        self.client.post(
+            reverse("set_language"),
+            {"language": "ar", "next": reverse("reports:landing")},
+        )
+        html = self.client.get(reverse("reports:landing")).content.decode("utf-8")
+        self.assertIn("manifest.json", html)
+        self.assertNotIn("manifest.en.json", html)
+
+    def test_the_install_card_carries_its_copy_as_data_attributes(self):
+        template = (
+            Path(settings.BASE_DIR)
+            / "reports/templates/reports/partials/pwa_install.html"
+        ).read_text(encoding="utf-8")
+        script = self._static("static/js/pwa-install.js")
+
+        for key in ("native", "install-now", "acknowledge", "ios-safari", "generic"):
+            with self.subTest(key=key):
+                self.assertIn(f'data-text-{key}="{{% translate ', template)
+        self.assertIn('getAttribute("data-text-" + key)', script)
+
+    def test_the_offline_page_switches_on_the_language_cookie(self):
+        offline = self._static("static/offline.html")
+
+        self.assertIn(settings.LANGUAGE_COOKIE_NAME, offline)
+        self.assertIn('data-en="You are offline"', offline)
+        self.assertIn('root.dir = "ltr"', offline)
 
 
 class LanguageSwitcherPlacementTests(TestCase):

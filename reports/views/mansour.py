@@ -33,14 +33,47 @@ from ..ai_features import (
     FEATURE_INTERNAL_HELP,
     FEATURE_MANSOUR_PUBLIC,
     platform_ai_toggle_enabled,
+    mansour_chat_scope,
 )
-from ..permissions import is_school_manager
+from ..guidance import role_guidance
+from ..permissions import effective_user_role_label, is_school_manager
 from ._helpers import _get_active_school
 
 
 logger = logging.getLogger(__name__)
 
 DAILY_BUDGET_CACHE_PREFIX = "mansour:daily-calls"
+
+
+def _personal_assistant_context(request: HttpRequest, active_school) -> dict:
+    """Return useful account state without sending identifying school data."""
+    user = getattr(request, "user", None)
+    if not getattr(user, "is_authenticated", False):
+        return {}
+
+    context = {
+        "authenticated": True,
+        "role_key": "",
+        "role_label": effective_user_role_label(user, active_school=active_school),
+        "active_school_state": "محددة" if active_school is not None else "غير محددة",
+    }
+    try:
+        journey = role_guidance(user, active_school)
+    except Exception:
+        logger.warning("Mansour personal guidance context unavailable.", exc_info=True)
+        return context
+
+    context["role_key"] = str(journey.get("role") or "")
+    context["journey_title"] = str(journey.get("title") or "")
+    total = int(journey.get("total") or 0)
+    completed = int(journey.get("completed") or 0)
+    if total:
+        context["readiness_summary"] = f"{completed} من {total} خطوات مكتملة"
+    next_step = journey.get("next_step")
+    if isinstance(next_step, dict):
+        context["next_step_title"] = str(next_step.get("title") or "")
+        context["next_step_description"] = str(next_step.get("description") or "")
+    return context
 
 
 def _json_response(payload: dict, *, status: int = 200) -> JsonResponse:
@@ -212,14 +245,26 @@ def mansour_assistant_reply(request: HttpRequest) -> JsonResponse:
             seen_free_trials.add(free_trial_key)
         serialised_plans.append({**plan, "price": price})
 
+    active_school = _get_active_school(request) if getattr(user, "is_authenticated", False) else None
+    personal_context = _personal_assistant_context(request, active_school)
     audience = _resolve_audience(
         request,
         payload.get("audience"),
         payload.get("question"),
         payload.get("history"),
     )
+    if personal_context.get("role_key") in {
+        "manager",
+        "deputy",
+        "admin_staff",
+        "executive",
+        "platform",
+    }:
+        audience = AUDIENCE_MANAGER
 
     try:
+        if not getattr(request.session, "session_key", None):
+            request.session.create()
         answer, sources = ask_mansour(
             payload.get("question"),
             history=payload.get("history"),
@@ -230,6 +275,8 @@ def mansour_assistant_reply(request: HttpRequest) -> JsonResponse:
                 if getattr(request.user, "is_authenticated", False)
                 else None
             ),
+            personal_context=personal_context,
+            safety_identifier=f"tawtheeq_{mansour_chat_scope(request)}",
         )
     except MansourAssistantError as exc:
         status = (

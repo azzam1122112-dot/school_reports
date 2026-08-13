@@ -1,13 +1,13 @@
 {% extends "reports/legal_base.html" %}
 
 {% load i18n %}
-{% block title %}الشروط والأحكام | منصة توثيق{% endblock %}
+{% block title %}{% translate "الشروط والأحكام | منصة توثيق" %}{% endblock %}
 {% block seo_meta %}
 {% url 'reports:terms_conditions' as canonical_path %}
-{% include "reports/partials/public_seo.html" with seo_title="الشروط والأحكام | منصة توثيق" seo_description="شروط وأحكام استخدام وشراء اشتراكات منصة توثيق للخدمات المدرسية الرقمية." seo_image_alt="الشروط والأحكام في منصة توثيق" canonical_path=canonical_path social_type="article" include_schema=True schema_type="WebPage" modified_date="2026-08-02" %}
+{% include "reports/partials/public_seo.html" with seo_title=_("الشروط والأحكام | منصة توثيق") seo_description=_("شروط وأحكام استخدام وشراء اشتراكات منصة توثيق للخدمات المدرسية الرقمية.") seo_image_alt=_("الشروط والأحكام في منصة توثيق") canonical_path=canonical_path social_type="article" include_schema=True schema_type="WebPage" modified_date="2026-08-02" %}
 {% endblock %}
-{% block legal_title %}الشروط والأحكام{% endblock %}
-{% block legal_intro %}تنظم هذه الشروط استخدام منصة توثيق وشراء اشتراكاتها الرقمية، وتوضح التزامات مقدم الخدمة والعميل قبل إتمام التعاقد.{% endblock %}
+{% block legal_title %}{% translate "الشروط والأحكام" %}{% endblock %}
+{% block legal_intro %}{% translate "تنظم هذه الشروط استخدام منصة توثيق وشراء اشتراكاتها الرقمية، وتوضح التزامات مقدم الخدمة والعميل قبل إتمام التعاقد." %}{% endblock %}
 {% block terms_current %}aria-current="page"{% endblock %}
 
 {% block legal_content %}
