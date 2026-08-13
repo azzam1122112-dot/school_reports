@@ -54,6 +54,33 @@ class _FakeOpenAIResponse:
         ).encode("utf-8")
 
 
+class _FakeTextOpenAIResponse:
+    """A stubbed rewrite, so the fact-integrity guard can be exercised."""
+
+    def __init__(self, text: str):
+        self.text = text
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
+
+    def read(self):
+        return json.dumps(
+            {
+                "output": [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [{"type": "output_text", "text": self.text}],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
+
+
 def _spend_limit_error(code: str = "organization_spend_limit_exceeded") -> HTTPError:
     body = json.dumps({"error": {"code": code}}).encode("utf-8")
     return HTTPError(
@@ -180,6 +207,23 @@ class ReportAIImprovementTests(TestCase):
         self.assertEqual(report_ai_daily_remaining(self.teacher.pk), REPORT_AI_DAILY_LIMIT)
         mocked_urlopen.assert_not_called()
 
+    @patch("reports.report_ai.urlopen")
+    def test_meeting_minutes_use_a_domain_specific_conservative_prompt(self, mocked_urlopen):
+        from reports.report_ai import improve_meeting_minutes_text
+
+        original = "ناقش المجتمعون الخطة واقترح أحدهم تنفيذها خلال 5 أيام"
+        mocked_urlopen.return_value = _FakeTextOpenAIResponse(
+            "ناقش المجتمعون الخطة، واقترح أحدهم تنفيذها خلال 5 أيام."
+        )
+
+        improved = improve_meeting_minutes_text(original)
+
+        self.assertIn("5 أيام", improved)
+        request_body = json.loads(mocked_urlopen.call_args.args[0].data.decode("utf-8"))
+        instructions = request_body["instructions"]
+        self.assertIn("لا تحوّل اقتراحًا أو نقاشًا إلى قرار معتمد", instructions)
+        self.assertIn("المناقشات والقرارات والتوصيات والمهام", instructions)
+
     def test_improvement_endpoint_requires_login(self):
         response = self.client.post(
             reverse("reports:improve_report_text"),
@@ -233,7 +277,14 @@ class ReportAIImprovementTests(TestCase):
         self.assertIn("20 حرفًا", response.json()["message"])
         mocked_urlopen.assert_not_called()
 
-    @patch("reports.report_ai.urlopen", return_value=_FakeOpenAIResponse())
+    @patch(
+        "reports.report_ai.urlopen",
+        # The rewrite has to match the text being improved: a canned reply that
+        # introduces a figure the teacher never wrote is now refused outright.
+        return_value=_FakeTextOpenAIResponse(
+            "نُفِّذ برنامج تدريبي للمعلمين بهدف تحسين الممارسات التعليمية داخل المدرسة."
+        ),
+    )
     def test_daily_limit_allows_three_successes_then_blocks_without_api_call(self, mocked_urlopen):
         self._login()
         url = reverse("reports:improve_report_text")
@@ -284,6 +335,85 @@ class ReportAIImprovementTests(TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertEqual(report_ai_daily_remaining(self.teacher.pk), REPORT_AI_DAILY_LIMIT)
         mocked_urlopen.assert_not_called()
+
+    @patch("reports.report_ai.urlopen")
+    def test_rewrite_that_changes_a_figure_is_rejected_and_refunded(self, mocked_urlopen):
+        """A polished sentence with the wrong number is worse than no polish."""
+        self._login()
+        mocked_urlopen.return_value = _FakeTextOpenAIResponse(
+            "نُفّذ البرنامج صباح يوم الأحد، واستفاد منه 53 طالبًا، وتضمّن أنشطة توعوية منظمة."
+        )
+
+        response = self.client.post(
+            reverse("reports:improve_report_text"),
+            data=json.dumps(
+                {"text": "نفذنا برنامج يوم الأحد واستفاد 35 طالب وكان فيه أنشطة توعوية."}
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["ok"])
+        self.assertIn("الأرقام", response.json()["message"])
+        self.assertEqual(report_ai_daily_remaining(self.teacher.pk), REPORT_AI_DAILY_LIMIT)
+
+    @patch("reports.report_ai.urlopen")
+    def test_rewrite_that_drops_a_figure_is_rejected(self, mocked_urlopen):
+        self._login()
+        mocked_urlopen.return_value = _FakeTextOpenAIResponse(
+            "نُفّذ البرنامج صباح يوم الأحد وتضمّن أنشطة توعوية منظمة حققت أهدافها المرجوة."
+        )
+
+        response = self.client.post(
+            reverse("reports:improve_report_text"),
+            data=json.dumps(
+                {"text": "نفذنا برنامج يوم الأحد واستفاد 35 طالب وكان فيه أنشطة توعوية."}
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("الأرقام", response.json()["message"])
+
+    @patch("reports.report_ai.urlopen")
+    def test_arabic_indic_digits_count_as_the_same_figure(self, mocked_urlopen):
+        self._login()
+        mocked_urlopen.return_value = _FakeTextOpenAIResponse(
+            "نُفّذ البرنامج صباح يوم الأحد، واستفاد منه 35 طالبًا، وتضمّن أنشطة توعوية منظمة."
+        )
+
+        response = self.client.post(
+            reverse("reports:improve_report_text"),
+            data=json.dumps(
+                {"text": "نفذنا برنامج يوم الأحد واستفاد ٣٥ طالب وكان فيه أنشطة توعوية."}
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+
+    @patch("reports.report_ai.urlopen")
+    def test_rewrite_that_summarises_instead_of_editing_is_rejected(self, mocked_urlopen):
+        self._login()
+        mocked_urlopen.return_value = _FakeTextOpenAIResponse("نُفّذ برنامج توعوي ناجح.")
+
+        response = self.client.post(
+            reverse("reports:improve_report_text"),
+            data=json.dumps(
+                {
+                    "text": (
+                        "نفذنا برنامج توعوي يوم الأحد بمشاركة معلمي القسم، وتضمن ورش عمل "
+                        "وأنشطة تفاعلية، وتفاعل الطلاب معه بشكل جيد وحقق أهدافه المرجوة."
+                    )
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("اختصرت", response.json()["message"])
+        self.assertEqual(report_ai_daily_remaining(self.teacher.pk), REPORT_AI_DAILY_LIMIT)
 
     @override_settings(REPORT_AI_ENABLED=False)
     @patch("reports.report_ai.urlopen")

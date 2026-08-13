@@ -263,6 +263,25 @@
   background: #f1f8f4;
 }
 
+/* رابط المصدر يفتح في تبويب جديد كي لا يضيع نموذجٌ لم يُحفظ ولا تُمسح
+   المحادثة. والسهم يقول ذلك بصرياً لمن لا يقرأ ``aria-label``. */
+.mansour-source-hint {
+  margin-inline-start: 4px;
+  font-size: .62rem;
+  opacity: .65;
+  display: inline-block;
+  transform: scaleX(-1); /* السهم يشير خارج الصفحة في اتجاه RTL */
+}
+
+/* الرابط هدف لمس: كان الحشو وحده يعطي ‎24px ارتفاعاً على الجوال. */
+@media (pointer: coarse) {
+  .mansour-sources a {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
 .mansour-quick-actions {
   display: flex;
   gap: 7px;

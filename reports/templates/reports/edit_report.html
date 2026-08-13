@@ -5,8 +5,9 @@
 
 {% block head %}
 {% if report_ai_enabled %}
-<link rel="stylesheet" href="{% static 'css/report-ai-improver.css' %}?v=20260801.2">
+<link rel="stylesheet" href="{% static 'css/report-ai-improver.css' %}?v=20260813.2">
 {% endif %}
+<link rel="stylesheet" href="{% static 'css/report-evidence.css' %}?v=20260813.2">
 <style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      Report Edit (page-only polish)
@@ -503,9 +504,11 @@
           </div>
         {% endif %}
 
-        <form method="post" enctype="multipart/form-data" autocomplete="off" novalidate id="editReportForm">
+        <form method="post" enctype="multipart/form-data" autocomplete="off" novalidate id="editReportForm"
+              data-pwa-draft-key="report-edit-{{ report.pk }}-u{{ request.user.id|default:0 }}">
           {% csrf_token %}
           {{ form.section_selection_enabled }}
+          {{ form.client_submission_id }}
 
           <div class="grid">
             <div class="row">
@@ -612,141 +615,7 @@
             </div>
 
             <div class="row">
-              <label>الصور</label>
-
-              <div class="images">
-                {# ========= Slot 1 ========= #}
-                <div class="img-card" data-slot="1">
-                  {% if report.image1 %}
-                    <img class="thumb" id="thumb-1" src="{{ report.image1.url }}" alt="image1" data-full="{{ report.image1.url }}">
-                    <div class="img-meta">
-                      <small>الصورة الحالية</small>
-                      <div class="links">
-                        <a href="#" class="er-preview" data-src="{{ report.image1.url }}">معاينة</a>
-                        <a href="{{ report.image1.url }}" target="_blank" rel="noopener">فتح</a>
-                      </div>
-                    </div>
-                  {% else %}
-                    <div class="thumb--empty" id="thumb-1">لا توجد صورة</div>
-                    <div class="img-meta"><small>—</small><span></span></div>
-                  {% endif %}
-
-                  <div class="img-actions">
-                    <label class="btn-file">
-                      📷 اختر ملفًا
-                      <input type="file" id="id_image1" name="image1" accept="image/*">
-                    </label>
-                    <label class="clearbox">
-                      <input type="checkbox" id="id_image1_clear" name="image1-clear">
-                      <span>إزالة</span>
-                    </label>
-                  </div>
-
-                  {% if form.image1.errors %}
-                    <div class="msg err">{% for e in form.image1.errors %}• {{ e }}<br>{% endfor %}</div>
-                  {% endif %}
-                </div>
-
-                {# ========= Slot 2 ========= #}
-                <div class="img-card" data-slot="2">
-                  {% if report.image2 %}
-                    <img class="thumb" id="thumb-2" src="{{ report.image2.url }}" alt="image2" data-full="{{ report.image2.url }}">
-                    <div class="img-meta">
-                      <small>الصورة الحالية</small>
-                      <div class="links">
-                        <a href="#" class="er-preview" data-src="{{ report.image2.url }}">معاينة</a>
-                        <a href="{{ report.image2.url }}" target="_blank" rel="noopener">فتح</a>
-                      </div>
-                    </div>
-                  {% else %}
-                    <div class="thumb--empty" id="thumb-2">لا توجد صورة</div>
-                    <div class="img-meta"><small>—</small><span></span></div>
-                  {% endif %}
-
-                  <div class="img-actions">
-                    <label class="btn-file">
-                      📷 اختر ملفًا
-                      <input type="file" id="id_image2" name="image2" accept="image/*">
-                    </label>
-                    <label class="clearbox">
-                      <input type="checkbox" id="id_image2_clear" name="image2-clear">
-                      <span>إزالة</span>
-                    </label>
-                  </div>
-
-                  {% if form.image2.errors %}
-                    <div class="msg err">{% for e in form.image2.errors %}• {{ e }}<br>{% endfor %}</div>
-                  {% endif %}
-                </div>
-
-                {# ========= Slot 3 ========= #}
-                <div class="img-card" data-slot="3">
-                  {% if report.image3 %}
-                    <img class="thumb" id="thumb-3" src="{{ report.image3.url }}" alt="image3" data-full="{{ report.image3.url }}">
-                    <div class="img-meta">
-                      <small>الصورة الحالية</small>
-                      <div class="links">
-                        <a href="#" class="er-preview" data-src="{{ report.image3.url }}">معاينة</a>
-                        <a href="{{ report.image3.url }}" target="_blank" rel="noopener">فتح</a>
-                      </div>
-                    </div>
-                  {% else %}
-                    <div class="thumb--empty" id="thumb-3">لا توجد صورة</div>
-                    <div class="img-meta"><small>—</small><span></span></div>
-                  {% endif %}
-
-                  <div class="img-actions">
-                    <label class="btn-file">
-                      📷 اختر ملفًا
-                      <input type="file" id="id_image3" name="image3" accept="image/*">
-                    </label>
-                    <label class="clearbox">
-                      <input type="checkbox" id="id_image3_clear" name="image3-clear">
-                      <span>إزالة</span>
-                    </label>
-                  </div>
-
-                  {% if form.image3.errors %}
-                    <div class="msg err">{% for e in form.image3.errors %}• {{ e }}<br>{% endfor %}</div>
-                  {% endif %}
-                </div>
-
-                {# ========= Slot 4 ========= #}
-                <div class="img-card" data-slot="4">
-                  {% if report.image4 %}
-                    <img class="thumb" id="thumb-4" src="{{ report.image4.url }}" alt="image4" data-full="{{ report.image4.url }}">
-                    <div class="img-meta">
-                      <small>الصورة الحالية</small>
-                      <div class="links">
-                        <a href="#" class="er-preview" data-src="{{ report.image4.url }}">معاينة</a>
-                        <a href="{{ report.image4.url }}" target="_blank" rel="noopener">فتح</a>
-                      </div>
-                    </div>
-                  {% else %}
-                    <div class="thumb--empty" id="thumb-4">لا توجد صورة</div>
-                    <div class="img-meta"><small>—</small><span></span></div>
-                  {% endif %}
-
-                  <div class="img-actions">
-                    <label class="btn-file">
-                      📷 اختر ملفًا
-                      <input type="file" id="id_image4" name="image4" accept="image/*">
-                    </label>
-                    <label class="clearbox">
-                      <input type="checkbox" id="id_image4_clear" name="image4-clear">
-                      <span>إزالة</span>
-                    </label>
-                  </div>
-
-                  {% if form.image4.errors %}
-                    <div class="msg err">{% for e in form.image4.errors %}• {{ e }}<br>{% endfor %}</div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <div class="note u-mt-3">
-                لإزالة صورة حالية فعِّل مربع <b>إزالة</b>؛ أو اختر صورة جديدة لاستبدالها (سيتم إلغاء الإزالة تلقائيًا).
-              </div>
+              {% include "reports/partials/report_evidence_formset.html" %}
             </div>
 
             {% if request.GET.next %}
@@ -878,6 +747,7 @@
       
       const xhr = new XMLHttpRequest();
       xhr.open('POST', form.action || window.location.href, true);
+      xhr.timeout = 120000;
       
       const tok = form.querySelector('[name="csrfmiddlewaretoken"]');
       if(tok) xhr.setRequestHeader('X-CSRFToken', tok.value);
@@ -900,6 +770,8 @@
       
       xhr.onload = function(){
         if(xhr.status >= 200 && xhr.status < 400){
+          form.dispatchEvent(new CustomEvent('tawtheeq:submit-success', {bubbles:true, detail:{form:form}}));
+          window.dispatchEvent(new CustomEvent('tawtheeq:task-complete', {detail:{kind:'report'}}));
           if(labelEl) labelEl.textContent = "تم بنجاح!";
           if(pctEl) pctEl.textContent = "100%";
           if(fill) fill.style.width = "100%";
@@ -944,6 +816,17 @@
         }
         btn.disabled = false;
         btn.textContent = '💾 حفظ التعديلات';
+        form.classList.remove('is-submitting');
+      };
+
+      xhr.ontimeout = function(){
+        window.rcAlert("طال وقت الرفع. بقيت المسودة والصور محفوظة على هذا الجهاز ويمكنك إعادة المحاولة.", {type:'warning'});
+        if(overlay) {
+          overlay.style.display = "none";
+          overlay.setAttribute("aria-hidden", "true");
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> حفظ التعديلات';
         form.classList.remove('is-submitting');
       };
       
@@ -1099,4 +982,5 @@
     });
   })();
 </script>
+<script src="{% static 'js/report-evidence.js' %}?v=20260813.2" defer></script>
 {% endblock %}

@@ -851,10 +851,7 @@
 
                   <td>
                     <div class="table-images">
-                      {% if r.image1 %}<img src="{{ r.image1.url }}" alt="صورة" data-full="{{ r.image1.url }}">{% endif %}
-                      {% if r.image2 %}<img src="{{ r.image2.url }}" alt="صورة" data-full="{{ r.image2.url }}">{% endif %}
-                      {% if r.image3 %}<img src="{{ r.image3.url }}" alt="صورة" data-full="{{ r.image3.url }}">{% endif %}
-                      {% if r.image4 %}<img src="{{ r.image4.url }}" alt="صورة" data-full="{{ r.image4.url }}">{% endif %}
+                      {% for evidence in r.evidences.all|slice:":4" %}<img src="{{ evidence.image.url }}" alt="{{ evidence.description|default:'شاهد مصور' }}" data-full="{{ evidence.image.url }}">{% empty %}{% if r.image1 %}<img src="{{ r.image1.url }}" alt="شاهد مصور" data-full="{{ r.image1.url }}">{% endif %}{% endfor %}
                     </div>
                   </td>
 
@@ -867,7 +864,7 @@
                         data-teacher="{% if r.teacher_name %}{{ r.teacher_name|escapejs }}{% else %}{% if r.teacher and r.teacher.name %}{{ r.teacher.name|escapejs }}{% endif %}{% endif %}"
                         data-title="{{ r.title|default_if_none:''|escapejs }}"
                         data-date="{{ r.report_date|hijri }} - {{ r.day_name|default_if_none:''|escapejs }}"
-                        data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}"
+                        data-images="{% for evidence in r.evidences.all %}{{ evidence.image.url }}{% if not forloop.last %}|{% endif %}{% empty %}{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}{% endfor %}"
                         aria-label="عرض التفاصيل"
                         title="عرض التفاصيل"
                       ><i class="fa-solid fa-eye" aria-hidden="true"></i> عرض</button>
@@ -943,10 +940,7 @@
               <p class="report-idea">{{ r.idea|default_if_none:""|truncatewords:20 }}</p>
 
               <div class="report-images">
-                {% if r.image1 %}<img src="{{ r.image1.url }}" alt="img" data-full="{{ r.image1.url }}">{% endif %}
-                {% if r.image2 %}<img src="{{ r.image2.url }}" alt="img" data-full="{{ r.image2.url }}">{% endif %}
-                {% if r.image3 %}<img src="{{ r.image3.url }}" alt="img" data-full="{{ r.image3.url }}">{% endif %}
-                {% if r.image4 %}<img src="{{ r.image4.url }}" alt="img" data-full="{{ r.image4.url }}">{% endif %}
+                {% for evidence in r.evidences.all|slice:":4" %}<img src="{{ evidence.image.url }}" alt="{{ evidence.description|default:'شاهد مصور' }}" data-full="{{ evidence.image.url }}">{% empty %}{% if r.image1 %}<img src="{{ r.image1.url }}" alt="شاهد مصور" data-full="{{ r.image1.url }}">{% endif %}{% endfor %}
               </div>
 
               <div class="card-actions">
@@ -957,7 +951,7 @@
                   data-teacher="{% if r.teacher_name %}{{ r.teacher_name|escapejs }}{% else %}{% if r.teacher and r.teacher.name %}{{ r.teacher.name|escapejs }}{% endif %}{% endif %}"
                   data-title="{{ r.title|default_if_none:''|escapejs }}"
                   data-date="{{ r.report_date|hijri }} - {{ r.day_name|default_if_none:''|escapejs }}"
-                  data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}"
+                  data-images="{% for evidence in r.evidences.all %}{{ evidence.image.url }}{% if not forloop.last %}|{% endif %}{% empty %}{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}{% endfor %}"
                 >👁 عرض</button>
 
                 <a href="{% url 'reports:report_print' r.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="btn btn-print">🖨 طباعة</a>

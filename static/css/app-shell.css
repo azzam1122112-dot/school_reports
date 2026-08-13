@@ -64,6 +64,10 @@ body {
   flex: 0 1 240px;
   min-width: 0;
   max-width: 240px;
+  /* Hit testing showed the real target was 38px tall — a point three pixels
+     above it lands on the container, not the link. The decorative ::before does
+     not extend the hit area. This is the home link on every screen. */
+  min-height: 44px;
 }
 
 .hdr-brand::before {
@@ -461,11 +465,15 @@ body {
   padding: 20px;
 }
 
-/* Mobile: keep toasts at very top (avoid mid-screen on phones) */
+/* Mobile: toasts sit directly under the header, never on top of it.
+   The header carries the menu button; a warning toast does not auto-hide, so
+   covering it locked the user out of navigation until they hit a 33px close
+   button. ``--header-h`` is published by base.html because the height changes
+   with breakpoint, scroll state and standalone mode. */
 @media (max-width: 768px) {
   .messages {
     inset-inline: 12px;
-    top: calc(12px + var(--safe-top));
+    top: calc(var(--header-h, 56px) + 8px);
     left: auto;
     transform: none;
     display: grid;
@@ -531,6 +539,11 @@ body {
 .msg-close {
   background: transparent; border: none; color: var(--text-muted);
   cursor: pointer; padding: 4px; border-radius: 4px;
+  /* The only way to dismiss a warning toast, so it has to be a full touch
+     target: it measured 33px wide on a phone. */
+  min-width: 44px; min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 auto;
 }
 .msg-close:hover { background: var(--bg-sub); color: var(--text-main); }
 
@@ -891,4 +904,48 @@ body {
     background: linear-gradient(90deg, var(--accent), #0f8f87);
     height: 3px;
     box-shadow: 0 1px 2px rgba(0,108,53,0.3);
+}
+
+/* ── أرضية اللمس على الأجهزة اللمسية ──────────────────────────────────────
+   قِيس على iPhone عبر متصفّح حقيقي: ‎56 صفحة فيها أزرار بين ‎32px و‎42px، أي
+   دون الحدّ الأدنى للمس (‎44px في إرشادات Apple و‎48 في Material). وهي موزّعة
+   على نحو ثلاثين صنفاً في كتل ``<style>`` داخل قوالب مفردة، فإصلاحها واحداً
+   واحداً يعني ثلاثين تعديلاً تتعارض مع أي عملٍ جارٍ على القوالب.
+
+   القاعدة هنا تضبط الارتفاع الأدنى فقط — لا العرض ولا الحشو — فلا تُزيح
+   تخطيطاً ولا تُحدث فيضاً أفقياً. ومعظم القوالب لا تضبط ``min-height`` أصلاً،
+   فترتيب التحميل لا يهم.
+
+   وهي مقصورة على ``pointer: coarse`` لأن الفأرة تصيب هدفاً ‎32px بلا عناء،
+   والحدّ إنما وُضع للإصبع. */
+@media (pointer: coarse) {
+  button:not([hidden]):not(.msg-close),
+  [role="button"],
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"],
+  select,
+  a[class*="btn"],
+  a[class*="-act"],
+  a[class*="tab"] {
+    min-height: 44px;
+  }
+
+  /* الزر الذي صار أطول يحتاج محاذاة رأسية وإلا التصق نصّه بأعلاه. */
+  a[class*="btn"],
+  a[class*="-act"],
+  a[class*="tab"] {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* أزرار الأيقونة صار ارتفاعها ‎44px بالقاعدة أعلاه وبقي عرضها ‎36–41px.
+     العرض يُضبط على الأزرار وحدها: الروابط قد تكون داخل نصٍّ متدفّق، وتوسيعها
+     يُحدث فجوات في السطر. */
+  button:not([hidden]):not(.msg-close),
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"] {
+    min-width: 44px;
+  }
 }

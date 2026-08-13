@@ -1,11 +1,15 @@
 from datetime import date, timedelta
+from io import BytesIO
+import tempfile
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from reports.models import (
     Report,
+    ReportEvidence,
     School,
     SchoolMembership,
     SchoolSubscription,
@@ -105,6 +109,32 @@ class ShareLinkManagementTests(TestCase):
         self.assertEqual(second.status_code, 200)
         self.assertEqual(link.access_count, 2)
         self.assertIsNotNone(link.last_accessed_at)
+
+    def test_public_report_uses_ordered_evidence_images_without_exposing_storage_url(self):
+        from PIL import Image
+
+        output = BytesIO()
+        Image.new("RGB", (320, 220), (245, 249, 247)).save(output, format="PNG")
+        upload = SimpleUploadedFile("evidence.png", output.getvalue(), content_type="image/png")
+
+        with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            ReportEvidence.objects.create(
+                report=self.report,
+                image=upload,
+                order=1,
+                description="صورة من تنفيذ النشاط",
+            )
+            link = self._create_link()
+            image_url = reverse("reports:share_report_image", args=[link.token, 1])
+
+            page = self.client.get(reverse("reports:share_public", args=[link.token]))
+            image_response = self.client.get(image_url)
+
+            self.assertEqual(page.status_code, 200)
+            self.assertContains(page, image_url)
+            self.assertContains(page, "صورة من تنفيذ النشاط")
+            self.assertEqual(image_response.status_code, 200)
+            self.assertEqual(b"".join(image_response.streaming_content)[:8], b"\x89PNG\r\n\x1a\n")
 
     def test_teacher_dashboard_only_contains_links_for_their_work(self):
         own_link = self._create_link()

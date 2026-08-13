@@ -78,6 +78,22 @@ GREETING_TOKENS = (
     "مساء الخير",
 )
 
+# Retrieval below this score means the knowledge base has nothing that really
+# answers the question. Calibrated against the documented workflows: a genuine
+# match scores far above it, a coincidental word overlap far below.
+MIN_CONFIDENT_RETRIEVAL_SCORE = 30
+
+# Articles that sell the product rather than operate it.
+MARKETING_SLUGS = frozenset(
+    {
+        "about-platform",
+        "marketing-value",
+        "teacher-benefits",
+        "manager-benefits",
+    }
+)
+MARKETING_DEMOTION = 40
+
 INTENT_GREETING = "greeting"
 INTENT_PRICING = "pricing"
 INTENT_REGISTRATION = "registration"
@@ -89,6 +105,10 @@ INTENT_REFUND = "refund"
 INTENT_PASSWORD_RESET = "password_reset"
 INTENT_PASSKEY = "passkey"
 INTENT_SESSION_SECURITY = "session_security"
+INTENT_CONTACT = "contact"
+INTENT_SENSITIVE_DISCLOSURE = "sensitive_disclosure"
+INTENT_CLARIFY = "clarify"
+INTENT_UNDOCUMENTED = "undocumented"
 INTENT_OUT_OF_SCOPE = "out_of_scope"
 INTENT_THANKS = "thanks"
 INTENT_HUMAN_AGENT = "human_agent"
@@ -407,6 +427,145 @@ def infer_public_audience(question: Any) -> str:
     return AUDIENCE_GENERAL
 
 
+# Wording that reports a fault. Kept wide on purpose: a customer says "the
+# platform is slow", "the circular never arrived", "my file is gone" far more
+# often than they say "there is an error".
+PROBLEM_MARKERS = (
+    "مشكله",
+    "خطا",
+    "تعطل",
+    "معطل",
+    "ما يفتح",
+    "لا يعمل",
+    "ما يعمل",
+    "ما يشتغل",
+    "مو شغال",
+    "لا استطيع",
+    "ما اقدر",
+    "ما ظهر",
+    "ما تظهر",
+    "ما ترضي",
+    "يرفض",
+    "متعذر",
+    "بطي",
+    "بطيء",
+    "بطيئه",
+    "يعلق",
+    "معلق",
+    "توقف",
+    "ضاع",
+    "ضاعت",
+    "اختفى",
+    "اختفت",
+    "ما وصل",
+    "ما وصله",
+    "ما وصلني",
+    "ما وصلتني",
+    "لم يصل",
+    "لم تصل",
+    "تاخر",
+    "متاخر",
+    "مقلوب",
+    "معكوس",
+    "مكرر",
+    "بالغلط",
+    "غلط",
+    "فات الوقت",
+    "انتهى الوقت",
+    "نسيت اوقع",
+)
+
+# Wording that asks for the value of the product rather than how to operate it.
+VALUE_MARKERS = (
+    "ليش اشترك",
+    "ليش نشترك",
+    "ليش ادفع",
+    "ليش ندفع",
+    "ليش نغير",
+    "ليش اغير",
+    "لماذا اشترك",
+    "لماذا نشترك",
+    "وش الفايده",
+    "ما الفايده",
+    "ما الفائده",
+    "وش استفيد",
+    "وش نستفيد",
+    "وش راح استفيد",
+    "وش يتغير",
+    "وش اللي بيتغير",
+    "ما الذي سيتغير",
+    "غالي",
+    "مكلف",
+    "ما يستاهل",
+    "عندنا نظام",
+    "نظام ثاني",
+    "برنامج ثاني",
+    "درايف",
+    "google drive",
+    "واتساب",
+    "بالورق",
+    "ورقيه",
+    "ورقي",
+)
+
+# Wording that describes doing something inside the product.
+_TASK_MARKERS = (
+    "كيف",
+    "خطوات",
+    "طريقه",
+    "وين",
+    "اين",
+    "ابدا",
+    "اسوي",
+    "وش الحل",
+    "ايش الحل",
+    "اضيف",
+    "اضافه",
+    "احذف",
+    "حذف",
+    "اعدل",
+    "تعديل",
+    "ارسل",
+    "ارسال",
+    "انشئ",
+    "انشاء",
+    "ارفع",
+    "رفع",
+    "اصدر",
+    "تصدير",
+    "انزل",
+    "تنزيل",
+    "اطبع",
+    "طباعه",
+    "اشارك",
+    "مشاركه",
+    "استورد",
+    "استيراد",
+    "اجدد",
+    "تجديد",
+)
+
+
+def _is_value_question(question: str) -> bool:
+    return any(marker in _normalise_arabic(question) for marker in VALUE_MARKERS)
+
+
+def _is_problem_report(question: str) -> bool:
+    return any(marker in _normalise_arabic(question) for marker in PROBLEM_MARKERS)
+
+
+def _is_operational_question(question: str) -> bool:
+    """True when the user is doing a task or reporting a fault, not shopping."""
+    text = _normalise_arabic(question)
+    if _is_problem_report(question):
+        return True
+    # "ما هي المنصة وكيف تفيد مدرستي؟" carries "كيف" but asks for an
+    # explanation; treating it as a task hides the article that answers it.
+    if any(marker in text for marker in _EXPLANATION_QUESTION_MARKERS):
+        return False
+    return any(marker in text for marker in _TASK_MARKERS)
+
+
 def _knowledge_allowed(item: KnowledgeItem, audience: str) -> bool:
     if not item.audiences:
         return True
@@ -420,17 +579,23 @@ def _default_knowledge(audience: str, *, limit: int) -> list[KnowledgeItem]:
     return selected[:limit]
 
 
-def select_knowledge(
+def score_knowledge(
     question: str,
     *,
     audience: str = AUDIENCE_GENERAL,
-    limit: int = MAX_SELECTED_KNOWLEDGE,
-) -> list[KnowledgeItem]:
+    demote_marketing: bool | None = None,
+) -> list[tuple[int, KnowledgeItem]]:
+    """Rank every allowed knowledge item for one question, highest score first."""
     audience = normalise_audience(audience)
     expanded_question = _expand_search_query(_strip_role_self_identification(question))
     question_tokens = _tokens(expanded_question)
     question_stems = _stem_set(question_tokens)
     normalised_question = _normalise_arabic(expanded_question)
+    # A marketing article answers "why should we buy"; it never answers "the
+    # upload failed". Demoting it here keeps a signed-in user out of a sales
+    # pitch when they described a task or a fault.
+    if demote_marketing is None:
+        demote_marketing = _is_operational_question(question) and not _is_value_question(question)
     scored: list[tuple[int, int, int, KnowledgeItem]] = []
     for index, item in enumerate(KNOWLEDGE_ITEMS):
         if not _knowledge_allowed(item, audience):
@@ -460,13 +625,38 @@ def select_knowledge(
                 # generic marketing article that happens to share broad words
                 # such as "school", "team", or "reports".
                 score += 16
+            if demote_marketing and item.slug in MARKETING_SLUGS:
+                score -= MARKETING_DEMOTION
         scored.append((score, item.priority, -index, item))
 
     scored.sort(reverse=True, key=lambda row: (row[0], row[1], row[2]))
-    selected = [row[3] for row in scored if row[0] > 0][:limit]
+    return [(row[0], row[3]) for row in scored]
+
+
+def select_knowledge(
+    question: str,
+    *,
+    audience: str = AUDIENCE_GENERAL,
+    limit: int = MAX_SELECTED_KNOWLEDGE,
+) -> list[KnowledgeItem]:
+    selected = [item for score, item in score_knowledge(question, audience=audience) if score > 0]
     if not selected:
-        return _default_knowledge(audience, limit=limit)
-    return selected
+        return _default_knowledge(normalise_audience(audience), limit=limit)
+    return selected[:limit]
+
+
+def retrieval_confidence(question: str, *, audience: str = AUDIENCE_GENERAL) -> int:
+    """Return the best documented-match score, used to decide whether to answer.
+
+    Reciting the closest article to a question the knowledge base does not cover
+    reads as confident nonsense. This score is what lets the assistant say "this
+    is not documented with me" instead.
+    """
+    # Ranking demotes marketing articles so they do not answer a task. Whether
+    # the question is *covered* at all is a separate question, so it is measured
+    # against the undemoted scores.
+    ranked = score_knowledge(question, audience=audience, demote_marketing=False)
+    return max((score for score, _item in ranked[:1]), default=0)
 
 
 def sanitise_history(raw_history: Any) -> list[dict[str, str]]:
@@ -518,8 +708,63 @@ def _pricing_context(plans: list[dict[str, Any]]) -> str:
     return "الباقات النشطة حاليًا:\n" + "\n".join(rows)
 
 
+# A customer who types their own password, ID or card number into the chat has
+# already made a mistake. The reply must name it and fix it, and the text must
+# never leave the process — see ``contains_shared_secret``.
+_SHARED_SECRET_PATTERNS = (
+    # "كلمة مروري 12345" / "الرقم السري هو ابجد123"
+    re.compile(
+        r"(?:كلمه|كلمة)\s*(?:مروري|السر|سري|المرور)\s*(?:هي|هو|=|:)?\s*[^\s،.]{4,}",
+    ),
+    re.compile(r"(?:الرقم|الرمز)\s*السري\s*(?:هي|هو|=|:)?\s*[^\s،.]{3,}"),
+    # A verification code or OTP quoted with its digits.
+    re.compile(r"(?:رمز|كود)\s*(?:التحقق|التفعيل|otp)\s*(?:هو|=|:)?\s*\d{3,}", re.IGNORECASE),
+    # A Saudi national ID or a card PAN pasted in full.
+    re.compile(r"(?:هويتي|رقم\s*الهويه|رقم\s*الهوية)\s*(?:هو|=|:)?\s*\d{10}"),
+    re.compile(r"(?:بطاقتي|رقم\s*البطاقه|رقم\s*البطاقة)\s*(?:هو|=|:)?\s*[\d\s-]{13,}"),
+    re.compile(r"\b\d{16}\b"),
+)
+
+
+def contains_shared_secret(question: str) -> bool:
+    """True when the question itself carries a credential the customer typed."""
+    text = str(question or "")
+    normalised = _normalise_arabic(text)
+    return any(
+        pattern.search(text) or pattern.search(normalised)
+        for pattern in _SHARED_SECRET_PATTERNS
+    )
+
+
+# Opinions about people, ministries or competitors are not this assistant's
+# business, and answering them with the product blurb reads as evasive.
+_OPINION_MARKERS = ("وش رايك", "ايش رايك", "ما رايك", "رايك في", "رايك ب")
+_PLATFORM_TERMS = (
+    "توثيق",
+    "المنصه",
+    "منصتكم",
+    "الباقه",
+    "الباقات",
+    "التقرير",
+    "التقارير",
+    "الاشتراك",
+    "المعلمين",
+    "الانجاز",
+    "التعميم",
+)
+
+
+def _is_external_opinion_question(text: str) -> bool:
+    if not any(marker in text for marker in _OPINION_MARKERS):
+        return False
+    return not any(term in text for term in _PLATFORM_TERMS)
+
+
 def _detect_customer_intent(question: str) -> str:
     text = _normalise_arabic(question)
+
+    if contains_shared_secret(question):
+        return INTENT_SENSITIVE_DISCLOSURE
 
     out_of_scope_markers = (
         "تجاهل تعليماتك",
@@ -540,7 +785,7 @@ def _detect_customer_intent(question: str) -> str:
         "اكتب قصيده",
         "اكتب برنامج",
     )
-    if any(marker in text for marker in out_of_scope_markers):
+    if any(marker in text for marker in out_of_scope_markers) or _is_external_opinion_question(text):
         return INTENT_OUT_OF_SCOPE
 
     bot_identity_markers = (
@@ -575,6 +820,37 @@ def _detect_customer_intent(question: str) -> str:
     )
     if any(marker in text for marker in human_agent_markers):
         return INTENT_HUMAN_AGENT
+
+    # Asking for a channel is an explicit request for one, which is exactly the
+    # condition the contact red line allows. It used to fall through to the
+    # sales pitch because "واتساب" was read as a competing-tool objection.
+    contact_markers = (
+        "رقم تواصل",
+        "ارقام تواصل",
+        "رقم للتواصل",
+        "وسيله تواصل",
+        "وسيله للتواصل",
+        "كيف اتواصل",
+        "كيف نتواصل",
+        "اتواصل معكم",
+        "نتواصل معكم",
+        "التواصل معكم",
+        # Only a request for a WhatsApp channel. "قروبات واتساب عندنا" is an
+        # objection about the tools the school already uses.
+        "رقم واتساب",
+        "واتساب للدعم",
+        "عندكم واتساب",
+        "لديكم واتساب",
+        "رقم جوالكم",
+        "بريدكم",
+        "ايميلكم",
+        "بريدكم الالكتروني",
+        "ساعات العمل",
+        "متى تردون",
+        "متى دوامكم",
+    )
+    if any(marker in text for marker in contact_markers):
+        return INTENT_CONTACT
 
     complaint_markers = (
         "شكوي",
@@ -668,73 +944,44 @@ def _detect_customer_intent(question: str) -> str:
         "من يستطيع مشاهدتها",
         "من يستطيع مشاهده",
     )
-    if any(marker in text for marker in privacy_markers):
+    # "أريد تصدير بيانات المدرسة" names data but asks for a workflow. Answering
+    # it with the privacy statement leaves the customer without their export.
+    if any(marker in text for marker in privacy_markers) and not _is_operational_question(text):
         return INTENT_PRIVACY
 
     # Objections and "why should we buy" questions need a consultative answer,
     # not the generic pricing card.
-    value_markers = (
-        "ليش اشترك",
-        "ليش نشترك",
-        "ليش ادفع",
-        "ليش ندفع",
-        "ليش نغير",
-        "ليش اغير",
-        "لماذا اشترك",
-        "لماذا نشترك",
-        "وش الفايده",
-        "ما الفايده",
-        "ما الفائده",
-        "وش استفيد",
-        "وش نستفيد",
-        "وش راح استفيد",
-        "وش يتغير",
-        "وش اللي بيتغير",
-        "ما الذي سيتغير",
-        "غالي",
-        "مكلف",
-        "ما يستاهل",
-        "عندنا نظام",
-        "نظام ثاني",
-        "برنامج ثاني",
-        "درايف",
-        "google drive",
-        "واتساب",
-        "بالورق",
-        "ورقيه",
-        "ورقي",
-    )
-    if any(marker in text for marker in value_markers):
+    if any(marker in text for marker in VALUE_MARKERS):
         return INTENT_VALUE
 
-    support_markers = (
-        "مشكله",
-        "خطا",
-        "تعطل",
-        "ما يفتح",
-        "لا يعمل",
-        "لا استطيع",
-        "ما اقدر",
-        "ما ظهر",
-        "ما تظهر",
-        "ما ترضي",
-        "يرفض",
-        "متعذر",
-    )
-    if any(marker in text for marker in support_markers):
+    if any(marker in text for marker in PROBLEM_MARKERS):
         return INTENT_SUPPORT
 
-    pricing_markers = (
-        "سعر",
-        "اسعار",
-        "باقه",
-        "باقات",
-        "اشتراك",
-        "اشترك",
-        "تجديد",
-        "دفع",
+    # The pricing card answers "how much" and "which plan". Words such as
+    # اشتراك or دفع also appear in questions about capacity, activation timing
+    # or data ownership — those deserve their documented answer, not a quote.
+    explicit_price_markers = ("سعر", "اسعار", "تكلفه", "كم يكلف", "كم تكلف", "كم تبون")
+    plan_markers = ("باقه", "باقات", "اشتراك", "اشترك", "نشترك", "تجديد", "اجدد", "دفع", "ادفع")
+    non_pricing_topics = (
+        "بيانات",
+        "ملكيه",
+        "تفعيل",
+        "سعه",
+        "كم معلم",
+        "عدد المعلمين",
+        "الغاء",
+        "حذف",
+        "خصوصيه",
+        "تصدير",
+        "نسخه",
+        "مدارس",
+        "حساب واحد",
     )
-    if any(marker in text for marker in pricing_markers):
+    if any(marker in text for marker in explicit_price_markers):
+        return INTENT_PRICING
+    if any(marker in text for marker in plan_markers) and not any(
+        marker in text for marker in non_pricing_topics
+    ):
         return INTENT_PRICING
 
     registration_markers = (
@@ -772,6 +1019,9 @@ def _is_role_overview_question(question: str) -> bool:
         "ما دوري",
         "كيف ابدا",
         "من اين ابدا",
+        # "I cannot use this platform at all" is the same request for a starting
+        # point, said by someone who is struggling rather than exploring.
+        *_ONBOARDING_DIFFICULTY_MARKERS,
     )
     matched = any(marker in text for marker in markers)
     if not matched:
@@ -840,6 +1090,10 @@ def _prioritise_compound_workflows(
     )
     if not (mentions_team and mentions_communication):
         return selected
+    # "المعلم يقول ما وصله التعميم" names both features but reports a fault; it
+    # is not a request to set the team up and then send.
+    if _is_problem_report(question):
+        return selected
 
     by_slug = {item.slug: item for item in KNOWLEDGE_ITEMS}
     prioritised = [
@@ -873,6 +1127,23 @@ def _offline_sources_for_intent(
         ]
     if intent == INTENT_BOT_IDENTITY:
         return [{"title": "دليل المستخدم", "url": "/guide/"}]
+    if intent == INTENT_CONTACT:
+        return [
+            {"title": "الدعم الفني والشكاوى والمقترحات", "url": "/complaints/"},
+            {"title": "المساعدة وحل المشكلات", "url": "/guide/#help"},
+        ]
+    if intent == INTENT_SENSITIVE_DISCLOSURE:
+        return [
+            {"title": "استعادة كلمة المرور", "url": "/password-reset/"},
+            {"title": "الحساب والأمان", "url": "/guide/#account-security"},
+        ]
+    if intent == INTENT_UNDOCUMENTED:
+        return [
+            {"title": "دليل المستخدم", "url": "/guide/"},
+            {"title": "التواصل مع فريق الدعم", "url": "/complaints/#complaint-form"},
+        ]
+    if intent == INTENT_CLARIFY:
+        return []
     if intent == INTENT_VALUE:
         return [
             {"title": "التعريف بمنصة توثيق", "url": "/"},
@@ -940,6 +1211,98 @@ def _is_known_support_problem(question: str) -> bool:
             "مشكله في الحفظ",
         )
     )
+
+
+# A requested action mapped to the word the documentation uses for it. The
+# assistant may answer a task from an article only when that article actually
+# documents the action — sharing a topic is not the same as answering it.
+_ACTION_VOCABULARY = (
+    (("اعدل", "تعديل", "عدلت", "اغير"), "تعديل"),
+    (("احذف", "حذف", "الغي", "ازيل"), "حذف"),
+    (("اشارك", "مشاركه", "ارسلها لغيري"), "مشارك"),
+    (("اطبع", "طباعه", "طباعة"), "طباع"),
+    (("ارسل", "ارسال", "اعمم"), "ارسال"),
+    (("ارفع", "رفع"), "رفع"),
+    # Attaching is not uploading: "أرفق صور التقرير" is documented by the report
+    # workflow, while "رفع" alone points at the attachment-limits article.
+    (("ارفق", "ارفاق", "مرفق"), "رفق"),
+    (("اصدر", "تصدير"), "تصدير"),
+    (("انزل", "تنزيل", "احمل"), "تنزيل"),
+    (("استورد", "استيراد"), "استيراد"),
+    (("اضيف", "اضافه", "اضافة"), "اضاف"),
+    (("اجدد", "تجديد"), "تجديد"),
+    (("اوقع", "توقيع"), "توقيع"),
+    (("ابحث", "بحث", "افلتر", "تصفيه"), "بحث"),
+)
+
+# Wording that says "I am stuck / worried", which a bare procedure answers badly.
+_WORRY_MARKERS = (
+    "ما ابغى اخسر",
+    "ما ابي اخسر",
+    "اخاف",
+    "خايف",
+    "قلقان",
+    "قلق",
+    "تروح بياناتي",
+    "اخسر بياناتي",
+    "يضيع",
+    "متوتر",
+)
+
+_ONBOARDING_DIFFICULTY_MARKERS = (
+    "ما اعرف استخدم",
+    "ما اعرف استعمل",
+    "ما افهم المنصه",
+    "صعبه علي",
+    "صعب علي",
+    "معقده",
+    "تايه",
+    "ضايع",
+    "ما اعرف من وين",
+)
+
+
+def _expresses_worry(question: str) -> bool:
+    return any(marker in _normalise_arabic(question) for marker in _WORRY_MARKERS)
+
+
+# Irreversible actions. Answering "how do I delete a teacher" with the closest
+# article is how a customer deletes the wrong thing, so these are answered only
+# from documentation that actually covers them.
+_DESTRUCTIVE_ACTION_MARKERS = (
+    "احذف",
+    "حذف",
+    "ازيل",
+    "الغي",
+    "الغاء",
+    "اوقف",
+    "ايقاف",
+    "اشطب",
+)
+
+
+def _requests_destructive_action(question: str) -> bool:
+    return any(marker in _normalise_arabic(question) for marker in _DESTRUCTIVE_ACTION_MARKERS)
+
+
+def _documented_action_item(
+    question: str,
+    selected: list[KnowledgeItem],
+) -> KnowledgeItem | None:
+    """Return the retrieved item that documents the action the user asked about."""
+    text = _normalise_arabic(question)
+    requested = [
+        documented
+        for variants, documented in _ACTION_VOCABULARY
+        if any(variant in text for variant in variants)
+    ]
+    if not requested:
+        return None
+    for item in selected[:3]:
+        item_text = _normalise_arabic(f"{item.title} {item.text} {item.keywords}")
+        if any(documented in item_text for documented in requested):
+            return item
+    return None
 
 
 def _requires_documented_support(question: str) -> bool:
@@ -1080,10 +1443,7 @@ def _is_procedural_question(question: str) -> bool:
     text = _normalise_arabic(question)
     if any(marker in text for marker in _EXPLANATION_QUESTION_MARKERS):
         return False
-    return any(
-        marker in text
-        for marker in ("كيف", "خطوات", "طريقه", "وين", "اين", "ابدا", "اسوي", "اضيف")
-    )
+    return any(marker in text for marker in _TASK_MARKERS)
 
 
 def _knowledge_steps(item: KnowledgeItem, *, limit: int = 3) -> tuple[str, ...]:
@@ -1109,6 +1469,7 @@ def _offline_customer_reply(
     selected: list[KnowledgeItem],
     plans: list[dict[str, Any]],
     audience: str = AUDIENCE_GENERAL,
+    confidence: int = MIN_CONFIDENT_RETRIEVAL_SCORE,
 ) -> str:
     """Provide a deterministic customer-service fallback when AI is unavailable."""
     if intent == INTENT_GREETING:
@@ -1116,6 +1477,58 @@ def _offline_customer_reply(
             "وعليكم السلام، حياك الله. أنا منصور، مساعدك في منصة توثيق. "
             "أقدر أساعدك في التسجيل والتجربة والباقات وإعداد المدرسة، "
             "أو أمشي معك خطوة بخطوة في أي مهمة داخل المنصة. وش اللي تحتاجه الآن؟"
+        )
+
+    if intent == INTENT_SENSITIVE_DISCLOSURE:
+        return _compose_reply(
+            opening="أقدّر ثقتك، وخلني أنبهك بسرعة قبل أي خطوة.",
+            body=(
+                "لا ترسل كلمة المرور أو رمز التحقق أو رقم الهوية أو بيانات البطاقة "
+                "هنا أو لأي شخص، ولا أستطيع تغييرها لك من المحادثة. "
+                "غيّرها الآن بنفسك حتى تبقى آمنة."
+            ),
+            steps=(
+                "امسح الرسالة التي كتبت فيها البيانات إن أمكن، ولا تعد إرسالها.",
+                "غيّر كلمة المرور فورًا من «هل نسيت كلمة المرور؟» في شاشة الدخول أو من ملفك الشخصي.",
+                "اختر كلمة مرور جديدة قوية غير مستخدمة في أي حساب آخر.",
+            ),
+            next_action=(
+                "غيّر كلمة المرور الآن، وإن لاحظت أي دخول لا تعرفه على حسابك تواصل مع الدعم فورًا."
+            ),
+        )
+
+    if intent == INTENT_CONTACT:
+        return _compose_reply(
+            body=(
+                "أبشر، وسائل التواصل الرسمية موضحة في صفحة الدعم والشكاوى، "
+                "ومنها تصلك ردود موثقة برقم متابعة بدل الرسائل غير الرسمية."
+            ),
+            steps=(
+                "افتح صفحة الدعم والشكاوى واختر نوع طلبك.",
+                "اكتب موضوعك ووصفًا مختصرًا واسم المدرسة، دون بيانات حساسة.",
+            ),
+            next_action=(
+                "افتح صفحة الدعم والشكاوى من الرابط أدناه، وستجد فيها قنوات التواصل وساعات العمل."
+            ),
+        )
+
+    if intent == INTENT_CLARIFY:
+        return (
+            "معك، بس ما وصلني الموضوع اللي تقصده بالضبط حتى لا أعطيك خطوات لا تخصك. "
+            "اذكر لي اسم الشيء الذي تبحث عنه — تقرير، ملف إنجاز، تعميم، طلب، أو اشتراك — "
+            "وأدلك على مكانه بالضبط."
+        )
+
+    if intent == INTENT_UNDOCUMENTED:
+        return _compose_reply(
+            body=(
+                "أكون صريحًا معك: ما عندي معلومة موثقة تجيب على هذا السؤال تحديدًا، "
+                "وما أحب أعطيك جوابًا غير مؤكد."
+            ),
+            next_action=(
+                "لو صغت لي سؤالك بتفصيل أكثر أو ذكرت الشاشة التي تعمل عليها أحاول معك مرة أخرى، "
+                "وإن كان يحتاج ردًا رسميًا فدليل المستخدم وفريق الدعم أدق مرجع له."
+            ),
         )
 
     if intent == INTENT_BOT_IDENTITY:
@@ -1255,6 +1668,20 @@ def _offline_customer_reply(
         )
 
     if intent == INTENT_SUPPORT:
+        # "حفظت التقرير بتاريخ خطأ وأبغى أعدله" is a task with a documented
+        # answer, not an incident. Opening a ticket for it wastes the customer's
+        # time and the team's; the documented workflow is the real answer.
+        documented_action = (
+            _documented_action_item(question, selected)
+            if confidence >= MIN_CONFIDENT_RETRIEVAL_SCORE
+            else None
+        )
+        if documented_action is not None and not _is_known_support_problem(question):
+            return _compose_reply(
+                opening=_acknowledgement("support", question),
+                steps=_knowledge_steps(documented_action),
+                next_action=_derived_next_action(documented_action),
+            )
         if _is_known_support_problem(question):
             return _compose_reply(
                 opening=_acknowledgement("support", question),
@@ -1273,10 +1700,17 @@ def _offline_customer_reply(
             if audience == AUDIENCE_MANAGER
             else "يستطيع مدير المدرسة تسجيل الدخول وفتح تذكرة دعم فني من الرابط الظاهر أدناه."
         )
+        # Naming what the customer was talking about is the difference between
+        # "we will look into it" and a form letter.
+        subject = (
+            f"بخصوص «{selected[0].title}»: "
+            if selected and confidence >= MIN_CONFIDENT_RETRIEVAL_SCORE
+            else ""
+        )
         return _compose_reply(
             opening=_acknowledgement("support", question),
             body=(
-                "ما لقيت حلًا موثقًا يطابق حالتك بالضبط، وما أحب أخمّن عليك. "
+                f"{subject}ما لقيت حلًا موثقًا يطابق حالتك بالضبط، وما أحب أخمّن عليك. "
                 f"الأفضل أن يراجعها فريق الدعم. {ticket_guidance}"
             ),
             steps=(
@@ -1287,7 +1721,18 @@ def _offline_customer_reply(
         )
 
     if intent == INTENT_GENERAL and _is_role_overview_question(question):
-        return _role_overview_reply(audience)
+        overview = _role_overview_reply(audience)
+        if any(
+            marker in _normalise_arabic(question)
+            for marker in _ONBOARDING_DIFFICULTY_MARKERS
+        ):
+            # Someone who says the platform is too hard for them needs to hear
+            # that first; the capability summary alone reads as a brush-off.
+            return (
+                "لا تشيل هم، وأنا معك خطوة بخطوة وما فيها شيء صعب. "
+                f"{overview}"
+            )
+        return overview
 
     if intent == INTENT_PRIVACY:
         return (
@@ -1341,6 +1786,7 @@ def _offline_customer_reply(
     if (
         any(marker in normalised_question for marker in ("معلم", "معلمين", "فريق"))
         and any(marker in normalised_question for marker in ("تعميم", "اشعار", "تنبيه"))
+        and not _is_problem_report(question)
         and "manager-team" in selected_by_slug
         and "manager-communication" in selected_by_slug
     ):
@@ -1364,10 +1810,28 @@ def _offline_customer_reply(
         )
 
     primary = selected[0] if selected else None
+    undocumented_destructive = (
+        _requests_destructive_action(question)
+        and _documented_action_item(question, selected) is None
+    )
+    if primary and (confidence < MIN_CONFIDENT_RETRIEVAL_SCORE or undocumented_destructive):
+        # Nothing documented really matches. Reciting the closest article here is
+        # how an assistant sounds confident and wrong at the same time.
+        return _offline_customer_reply(
+            question,
+            intent=INTENT_UNDOCUMENTED,
+            selected=selected,
+            plans=plans,
+            audience=audience,
+        )
     if primary:
+        # When the customer named an action, answer from the article that
+        # documents that action — not merely the highest-scoring one.
+        primary = _documented_action_item(question, selected) or primary
         procedural = _is_procedural_question(question)
         steps = _knowledge_steps(primary) if procedural else ()
         return _compose_reply(
+            opening=_acknowledgement("support", question) if _expresses_worry(question) else "",
             body="" if steps else primary.text,
             steps=steps,
             # An explanation has no "first step" to open; offering to go deeper
@@ -1442,6 +1906,21 @@ def _response_contract(intent: str, question: str) -> str:
             "اعترف بوضوح أنك مساعد ذكي ولست إنسانًا، بثقة وبلا اعتذار، "
             "ثم اذكر ما تجيده فعليًا داخل المنصة."
         )
+    if intent == INTENT_CONTACT:
+        return (
+            "أعطِ قنوات التواصل الرسمية الموثقة فقط كما وردت، واذكر ساعات العمل إن كانت موثقة، "
+            "ووضّح أن الطلب المسجل رسميًا يأخذ رقم متابعة. لا تخترع قناة أو رقمًا."
+        )
+    if intent == INTENT_SENSITIVE_DISCLOSURE:
+        return (
+            "نبّه أولًا وبوضوح إلى عدم مشاركة كلمة المرور أو رمز التحقق أو بيانات الهوية والبطاقة، "
+            "ووضّح أنك لا تستطيع تغييرها، ثم أعطِ خطوات تغييرها بنفسه فورًا. لا تكرر البيانات التي كتبها."
+        )
+    if intent == INTENT_UNDOCUMENTED:
+        return (
+            "صرّح بأن هذه المعلومة غير موثقة لديك دون تبرير طويل، ولا تخمّن، "
+            "ثم اعرض إعادة صياغة السؤال أو التوجيه إلى دليل المستخدم والدعم."
+        )
     if intent == INTENT_VALUE:
         return (
             "اعترف بوجاهة اعتراضه أولًا، ثم اربط قدرة موثقة واحدة أو اثنتين بحاجته الفعلية، "
@@ -1464,6 +1943,7 @@ def _instructions(
     page_context: str = "",
     intent: str = INTENT_GENERAL,
     question: str = "",
+    confidence: int = MIN_CONFIDENT_RETRIEVAL_SCORE,
 ) -> str:
     audience = normalise_audience(audience)
     knowledge_text = "\n\n".join(
@@ -1472,7 +1952,19 @@ def _instructions(
     audience_label = AUDIENCE_LABELS[audience]
     role_guidance = ROLE_GUIDANCE[audience]
     page_context_line = page_context or "غير محدد"
-    return f"""
+    # The retrieved articles below are the closest matches, not necessarily
+    # relevant ones. Saying so is what stops a fluent answer to an undocumented
+    # question.
+    confidence_line = (
+        ""
+        if confidence >= MIN_CONFIDENT_RETRIEVAL_SCORE
+        else (
+            "\nتنبيه مهم: لم يُعثر على معرفة مطابقة لهذا السؤال، وما تحته أقرب المواد لا أدقّها. "
+            "لا تبنِ إجابة واثقة عليها؛ قل بوضوح إن هذه المعلومة غير موثقة لديك، "
+            "واعرض إعادة صياغة السؤال أو التحويل إلى دليل المستخدم والدعم.\n"
+        )
+    )
+    return f"""{confidence_line}
 أنت «منصور»، مستشار منصة توثيق السعودية. تعمل كموظف خدمة عملاء ودعم متمرّس:
 تفهم ما وراء السؤال، تجيب بثقة وبلا تكلّف، وتترك العميل وهو يعرف بالضبط ما يفعله بعدك.
 
@@ -1535,6 +2027,7 @@ def _rewrite_instructions(
     page_context: str = "",
     intent: str = INTENT_GENERAL,
     question: str = "",
+    confidence: int = MIN_CONFIDENT_RETRIEVAL_SCORE,
 ) -> str:
     """Second-pass instruction to upgrade weak drafts without adding new facts."""
     base = _instructions(
@@ -1544,6 +2037,7 @@ def _rewrite_instructions(
         page_context=page_context,
         intent=intent,
         question=question,
+        confidence=confidence,
     )
     empathy_line = (
         "- افتح بجملة واحدة صادقة تعترف بأثر المشكلة على العميل قبل أي خطوة.\n"
@@ -1674,14 +2168,6 @@ def ask_mansour(
     messages = sanitise_history(history)
     retrieval_question = question
     normalised_question = _normalise_arabic(question)
-    if _is_contextual_follow_up(question):
-        previous_user_message = next(
-            (message["content"] for message in reversed(messages) if message["role"] == "user"),
-            "",
-        )
-        if previous_user_message:
-            retrieval_question = f"{previous_user_message} {question}"
-
     page_reference_markers = (
         "هذه الصفحة",
         "هذي الصفحة",
@@ -1696,6 +2182,47 @@ def ask_mansour(
         _normalise_arabic(marker) in normalised_question
         for marker in page_reference_markers
     )
+
+    unresolved_follow_up = False
+    if _is_contextual_follow_up(question):
+        previous_user_message = next(
+            (message["content"] for message in reversed(messages) if message["role"] == "user"),
+            "",
+        )
+        if previous_user_message:
+            retrieval_question = f"{previous_user_message} {question}"
+        elif not references_current_page:
+            # "وين ألقاها؟" as a first message has no subject. Guessing one and
+            # answering it confidently is worse than asking what "it" is. The
+            # open page is a valid subject, so it is not asked about again.
+            unresolved_follow_up = True
+
+    if unresolved_follow_up:
+        return (
+            _offline_customer_reply(
+                question,
+                intent=INTENT_CLARIFY,
+                selected=[],
+                plans=plans or [],
+                audience=audience,
+            ),
+            _sources_for_answer(INTENT_CLARIFY, selected=[], question=question),
+        )
+
+    # A customer who pasted a credential must be told to change it — and that
+    # text must not be forwarded to the model provider on top of the mistake.
+    if contains_shared_secret(question):
+        return (
+            _offline_customer_reply(
+                question,
+                intent=INTENT_SENSITIVE_DISCLOSURE,
+                selected=[],
+                plans=plans or [],
+                audience=audience,
+            ),
+            _sources_for_answer(INTENT_SENSITIVE_DISCLOSURE, selected=[], question=""),
+        )
+
     if references_current_page:
         retrieval_question = f"{retrieval_question} {safe_page_context}"
 
@@ -1721,6 +2248,7 @@ def ask_mansour(
         selected=selected,
     )
     intent = _detect_customer_intent(retrieval_question)
+    confidence = retrieval_confidence(retrieval_question, audience=audience)
 
     requires_documented_answer = (
         intent == INTENT_REFUND
@@ -1734,6 +2262,7 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
             audience=audience,
+            confidence=confidence,
         )
         return fallback_answer[:1800], _sources_for_answer(
             intent,
@@ -1751,6 +2280,7 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
             audience=audience,
+            confidence=confidence,
         )
         fallback_sources = _sources_for_answer(
             intent,
@@ -1775,6 +2305,7 @@ def ask_mansour(
             page_context=safe_page_context,
             intent=intent,
             question=retrieval_question,
+            confidence=confidence,
         ),
         "input": messages,
         "reasoning": {"effort": reasoning_effort},
@@ -1797,6 +2328,7 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
             audience=audience,
+            confidence=confidence,
         )
         return fallback_answer[:1800], _sources_for_answer(
             intent,
@@ -1812,6 +2344,7 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
             audience=audience,
+            confidence=confidence,
         )
         return fallback_answer[:1800], _sources_for_answer(
             intent,
@@ -1833,6 +2366,7 @@ def ask_mansour(
                 page_context=safe_page_context,
                 intent=intent,
                 question=retrieval_question,
+                confidence=confidence,
             ),
             "reasoning": {"effort": "minimal"},
         }
@@ -1851,6 +2385,7 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
             audience=audience,
+            confidence=confidence,
         )
         used_fallback = True
 
@@ -1861,6 +2396,7 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
             audience=audience,
+            confidence=confidence,
         )
         return fallback_answer[:1800], _sources_for_answer(
             intent,

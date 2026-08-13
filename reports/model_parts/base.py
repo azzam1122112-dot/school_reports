@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from .achievements import AchievementEvidenceImage, TeacherAchievementFile
     from .billing import Payment
     from .notifications import Notification, TicketImage
-    from .reports import Report
+    from .reports import Report, ReportEvidence
     from .schools import School
     from .tickets import Ticket
 
@@ -109,6 +109,16 @@ def _report_image_upload_to(instance: "Report", filename: str) -> str:
     except Exception:
         teacher_id = "unknown"
     return f"reports/teacher_{teacher_id}/{base}"
+
+
+def _report_evidence_upload_to(instance: "ReportEvidence", filename: str) -> str:
+    """مسار شاهد التقرير عبر صاحب التقرير الأب."""
+    base = _safe_unique_filename(filename, fallback="evidence")
+    try:
+        teacher_id = getattr(getattr(instance, "report", None), "teacher_id", None) or "unknown"
+    except Exception:
+        teacher_id = "unknown"
+    return f"reports/teacher_{teacher_id}/evidence/{base}"
 
 
 def _ticket_attachment_upload_to(instance: "Ticket", filename: str) -> str:

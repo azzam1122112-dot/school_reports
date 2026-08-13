@@ -48,6 +48,37 @@ class PwaInstallExperienceTests(TestCase):
             self.assertContains(response, 'rel="apple-touch-startup-image"', count=24)
             self.assertContains(response, "img/pwa/apple-touch-icon-180.png")
 
+    def test_a_visitor_is_never_auto_prompted_to_install(self):
+        """طلبُ التثبيت قبل امتلاك حساب يقود إلى تطبيقٍ يفتح على شاشة دخول."""
+        for route_name in ("reports:landing", "reports:login", "reports:user_guide"):
+            with self.subTest(route=route_name):
+                response = self.client.get(reverse(route_name))
+
+                self.assertContains(response, 'data-auto-prompt="false"')
+
+    def test_a_visitor_still_gets_a_way_to_install_when_they_want_one(self):
+        """قِيس بالمتصفّح: الزائر على الجوال لم يكن يرى بطاقةً ولا زراً — أي أن
+        من أراد التثبيت وجب أن يعرف قائمة المتصفّح بنفسه."""
+        for route_name in ("reports:landing", "reports:user_guide"):
+            with self.subTest(route=route_name):
+                response = self.client.get(reverse(route_name))
+
+                self.assertContains(response, "data-pwa-install-trigger")
+                # البطاقة ونصّها مكتوبان للجوال، فالزرّ يختفي على سطح المكتب.
+                self.assertContains(response, "data-pwa-install-mobile-only")
+
+    def test_the_mobile_only_trigger_is_hidden_off_mobile_by_the_installer(self):
+        script = self._source("static/js/pwa-install.js")
+
+        self.assertIn('trigger.hasAttribute("data-pwa-install-mobile-only")', script)
+        self.assertIn("if (!isMobile && trigger.hasAttribute", script)
+
+    @override_settings(PWA_INSTALL_ENABLED=False)
+    def test_the_visitor_trigger_disappears_with_the_feature_switch(self):
+        response = self.client.get(reverse("reports:landing"))
+
+        self.assertNotContains(response, "data-pwa-install-trigger")
+
     @override_settings(PWA_INSTALL_ENABLED=False)
     def test_install_metadata_is_not_advertised_when_pwa_install_is_disabled(self):
         response = self.client.get(reverse("reports:landing"))
@@ -89,11 +120,12 @@ class PwaInstallExperienceTests(TestCase):
         self.assertIn("navigator.userAgentData", script)
         self.assertIn("pwaInstallAnnouncement", script)
         self.assertIn("يتوفر تثبيت منصة توثيق على هذا الجوال", script)
-        self.assertIn('var SW_URL = "/sw.js?v=9"', script)
+        self.assertIn('var SW_URL = "/sw.js?v=11"', script)
         self.assertIn('updateViaCache: "none"', script)
-        self.assertIn("AUTO_NATIVE_DELAY_MS = 350", script)
-        self.assertIn("AUTO_IOS_DELAY_MS = 700", script)
-        self.assertIn("AUTO_FALLBACK_DELAY_MS = 1400", script)
+        self.assertIn("TASK_COMPLETE_KEY", script)
+        self.assertIn("hasCompletedTask()", script)
+        self.assertIn('window.addEventListener("tawtheeq:task-complete"', script)
+        self.assertIn('window.dispatchEvent(new CustomEvent("tawtheeq:pwa-update"', script)
         self.assertIn("autoPromptAllowed", script)
         self.assertIn("isIOS ? AUTO_IOS_DELAY_MS : AUTO_FALLBACK_DELAY_MS", script)
         self.assertIn("TawtheeqPWA", script)
@@ -128,7 +160,7 @@ class PwaInstallExperienceTests(TestCase):
         manifest = json.loads(self._source("static/manifest.json"))
 
         self.assertEqual(manifest["id"], "/")
-        self.assertEqual(manifest["start_url"], "/")
+        self.assertEqual(manifest["start_url"], "/home/?source=pwa")
         self.assertEqual(manifest["scope"], "/")
         self.assertEqual(manifest["display"], "standalone")
         self.assertEqual(manifest["lang"], "ar")
@@ -179,7 +211,7 @@ class PwaInstallExperienceTests(TestCase):
         worker = self._source("static/sw.js")
         offline = self._source("static/offline.html")
 
-        self.assertIn('const CACHE_NAME = "tawtheeq-v9"', worker)
+        self.assertIn('const CACHE_NAME = "tawtheeq-v11"', worker)
         self.assertIn('const OFFLINE_URL = "/static/offline.html"', worker)
         self.assertIn("navigationPreload.enable()", worker)
         self.assertIn('startsWith("/api/")', worker)

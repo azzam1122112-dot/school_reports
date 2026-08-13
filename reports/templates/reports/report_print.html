@@ -411,7 +411,7 @@
     </button>
   </div>
 
-  <div class="page{% if r.image3 or r.image4 %} page--dense-evidence{% endif %}">
+  <div class="page{% if EVIDENCE_COUNT >= 3 %} page--dense-evidence{% endif %}">
     <header class="header">
       <div class="hdr-block hdr-right">
         <div>المملكة العربية السعودية</div>
@@ -489,39 +489,8 @@
       </section>
     {% endif %}
     
-    {% if r.image1 or r.image2 or r.image3 or r.image4 %}
-    <section class="section evidence-section print-section">
-      <div class="section-h"><span class="section-index"></span><span>المرفقات والشواهد</span></div>
-      <div class="images-grid">
-        {% if r.image1 %}
-        <div class="img-box">
-           <img src="{% if for_pdf and PDF_IMAGE1_URL %}{{ PDF_IMAGE1_URL }}{% else %}{{ r.image1.url }}{% endif %}" alt="مرفق 1">
-           <div class="img-cap">مرفق (1)</div>
-        </div>
-        {% endif %}
-        
-        {% if r.image2 %}
-        <div class="img-box">
-           <img src="{% if for_pdf and PDF_IMAGE2_URL %}{{ PDF_IMAGE2_URL }}{% else %}{{ r.image2.url }}{% endif %}" alt="مرفق 2">
-           <div class="img-cap">مرفق (2)</div>
-        </div>
-        {% endif %}
-        
-        {% if r.image3 %}
-        <div class="img-box">
-           <img src="{% if for_pdf and PDF_IMAGE3_URL %}{{ PDF_IMAGE3_URL }}{% else %}{{ r.image3.url }}{% endif %}" alt="مرفق 3">
-           <div class="img-cap">مرفق (3)</div>
-        </div>
-        {% endif %}
-        
-        {% if r.image4 %}
-        <div class="img-box">
-           <img src="{% if for_pdf and PDF_IMAGE4_URL %}{{ PDF_IMAGE4_URL }}{% else %}{{ r.image4.url }}{% endif %}" alt="مرفق 4">
-           <div class="img-cap">مرفق (4)</div>
-        </div>
-        {% endif %}
-      </div>
-    </section>
+    {% if EVIDENCE_ITEMS and not EVIDENCE_SEPARATE_PAGE %}
+      {% include "reports/partials/report_evidence_print.html" %}
     {% endif %}
 
     {% comment %}
@@ -676,6 +645,10 @@
       <div>تم الإصدار إلكترونيًا: {% now "Y/m/d H:i" %}</div>
       <div class="footer-brand">منصة توثيق</div>
     </div>
+
+    {% if EVIDENCE_ITEMS and EVIDENCE_SEPARATE_PAGE %}
+      {% include "reports/partials/report_evidence_print.html" %}
+    {% endif %}
 
   </div>
 

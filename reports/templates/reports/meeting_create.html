@@ -53,7 +53,8 @@
     </p>
   </header>
 
-  <form method="post" novalidate id="meetingCreateForm">
+  <form method="post" novalidate id="meetingCreateForm"
+        data-pwa-draft-key="meeting-create-u{{ request.user.id|default:0 }}-s{{ request.session.active_school_id|default:0 }}">
     {% csrf_token %}
 
     <section class="asg-card">

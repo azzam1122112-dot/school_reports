@@ -18,6 +18,7 @@ from reports.models import (
     Notification,
     Payment,
     Report,
+    ReportEvidence,
     RequestTicket,
     School,
     SchoolYearArchive,
@@ -206,6 +207,7 @@ class StorageObjectCleanupTests(TransactionTestCase):
     def test_all_project_file_models_are_discovered_automatically(self):
         expected = {
             Report: {"image1", "image2", "image3", "image4"},
+            ReportEvidence: {"image"},
             TeacherAchievementFile: {"pdf_file"},
             AchievementEvidenceImage: {"image"},
             AchievementEvidenceReport: {

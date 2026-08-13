@@ -187,35 +187,35 @@
       <div class="hero-orb hero-orb-two" aria-hidden="true"></div>
       <div class="shell hero-grid">
         <div class="hero-copy reveal">
-          <div class="overline"><span></span> منصة سعودية تشغّل المدرسة وتوثّق أثرها</div>
+          <div class="overline"><span></span> {% translate "منصة سعودية لتشغيل المدرسة وتوثيق أعمالها" %}</div>
           <h1>
-            إدارة المدرسة
-            <span>{% translate "تبدأ من صورة واضحة." %}</span>
-            <em>{% translate "وتنتهي بقرار واثق." %}</em>
+            {% translate "منصة واحدة لإدارة تقارير المدرسة وطلباتها وتعاميمها" %}
+            <span>{% translate "وتحويل العمل اليومي إلى إنجاز موثّق." %}</span>
+            <em>{% translate "لوحة للمدير، مساحة للفريق، وأرشيف يبقى." %}</em>
           </h1>
           <p class="hero-lead">
-            {% translate "اجمع تشغيل المدرسة وتوثيقها في منصة واحدة تمنحك ما يحتاج انتباهك الآن، وما أُنجز، ومن المسؤول — دون مطاردة رسائل أو البحث بين ملفات متفرقة." %}
+            {% translate "اجمع التقارير المصورة، ملفات الإنجاز، التعاميم والتوقيعات، الطلبات، الخطط، الاجتماعات، التكليفات، الاعتمادات والأرشيف في مسار واحد واضح؛ لتعرف الإدارة ما يحدث الآن، ومن المسؤول، وما الدليل المتاح عند المراجعة." %}
           </p>
           <div class="hero-personas" aria-label="القيمة حسب دور المستخدم">
-            <span><i class="fa-solid fa-user-tie" aria-hidden="true"></i><b>مدير المدرسة</b> قرار ومتابعة</span>
-            <span><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i><b>المعلم</b> إنجاز وشواهد</span>
-            <span><i class="fa-solid fa-sitemap" aria-hidden="true"></i><b>المدير التنفيذي</b> رؤية موحّدة</span>
-            <span><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i><b>الموظف الإداري</b> تنفيذ منظم</span>
+            <span><i class="fa-solid fa-user-tie" aria-hidden="true"></i><b>{% translate "مدير المدرسة" %}</b> {% translate "قرار ومتابعة" %}</span>
+            <span><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i><b>{% translate "المعلم" %}</b> {% translate "إنجاز وشواهد" %}</span>
+            <span><i class="fa-solid fa-sitemap" aria-hidden="true"></i><b>{% translate "المدير التنفيذي" %}</b> {% translate "رؤية موحّدة" %}</span>
+            <span><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i><b>{% translate "الموظف الإداري" %}</b> {% translate "تنفيذ منظم" %}</span>
           </div>
           <div class="hero-actions">
             <a class="button button-primary button-large" href="{% url 'reports:register_school' %}">
-              ابدأ تجربة مجانية {{ trial_days|default:30 }} يوم
+              {% blocktranslate with days=trial_days|default:30 %}ابدأ تجربة مجانية {{ days }} يوم{% endblocktranslate %}
               <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </a>
             <a class="button button-quiet button-large" href="#roles">
               <i class="fa-solid fa-users-viewfinder" aria-hidden="true"></i>
-              شاهد المنصة حسب دورك
+              {% translate "شاهد المنصة حسب دورك" %}
             </a>
           </div>
           <div class="assurance" aria-label="مزايا البدء">
-            <span><i class="fa-solid fa-check"></i> دون بطاقة ائتمانية</span>
-            <span><i class="fa-solid fa-check"></i> تفعيل مباشر ودون تعقيد تقني</span>
-            <span><i class="fa-solid fa-check"></i> تجربة عربية على الويب والجوال</span>
+            <span><i class="fa-solid fa-check"></i> {% translate "دون بطاقة ائتمانية" %}</span>
+            <span><i class="fa-solid fa-check"></i> {% translate "تفعيل مباشر ودون تعقيد تقني" %}</span>
+            <span><i class="fa-solid fa-check"></i> {% translate "تجربة عربية على الويب والجوال" %}</span>
           </div>
           <div class="hero-quote">
             <div class="quote-icon"><i class="fa-solid fa-quote-right"></i></div>
@@ -236,7 +236,7 @@
             <div class="hero-shot">
               <img src="{% static 'img/landing/dashboard-system.png' %}" alt="لقطة حقيقية من لوحة مدير المدرسة في منصة توثيق" width="1920" height="799" fetchpriority="high" decoding="async">
             </div>
-            <span class="system-shot-label"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> لقطة حقيقية من النظام · بيانات تجريبية</span>
+            <span class="system-shot-label"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> {% translate "لقطة حقيقية من النظام · بيانات تجريبية" %}</span>
           </div>
           <div class="float-card float-card-top">
             <span class="float-icon"><i class="fa-solid fa-chart-pie"></i></span>
@@ -253,7 +253,7 @@
         <div class="trust-bar reveal">
           <div><strong>{{ trial_days|default:30 }}</strong><span>{% translate "يومًا كاملة دون بطاقة" %}</span></div>
           <div><i class="fa-solid fa-display"></i><span>{% translate "لقطات حقيقية من النظام" %}</span></div>
-          <div><i class="fa-solid fa-calculator"></i><span>{% translate "سعر واضح حسب عدد المعلمين" %}</span></div>
+          <div><i class="fa-solid fa-calculator"></i><span>{% translate "تسعير مباشر حسب عدد المعلمين" %}</span></div>
           <div><i class="fa-solid fa-shield-halved"></i><span>{% translate "صلاحيات وتدقيق وتوثيق رسمي" %}</span></div>
         </div>
       </div>
@@ -588,9 +588,11 @@
             <div class="feature-icon"><i class="fa-solid fa-camera-retro"></i></div>
             <span class="feature-label">{% translate "التقارير" %}</span>
             <h3>{% translate "توثيق مصور سريع" %}</h3>
-            <p>{% translate "يرفع المعلم التقرير من الجوال، ويخرج للمدرسة بصيغة PDF رسمية قابلة للطباعة." %}</p>
+            <p>{% translate "يرفع المعلم التقرير من الجوال أو يكتبه بالصوت، ثم يساعده الذكاء الاصطناعي على تحسين الصياغة قبل إخراجه بصيغة PDF رسمية قابلة للطباعة." %}</p>
             <ul class="feature-proof">
               <li>{% translate "رفع من الجوال" %}</li>
+              <li>{% translate "كتابة التقرير بالصوت" %}</li>
+              <li>{% translate "تحسين الصياغة بالذكاء الاصطناعي" %}</li>
               <li>{% translate "PDF بهوية المدرسة" %}</li>
               <li>{% translate "رابط مشاركة مؤقت" %}</li>
             </ul>
@@ -643,10 +645,12 @@
             <div class="feature-icon"><i class="fa-solid fa-users-rectangle"></i></div>
             <span class="feature-label">{% translate "الاجتماعات" %}</span>
             <h3>{% translate "محضر جاهز عند انتهاء الاجتماع" %}</h3>
-            <p>{% translate "جدول الأعمال والحضور والقرارات في مكان واحد، ويخرج المحضر موثقًا لا مكتوبًا على عجل." %}</p>
+            <p>{% translate "جدول الأعمال والحضور والقرارات في مكان واحد، مع إدخال المحضر بالصوت وتحسين صياغته بالذكاء الاصطناعي قبل الطباعة أو الاعتماد." %}</p>
             <ul class="feature-proof">
               <li>{% translate "جدول أعمال وحضور" %}</li>
               <li>{% translate "قرارات وتوصيات" %}</li>
+              <li>{% translate "إدخال المحضر بالصوت" %}</li>
+              <li>{% translate "تحسين المحضر بالذكاء الاصطناعي" %}</li>
               <li>{% translate "محضر قابل للطباعة" %}</li>
             </ul>
           </article>
@@ -703,7 +707,8 @@
           <strong><i class="fa-solid fa-plus" aria-hidden="true"></i> ومعها في الحساب نفسه</strong>
           <ul>
             <li><i class="fa-solid fa-file-import" aria-hidden="true"></i> استيراد المعلمين دفعة واحدة من Excel</li>
-            <li><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> مساعد ذكي وتحسين صياغة التقارير</li>
+            <li><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> {% translate "مساعد ذكي لتحسين التقارير ومحاضر الاجتماعات" %}</li>
+            <li><i class="fa-solid fa-microphone-lines" aria-hidden="true"></i> {% translate "كتابة التقارير والمحاضر بالصوت" %}</li>
             <li><i class="fa-solid fa-fingerprint" aria-hidden="true"></i> دخول بمفتاح المرور دون كلمة سر</li>
             <li><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i> تثبيت المنصة كتطبيق على الجوال</li>
             <li><i class="fa-solid fa-bell" aria-hidden="true"></i> إشعارات داخل المنصة وبالبريد</li>
@@ -1145,7 +1150,16 @@
           <p>{% translate "منصة تشغيل وتوثيق للمدير والمالك والمدير التنفيذي؛ تمنح المدرسة صورة واضحة عن العمل وسجلًا مهنيًا لما أُنجز." %}</p>
         </div>
         <div class="footer-links"><strong>{% translate "المنصة" %}</strong><a href="#features">الحلول</a><a href="#group">مجموعة المدارس</a><a href="#product">الواجهات</a><a href="#pricing">الباقات</a></div>
-        <div class="footer-links"><strong>{% translate "المساعدة" %}</strong><a href="{% url 'reports:user_guide' %}">دليل المستخدم</a><a href="{% url 'reports:faq' %}">مركز الأسئلة</a><a href="{% url 'reports:login' %}">تسجيل الدخول</a></div>
+        <div class="footer-links"><strong>{% translate "المساعدة" %}</strong><a href="{% url 'reports:user_guide' %}">دليل المستخدم</a><a href="{% url 'reports:faq' %}">مركز الأسئلة</a><a href="{% url 'reports:login' %}">تسجيل الدخول</a>{% if PWA_INSTALL_ENABLED %}{% comment %}
+          الزائر لا تظهر له بطاقة التثبيت تلقائياً عن قصد — طلبُ التثبيت قبل
+          امتلاك حساب يقود إلى تطبيقٍ يفتح على شاشة دخول. لكنه كان بلا وسيلة
+          أصلاً: لا زرّ ولا بطاقة، فمن أراد التثبيت وجب أن يعرف قائمة المتصفّح.
+          هذا الزرّ يفتح البطاقة نفسها عند الضغط فقط، ويختفي على سطح المكتب
+          وبعد التثبيت.
+        {% endcomment %}<button class="footer-install" type="button" data-pwa-install-trigger data-pwa-install-mobile-only>
+          <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
+          <span>{% translate "تثبيت التطبيق" %}</span>
+        </button>{% endif %}</div>
         <div class="footer-links"><strong>{% translate "السياسات" %}</strong><a href="{% url 'reports:terms_conditions' %}">الشروط والأحكام</a><a href="{% url 'reports:privacy_policy' %}">سياسة الخصوصية</a><a href="{% url 'reports:refund_policy' %}">الإلغاء والاسترجاع</a><a href="{% url 'reports:service_delivery_policy' %}">تقديم الخدمة</a><a href="{% url 'reports:complaints_policy' %}">الشكاوى والمقترحات</a></div>
       </div>
       {% include "reports/partials/business_disclosure.html" with disclosure_variant="footer" %}

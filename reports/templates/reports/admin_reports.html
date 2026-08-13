@@ -1044,7 +1044,7 @@
                   </div>
 
                   {# بيانات مخفية للـ JS (الـ idea آمنة لأن linebreaksbr يعمل escape) #}
-                  <div id="rd-data-{{ r.pk }}" data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}" class="u-hidden">
+                  <div id="rd-data-{{ r.pk }}" data-images="{% for evidence in r.evidences.all %}{{ evidence.image.url }}{% if not forloop.last %}|{% endif %}{% empty %}{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}{% endfor %}" class="u-hidden">
                     <div class="d-teacher">{{ r.teacher_display_name }}</div>
                     <div class="d-title">{{ r.title }}</div>
                     <div class="d-date">{{ r.report_date|hijri }} هـ</div>

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 from core.observability import report_degraded as _degraded, soft_fail
 from django.utils.dateparse import parse_date
 
@@ -92,6 +94,26 @@ class Report(ApprovalMixin):
         verbose_name="التصنيف",
         related_name="reports",
         db_index=True,
+    )
+
+    submission_key = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        verbose_name="معرّف الإرسال الآمن",
+    )
+
+    class EvidencePageMode(models.TextChoices):
+        AUTO = "auto", "تلقائي"
+        INLINE = "inline", "ضمن التقرير"
+        SEPARATE = "separate", "صفحة شواهد مستقلة"
+
+    evidence_page_mode = models.CharField(
+        "موضع صفحة الشواهد",
+        max_length=12,
+        choices=EvidencePageMode.choices,
+        default=EvidencePageMode.AUTO,
+        help_text="يختار الوضع التلقائي صفحة مستقلة عند كثرة الشواهد أو كبرها.",
     )
 
     image1 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
@@ -203,6 +225,83 @@ class Report(ApprovalMixin):
                 _degraded("report.infer_academic_year", report_id=self.pk)
 
         super().save(*args, **kwargs)
+
+
+class ReportEvidence(models.Model):
+    """شاهد بصري مرتب للتقرير، بديل قابل للتوسع عن خانات الصور الثابتة."""
+
+    class DisplaySize(models.TextChoices):
+        AUTO = "auto", "تلقائي"
+        LARGE = "large", "كبير"
+        MEDIUM = "medium", "متوسط"
+        SMALL = "small", "صغير"
+
+    class FitMode(models.TextChoices):
+        CONTAIN = "contain", "احتواء الصورة كاملة"
+        COVER = "cover", "ملء الإطار"
+
+    report = models.ForeignKey(
+        Report,
+        on_delete=models.CASCADE,
+        related_name="evidences",
+        verbose_name="التقرير",
+    )
+    image = models.ImageField(
+        "الصورة",
+        upload_to=_report_evidence_upload_to,
+        validators=[validate_image_file],
+    )
+    order = models.PositiveSmallIntegerField("الترتيب", default=1, db_index=True)
+    description = models.CharField(
+        "وصف الشاهد",
+        max_length=220,
+        blank=True,
+        default="",
+        help_text="مثال: صورة من تنفيذ النشاط أو نموذج من أعمال الطلاب.",
+    )
+    display_size = models.CharField(
+        "حجم العرض",
+        max_length=10,
+        choices=DisplaySize.choices,
+        default=DisplaySize.AUTO,
+    )
+    fit_mode = models.CharField(
+        "طريقة الملاءمة",
+        max_length=10,
+        choices=FitMode.choices,
+        default=FitMode.CONTAIN,
+    )
+    show_in_print = models.BooleanField("إظهار في الطباعة", default=True)
+    width_px = models.PositiveIntegerField("العرض بالبكسل", null=True, blank=True, editable=False)
+    height_px = models.PositiveIntegerField("الارتفاع بالبكسل", null=True, blank=True, editable=False)
+    storage_bytes = models.PositiveBigIntegerField(default=0, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        indexes = [
+            models.Index(
+                fields=["report", "show_in_print", "order"],
+                name="reports_rep_report__9f5744_idx",
+            )
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=["report", "order"], name="uniq_report_evidence_order")
+        ]
+        verbose_name = "شاهد تقرير"
+        verbose_name_plural = "شواهد التقارير"
+
+    def __str__(self):
+        return self.description or f"شاهد {self.order} للتقرير {self.report_id}"
+
+    @property
+    def aspect_ratio_label(self) -> str:
+        if not self.width_px or not self.height_px:
+            return ""
+        from math import gcd
+
+        divisor = gcd(self.width_px, self.height_px)
+        return f"{self.width_px // divisor}:{self.height_px // divisor}"
 
 
 class PlatformSettings(models.Model):

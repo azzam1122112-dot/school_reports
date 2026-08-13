@@ -512,8 +512,8 @@
               <span class="ai-feature-state" data-ai-state><i class="fa-solid {% if form.report_ai_enabled.value %}fa-eye{% else %}fa-eye-slash{% endif %}" aria-hidden="true"></i><span>{% if form.report_ai_enabled.value %}ظاهر{% else %}مخفي{% endif %}</span></span>
             </div>
             <div class="ai-feature-copy">
-              <h3>تحسين التقارير</h3>
-              <p>زر تحسين الصياغة ومعاينة النص الذكي في نماذج إضافة التقرير وتعديله.</p>
+              <h3>تحسين التقارير والمحاضر</h3>
+              <p>تحسين الصياغة ومعاينة النص الذكي في التقارير ومحاضر الاجتماعات قبل اعتماده.</p>
             </div>
             <label class="archive-switch" for="{{ form.report_ai_enabled.id_for_label }}">
               {{ form.report_ai_enabled }}
@@ -546,8 +546,8 @@
               <span class="ai-feature-state" data-ai-state><i class="fa-solid {% if form.voice_report_enabled.value %}fa-eye{% else %}fa-eye-slash{% endif %}" aria-hidden="true"></i><span>{% if form.voice_report_enabled.value %}ظاهر{% else %}مخفي{% endif %}</span></span>
             </div>
             <div class="ai-feature-copy">
-              <h3>كتابة التقرير بالصوت</h3>
-              <p>مسجّل صوتي في صفحة إضافة تقرير يفرّغ إملاء المعلم نصًا. يعمل داخل التطبيق المثبَّت، بثلاث محاولات يوميًا لكل معلم.</p>
+              <h3>الكتابة بالصوت للتقارير والمحاضر</h3>
+              <p>مسجّل يفرّغ الصوت ثم يحسّن النص بحسب نوع الوثيقة. يعمل داخل التطبيق المثبَّت، بثلاث محاولات يوميًا لكل مستخدم.</p>
             </div>
             <label class="archive-switch" for="{{ form.voice_report_enabled.id_for_label }}">
               {{ form.voice_report_enabled }}

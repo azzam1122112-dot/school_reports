@@ -1584,18 +1584,12 @@ html[data-theme="dark"] .mr-page{
 
                 <td>
                   <div class="mr-imgs js-gallery" data-report="{{ report.pk }}">
-                    {% if report.image1 %}
-                      <img class="mr-thumb" src="{{ report.image1.url }}" data-full="{{ report.image1.url }}" alt="صورة 1" loading="lazy" decoding="async">
-                    {% endif %}
-                    {% if report.image2 %}
-                      <img class="mr-thumb" src="{{ report.image2.url }}" data-full="{{ report.image2.url }}" alt="صورة 2" loading="lazy" decoding="async">
-                    {% endif %}
-                    {% if report.image3 %}
-                      <img class="mr-thumb" src="{{ report.image3.url }}" data-full="{{ report.image3.url }}" alt="صورة 3" loading="lazy" decoding="async">
-                    {% endif %}
-                    {% if report.image4 %}
-                      <img class="mr-thumb" src="{{ report.image4.url }}" data-full="{{ report.image4.url }}" alt="صورة 4" loading="lazy" decoding="async">
-                    {% endif %}
+                    {% for evidence in report.evidences.all|slice:":4" %}
+                      <img class="mr-thumb" src="{{ evidence.image.url }}" data-full="{{ evidence.image.url }}" alt="{{ evidence.description|default:'شاهد مصور' }}" loading="lazy" decoding="async">
+                    {% empty %}
+                      {% if report.image1 %}<img class="mr-thumb" src="{{ report.image1.url }}" data-full="{{ report.image1.url }}" alt="شاهد مصور" loading="lazy" decoding="async">{% endif %}
+                      {% if report.image2 %}<img class="mr-thumb" src="{{ report.image2.url }}" data-full="{{ report.image2.url }}" alt="شاهد مصور" loading="lazy" decoding="async">{% endif %}
+                    {% endfor %}
                   </div>
                 </td>
 
@@ -1654,12 +1648,12 @@ html[data-theme="dark"] .mr-page{
 
             <div class="mr-mfoot">
               <div class="mr-imgs js-gallery" data-report="{{ report.pk }}">
-                {% if report.image1 %}
-                  <img class="mr-thumb" src="{{ report.image1.url }}" data-full="{{ report.image1.url }}" alt="صورة 1" loading="lazy" decoding="async">
-                {% endif %}
-                {% if report.image2 %}
-                  <img class="mr-thumb" src="{{ report.image2.url }}" data-full="{{ report.image2.url }}" alt="صورة 2" loading="lazy" decoding="async">
-                {% endif %}
+                {% for evidence in report.evidences.all|slice:":2" %}
+                  <img class="mr-thumb" src="{{ evidence.image.url }}" data-full="{{ evidence.image.url }}" alt="{{ evidence.description|default:'شاهد مصور' }}" loading="lazy" decoding="async">
+                {% empty %}
+                  {% if report.image1 %}<img class="mr-thumb" src="{{ report.image1.url }}" data-full="{{ report.image1.url }}" alt="شاهد مصور" loading="lazy" decoding="async">{% endif %}
+                  {% if report.image2 %}<img class="mr-thumb" src="{{ report.image2.url }}" data-full="{{ report.image2.url }}" alt="شاهد مصور" loading="lazy" decoding="async">{% endif %}
+                {% endfor %}
               </div>
 
               <div class="mr-actions-cell">

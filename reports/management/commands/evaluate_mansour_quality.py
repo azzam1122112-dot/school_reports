@@ -108,6 +108,7 @@ class Command(BaseCommand):
                     expect_any=case.get("expect_any") or [],
                     forbid=case.get("forbid") or [],
                     allowed_prices=case.get("allowed_prices") or [],
+                    expect_unknown=bool(case.get("expect_unknown")),
                 )
                 rows.append((case, answer, report))
         finally:

@@ -18,6 +18,7 @@ from .models import (
     ReportType,
     AcademicYear,
     Report,
+    ReportEvidence,
     Ticket,
     TicketNote,
     School,
@@ -190,6 +191,12 @@ class DepartmentAdmin(admin.ModelAdmin):
 # =========================
 # إدارة التقارير (Report)
 # =========================
+class ReportEvidenceInline(admin.TabularInline):
+    model = ReportEvidence
+    extra = 0
+    fields = ("order", "image", "description", "display_size", "fit_mode", "show_in_print")
+
+
 @admin.register(Report)
 class ReportAdmin(admin.ModelAdmin):
     list_display = (
@@ -216,6 +223,7 @@ class ReportAdmin(admin.ModelAdmin):
     autocomplete_fields = ("teacher", "category")
     list_select_related = ("teacher", "category")
     readonly_fields = ("created_at",)
+    inlines = (ReportEvidenceInline,)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -227,6 +235,12 @@ class ReportAdmin(admin.ModelAdmin):
         return qs
 
     def preview_image1(self, obj):
+        evidence = obj.evidences.order_by("order", "id").first()
+        if evidence and evidence.image:
+            return format_html(
+                '<img src="{}" width="60" height="60" style="object-fit:contain;border-radius:6px;" />',
+                evidence.image.url,
+            )
         if getattr(obj, "image1", None):
             url = getattr(getattr(obj, "image1", None), "url", "")
             if url:

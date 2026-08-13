@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """تصدير بيانات المدرسة الكاملة كملف Excel احترافي (.xlsx).
 
-يشمل: ملخص عام + التقارير + ملفات الإنجاز + المعلمون + الأقسام.
-يصدّر البيانات الوصفية (لا ملفات الصور) ليكون التنزيل سريعًا وخفيفًا،
-ويصلح كنسخة احتياطية يملكها العميل.
+يشمل: ملخص عام + التقارير + ملفات الإنجاز + الاجتماعات + المبادرات + الوثائق
+والمعلمون + الأقسام. يصدّر البيانات الوصفية في Excel، وتضيف حزمة ZIP
+الملفات الأصلية وملفات PDF الرسمية حيث توجد.
 """
 from __future__ import annotations
 
@@ -19,8 +19,12 @@ from .models import (
     AchievementEvidenceReport,
     Department,
     DepartmentMembership,
+    Document,
     LeadershipEvidenceImage,
+    Initiative,
+    Meeting,
     Notification,
+    Plan,
     Report,
     SchoolLeadershipPortfolio,
     SchoolMembership,
@@ -67,6 +71,10 @@ def _counts(school) -> dict:
         "notifications": Notification.objects.filter(
             school=school, requires_signature=False
         ).count(),
+        "documents": Document.objects.filter(school=school).count(),
+        "meetings": Meeting.objects.filter(school=school).count(),
+        "plans": Plan.objects.filter(school=school).count(),
+        "initiatives": Initiative.objects.filter(school=school).count(),
         "teachers": SchoolMembership.seats_used(school),
         "departments": Department.objects.filter(school=school).count(),
     }
@@ -170,10 +178,12 @@ def build_school_export_workbook(school):
     reports_qs = (
         Report.objects.filter(school=school)
         .select_related("teacher", "category")
+        .prefetch_related("evidences")
         .order_by("-report_date", "-id")
     )
-    for rep in reports_qs.iterator():
-        images = sum(1 for f in (rep.image1, rep.image2, rep.image3, rep.image4) if getattr(f, "name", ""))
+    for rep in reports_qs.iterator(chunk_size=200):
+        evidence_count = rep.evidences.count()
+        images = evidence_count or sum(1 for f in (rep.image1, rep.image2, rep.image3, rep.image4) if getattr(f, "name", ""))
         report_rows.append(
             [
                 rep.id,
@@ -202,7 +212,7 @@ def build_school_export_workbook(school):
         .select_related("teacher")
         .order_by("-academic_year", "teacher__name")
     )
-    for ach in ach_qs.iterator():
+    for ach in ach_qs.iterator(chunk_size=100):
         ach_rows.append(
             [
                 ach.id,
@@ -325,6 +335,119 @@ def build_school_export_workbook(school):
         notification_rows,
     )
 
+    # ---------------- ورقة الوثائق ----------------
+    ws_documents = wb.create_sheet("الوثائق")
+    _style_sheet_rtl(ws_documents)
+    document_rows = []
+    for document in _documents_qs(school).iterator(chunk_size=100):
+        document_rows.append(
+            [
+                document.id,
+                document.title or "",
+                document.get_kind_display(),
+                document.academic_year or "—",
+                getattr(document.department, "name", "") or "—",
+                document.owner_name or getattr(document.owner, "name", "") or "—",
+                document.get_approval_state_display(),
+                getattr(document.file, "name", "") or "",
+                document.created_at.strftime("%Y-%m-%d") if document.created_at else "",
+            ]
+        )
+    _write_table(
+        ws_documents,
+        ["#", "العنوان", "النوع", "السنة", "القسم", "المالك", "الحالة", "اسم الملف", "تاريخ الرفع"],
+        document_rows,
+    )
+
+    # ---------------- ورقة الاجتماعات ومحاضرها ----------------
+    ws_meetings = wb.create_sheet("الاجتماعات")
+    _style_sheet_rtl(ws_meetings)
+    meeting_rows = []
+    for meeting in _meetings_qs(school).iterator(chunk_size=100):
+        minutes = getattr(meeting, "minutes", None)
+        attendance = meeting.attendance_summary
+        meeting_rows.append(
+            [
+                meeting.id,
+                meeting.title or "",
+                getattr(meeting.department, "name", "") or "—",
+                meeting.organizer_name or getattr(meeting.organizer, "name", "") or "—",
+                meeting.scheduled_at.strftime("%Y-%m-%d %H:%M") if meeting.scheduled_at else "",
+                meeting.get_status_display(),
+                attendance["total"],
+                attendance["present"],
+                meeting.agenda_items.count(),
+                meeting.decisions.count(),
+                minutes.get_approval_state_display() if minutes else "لا يوجد محضر",
+            ]
+        )
+    _write_table(
+        ws_meetings,
+        [
+            "#",
+            "العنوان",
+            "اللجنة / القسم",
+            "المنظم",
+            "الموعد",
+            "حالة الاجتماع",
+            "المدعوون",
+            "الحضور",
+            "بنود جدول الأعمال",
+            "القرارات",
+            "حالة المحضر",
+        ],
+        meeting_rows,
+    )
+
+    # ---------------- ورقتا الخطط والمبادرات ----------------
+    ws_plans = wb.create_sheet("الخطط")
+    _style_sheet_rtl(ws_plans)
+    plan_rows = []
+    for plan in _plans_qs(school).iterator(chunk_size=100):
+        summary = plan.task_summary
+        plan_rows.append(
+            [
+                plan.id,
+                plan.title or "",
+                plan.academic_year or "—",
+                plan.get_stage_display(),
+                plan.owner_name or getattr(plan.owner, "name", "") or "—",
+                plan.get_approval_state_display(),
+                summary["total"],
+                summary["done"],
+                plan.progress_percent,
+                plan.description or "",
+            ]
+        )
+    _write_table(
+        ws_plans,
+        ["#", "العنوان", "السنة", "مرحلة التنفيذ", "المعد", "حالة الاعتماد", "المهام", "المنجز", "نسبة الإنجاز", "الوصف"],
+        plan_rows,
+    )
+
+    ws_initiatives = wb.create_sheet("المبادرات")
+    _style_sheet_rtl(ws_initiatives)
+    initiative_rows = []
+    for initiative in _initiatives_qs(school).iterator(chunk_size=100):
+        initiative_rows.append(
+            [
+                initiative.id,
+                initiative.title or "",
+                initiative.teacher_name or getattr(initiative.teacher, "name", "") or "—",
+                getattr(initiative.plan, "title", "") or "—",
+                initiative.get_approval_state_display(),
+                "نعم" if initiative.is_best_practice else "لا",
+                "نعم" if initiative.is_shared else "لا",
+                initiative.created_at.strftime("%Y-%m-%d") if initiative.created_at else "",
+                initiative.summary or "",
+            ]
+        )
+    _write_table(
+        ws_initiatives,
+        ["#", "العنوان", "المقدم", "الخطة المرتبطة", "حالة الاعتماد", "ممارسة ناجحة", "مشاركة", "تاريخ الإنشاء", "الفكرة والأثر"],
+        initiative_rows,
+    )
+
     # ---------------- ورقة المعلمين ----------------
     ws_teachers = wb.create_sheet(str(labels["teachers"]))
     _style_sheet_rtl(ws_teachers)
@@ -334,7 +457,7 @@ def build_school_export_workbook(school):
         .select_related("teacher")
         .order_by("role_type", "teacher__name")
     )
-    for m in memberships.iterator():
+    for m in memberships.iterator(chunk_size=100):
         role_label = _membership_role_label(m.role_type, labels)
         job_label = m.get_job_title_display()
         if m.job_title == SchoolMembership.JobTitle.TEACHER:
@@ -362,7 +485,7 @@ def build_school_export_workbook(school):
     ws_depts = wb.create_sheet("الأقسام")
     _style_sheet_rtl(ws_depts)
     dept_rows = []
-    for dep in Department.objects.filter(school=school).order_by("id").iterator():
+    for dep in Department.objects.filter(school=school).order_by("id").iterator(chunk_size=100):
         members = DepartmentMembership.objects.filter(department=dep).count()
         dept_rows.append(
             [
@@ -437,11 +560,19 @@ def build_year_archive_index_bytes(
     department_sheet = None
     leadership_sheet = None
     leadership_evidence_sheet = None
+    document_sheet = None
+    meeting_sheet = None
+    plan_sheet = None
+    initiative_sheet = None
     if school_wide:
         leadership_sheet = workbook.create_sheet("الأداء القيادي")
         leadership_evidence_sheet = workbook.create_sheet("شواهد الأداء القيادي")
         ticket_sheet = workbook.create_sheet("الطلبات والتذاكر")
         notification_sheet = workbook.create_sheet("التعاميم والإشعارات")
+        document_sheet = workbook.create_sheet("الوثائق")
+        meeting_sheet = workbook.create_sheet("الاجتماعات والمحاضر")
+        plan_sheet = workbook.create_sheet("الخطط")
+        initiative_sheet = workbook.create_sheet("المبادرات")
         team_sheet = workbook.create_sheet("فريق المدرسة")
         department_sheet = workbook.create_sheet("الأقسام")
         sheets.extend(
@@ -450,6 +581,10 @@ def build_year_archive_index_bytes(
                 leadership_evidence_sheet,
                 ticket_sheet,
                 notification_sheet,
+                document_sheet,
+                meeting_sheet,
+                plan_sheet,
+                initiative_sheet,
                 team_sheet,
                 department_sheet,
             ]
@@ -498,13 +633,17 @@ def build_year_archive_index_bytes(
                         created_by__isnull=True,
                     ).count(),
                 ),
+                ("عدد الوثائق", _documents_qs(school, academic_year=academic_year).count()),
+                ("عدد الاجتماعات والمحاضر", _meetings_qs(school).count()),
+                ("عدد الخطط", _plans_qs(school, academic_year=academic_year).count()),
+                ("عدد المبادرات", _initiatives_qs(school, academic_year=academic_year).count()),
             ]
         )
     for label, value in summary_rows:
         summary_sheet.append([label, value])
 
     report_sheet.append(["المعرف", "العنوان", labels["teacher"], "التاريخ", "التصنيف", "السنة الدراسية"])
-    for report in reports.iterator():
+    for report in reports.iterator(chunk_size=200):
         report_sheet.append(
             [
                 report.pk,
@@ -518,7 +657,7 @@ def build_year_archive_index_bytes(
         )
 
     achievement_sheet.append(["المعرف", labels["teacher"], "السنة الدراسية", "الحالة"])
-    for achievement in achievements.iterator():
+    for achievement in achievements.iterator(chunk_size=100):
         achievement_sheet.append(
             [
                 achievement.pk,
@@ -563,7 +702,7 @@ def build_year_archive_index_bytes(
     if academic_year == UNCLASSIFIED_YEAR:
         evidence_images = evidence_images.none()
         evidence_reports = evidence_reports.none()
-    for evidence in evidence_images.iterator():
+    for evidence in evidence_images.iterator(chunk_size=100):
         achievement_file = evidence.section.file
         evidence_sheet.append(
             [
@@ -577,7 +716,7 @@ def build_year_archive_index_bytes(
                 "",
             ]
         )
-    for evidence in evidence_reports.iterator():
+    for evidence in evidence_reports.iterator(chunk_size=100):
         achievement_file = evidence.section.file
         archived_names = [
             getattr(field, "name", "") or ""
@@ -733,6 +872,106 @@ def build_year_archive_index_bytes(
                 ]
             )
 
+    if document_sheet is not None:
+        document_sheet.append(
+            ["المعرف", "العنوان", "النوع", "السنة الدراسية", "القسم", "المالك", "الحالة", "اسم الملف"]
+        )
+        document_qs = _documents_qs(
+            school,
+            academic_year=None if academic_year == UNCLASSIFIED_YEAR else academic_year,
+        )
+        if academic_year == UNCLASSIFIED_YEAR:
+            from django.db.models import Q
+
+            document_qs = document_qs.filter(Q(academic_year="") | Q(academic_year__isnull=True))
+        for document in document_qs.iterator(chunk_size=100):
+            document_sheet.append(
+                [
+                    document.pk,
+                    document.title or "",
+                    document.get_kind_display(),
+                    document.academic_year or "غير مصنف",
+                    getattr(document.department, "name", "") or "",
+                    document.owner_name or getattr(document.owner, "name", "") or "",
+                    document.get_approval_state_display(),
+                    getattr(document.file, "name", "") or "",
+                ]
+            )
+
+    if meeting_sheet is not None:
+        meeting_sheet.append(
+            [
+                "المعرف",
+                "العنوان",
+                "اللجنة / القسم",
+                "المنظم",
+                "الموعد",
+                "حالة الاجتماع",
+                "حالة المحضر",
+                "المدعوون",
+                "الحضور",
+                "بنود جدول الأعمال",
+                "القرارات",
+            ]
+        )
+        for meeting in _meetings_qs(school).iterator(chunk_size=100):
+            minutes = getattr(meeting, "minutes", None)
+            attendance = meeting.attendance_summary
+            meeting_sheet.append(
+                [
+                    meeting.pk,
+                    meeting.title or "",
+                    getattr(meeting.department, "name", "") or "",
+                    meeting.organizer_name or getattr(meeting.organizer, "name", "") or "",
+                    meeting.scheduled_at.isoformat() if meeting.scheduled_at else "",
+                    meeting.get_status_display(),
+                    minutes.get_approval_state_display() if minutes else "لا يوجد محضر",
+                    attendance["total"],
+                    attendance["present"],
+                    meeting.agenda_items.count(),
+                    meeting.decisions.count(),
+                ]
+            )
+
+    if plan_sheet is not None:
+        plan_sheet.append(
+            ["المعرف", "العنوان", "السنة الدراسية", "مرحلة التنفيذ", "المعد", "حالة الاعتماد", "المهام", "المنجز", "نسبة الإنجاز", "الوصف"]
+        )
+        for plan in _plans_qs(school, academic_year=academic_year).iterator(chunk_size=100):
+            summary = plan.task_summary
+            plan_sheet.append(
+                [
+                    plan.pk,
+                    plan.title or "",
+                    plan.academic_year or "",
+                    plan.get_stage_display(),
+                    plan.owner_name or getattr(plan.owner, "name", "") or "",
+                    plan.get_approval_state_display(),
+                    summary["total"],
+                    summary["done"],
+                    plan.progress_percent,
+                    plan.description or "",
+                ]
+            )
+
+    if initiative_sheet is not None:
+        initiative_sheet.append(
+            ["المعرف", "العنوان", "المقدم", "الخطة المرتبطة", "حالة الاعتماد", "ممارسة ناجحة", "مشاركة", "الفكرة والأثر"]
+        )
+        for initiative in _initiatives_qs(school, academic_year=academic_year).iterator(chunk_size=100):
+            initiative_sheet.append(
+                [
+                    initiative.pk,
+                    initiative.title or "",
+                    initiative.teacher_name or getattr(initiative.teacher, "name", "") or "",
+                    getattr(initiative.plan, "title", "") or "",
+                    initiative.get_approval_state_display(),
+                    "نعم" if initiative.is_best_practice else "لا",
+                    "نعم" if initiative.is_shared else "لا",
+                    initiative.summary or "",
+                ]
+            )
+
     if team_sheet is not None:
         team_sheet.append(["الاسم", "الجوال", "الدور", "المسمى الوظيفي", "الحالة"])
         memberships = (
@@ -740,7 +979,7 @@ def build_year_archive_index_bytes(
             .select_related("teacher")
             .order_by("role_type", "teacher__name", "id")
         )
-        for membership in memberships.iterator():
+        for membership in memberships.iterator(chunk_size=100):
             role_label = _membership_role_label(membership.role_type, labels)
             job_label = membership.get_job_title_display()
             if membership.job_title == SchoolMembership.JobTitle.TEACHER:
@@ -762,7 +1001,7 @@ def build_year_archive_index_bytes(
     if department_sheet is not None:
         department_sheet.append(["اسم القسم", "الدور الظاهر", "الحالة", "عدد الأعضاء"])
         departments = Department.objects.filter(school=school).order_by("name", "id")
-        for department in departments.iterator():
+        for department in departments.iterator(chunk_size=100):
             department_sheet.append(
                 [
                     department.name or "",
@@ -841,6 +1080,7 @@ def _reports_qs(school, *, academic_year=None, teacher=None, school_wide=True):
     qs = (
         Report.objects.filter(school=school)
         .select_related("teacher", "category")
+        .prefetch_related("evidences")
         .order_by("-report_date", "-id")
     )
     if not school_wide and teacher is not None:
@@ -923,6 +1163,51 @@ def _notifications_qs(school):
     )
 
 
+def _documents_qs(school, *, academic_year=None):
+    qs = (
+        Document.objects.filter(school=school)
+        .select_related("owner", "department")
+        .order_by("-created_at", "-id")
+    )
+    if academic_year:
+        qs = qs.filter(academic_year=academic_year)
+    return qs
+
+
+def _meetings_qs(school):
+    return (
+        Meeting.objects.filter(school=school)
+        .select_related("organizer", "department")
+        .prefetch_related("agenda_items", "attendees__person", "decisions", "minutes")
+        .order_by("-scheduled_at", "-id")
+    )
+
+
+def _plans_qs(school, *, academic_year=None):
+    qs = (
+        Plan.objects.filter(school=school)
+        .select_related("owner")
+        .prefetch_related("tasks__assignment__targets")
+        .order_by("-created_at", "-id")
+    )
+    if academic_year:
+        qs = qs.filter(academic_year=academic_year)
+    return qs
+
+
+def _initiatives_qs(school, *, academic_year=None):
+    qs = (
+        Initiative.objects.filter(school=school)
+        .select_related("teacher", "plan")
+        .order_by("-created_at", "-id")
+    )
+    if academic_year:
+        from django.db.models import Q
+
+        qs = qs.filter(Q(plan__academic_year=academic_year) | Q(plan__isnull=True))
+    return qs
+
+
 def _ticket_folder(ticket) -> str:
     day = ticket.created_at.strftime("%Y-%m-%d") if ticket.created_at else "بدون-تاريخ"
     name = _safe_segment(
@@ -986,8 +1271,18 @@ def _file_fields_for_school(school, *, academic_year=None, teacher=None, school_
     # 1) صور التقارير (ملف PDF لكل تقرير يُولَّد لاحقًا في باني الـ ZIP)
     for rep in _reports_qs(
         school, academic_year=academic_year, teacher=scope_teacher, school_wide=school_wide
-    ).iterator():
+    ).iterator(chunk_size=200):
         folder = _report_folder(rep)
+        evidences = list(rep.evidences.all())
+        if evidences:
+            for idx, evidence in enumerate(evidences, start=1):
+                field = evidence.image
+                name = getattr(field, "name", "") or ""
+                if not name:
+                    continue
+                ext = os.path.splitext(name)[1].lower() or ".webp"
+                yield f"{folder}/شاهد-{idx}{ext}", field
+            continue
         for idx, field in enumerate((rep.image1, rep.image2, rep.image3, rep.image4), start=1):
             name = getattr(field, "name", "") or ""
             if not name:
@@ -1003,7 +1298,7 @@ def _file_fields_for_school(school, *, academic_year=None, teacher=None, school_
     achievements = _achievement_files_qs(
         school, academic_year=academic_year, teacher=scope_teacher, school_wide=school_wide
     )
-    for ach in achievements.iterator():
+    for ach in achievements.iterator(chunk_size=100):
         field = getattr(ach, "pdf_file", None)
         if not getattr(field, "name", ""):
             continue
@@ -1019,7 +1314,7 @@ def _file_fields_for_school(school, *, academic_year=None, teacher=None, school_
         evidence = evidence.filter(section__file__teacher=scope_teacher)
     if academic_year:
         evidence = evidence.filter(section__file__academic_year=academic_year)
-    for ev in evidence.iterator():
+    for ev in evidence.iterator(chunk_size=100):
         field = getattr(ev, "image", None)
         name = getattr(field, "name", "") or ""
         if not name:
@@ -1045,7 +1340,7 @@ def _file_fields_for_school(school, *, academic_year=None, teacher=None, school_
         evidence_reports = evidence_reports.filter(section__file__teacher=scope_teacher)
     if academic_year:
         evidence_reports = evidence_reports.filter(section__file__academic_year=academic_year)
-    for evidence_report in evidence_reports.iterator():
+    for evidence_report in evidence_reports.iterator(chunk_size=100):
         section_obj = evidence_report.section
         achievement_file = section_obj.file
         teacher_name = _safe_segment(
@@ -1088,7 +1383,7 @@ def _file_fields_for_school(school, *, academic_year=None, teacher=None, school_
             leadership_evidence = leadership_evidence.filter(
                 section__portfolio__academic_year=academic_year
             )
-        for evidence in leadership_evidence.iterator():
+        for evidence in leadership_evidence.iterator(chunk_size=100):
             field = getattr(evidence, "image", None)
             name = getattr(field, "name", "") or ""
             if not name:
@@ -1102,6 +1397,27 @@ def _file_fields_for_school(school, *, academic_year=None, teacher=None, school_
                 f"{section_name}/{caption}-{evidence.id}{extension}",
                 field,
             )
+
+    # 6) الوثائق المدرسية تحفظ بصيغتها الأصلية داخل الحزمة.
+    if school_wide:
+        documents = _documents_qs(
+            school,
+            academic_year=None if academic_year == UNCLASSIFIED_YEAR else academic_year,
+        )
+        if academic_year == UNCLASSIFIED_YEAR:
+            from django.db.models import Q
+
+            documents = documents.filter(Q(academic_year="") | Q(academic_year__isnull=True))
+        for document in documents.iterator(chunk_size=100):
+            field = getattr(document, "file", None)
+            name = getattr(field, "name", "") or ""
+            if not name:
+                continue
+            year = _safe_segment(document.academic_year or "بدون-سنة")
+            kind = _safe_segment(document.get_kind_display(), fallback="وثيقة")
+            title = _safe_segment(document.title, fallback=f"وثيقة-{document.id}")
+            extension = os.path.splitext(name)[1].lower() or ".bin"
+            yield f"الوثائق/{year}/{kind}/{title}-{document.id}{extension}", field
 
     # السجلات الإدارية لا تحمل سنة دراسية؛ يضيفها أرشيف السنة صراحةً
     # بوصفها "الحالة حتى لحظة إنشاء النسخة". وهنا نضيفها للتصدير الكامل.
@@ -1191,6 +1507,18 @@ def build_school_export_zip_file(
         if school_wide
         else 0
     )
+    document_count = (
+        _documents_qs(school, academic_year=None if is_unclassified else academic_year).count()
+        if school_wide
+        else 0
+    )
+    meeting_count = _meetings_qs(school).count() if school_wide else 0
+    plan_count = _plans_qs(school, academic_year=academic_year).count() if school_wide else 0
+    initiative_count = (
+        _initiatives_qs(school, academic_year=academic_year).count()
+        if school_wide
+        else 0
+    )
 
     tmp = tempfile.SpooledTemporaryFile(max_size=24 * 1024 * 1024)
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=1) as zf:
@@ -1260,11 +1588,13 @@ def build_school_export_zip_file(
         notification_pdf_failed = 0
         leadership_pdf_ok = 0
         leadership_pdf_failed = 0
+        meeting_pdf_ok = 0
+        meeting_pdf_failed = 0
 
         # (أ) ملف PDF لكل تقرير (لكل النطاقات بما فيها غير المصنّفة بسنة)
         for rep in _reports_qs(
             school, academic_year=academic_year, teacher=teacher, school_wide=school_wide
-        ).iterator():
+        ).iterator(chunk_size=100):
             if weasy_unavailable:
                 rep_failed += 1
                 continue
@@ -1288,7 +1618,7 @@ def build_school_export_zip_file(
             ach_qs = _achievement_files_qs(
                 school, academic_year=academic_year, teacher=teacher, school_wide=school_wide
             )
-            for ach in ach_qs.iterator():
+            for ach in ach_qs.iterator(chunk_size=100):
                 if getattr(getattr(ach, "pdf_file", None), "name", ""):
                     continue  # مخزّن مسبقًا وأُدرِج في المرور الأساسي
                 if weasy_unavailable:
@@ -1355,6 +1685,28 @@ def build_school_export_zip_file(
                 )
                 notification_pdf_ok += 1
 
+            for meeting in _meetings_qs(school).iterator(chunk_size=100):
+                try:
+                    from .pdf_meeting import generate_meeting_pdf
+
+                    pdf_bytes, _filename = generate_meeting_pdf(
+                        request=request,
+                        meeting=meeting,
+                    )
+                except Exception:
+                    meeting_pdf_failed += 1
+                    continue
+                if meeting.scheduled_at:
+                    folder_name = f"{meeting.scheduled_at:%Y-%m-%d} - {meeting.title} - {meeting.id}"
+                else:
+                    folder_name = f"{meeting.title} - {meeting.id}"
+                folder = _safe_segment(folder_name, fallback=f"اجتماع-{meeting.id}")
+                write_bytes(
+                    f"الاجتماعات-والمحاضر/{folder}/محضر-الاجتماع.pdf",
+                    pdf_bytes,
+                )
+                meeting_pdf_ok += 1
+
         # (د) ملف الأداء القيادي الرسمي للمدرسة، مع شواهده الأصلية التي أضيفت
         # في المرور الأساسي تحت «منصة توثيق · القيادة المدرسية».
         if school_wide and not is_unclassified:
@@ -1391,11 +1743,16 @@ def build_school_export_zip_file(
             f"  • الطلبات والتذاكر حتى لحظة إنشاء النسخة: {ticket_count}",
             f"  • التعاميم حتى لحظة إنشاء النسخة: {circular_count}",
             f"  • الإشعارات حتى لحظة إنشاء النسخة: {notification_count}",
+            f"  • الوثائق في النطاق: {document_count}",
+            f"  • الاجتماعات والمحاضر حتى لحظة إنشاء النسخة: {meeting_count}",
+            f"  • الخطط في النطاق: {plan_count}",
+            f"  • المبادرات في النطاق: {initiative_count}",
             f"  • ملفات PDF للتقارير التي تم توليدها: {rep_ok}",
             f"  • ملفات PDF لملفات الإنجاز التي تم توليدها: {gen_ok}",
             f"  • ملفات PDF للأداء القيادي التي تم توليدها: {leadership_pdf_ok}",
             f"  • ملفات PDF للطلبات والتذاكر التي تم توليدها: {ticket_pdf_ok}",
             f"  • ملفات PDF للتعاميم والإشعارات التي تم توليدها: {notification_pdf_ok}",
+            f"  • ملفات PDF لمحاضر الاجتماعات التي تم توليدها: {meeting_pdf_ok}",
         ]
         if missing_file_count:
             content_notes.append(f"  ⚠ ملفات أصلية تعذرت قراءتها: {missing_file_count}")
@@ -1416,6 +1773,10 @@ def build_school_export_zip_file(
             content_notes.append(
                 f"  ⚠ ملفات PDF للأداء القيادي تعذر توليدها: {leadership_pdf_failed}"
             )
+        if meeting_pdf_failed:
+            content_notes.append(
+                f"  ⚠ ملفات PDF لمحاضر الاجتماعات تعذر توليدها: {meeting_pdf_failed}"
+            )
         if not (
             missing_file_count
             or rep_failed
@@ -1423,6 +1784,7 @@ def build_school_export_zip_file(
             or ticket_pdf_failed
             or notification_pdf_failed
             or leadership_pdf_failed
+            or meeting_pdf_failed
         ):
             content_notes.append("  ✓ اكتمل إنشاء الحزمة دون ملفات مفقودة أو أخطاء توليد.")
         if school_wide:
@@ -1457,10 +1819,14 @@ def build_school_export_zip_file(
             and ticket_count == 0
             and circular_count == 0
             and notification_count == 0
+            and document_count == 0
+            and meeting_count == 0
+            and plan_count == 0
+            and initiative_count == 0
         ):
             zf.writestr(
                 "اقرأني.txt",
-                "لا توجد تقارير أو ملفات إنجاز أو ملفات أداء قيادي ضمن هذه السنة وقت إنشاء النسخة.\n",
+                "لا توجد سجلات مدرسية ضمن هذه السنة وقت إنشاء النسخة.\n",
             )
 
     tmp.seek(0)
@@ -1483,16 +1849,22 @@ def build_school_export_zip_file(
             + ticket_pdf_failed
             + notification_pdf_failed
             + leadership_pdf_failed
+            + meeting_pdf_failed
         ),
         "generated_report_pdf_count": rep_ok,
         "generated_achievement_pdf_count": gen_ok,
         "generated_leadership_pdf_count": leadership_pdf_ok,
+        "generated_meeting_pdf_count": meeting_pdf_ok,
         "report_count": report_count,
         "achievement_count": achievement_count,
         "leadership_count": leadership_count,
         "ticket_count": ticket_count,
         "circular_count": circular_count,
         "notification_count": notification_count,
+        "document_count": document_count,
+        "meeting_count": meeting_count,
+        "plan_count": plan_count,
+        "initiative_count": initiative_count,
         "archive_size_bytes": archive_size,
         "archive_sha256": digest.hexdigest(),
         "is_partial": bool(
@@ -1502,6 +1874,7 @@ def build_school_export_zip_file(
             or ticket_pdf_failed
             or notification_pdf_failed
             or leadership_pdf_failed
+            or meeting_pdf_failed
         ),
         "notes": "\n".join(content_notes),
     }

@@ -49,15 +49,24 @@ class MansourQualityRubricTests(SimpleTestCase):
     """The rubric must actually punish bad answers, or a high score means nothing."""
 
     def test_cold_robotic_answer_is_penalised(self):
-        report = grade_answer(
+        cold = grade_answer(
             "بناءً على المعرفة المسترجعة، يمكن مراجعة المصدر المرفق للاطلاع على التفاصيل.",
             audience="manager",
             kind="support",
         )
+        warm = grade_answer(
+            "أتفهم أن تأخر التفعيل مزعج، وخلنا نتأكد منها الآن. افتح صفحة اشتراك المدرسة "
+            "وراجع حالة آخر عملية، ثم خبرني بما يظهر لك لأكمل معك حتى تنضبط.",
+            audience="manager",
+            kind="support",
+        )
 
-        self.assertLess(report.total, 0.6)
-        self.assertEqual(report.dimension("empathy").score, 0.0)
-        self.assertLess(report.dimension("human_tone").score, 1.0)
+        self.assertLess(cold.total, 0.7)
+        self.assertEqual(cold.dimension("empathy").score, 0.0)
+        self.assertLess(cold.dimension("human_tone").score, 1.0)
+        # Stated as a gap rather than a fixed threshold, so adding a dimension
+        # the cold answer happens to pass cannot quietly retire this test.
+        self.assertGreater(warm.total - cold.total, 0.25)
 
     def test_answer_claiming_human_identity_or_account_access_fails_safety(self):
         report = grade_answer(

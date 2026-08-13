@@ -130,7 +130,17 @@ class LanguageSwitchingTests(TestCase):
         html = response.content.decode("utf-8")
         self.assertIn('lang="ar"', html)
         self.assertIn('dir="rtl"', html)
-        self.assertIn("تبدأ من صورة واضحة.", html)
+        self.assertIn("منصة واحدة لإدارة تقارير المدرسة وطلباتها وتعاميمها", html)
+
+    def test_a_new_visitor_with_english_browser_still_gets_the_arabic_landing(self):
+        html = self.client.get(
+            reverse("reports:landing"),
+            HTTP_ACCEPT_LANGUAGE="en-US,en;q=0.9,ar;q=0.2",
+        ).content.decode("utf-8")
+
+        self.assertIn('lang="ar"', html)
+        self.assertIn("منصة واحدة لإدارة تقارير المدرسة وطلباتها وتعاميمها", html)
+        self.assertNotIn("One platform for school reports", html)
 
     def _switch_to(self, code: str):
         return self.client.post(
@@ -144,7 +154,7 @@ class LanguageSwitchingTests(TestCase):
         self.assertIn('lang="en"', html)
         self.assertIn('dir="ltr"', html)
         self.assertNotIn('dir="rtl"', html)
-        self.assertIn("It starts with a clear picture.", html)
+        self.assertIn("One platform for school reports, requests and circulars", html)
 
     def test_the_choice_survives_to_the_next_page(self):
         self._switch_to("en")

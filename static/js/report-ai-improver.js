@@ -16,6 +16,7 @@
     function (root) {
       var target = document.getElementById(root.getAttribute("data-target-id") || "id_idea");
       var endpoint = root.getAttribute("data-endpoint") || "";
+      var documentName = root.getAttribute("data-document-name") || "التقرير";
       var trigger = root.querySelector("[data-report-ai-trigger]");
       var undo = root.querySelector("[data-report-ai-undo]");
       var preview = root.querySelector("[data-report-ai-preview]");
@@ -79,7 +80,7 @@
         var text = String(target.value || "").trim();
         if (isLoading) return;
         if (text.length < 20) {
-          setStatus("اكتب تفاصيل التقرير أولًا بما لا يقل عن 20 حرفًا.", "error");
+          setStatus("اكتب نص " + documentName + " أولًا بما لا يقل عن 20 حرفًا.", "error");
           target.focus();
           return;
         }
@@ -90,7 +91,7 @@
         }
 
         closePreview();
-        setStatus("أراجع الصياغة مع الحفاظ على معلومات التقرير…", "");
+        setStatus("أراجع الصياغة مع الحفاظ على معلومات " + documentName + "…", "");
         setLoading(true);
 
         var controller = typeof window.AbortController === "function"
@@ -154,7 +155,7 @@
           dispatchTextChange(target);
           closePreview();
           if (undo) undo.hidden = false;
-          setStatus("تم اعتماد الصياغة المحسنة. راجعها قبل حفظ التقرير.", "success");
+          setStatus("تم اعتماد الصياغة المحسنة. راجعها قبل حفظ " + documentName + ".", "success");
           target.focus();
         });
       }

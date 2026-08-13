@@ -82,7 +82,27 @@ def platform_ai_toggle_enabled(feature: str) -> bool:
     return bool(get_platform_ai_feature_toggles().get(feature, False))
 
 
-def ai_feature_flags(request) -> dict[str, bool]:
+def mansour_chat_scope(request) -> str:
+    """An opaque per-session key for the assistant's saved conversation.
+
+    The widget keeps its transcript in ``sessionStorage`` so navigating does not
+    wipe it. On a shared school device that raises a question the storage alone
+    cannot answer: after one user logs out and another logs in *in the same tab*,
+    whose conversation is restored? Django cycles the session key on login, so
+    scoping the transcript to a digest of it retires the previous one.
+
+    A digest, never the session key itself: the value reaches the page, and the
+    session key is a credential.
+    """
+    from django.utils.crypto import salted_hmac
+
+    session_key = getattr(getattr(request, "session", None), "session_key", "") or ""
+    if not session_key:
+        return "anon"
+    return salted_hmac("mansour.chat.scope", session_key).hexdigest()[:16]
+
+
+def ai_feature_flags(request) -> dict[str, object]:
     """Expose visual switches to public and authenticated templates."""
 
     toggles = get_platform_ai_feature_toggles()
@@ -91,4 +111,5 @@ def ai_feature_flags(request) -> dict[str, bool]:
         "AI_REPORT_IMPROVEMENT_ENABLED": toggles[FEATURE_REPORT_IMPROVEMENT],
         "AI_INTERNAL_HELP_ENABLED": toggles[FEATURE_INTERNAL_HELP],
         "AI_VOICE_REPORT_ENABLED": toggles[FEATURE_VOICE_REPORT],
+        "MANSOUR_CHAT_SCOPE": mansour_chat_scope(request),
     }

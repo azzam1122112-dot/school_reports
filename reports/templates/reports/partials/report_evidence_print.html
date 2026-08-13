@@ -1,0 +1,11 @@
+<section class="section evidence-section evidence-section--layout-{{ EVIDENCE_LAYOUT }}{% if EVIDENCE_SEPARATE_PAGE %} evidence-section--separate{% endif %} print-section">
+  <div class="section-h"><span class="section-index"></span><span>المرفقات والشواهد</span></div>
+  <div class="images-grid images-grid--{{ EVIDENCE_LAYOUT }}">
+    {% for evidence in EVIDENCE_ITEMS %}
+    <figure class="img-box img-box--{{ evidence.display_size }}">
+       <img class="img-fit--{{ evidence.fit_mode }}" src="{{ evidence.src }}" alt="{{ evidence.description }}">
+       <figcaption class="img-cap"><span>شاهد {{ forloop.counter|stringformat:"02d" }}</span>{{ evidence.description }}</figcaption>
+    </figure>
+    {% endfor %}
+  </div>
+</section>

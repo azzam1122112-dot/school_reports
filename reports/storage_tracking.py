@@ -218,6 +218,7 @@ def connect_all():
         LeadershipEvidenceImage,
         Notification,
         Report,
+        ReportEvidence,
         SchoolYearArchive,
         TeacherAchievementFile,
         Ticket,
@@ -226,6 +227,8 @@ def connect_all():
 
     register(Report, fields=["image1", "image2", "image3", "image4"],
              school_id_getter=lambda i: getattr(i, "school_id", None))
+    register(ReportEvidence, fields=["image"],
+             school_id_getter=lambda i: getattr(getattr(i, "report", None), "school_id", None))
     register(TeacherAchievementFile, fields=["pdf_file"],
              school_id_getter=lambda i: getattr(i, "school_id", None))
     register(AchievementEvidenceImage, fields=["image"],

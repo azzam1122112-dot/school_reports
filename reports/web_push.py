@@ -104,7 +104,10 @@ def _payload_for(notification: Notification, recipient_id: int) -> dict:
         "notificationId": notification.pk,
         "requireInteraction": bool(notification.is_important or is_circular),
         "icon": "/static/img/pwa/icon-192.png",
-        "badge": "/static/img/pwa/icon-192.png",
+        # Android keeps only the badge's alpha and tints it, so a full-colour
+        # icon arrives in the status bar as a grey square. ``badge-96`` is the
+        # glyph alone, white on transparent.
+        "badge": "/static/img/pwa/badge-96.png",
     }
 
 

@@ -1,13 +1,18 @@
-const CACHE_NAME = "tawtheeq-v9";
+const CACHE_NAME = "tawtheeq-v11";
 const OFFLINE_URL = "/static/offline.html";
 const CORE_ASSETS = [
   OFFLINE_URL,
-  "/static/manifest.json?v=20260803.1",
+  // No query string: the manifest is looked up by path, so a versioned key
+  // here would never be matched by the request that needs it offline.
+  "/static/manifest.json",
   "/static/img/pwa/icon-192.png",
   "/static/img/pwa/icon-512.png",
   "/static/img/pwa/icon-maskable-192.png",
   "/static/img/pwa/icon-maskable-512.png",
-  "/static/img/pwa/apple-touch-icon-180.png"
+  "/static/img/pwa/apple-touch-icon-180.png",
+  // The badge is drawn by the OS while the device may be offline.
+  "/static/img/pwa/badge-96.png",
+  "/static/img/pwa/badge-72.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -142,7 +147,7 @@ self.addEventListener("push", (event) => {
     await self.registration.showNotification(title, {
       body,
       icon: payload.icon || "/static/img/pwa/icon-192.png",
-      badge: payload.badge || "/static/img/pwa/icon-192.png",
+      badge: payload.badge || "/static/img/pwa/badge-96.png",
       tag: payload.tag || "tawtheeq-notification",
       renotify: true,
       requireInteraction: Boolean(payload.requireInteraction),

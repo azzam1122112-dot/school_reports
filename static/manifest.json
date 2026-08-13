@@ -3,7 +3,7 @@
   "name": "منصة توثيق",
   "short_name": "منصة توثيق",
   "description": "الحل المتكامل لإدارة التقارير والطلبات المدرسية",
-  "start_url": "/",
+  "start_url": "/home/?source=pwa",
   "scope": "/",
   "lang": "ar",
   "dir": "rtl",
@@ -11,6 +11,37 @@
   "background_color": "#F3F7F4",
   "theme_color": "#006c35",
   "categories": ["education", "productivity"],
+  "display_override": ["standalone", "minimal-ui"],
+  "shortcuts": [
+    {
+      "name": "إضافة تقرير",
+      "short_name": "تقرير جديد",
+      "description": "ابدأ تقرير نشاط جديد مباشرة",
+      "url": "/reports/add/",
+      "icons": [{ "src": "/static/img/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "تقاريري",
+      "short_name": "تقاريري",
+      "description": "افتح تقاريرك المحفوظة",
+      "url": "/reports/my/",
+      "icons": [{ "src": "/static/img/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "إشعاراتي",
+      "short_name": "الإشعارات",
+      "description": "اطّلع على التعاميم والإشعارات الواردة",
+      "url": "/notifications/mine/",
+      "icons": [{ "src": "/static/img/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "ملف الإنجاز",
+      "short_name": "الإنجاز",
+      "description": "افتح ملف إنجازك",
+      "url": "/achievement/my/",
+      "icons": [{ "src": "/static/img/pwa/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
   "related_applications": [
     {
       "platform": "webapp",

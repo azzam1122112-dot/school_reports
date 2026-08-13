@@ -4,12 +4,13 @@
   if (window.__tawtheeqPwaInstallerLoaded) return;
   window.__tawtheeqPwaInstallerLoaded = true;
 
-  var SW_URL = "/sw.js?v=9";
+  var SW_URL = "/sw.js?v=11";
   var INSTALLED_KEY = "tawtheeq_pwa_installed_v1";
   var SESSION_DISMISSED_KEY = "tawtheeq_pwa_install_dismissed_session_v1";
-  var AUTO_NATIVE_DELAY_MS = 350;
-  var AUTO_IOS_DELAY_MS = 700;
-  var AUTO_FALLBACK_DELAY_MS = 1400;
+  var TASK_COMPLETE_KEY = "tawtheeq_pwa_task_completed_v1";
+  var AUTO_NATIVE_DELAY_MS = 1200;
+  var AUTO_IOS_DELAY_MS = 1800;
+  var AUTO_FALLBACK_DELAY_MS = 2400;
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
@@ -17,6 +18,17 @@
         scope: "/",
         updateViaCache: "none"
       }).then(function (registration) {
+        function announceUpdate(worker) {
+          window.dispatchEvent(new CustomEvent("tawtheeq:pwa-update", { detail: { worker: worker } }));
+        }
+        if (registration.waiting && navigator.serviceWorker.controller) announceUpdate(registration.waiting);
+        registration.addEventListener("updatefound", function () {
+          var worker = registration.installing;
+          if (!worker) return;
+          worker.addEventListener("statechange", function () {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) announceUpdate(worker);
+          });
+        });
         registration.update().catch(function () {});
       }).catch(function () {});
     });
@@ -106,6 +118,11 @@
 
   function isKnownInstalled() {
     return isStandalone || knownInstalled;
+  }
+
+  function hasCompletedTask() {
+    try { return window.localStorage.getItem(TASK_COMPLETE_KEY) === "true"; }
+    catch (error) { return false; }
   }
 
   knownInstalled = isStandalone || getLocalFlag(INSTALLED_KEY);
@@ -212,7 +229,7 @@
     if (
       isKnownInstalled() ||
       (!options.explicit && (
-        !autoPromptAllowed || !isMobile || wasDismissedThisSession()
+        !autoPromptAllowed || !isMobile || !hasCompletedTask() || wasDismissedThisSession()
       ))
     ) return false;
     promptRoot.hidden = false;
@@ -252,6 +269,13 @@
       trigger.hidden = true;
       return;
     }
+    // البطاقة ونصّها مكتوبان للجوال («ثبّت على الجوال»، خطوات سفاري). الزرّ
+    // المعروض للزائر يحمل هذه السمة فيختفي على سطح المكتب، بدل تكرار حساب
+    // «هل هذا جوال؟» في CSS بمعيارٍ ثانٍ قد يخالف ما يراه الجافاسكربت.
+    if (!isMobile && trigger.hasAttribute("data-pwa-install-mobile-only")) {
+      trigger.hidden = true;
+      return;
+    }
     trigger.addEventListener("click", function () {
       closeMobileDrawer();
       window.setTimeout(function () { showInstallPrompt(true); }, 120);
@@ -266,7 +290,7 @@
       markNotInstalled();
       deferredPrompt = event;
       configureNativePrompt();
-      if (autoPromptAllowed) {
+      if (autoPromptAllowed && hasCompletedTask()) {
         window.setTimeout(function () {
           if (deferredPrompt && document.visibilityState === "visible") showPrompt();
         }, AUTO_NATIVE_DELAY_MS);
@@ -312,10 +336,17 @@
     hideInstalledExperience();
   });
 
+  window.addEventListener("tawtheeq:task-complete", function () {
+    try { window.localStorage.setItem(TASK_COMPLETE_KEY, "true"); } catch (error) {}
+    if (!isKnownInstalled() && autoPromptAllowed && isMobile && !wasDismissedThisSession()) {
+      window.setTimeout(function () { showInstallPrompt(false); }, AUTO_NATIVE_DELAY_MS);
+    }
+  });
+
   checkInstalledRelatedApps().then(function (installed) {
     window.TawtheeqPWA.isInstalled = installed;
     window.TawtheeqPWA.canInstall = !installed && isMobile;
-    if (installed || !autoPromptAllowed || !isMobile || wasDismissedThisSession()) return;
+    if (installed || !autoPromptAllowed || !isMobile || !hasCompletedTask() || wasDismissedThisSession()) return;
 
     // iOS does not emit beforeinstallprompt, while some Android and alternative
     // mobile browsers may not emit it either. Always retain a manual path.

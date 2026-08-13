@@ -1,10 +1,16 @@
 {% extends "base.html" %}
-{% load hijri_tags %}
+{% load hijri_tags static %}
 
 {% block title %}{{ meeting.title }} | الاجتماعات{% endblock %}
 
 {% block head %}
 {% include "reports/_meeting_theme.html" %}
+{% if can_edit_minutes and report_ai_enabled %}
+<link rel="stylesheet" href="{% static 'css/report-ai-improver.css' %}?v=20260813.2">
+{% endif %}
+{% if can_edit_minutes and voice_report_enabled %}
+<link rel="stylesheet" href="{% static 'css/report-voice.css' %}?v=20260813.1">
+{% endif %}
 <style nonce="{{ CSP_NONCE }}">
   .mt-grid { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; }
   @media (max-width: 900px) { .mt-grid { grid-template-columns: 1fr; } }
@@ -42,6 +48,24 @@
     resize: vertical;
   }
   .mt-minutes textarea:focus { outline: 2px solid var(--asg-green); outline-offset: 1px; }
+  .mt-format-picker ul { display: inline-flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; padding: 4px; list-style: none; border: 1px solid var(--asg-line); border-radius: 8px; background: var(--asg-soft); }
+  .mt-format-picker label { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 7px 12px; border-radius: 6px; font-weight: 850; cursor: pointer; }
+  .mt-structured-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .mt-structured-grid .asg-field:first-child { grid-column: 1 / -1; }
+  .mt-structured-readonly { display: grid; gap: 12px; }
+  .mt-structured-readonly section { padding: 14px; border-right: 4px solid var(--asg-green); border-radius: 7px; background: var(--asg-soft); }
+  .mt-structured-readonly h3 { margin: 0 0 7px; color: var(--asg-green-dark); font-size: .92rem; }
+  @media (max-width: 720px) { .mt-structured-grid { grid-template-columns: 1fr; } .mt-structured-grid .asg-field:first-child { grid-column: auto; } }
+  .mt-assistant-head {
+    display: flex; align-items: flex-start; gap: .65rem;
+    margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--asg-line);
+  }
+  .mt-assistant-head__icon {
+    width: 34px; height: 34px; flex: none; display: grid; place-items: center;
+    border-radius: 9px; color: #fff; background: var(--asg-green);
+  }
+  .mt-assistant-head strong { display: block; font-size: .88rem; font-weight: 900; }
+  .mt-assistant-head > div > span { display: block; margin-top: .12rem; color: var(--asg-muted); font-size: .76rem; line-height: 1.75; }
   .mt-readonly {
     font-size: .88rem; line-height: 1.95; white-space: pre-wrap;
     padding: .85rem .95rem; border-radius: 13px; background: var(--asg-soft);
@@ -128,6 +152,10 @@
        target="_blank" rel="noopener">
       <i class="fa-solid fa-print" aria-hidden="true"></i>
       <span class="mtg-iconbtn__text">طباعة المحضر</span>
+    </a>
+    <a class="mtg-iconbtn" href="{% url 'reports:meeting_pdf' meeting.pk %}">
+      <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+      <span class="mtg-iconbtn__text">تنزيل PDF</span>
     </a>
   </div>
 
@@ -275,16 +303,59 @@
             </div>
           {% endif %}
 
-          {% if is_organizer and minutes.is_editable_by_owner %}
-            <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}">
+          {% if can_edit_minutes %}
+            <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}"
+                  data-pwa-draft-key="meeting-minutes-{{ meeting.pk }}-u{{ request.user.id|default:0 }}">
               {% csrf_token %}
               <input type="hidden" name="meeting_action" value="save_minutes">
-              {{ minutes_form.body }}
+              <div class="mt-format-picker" data-minutes-format>{{ minutes_form.format_mode }}</div>
+              <div data-minutes-panel="freeform">
+                <div class="asg-field">
+                  <label for="{{ minutes_form.body.id_for_label }}">نص المحضر</label>
+                  {{ minutes_form.body }}
+                </div>
+
+              {% if voice_report_enabled or report_ai_enabled %}
+                <div class="mt-assistant-head">
+                  <span class="mt-assistant-head__icon" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                  <div>
+                    <strong>مساعد المحضر الذكي</strong>
+                    <span>أملِ مجريات الاجتماع بصوتك أو حسّن المسودة المكتوبة، ثم راجع النتيجة قبل إدراجها.</span>
+                  </div>
+                </div>
+              {% endif %}
+
+              {% if voice_report_enabled %}
+                {% url 'reports:transcribe_meeting_minutes_voice' meeting.pk as meeting_voice_endpoint %}
+                {% include "reports/partials/report_voice_input.html" with target_id=minutes_form.body.id_for_label assistant_endpoint=meeting_voice_endpoint meeting_minutes_mode=True %}
+              {% endif %}
+              {% if report_ai_enabled %}
+                {% url 'reports:improve_meeting_minutes' meeting.pk as meeting_ai_endpoint %}
+                {% include "reports/partials/report_ai_improver.html" with target_id=minutes_form.body.id_for_label assistant_endpoint=meeting_ai_endpoint meeting_minutes_mode=True %}
+              {% endif %}
+              </div>
+
+              <div class="mt-structured-grid" data-minutes-panel="structured" hidden>
+                <div class="asg-field"><label for="{{ minutes_form.proceedings.id_for_label }}">مجريات الاجتماع</label>{{ minutes_form.proceedings }}</div>
+                <div class="asg-field"><label for="{{ minutes_form.discussions.id_for_label }}">أبرز النقاشات</label>{{ minutes_form.discussions }}</div>
+                <div class="asg-field"><label for="{{ minutes_form.decisions_summary.id_for_label }}">ملخص القرارات</label>{{ minutes_form.decisions_summary }}</div>
+                <div class="asg-field"><label for="{{ minutes_form.recommendations.id_for_label }}">التوصيات</label>{{ minutes_form.recommendations }}</div>
+                <div class="asg-field"><label for="{{ minutes_form.assignments_summary.id_for_label }}">التكليفات</label>{{ minutes_form.assignments_summary }}</div>
+              </div>
+
               <button type="submit" class="mtg-iconbtn u-mt-md">
                 <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
                 حفظ المحضر
               </button>
             </form>
+          {% elif minutes.format_mode == 'structured' %}
+            <div class="mt-structured-readonly">
+              {% if minutes.proceedings %}<section><h3>مجريات الاجتماع</h3><div>{{ minutes.proceedings|linebreaksbr }}</div></section>{% endif %}
+              {% if minutes.discussions %}<section><h3>أبرز النقاشات</h3><div>{{ minutes.discussions|linebreaksbr }}</div></section>{% endif %}
+              {% if minutes.decisions_summary %}<section><h3>ملخص القرارات</h3><div>{{ minutes.decisions_summary|linebreaksbr }}</div></section>{% endif %}
+              {% if minutes.recommendations %}<section><h3>التوصيات</h3><div>{{ minutes.recommendations|linebreaksbr }}</div></section>{% endif %}
+              {% if minutes.assignments_summary %}<section><h3>التكليفات</h3><div>{{ minutes.assignments_summary|linebreaksbr }}</div></section>{% endif %}
+            </div>
           {% elif minutes.body %}
             <div class="mt-readonly">{{ minutes.body }}</div>
           {% else %}
@@ -602,7 +673,27 @@
 {% block scripts %}
   {{ block.super }}
   {% include "reports/partials/_meeting_copy_link.html" %}
+  {% if can_edit_minutes and report_ai_enabled %}
+    <script src="{% static 'js/report-ai-improver.js' %}?v=20260813.1" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
+  {% endif %}
+  {% if can_edit_minutes and voice_report_enabled %}
+    <script src="{% static 'js/report-voice.js' %}?v=20260813.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+  {% endif %}
   <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    (function () {
+      var picker = document.querySelector('[data-minutes-format]');
+      if (!picker) return;
+      function syncMinutesFormat() {
+        var selected = picker.querySelector('input:checked');
+        var mode = selected ? selected.value : 'freeform';
+        document.querySelectorAll('[data-minutes-panel]').forEach(function (panel) {
+          panel.hidden = panel.getAttribute('data-minutes-panel') !== mode;
+        });
+      }
+      picker.addEventListener('change', syncMinutesFormat);
+      syncMinutesFormat();
+    })();
+
     (function () {
       var dialog = document.getElementById('mtCancelDialog');
       var open = document.getElementById('mtCancelOpen');

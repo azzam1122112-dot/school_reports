@@ -6,6 +6,10 @@
   background: linear-gradient(135deg, rgba(0, 108, 53, .055), rgba(185, 151, 91, .08));
 }
 
+/* أزرار المعاينة والتراجع لها display صريح أدناه، فيجب أن تبقى سمة hidden
+   صاحبة الكلمة الأخيرة قبل أن ينشئ المستخدم نتيجة قابلة للمراجعة. */
+.report-ai-improver [hidden] { display: none !important; }
+
 .report-ai-quota {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

@@ -97,6 +97,11 @@ tmp/
 # Local scratch scripts
 *.tmp.py
 
+# Local browser/visual QA output. These can contain session profiles, screenshots,
+# and machine-specific paths; reports belong in CI logs or release notes instead.
+qa-artifacts/
+.claude/skills/dark-mode-audit/scripts/mobile_sweep.cjs
+
 # ---------------------------
 # ملفات بيانات الدخول المحلية
 # ---------------------------
