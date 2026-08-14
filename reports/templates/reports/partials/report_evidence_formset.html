@@ -43,9 +43,9 @@
             <button type="button" class="ree-file-label" data-image-source="camera">
               <i class="fa-solid fa-camera" aria-hidden="true"></i><span>التقاط صورة</span>
             </button>
-            <button type="button" class="ree-file-label ree-file-label--secondary" data-image-source="gallery">
+            <label class="ree-file-label ree-file-label--secondary" data-image-source="gallery" for="{{ evidence_form.image.id_for_label }}">
               <i class="fa-regular fa-images" aria-hidden="true"></i><span>{% if evidence_form.instance.pk %}استبدال من الصور{% else %}اختيار من الصور{% endif %}</span>
-            </button>
+            </label>
           </div>
           {{ evidence_form.image }}
           <label class="ree-description">
@@ -60,7 +60,7 @@
             <label>{{ evidence_form.show_in_print }}<span>إظهار في الطباعة</span></label>
             <label class="ree-delete">{{ evidence_form.DELETE }}<span>حذف الشاهد</span></label>
           </div>
-          <div class="ree-file-note" data-file-note></div>
+          <div class="ree-file-note" data-file-note aria-live="polite"></div>
           {% for field in evidence_form.visible_fields %}
             {% if field.errors %}<div class="ree-error">{{ field.label }}: {{ field.errors.0 }}</div>{% endif %}
           {% endfor %}

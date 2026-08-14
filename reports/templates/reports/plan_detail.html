@@ -202,7 +202,7 @@
             {% csrf_token %}
             <input type="hidden" name="plan_action" value="add_goal">
             <div class="pln-form">
-              <div class="asg-field"><label>هدف جديد</label>{{ goal_form.title }}</div>
+              <div class="asg-field"><label for="{{ goal_form.title.id_for_label }}">هدف جديد</label>{{ goal_form.title }}</div>
               <div class="asg-field"><label>{{ goal_form.indicator.label }}</label>{{ goal_form.indicator }}</div>
               <div class="asg-field"><label>{{ goal_form.target.label }}</label>{{ goal_form.target }}</div>
             </div>
@@ -285,7 +285,7 @@
           <form method="post" action="{% url 'reports:plan_action' plan.pk %}" class="u-mt-2xl">
             {% csrf_token %}
             <input type="hidden" name="plan_action" value="add_task">
-            <div class="asg-field"><label>مهمة جديدة</label>{{ task_form.title }}</div>
+            <div class="asg-field"><label for="{{ task_form.title.id_for_label }}">مهمة جديدة</label>{{ task_form.title }}</div>
             <div class="asg-field">{{ task_form.description }}</div>
             <div class="pln-form">
               <div class="asg-field"><label>{{ task_form.goal.label }}</label>{{ task_form.goal }}</div>

@@ -154,6 +154,48 @@ class ConfigurableReportSectionTests(TestCase):
         evidence = report.evidences.get()
         self.assertEqual(evidence.description, "")
 
+    def test_create_report_saves_image_without_optional_description(self):
+        payload = {
+            "section_selection_enabled": "True",
+            "title": "تقرير جديد مع صورة",
+            "report_date": "2026-08-14",
+            "day_name": "الجمعة",
+            "category": self.category.code,
+            "show_details": "on",
+            "idea": "تفاصيل مكتملة مع شاهد مصور.",
+            "evidence-TOTAL_FORMS": "4",
+            "evidence-INITIAL_FORMS": "0",
+            "evidence-MIN_NUM_FORMS": "0",
+            "evidence-MAX_NUM_FORMS": "8",
+            "evidence-0-image": self._evidence_upload("create-evidence.png"),
+            "evidence-0-order": "1",
+            "evidence-0-description": "",
+            "evidence-0-display_size": "auto",
+            "evidence-0-fit_mode": "contain",
+            "evidence-0-show_in_print": "on",
+        }
+        for index in range(1, 4):
+            payload[f"evidence-{index}-order"] = str(index + 1)
+            payload[f"evidence-{index}-display_size"] = "auto"
+            payload[f"evidence-{index}-fit_mode"] = "contain"
+            payload[f"evidence-{index}-show_in_print"] = "on"
+
+        response = self.client.post(
+            reverse("reports:add_report"),
+            payload,
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("reports:my_reports"),
+            fetch_redirect_response=False,
+        )
+        report = Report.objects.get(title="تقرير جديد مع صورة")
+        evidence = report.evidences.get()
+        self.assertEqual(evidence.description, "")
+        self.assertTrue(evidence.image.name.endswith(".webp"))
+
     def test_edit_report_xhr_validation_failure_returns_422(self):
         report = self._editable_report()
         payload = self._edit_payload(report, description="")

@@ -265,6 +265,15 @@
           </div>
         {% endif %}
         <div class="smart-section">
+          <label class="smart-label" for="{{ form.approval_route.id_for_label }}">مسار الاعتماد</label>
+          {{ form.approval_route }}
+          {% if form.approval_route.errors %}<div class="smart-error">{{ form.approval_route.errors.0 }}</div>{% endif %}
+          <div class="smart-help">
+            «مباشرةً» يرسل التقرير إلى مدير المدرسة، و«عبر الوكيل» يطلب توصية الوكيل أولًا،
+            أما «الوكيل يعتمد نهائيًا» فيمنح الوكيل قرار الاعتماد ضمن الأقسام المسندة إليه.
+          </div>
+        </div>
+        <div class="smart-section">
           <label class="smart-label" for="{{ form.order.id_for_label }}">الترتيب</label>
           {{ form.order }}
           <div class="smart-help">كلما كان الرقم أقل ظهر النوع أولاً.</div>

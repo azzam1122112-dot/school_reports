@@ -52,7 +52,7 @@ class PlanGoalForm(forms.ModelForm):
         model = PlanGoal
         fields = ("title", "indicator", "target")
         widgets = {
-            "title": forms.TextInput(attrs={"placeholder": "الهدف"}),
+            "title": forms.TextInput(attrs={"placeholder": "الهدف", "id": "id_plan_goal_title"}),
             "indicator": forms.TextInput(attrs={"placeholder": "مؤشر القياس"}),
             "target": forms.TextInput(attrs={"placeholder": "المستهدف"}),
         }
@@ -70,7 +70,7 @@ class PlanTaskForm(forms.ModelForm):
         model = PlanTask
         fields = ("title", "description", "goal", "responsible", "department", "due_at")
         widgets = {
-            "title": forms.TextInput(attrs={"placeholder": "المهمة"}),
+            "title": forms.TextInput(attrs={"placeholder": "المهمة", "id": "id_plan_task_title"}),
             "description": forms.Textarea(attrs={"rows": 2, "placeholder": "تفصيل (اختياري)"}),
             "due_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }

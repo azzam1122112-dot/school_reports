@@ -4,6 +4,8 @@ from ._helpers import _get_active_school, _user_manager_schools
 
 from django.db.models import Count, Q as _Q
 
+from ..model_parts.approvals import ApprovalRoute
+
 
 @login_required(login_url="reports:login")
 @role_required({"manager"})
@@ -30,8 +32,20 @@ def reporttypes_list(request: HttpRequest) -> HttpResponse:
     count_filter = _Q(reports__school=active_school) if (active_school and hasattr(Report, "school")) else _Q()
     qs = qs.annotate(report_count=Count("reports", filter=count_filter))
 
+    route_labels = dict(ApprovalRoute.choices)
     items = [
-        {"obj": rt, "code": rt.code, "name": rt.name, "is_active": rt.is_active, "order": rt.order, "count": rt.report_count}
+        {
+            "obj": rt,
+            "code": rt.code,
+            "name": rt.name,
+            "is_active": rt.is_active,
+            "order": rt.order,
+            "count": rt.report_count,
+            "approval_route": rt.approval_route,
+            "approval_route_label": route_labels.get(
+                rt.approval_route, route_labels[ApprovalRoute.DIRECT]
+            ),
+        }
         for rt in qs
     ]
     return render(request, "reports/reporttypes_list.html", {"items": items, "db_backed": True})

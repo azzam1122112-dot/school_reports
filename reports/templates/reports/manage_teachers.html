@@ -1,6 +1,6 @@
 {# templates/reports/manage_teachers.html #}
 {% extends "base.html" %}
-{% block title %}إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}{% endblock %}
+{% block title %}إدارة منسوبي المدرسة{% endblock %}
 
 {% block content %}
 <div class="admin-scope" dir="rtl">
@@ -9,7 +9,7 @@
       <div class="header-content">
         <h1 class="admin-title">
           <i class="fas fa-chalkboard-teacher"></i>
-          إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}
+          إدارة منسوبي المدرسة
         </h1>
         <p class="admin-subtitle">حسابات فريق المدرسة الحالية، مع البحث والتصفية وإدارة حالة كل مستخدم.</p>
       </div>
@@ -100,7 +100,7 @@
           </div>
         </div>
 
-        <div class="table-responsive" role="region" aria-label="جدول {{ SCHOOL_TEACHERS_OBJ_LABEL|default:'المعلمين' }}">
+        <div class="table-responsive" role="region" aria-label="جدول منسوبي المدرسة">
           <table class="teachers-table">
             <thead>
               <tr>

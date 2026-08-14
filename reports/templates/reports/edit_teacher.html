@@ -1,6 +1,6 @@
 {# templates/reports/teacher_edit.html (أو اسم ملفك الحالي) #}
 {% extends "base.html" %}
-{% block title %}تعديل بيانات {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}{% endblock %}
+{% block title %}تعديل بيانات المستخدم{% endblock %}
 
 {% block head %}
 <style nonce="{{ CSP_NONCE }}">
@@ -311,10 +311,10 @@
       <div class="te-header">
         <h2 class="te-title">
           <i class="fa-solid fa-user-pen" aria-hidden="true"></i>
-          تعديل بيانات {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}
+          تعديل بيانات المستخدم
         </h2>
         <p class="te-subtitle">
-          قم بتعديل بيانات {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}
+          عدّل بيانات الحساب الأساسية لهذا المنسوب، بصرف النظر عن دوره الحالي.
           {% firstof teacher.name form.initial.name "" %}
         </p>
       </div>

@@ -1,3 +1,4 @@
+/* محرر الشواهد المصورة — اسم ملف مستقل لكسر أي نسخة مخبأة من المحرر القديم. */
 (function () {
   "use strict";
 
@@ -31,9 +32,13 @@
     card.querySelectorAll("[data-image-source]").forEach(function (button) {
       button.addEventListener("click", function () {
         if (!input) return;
-        if (button.getAttribute("data-image-source") === "camera") input.setAttribute("capture", "environment");
-        else input.removeAttribute("capture");
-        input.click();
+        if (button.getAttribute("data-image-source") === "camera") {
+          input.setAttribute("capture", "environment");
+          input.click();
+        } else {
+          input.removeAttribute("capture");
+          // الـ label يفتح المنتقي الأصلي عبر for؛ لا نكرر click برمجياً.
+        }
       });
     });
 
@@ -53,42 +58,53 @@
       var file = input.files && input.files[0];
       input.removeAttribute("capture");
       if (!file) return;
-      note.className = "ree-file-note";
+      if (note) note.className = "ree-file-note";
       var extension = (file.name.split(".").pop() || "").toLowerCase();
       if (["jpg", "jpeg", "png", "webp"].indexOf(extension) === -1) {
-        note.textContent = "صيغة الصورة غير مدعومة. اختر JPG أو PNG أو WebP.";
-        note.classList.add("is-error");
+        if (note) {
+          note.textContent = "صيغة الصورة غير مدعومة. اختر JPG أو PNG أو WebP.";
+          note.classList.add("is-error");
+        }
         input.value = "";
         return;
       }
       if (file.size > MAX_UPLOAD_BYTES) {
-        note.textContent = "حجم الملف أكبر من 10MB ولن يقبله النظام.";
-        note.classList.add("is-error");
+        if (note) {
+          note.textContent = "حجم الملف أكبر من 10MB ولن يقبله النظام.";
+          note.classList.add("is-error");
+        }
       } else if (file.size > WARNING_BYTES) {
-        note.textContent = "الصورة كبيرة؛ سيحسنها السيرفر قبل الحفظ.";
-        note.classList.add("is-warning");
+        if (note) {
+          note.textContent = "تم اختيار " + file.name + " — الصورة كبيرة وسيحسنها النظام قبل الحفظ.";
+          note.classList.add("is-warning");
+        }
       } else {
-        note.textContent = "الحجم قبل التحسين: " + (file.size / 1024 / 1024).toFixed(1) + "MB";
+        if (note) note.textContent = "تم اختيار " + file.name + " · " + (file.size / 1024 / 1024).toFixed(1) + "MB";
       }
 
-      var url = URL.createObjectURL(file);
+      if (!preview) return;
       preview.onload = function () {
         var width = preview.naturalWidth;
         var height = preview.naturalHeight;
         var divisor = gcd(width, height);
-        ratio.textContent = width + " × " + height + " · " + (width / divisor) + ":" + (height / divisor);
-        URL.revokeObjectURL(url);
+        if (ratio) ratio.textContent = width + " × " + height + " · " + (width / divisor) + ":" + (height / divisor);
       };
       preview.onerror = function () {
-        note.textContent = "تعذرت معاينة الصورة. اختر ملف JPG أو PNG أو WebP صالحًا.";
-        note.classList.add("is-error");
-        URL.revokeObjectURL(url);
+        if (note) {
+          note.textContent = "تعذرت معاينة الصورة. اختر ملف JPG أو PNG أو WebP صالحًا.";
+          note.classList.add("is-error");
+        }
       };
-      preview.src = url;
-      preview.hidden = false;
-      if (placeholder) placeholder.hidden = true;
-      if (deletion) { deletion.checked = false; card.classList.remove("is-deleted"); }
-      syncFit();
+      var reader = new FileReader();
+      reader.onload = function () {
+        preview.src = reader.result;
+        preview.hidden = false;
+        if (placeholder) placeholder.hidden = true;
+        if (deletion) { deletion.checked = false; card.classList.remove("is-deleted"); }
+        syncFit();
+      };
+      reader.onerror = preview.onerror;
+      reader.readAsDataURL(file);
     });
 
     card.querySelectorAll("[data-move]").forEach(function (button) {

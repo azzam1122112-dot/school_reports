@@ -72,7 +72,10 @@ class ApprovalFlowTests(TestCase):
             school=self.school, name="الشؤون التعليمية", slug="academic"
         )
         self.category = ReportType.objects.create(
-            school=self.school, code="lesson", name="درس تطبيقي"
+            school=self.school,
+            code="lesson",
+            name="درس تطبيقي",
+            approval_route=ApprovalRoute.VIA_DEPUTY,
         )
         self.category.departments.add(self.department)
 
@@ -182,9 +185,19 @@ class ApprovalFlowTests(TestCase):
 
     # ── قاعدة: الوكيل يوصي ولا يعتمد ────────────────────────────────
     def test_a_deputy_cannot_approve_on_the_default_route(self):
+        self.category.approval_route = ApprovalRoute.DIRECT
+        self.category.save(update_fields=["approval_route"])
         submit(self.report, self.teacher)
         with self.assertRaises(PermissionDenied):
             approve(self.report, self.deputy)
+
+    def test_a_deputy_cannot_review_a_direct_manager_report(self):
+        self.category.approval_route = ApprovalRoute.DIRECT
+        self.category.save(update_fields=["approval_route"])
+        submit(self.report, self.teacher)
+
+        with self.assertRaises(PermissionDenied):
+            start_review(self.report, self.deputy)
 
     def test_a_deputy_may_approve_when_the_route_says_so(self):
         """المسار الذي يفوّضه المدير صراحةً لنوع تقرير بعينه."""
@@ -340,7 +353,10 @@ class DelegatedApprovalTests(TestCase):
             school=self.school, name="الإدارة", slug="admin-dept"
         )
         self.category = ReportType.objects.create(
-            school=self.school, code="admin", name="تقرير إداري"
+            school=self.school,
+            code="admin",
+            name="تقرير إداري",
+            approval_route=ApprovalRoute.VIA_DEPUTY,
         )
         self.category.departments.add(self.department)
 
@@ -449,7 +465,10 @@ class ApprovalInboxTests(TestCase):
             school=self.school, name="التعليمية", slug="edu"
         )
         self.category = ReportType.objects.create(
-            school=self.school, code="edu", name="تقرير تعليمي"
+            school=self.school,
+            code="edu",
+            name="تقرير تعليمي",
+            approval_route=ApprovalRoute.VIA_DEPUTY,
         )
         self.category.departments.add(self.department)
 
@@ -483,7 +502,10 @@ class ApprovalInboxTests(TestCase):
             title="تقرير خارج النطاق",
             report_date=date(2026, 8, 8),
             category=ReportType.objects.create(
-                school=self.school, code="other", name="نوع آخر"
+                school=self.school,
+                code="other",
+                name="نوع آخر",
+                approval_route=ApprovalRoute.VIA_DEPUTY,
             ),
         )
         submit(self.outside, self.teacher)
@@ -511,6 +533,64 @@ class ApprovalInboxTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "تقرير في النطاق")
         self.assertNotContains(response, "تقرير خارج النطاق")
+
+    def test_a_direct_manager_report_never_appears_in_the_deputy_inbox(self):
+        direct_category = ReportType.objects.create(
+            school=self.school,
+            code="direct-only",
+            name="تقرير مباشر للمدير",
+            approval_route=ApprovalRoute.DIRECT,
+        )
+        direct_category.departments.add(self.department)
+        direct_report = Report.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            title="لا يظهر للوكيل",
+            report_date=date(2026, 8, 9),
+            category=direct_category,
+        )
+        submit(direct_report, self.teacher)
+        self._enter(self.deputy)
+
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, "لا يظهر للوكيل")
+        self.assertEqual(
+            self.client.get(
+                reverse("reports:approval_detail", args=[direct_report.pk])
+            ).status_code,
+            404,
+        )
+
+    def test_manager_can_configure_and_see_the_approval_route(self):
+        self._enter(self.manager)
+        edit_url = reverse("reports:reporttype_update", args=[self.category.pk])
+
+        response = self.client.get(edit_url)
+        self.assertContains(response, 'name="approval_route"', html=False)
+        self.assertContains(response, "عبر الوكيل ثم مدير المدرسة")
+        self.assertContains(response, "الوكيل يعتمد نهائياً")
+
+        response = self.client.post(
+            edit_url,
+            {
+                "name": self.category.name,
+                "description": "",
+                "approval_route": ApprovalRoute.DEPUTY_FINAL,
+                "order": "0",
+                "is_active": "on",
+            },
+        )
+        self.assertRedirects(
+            response,
+            reverse("reports:reporttypes_list"),
+            fetch_redirect_response=False,
+        )
+        self.category.refresh_from_db()
+        self.assertEqual(self.category.approval_route, ApprovalRoute.DEPUTY_FINAL)
+
+        listing = self.client.get(reverse("reports:reporttypes_list"))
+        self.assertContains(listing, "الوكيل يعتمد نهائياً")
 
     def test_a_plain_teacher_is_refused_the_inbox(self):
         self._enter(self.teacher)

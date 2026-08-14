@@ -178,6 +178,15 @@ def _can_review(user, obj, school) -> bool:
     category = getattr(obj, "category", None)
     if category is None:
         return False
+
+    # نوع التقرير هو عقد مساره. التقرير المعرّف بأنه «مباشرةً إلى المدير» لا
+    # ينبغي أن يظهر للوكيل أو يقبل منه إجراءً عبر طلب مصاغ يدويًا. بقية كيانات
+    # الاعتماد قد تستخدم خطافات خاصة أعلاه، لذلك نقصر هذا الشرط على التقرير.
+    if (
+        getattr(getattr(obj, "_meta", None), "model_name", "") == "report"
+        and route_for(obj) == ApprovalRoute.DIRECT
+    ):
+        return False
     try:
         category_departments = set(category.departments.values_list("id", flat=True))
     except Exception:

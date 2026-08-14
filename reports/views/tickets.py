@@ -748,13 +748,40 @@ def assigned_to_me(request: HttpRequest) -> HttpResponse:
         messages.error(request, "فضلاً اختر مدرسة أولاً.")
         return redirect("reports:select_school")
 
-    user_codes = _user_department_codes(user, active_school)
+    visibility = Q(assignee=user) | Q(recipients=user)
 
-    qs = Ticket.objects.select_related("creator", "assignee", "department").prefetch_related("recipients").filter(
-        Q(assignee=user)
-        | Q(recipients=user)
-        | Q(assignee__isnull=True, department__slug__in=user_codes)
-    ).distinct()
+    # الطلب غير المسند إلى قسم لا يصير «مسنداً إليّ» لمجرد أن المستخدم عضو في
+    # ذلك القسم. السماح السابق كان يكشف عناوين الطلبات للوكيل بلا صلاحية، ثم
+    # تعيد صفحة التفاصيل 404. رئيس القسم يملك الطلب بعلاقته، والوكيل يملكه فقط
+    # عند منحه HANDLE_REQUESTS وفي الأقسام الداخلة في نطاقه.
+    officer_department_ids = DepartmentMembership.objects.filter(
+        teacher=user,
+        role_type=DepartmentMembership.OFFICER,
+        department__school=active_school,
+    ).values_list("department_id", flat=True)
+    visibility |= Q(
+        assignee__isnull=True,
+        department_id__in=officer_department_ids,
+    )
+    try:
+        from ..capabilities import HANDLE_REQUESTS
+        from ..permissions import capability_source, supervised_department_ids
+
+        if capability_source(user, HANDLE_REQUESTS, active_school) is not None:
+            visibility |= Q(
+                department_id__in=supervised_department_ids(
+                    user, active_school
+                )
+            )
+    except Exception:
+        logger.exception("Failed to resolve assigned-ticket capability scope")
+
+    qs = (
+        Ticket.objects.select_related("creator", "assignee", "department")
+        .prefetch_related("recipients")
+        .filter(visibility)
+        .distinct()
+    )
     qs = _filter_by_school(qs, active_school)
     
     # استبعاد تذاكر الدعم الفني للمنصة

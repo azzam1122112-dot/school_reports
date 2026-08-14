@@ -61,6 +61,7 @@ from .models import (
     SchoolLeadershipPortfolio,
     LeadershipPortfolioSection,
 )
+from .model_parts.approvals import ApprovalRoute
 
 logger = logging.getLogger(__name__)
 
@@ -1850,9 +1851,16 @@ class DepartmentForm(forms.ModelForm):
 class ReportTypeForm(forms.ModelForm):
     """Report type form with an internal auto-generated code."""
 
+    approval_route = forms.ChoiceField(
+        label="مسار الاعتماد",
+        choices=ApprovalRoute.choices,
+        help_text="حدّد الجهة التي تستلم التقرير بعد إرساله للمراجعة.",
+        widget=forms.Select(attrs={"class": "smart-input"}),
+    )
+
     class Meta:
         model = ReportType
-        fields = ["name", "description", "order", "is_active"]
+        fields = ["name", "description", "approval_route", "order", "is_active"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "smart-input", "maxlength": "120"}),
             "description": forms.Textarea(attrs={"class": "smart-input", "rows": 6}),

@@ -235,7 +235,7 @@ class AssignedToMeViewTests(TestCase):
         self.assertNotContains(response, "المستلمون - لا أظهر")
         self.assertEqual(response.context["page_obj"].paginator.count, 1)
 
-    def test_assigned_to_me_includes_unassigned_department_tickets_for_department_member(self):
+    def test_assigned_to_me_includes_unassigned_department_tickets_for_department_officer(self):
         user_department = Department.objects.create(
             school=self.school,
             name="قسم التقنية",
@@ -249,7 +249,7 @@ class AssignedToMeViewTests(TestCase):
         DepartmentMembership.objects.create(
             department=user_department,
             teacher=self.user,
-            role_type=DepartmentMembership.TEACHER,
+            role_type=DepartmentMembership.OFFICER,
         )
 
         Ticket.objects.create(
@@ -287,6 +287,46 @@ class AssignedToMeViewTests(TestCase):
         self.assertContains(response, "تذكرة القسم - تخص قسمي")
         self.assertNotContains(response, "تذكرة القسم - قسم آخر")
         self.assertEqual(response.context["page_obj"].paginator.count, 1)
+
+    def test_department_membership_alone_does_not_expose_unassigned_requests(self):
+        department = Department.objects.create(
+            school=self.school,
+            name="قسم خاص",
+            slug="private-dept",
+        )
+        DepartmentMembership.objects.create(
+            department=department,
+            teacher=self.user,
+            role_type=DepartmentMembership.TEACHER,
+        )
+        creator = Teacher.objects.create_user(
+            phone="500000399",
+            name="صاحب الطلب",
+            password="pass",
+        )
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=creator,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        Ticket.objects.create(
+            creator=creator,
+            assignee=None,
+            department=department,
+            school=self.school,
+            is_platform=False,
+            title="طلب لا يخص عضو القسم",
+            body="لا يظهر بلا إسناد أو صلاحية معالجة.",
+            status=Ticket.Status.OPEN,
+        )
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+        response = self.client.get(reverse("reports:assigned_to_me"))
+
+        self.assertNotContains(response, "طلب لا يخص عضو القسم")
 
     def test_assigned_to_me_invalid_status_is_ignored_without_breaking_page(self):
         Ticket.objects.create(

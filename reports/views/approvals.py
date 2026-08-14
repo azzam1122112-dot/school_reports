@@ -22,7 +22,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from .. import capabilities as caps
-from ..model_parts.approvals import ApprovalState, PENDING_REVIEW_STATES
+from ..model_parts.approvals import ApprovalRoute, ApprovalState, PENDING_REVIEW_STATES
 from ..models import Document, Report
 from ..permissions import (
     capability_source,
@@ -72,7 +72,13 @@ def _reviewable_reports(user, school):
     if not supervised:
         return base.none()
 
-    return base.filter(category__departments__id__in=supervised).distinct()
+    return base.filter(
+        category__approval_route__in=(
+            ApprovalRoute.VIA_DEPUTY,
+            ApprovalRoute.DEPUTY_FINAL,
+        ),
+        category__departments__id__in=supervised,
+    ).distinct()
 
 
 def _reviewable_documents(user, school):

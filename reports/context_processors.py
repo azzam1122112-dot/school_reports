@@ -1443,10 +1443,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         # إليه. والشرط الصحيح وجودُ ما يُعرض لا حملُ دور بعينه.
         "SHOW_ASSIGNED_TO_ME": bool(
             is_officer
-            or role_flags["IS_SCHOOL_DEPUTY"]
-            or role_flags["IS_ADMIN_STAFF"]
-            or show_dept_reports_link
             or assigned_open
+            or capability_flags["CAN_HANDLE_REQUESTS"]
         ),
         "SHOW_SUPERVISION_GROUP": _shows_supervision_group(
             capability_flags, is_school_manager=is_school_manager

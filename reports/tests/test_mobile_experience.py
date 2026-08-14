@@ -103,13 +103,16 @@ class MobilePwaWorkflowTests(SimpleTestCase):
 
     def test_report_evidence_picker_exposes_camera_and_gallery(self):
         template = _source("reports/templates/reports/partials/report_evidence_formset.html")
-        script = _source("static/js/report-evidence.js")
+        script = _source("static/js/report-evidence-editor.js")
         styles = _source("static/css/report-evidence.css")
 
         self.assertIn('data-image-source="camera"', template)
         self.assertIn('data-image-source="gallery"', template)
+        self.assertIn('for="{{ evidence_form.image.id_for_label }}"', template)
         self.assertIn('input.setAttribute("capture", "environment")', script)
         self.assertIn('input.removeAttribute("capture")', script)
+        self.assertIn("new FileReader()", script)
+        self.assertIn("reader.readAsDataURL(file)", script)
         # The generic preview rules set ``display`` on both the placeholder
         # and the image.  Without an explicit hidden rule they both consume a
         # full frame, pushing the selected image below the clipped viewport.

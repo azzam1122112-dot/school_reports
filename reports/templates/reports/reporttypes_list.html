@@ -246,6 +246,7 @@
               <th>#</th>
               <th>الاسم</th>
               <th>الحالة</th>
+              <th>مسار الاعتماد</th>
               <th>عدد التقارير</th>
               <th>الترتيب</th>
               <th>إجراءات</th>
@@ -263,6 +264,7 @@
                     <span class="smart-pill off"><i class="fa-solid fa-circle-pause"></i> غير نشط</span>
                   {% endif %}
                 </td>
+                <td><span class="smart-pill"><i class="fa-solid fa-route"></i> {{ t.approval_route_label }}</span></td>
                 <td><span class="rt-count"><i class="fa-solid fa-file-lines"></i> {{ t.count|default:"0" }}</span></td>
                 <td>{{ t.order|default:"—" }}</td>
                 <td class="smart-table-actions">
@@ -271,7 +273,7 @@
                 </td>
               </tr>
             {% empty %}
-              <tr><td colspan="6" class="xs-reporttypes-list-1">لا توجد أنواع تقارير بعد.</td></tr>
+              <tr><td colspan="7" class="xs-reporttypes-list-1">لا توجد أنواع تقارير بعد.</td></tr>
             {% endfor %}
           </tbody>
         </table>
