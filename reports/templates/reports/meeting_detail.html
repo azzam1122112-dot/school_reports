@@ -291,8 +291,9 @@
             </span>
           </div>
           <p class="asg-card__hint">
-            حين يكتبه منظّم الاجتماع بنفسه يُصدره — فلا مراجع فوقه له. وحين
-            يكتبه غيره يُرسَل للمراجعة ويُعتمد ممن لم يكتبه.
+            يُرسَل المحضر للمراجعة ويكون الاعتماد النهائي لمدير المدرسة. وإذا
+            كان مدير المدرسة هو المنظّم وكاتب المحضر فيصدره مباشرةً بصفته
+            صاحب سلطة الاعتماد.
             {% if minutes.recorder %} كاتب المحضر: {{ minutes.recorder.name }}.{% endif %}
           </p>
 
@@ -372,7 +373,9 @@
                     {% elif step.action == 'submit' %}<i class="fa-solid fa-paper-plane"></i>
                     {% else %}<i class="fa-solid fa-eye"></i>{% endif %}
                   </span>
-                  <div class="mt-step__head">{{ step.get_action_display }}</div>
+                  <div class="mt-step__head">
+                    {% if step.action == 'approve' and 'إصدار من صاحب الوثيقة وسلطتها.' in step.note %}إصدار المحضر{% else %}{{ step.get_action_display }}{% endif %}
+                  </div>
                   <div class="mt-step__who">
                     {{ step.actor_display }} · {{ step.created_at|hijri }} هـ — {{ step.created_at|time:"H:i" }}
                   </div>
@@ -566,7 +569,10 @@
             </p>
             <div class="mt-actions u-mt-0">
               <form method="post" action="{% url 'reports:meeting_action' meeting.pk %}"
-                    data-confirm="تسجيل انعقاد الاجتماع؟ سيُفتح المحضر للكتابة، ولن يمكن حذف بنود جدول الأعمال بعدها.">
+                    data-confirm="تسجيل انعقاد الاجتماع؟ سيُفتح المحضر للكتابة، ولن يمكن حذف بنود جدول الأعمال بعدها."
+                    data-confirm-type="confirm"
+                    data-confirm-title="تأكيد تسجيل الانعقاد"
+                    data-confirm-ok="نعم، سجّل الانعقاد">
                 {% csrf_token %}
                 <input type="hidden" name="meeting_action" value="mark_held">
                 <button type="submit" class="mtg-iconbtn mtg-iconbtn--solid">

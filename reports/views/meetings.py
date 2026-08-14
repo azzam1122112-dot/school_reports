@@ -699,6 +699,7 @@ def minutes_approval_action(request, pk: int):
             request,
             {
                 "submit": "أُرسل المحضر للاعتماد.",
+                "issue": "أُصدر المحضر بصفته وثيقة نهائية.",
                 "withdraw": "سُحب المحضر للتعديل.",
                 "start_review": "بدأت مراجعة المحضر.",
                 "request_info": "طُلب استكمال من كاتب المحضر.",

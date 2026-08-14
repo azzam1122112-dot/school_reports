@@ -22,6 +22,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from reports import capabilities as caps
+from reports.forms_meetings import SchoolMeetingForm
 from reports.model_parts.approvals import ApprovalState
 from reports.models import (
     Assignment,
@@ -39,7 +40,13 @@ from reports.models import (
     SubscriptionPlan,
     Teacher,
 )
-from reports.services_approval import ApprovalError, approve, submit
+from reports.services_approval import (
+    ApprovalError,
+    approve,
+    available_actions,
+    issue,
+    submit,
+)
 from reports.services_meetings import (
     MeetingError,
     cancel_meeting,
@@ -245,8 +252,43 @@ class MinutesApprovalTests(MeetingBase):
         minutes.save(update_fields=["body"])
         submit(minutes, self.staff, school=self.school)
 
-        with self.assertRaises(ApprovalError):
+        with self.assertRaises(PermissionDenied):
             approve(minutes, self.staff, school=self.school)
+
+    def test_an_admin_organizer_submits_their_minutes_to_the_manager(self):
+        meeting = self._meeting(organizer=self.staff)
+        mark_held(meeting, self.staff)
+        minutes = ensure_minutes(meeting, recorder=self.staff)
+        minutes.body = "محضر كتبه الموظف الإداري المنظّم"
+        minutes.save(update_fields=["body"])
+
+        actions = available_actions(minutes, self.staff, school=self.school)
+        self.assertIn("submit", actions)
+        self.assertNotIn("issue", actions)
+        with self.assertRaises(PermissionDenied):
+            issue(minutes, self.staff, school=self.school)
+
+        submit(minutes, self.staff, school=self.school)
+        approve(minutes, self.manager, school=self.school)
+        minutes.refresh_from_db()
+        self.assertEqual(minutes.approval_state, ApprovalState.APPROVED)
+        self.assertEqual(minutes.decided_by_id, self.manager.pk)
+
+    def test_a_manager_organizer_may_issue_their_own_minutes(self):
+        meeting = self._meeting(organizer=self.manager)
+        mark_held(meeting, self.manager)
+        minutes = ensure_minutes(meeting, recorder=self.manager)
+        minutes.body = "محضر اجتماع نظّمه مدير المدرسة"
+        minutes.save(update_fields=["body"])
+
+        self.assertIn(
+            "issue",
+            available_actions(minutes, self.manager, school=self.school),
+        )
+        issue(minutes, self.manager, school=self.school)
+        minutes.refresh_from_db()
+        self.assertEqual(minutes.approval_state, ApprovalState.APPROVED)
+        self.assertEqual(minutes.decided_by_id, self.manager.pk)
 
     def test_a_returned_minutes_becomes_editable_again(self):
         meeting, minutes = self._held_meeting_with_minutes()
@@ -456,6 +498,87 @@ class MeetingScreenTests(MeetingBase):
         meeting = Meeting.objects.get(title="اجتماع الخطة")
         self.assertEqual(meeting.attendees.count(), 1)
         self.assertEqual(meeting.organizer_id, self.manager.pk)
+
+    def test_full_department_scope_offers_every_active_school_member(self):
+        other_department = Department.objects.create(
+            school=self.school,
+            name="اللجنة الإدارية",
+            slug="admin-committee",
+        )
+        outsider = _user("منسوب بلا قسم", "0500050032")
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=outsider,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        membership = SchoolMembership.objects.get(
+            school=self.school,
+            teacher=self.staff,
+        )
+        scope = StaffScope.objects.create(
+            membership=membership,
+            capabilities=[caps.MANAGE_MEETINGS],
+        )
+        scope.departments.add(self.department)
+
+        partial_form = SchoolMeetingForm(
+            school=self.school,
+            organizer=self.staff,
+        )
+        self.assertEqual(
+            set(partial_form.fields["attendees"].queryset),
+            {self.staff},
+        )
+        self.assertIn(
+            "ضمن نطاقك فقط",
+            partial_form.fields["attendees"].help_text,
+        )
+
+        scope.departments.add(other_department)
+        full_form = SchoolMeetingForm(
+            school=self.school,
+            organizer=self.staff,
+        )
+        self.assertEqual(
+            set(full_form.fields["attendees"].queryset),
+            {self.manager, self.staff, outsider},
+        )
+        self.assertIn(
+            "جميع منسوبي المدرسة",
+            full_form.fields["attendees"].help_text,
+        )
+
+    def test_meeting_forms_render_unique_field_ids(self):
+        meeting = self._meeting()
+        mark_held(meeting, self.manager)
+        self._enter(self.manager)
+
+        response = self.client.get(
+            reverse("reports:meeting_detail", args=[meeting.pk])
+        )
+
+        self.assertContains(response, 'id="id_agenda_title"', count=1)
+        self.assertContains(response, 'id="id_minutes_body"', count=1)
+        self.assertContains(response, 'id="id_decision_body"', count=1)
+        self.assertNotContains(response, 'id="id_body"')
+
+    def test_mark_held_confirmation_uses_action_language_not_delete_language(self):
+        meeting = self._meeting()
+        self._enter(self.manager)
+
+        response = self.client.get(
+            reverse("reports:meeting_detail", args=[meeting.pk])
+        )
+
+        self.assertContains(response, 'data-confirm-type="confirm"')
+        self.assertContains(
+            response,
+            'data-confirm-title="تأكيد تسجيل الانعقاد"',
+        )
+        self.assertContains(
+            response,
+            'data-confirm-ok="نعم، سجّل الانعقاد"',
+        )
 
     def test_agenda_items_are_added_and_numbered(self):
         meeting = self._meeting()

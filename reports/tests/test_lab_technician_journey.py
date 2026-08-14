@@ -183,6 +183,18 @@ class WhoOwnsTheLabTests(LabTestCase):
         self.assertTrue(can_view_lab(self.deputy, self.school))
         self.assertFalse(can_record_lab(self.deputy, self.school))
 
+    def test_the_watcher_dashboard_offers_browsing_not_recording_actions(self):
+        self._grant_lab_watch()
+        self._enter(self.deputy)
+
+        response = self.client.get(reverse("reports:lab_dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "استعراض عهدة المختبر")
+        self.assertContains(response, "استعراض سجل التجارب")
+        self.assertNotContains(response, "إضافة صنف للعهدة")
+        self.assertNotContains(response, "توثيق تجربة جديدة")
+
     def test_a_bare_deputy_role_opens_nothing(self):
         self.assertFalse(can_view_lab(self.deputy, self.school))
 

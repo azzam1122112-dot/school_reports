@@ -24,14 +24,25 @@
       {% endif %}
     </p>
     <div class="lab-hero__actions">
-      <a class="lab-act lab-act--solid" href="{% url 'reports:lab_assets' %}#new-asset">
-        <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>
-        إضافة صنف للعهدة
-      </a>
-      <a class="lab-act" href="{% url 'reports:lab_experiments' %}#new-experiment">
-        <i class="fa-solid fa-vials" aria-hidden="true"></i>
-        توثيق تجربة جديدة
-      </a>
+      {% if can_record %}
+        <a class="lab-act lab-act--solid" href="{% url 'reports:lab_assets' %}#new-asset">
+          <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>
+          إضافة صنف للعهدة
+        </a>
+        <a class="lab-act" href="{% url 'reports:lab_experiments' %}#new-experiment">
+          <i class="fa-solid fa-vials" aria-hidden="true"></i>
+          توثيق تجربة جديدة
+        </a>
+      {% else %}
+        <a class="lab-act lab-act--solid" href="{% url 'reports:lab_assets' %}">
+          <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>
+          استعراض عهدة المختبر
+        </a>
+        <a class="lab-act" href="{% url 'reports:lab_experiments' %}">
+          <i class="fa-solid fa-vials" aria-hidden="true"></i>
+          استعراض سجل التجارب
+        </a>
+      {% endif %}
       <a class="lab-act" href="{% url 'reports:lab_assets_print' %}">
         <i class="fa-solid fa-print" aria-hidden="true"></i>
         طباعة كشف العهدة

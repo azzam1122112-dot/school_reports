@@ -287,22 +287,35 @@ class MeetingMinutes(ApprovalMixin):
         return department_id in supervised_department_ids(user, school)
 
     def can_finalize_approval(self, user, school):
-        if self._is_organizer(user):
+        # مجالس مجموعة المدارس يملك منظّمها سلطة إصدار محضر المجلس. أمّا
+        # الاجتماع المدرسي فسلطة الاعتماد النهائية تبقى لمدير المدرسة؛ كون
+        # الموظف منظّماً لا يحوّله إلى سلطة اعتماد على عمله أو عمل غيره.
+        if self.meeting.scope == Meeting.Scope.GROUP and self._is_organizer(user):
             return True
         return None
 
     def allows_issuance(self, user, school) -> bool:
         """هل يُصدِر هذا المستخدمُ المحضرَ بدل أن يرفعه لمراجع؟
 
-        نعم حين يكون **منظّم الاجتماع هو كاتب محضره**. ورئيس المجلس أو مدير
-        المدرسة الذي يكتب محضر جلسته لا يوجد فوقه من يراجعه، فطلبُ مراجع له
-        يعني تعطيل المحضر إلى الأبد.
+        نعم حين يكون **صاحب سلطة الاعتماد** هو منظّم الاجتماع وكاتب محضره:
+        مدير المدرسة في الاجتماع المدرسي، أو منظّم مجلس مجموعة المدارس.
 
-        أما حين يكتبه غيره — أمين السر أو الموظف الإداري — فيبقى المسار
-        الطبيعي: يُرسَل للمراجعة، ويُعاد بملاحظة، ويعتمده منظّم الاجتماع. وهو
-        ما يحفظ قاعدة «لا يعتمد أحد عمله» حيث يكون لها معنى.
+        وفي الاجتماع المدرسي الذي ينظّمه غير المدير يبقى المسار الطبيعي مهما
+        كان كاتب المحضر: يُرسَل للمراجعة، ويُعاد بملاحظة، ويعتمده مدير المدرسة.
+        وهو ما يحفظ قاعدة «لا يعتمد أحد عمله» ويطابق سلطة الدور المعلنة.
         """
-        return self._is_organizer(user) and self.recorder_id == getattr(user, "pk", None)
+        if not (
+            self._is_organizer(user)
+            and self.recorder_id == getattr(user, "pk", None)
+        ):
+            return False
+
+        if self.meeting.scope == Meeting.Scope.GROUP:
+            return True
+
+        from ..permissions import is_school_manager
+
+        return is_school_manager(user, active_school=school)
 
 
 class Decision(models.Model):

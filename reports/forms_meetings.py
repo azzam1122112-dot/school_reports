@@ -78,6 +78,24 @@ class SchoolMeetingForm(_MeetingFormBase):
             "يحدّد من يشرف على هذا الاجتماع ضمن نطاقه إضافةً إليك."
         )
         self.fields["attendees"].queryset = self._eligible()
+        if school is not None and organizer is not None:
+            if is_school_manager(organizer, active_school=school):
+                self.fields["attendees"].help_text = "جميع منسوبي المدرسة النشطين."
+            else:
+                supervised = supervised_department_ids(organizer, school)
+                active_departments = set(
+                    Department.objects.filter(school=school, is_active=True).values_list(
+                        "pk", flat=True
+                    )
+                )
+                if active_departments and active_departments.issubset(supervised):
+                    self.fields["attendees"].help_text = (
+                        "يشمل جميع منسوبي المدرسة لأن نطاقك يغطي جميع الأقسام."
+                    )
+                else:
+                    self.fields["attendees"].help_text = (
+                        "يظهر المنسوبون المرتبطون بالأقسام الواقعة ضمن نطاقك فقط."
+                    )
         self.fields["scheduled_at"].initial = timezone.localtime() + timedelta(
             days=self.DEFAULT_DAYS
         )
@@ -96,6 +114,13 @@ class SchoolMeetingForm(_MeetingFormBase):
         supervised = supervised_department_ids(self.organizer, self.school)
         if not supervised:
             return Teacher.objects.none()
+        active_departments = set(
+            Department.objects.filter(school=self.school, is_active=True).values_list(
+                "pk", flat=True
+            )
+        )
+        if active_departments and active_departments.issubset(supervised):
+            return base.order_by("name")
         return (
             base.filter(dept_memberships__department_id__in=supervised)
             .distinct()
@@ -167,8 +192,16 @@ class AgendaItemForm(forms.ModelForm):
         model = MeetingAgendaItem
         fields = ("title", "note")
         widgets = {
-            "title": forms.TextInput(attrs={"placeholder": "عنوان البند"}),
-            "note": forms.Textarea(attrs={"rows": 2, "placeholder": "تمهيد أو مرفق (اختياري)"}),
+            "title": forms.TextInput(
+                attrs={"id": "id_agenda_title", "placeholder": "عنوان البند"}
+            ),
+            "note": forms.Textarea(
+                attrs={
+                    "id": "id_agenda_note",
+                    "rows": 2,
+                    "placeholder": "تمهيد أو مرفق (اختياري)",
+                }
+            ),
         }
 
 
@@ -185,15 +218,50 @@ class MinutesForm(forms.ModelForm):
             "assignments_summary",
         )
         widgets = {
-            "format_mode": forms.RadioSelect,
+            "format_mode": forms.RadioSelect(attrs={"id": "id_minutes_format_mode"}),
             "body": forms.Textarea(
-                attrs={"rows": 12, "placeholder": "ما دار في الاجتماع…", "data-minutes-freeform": ""}
+                attrs={
+                    "id": "id_minutes_body",
+                    "rows": 12,
+                    "placeholder": "ما دار في الاجتماع…",
+                    "data-minutes-freeform": "",
+                }
             ),
-            "proceedings": forms.Textarea(attrs={"rows": 5, "placeholder": "تسلسل ما جرى منذ افتتاح الاجتماع…"}),
-            "discussions": forms.Textarea(attrs={"rows": 5, "placeholder": "أهم الآراء والنقاط التي نوقشت…"}),
-            "decisions_summary": forms.Textarea(attrs={"rows": 4, "placeholder": "ملخص القرارات المتفق عليها…"}),
-            "recommendations": forms.Textarea(attrs={"rows": 4, "placeholder": "التوصيات وفرص التحسين…"}),
-            "assignments_summary": forms.Textarea(attrs={"rows": 4, "placeholder": "المهام، المسؤولون، والمواعيد…"}),
+            "proceedings": forms.Textarea(
+                attrs={
+                    "id": "id_minutes_proceedings",
+                    "rows": 5,
+                    "placeholder": "تسلسل ما جرى منذ افتتاح الاجتماع…",
+                }
+            ),
+            "discussions": forms.Textarea(
+                attrs={
+                    "id": "id_minutes_discussions",
+                    "rows": 5,
+                    "placeholder": "أهم الآراء والنقاط التي نوقشت…",
+                }
+            ),
+            "decisions_summary": forms.Textarea(
+                attrs={
+                    "id": "id_minutes_decisions_summary",
+                    "rows": 4,
+                    "placeholder": "ملخص القرارات المتفق عليها…",
+                }
+            ),
+            "recommendations": forms.Textarea(
+                attrs={
+                    "id": "id_minutes_recommendations",
+                    "rows": 4,
+                    "placeholder": "التوصيات وفرص التحسين…",
+                }
+            ),
+            "assignments_summary": forms.Textarea(
+                attrs={
+                    "id": "id_minutes_assignments_summary",
+                    "rows": 4,
+                    "placeholder": "المهام، المسؤولون، والمواعيد…",
+                }
+            ),
         }
         labels = {"body": "نص المحضر"}
 
@@ -209,9 +277,22 @@ class DecisionForm(forms.ModelForm):
         model = Decision
         fields = ("kind", "title", "body", "agenda_item", "responsible", "due_at")
         widgets = {
-            "title": forms.TextInput(attrs={"placeholder": "نص القرار"}),
-            "body": forms.Textarea(attrs={"rows": 3, "placeholder": "تفصيل (اختياري)"}),
-            "due_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "kind": forms.Select(attrs={"id": "id_decision_kind"}),
+            "title": forms.TextInput(
+                attrs={"id": "id_decision_title", "placeholder": "نص القرار"}
+            ),
+            "body": forms.Textarea(
+                attrs={
+                    "id": "id_decision_body",
+                    "rows": 3,
+                    "placeholder": "تفصيل (اختياري)",
+                }
+            ),
+            "agenda_item": forms.Select(attrs={"id": "id_decision_agenda_item"}),
+            "responsible": forms.Select(attrs={"id": "id_decision_responsible"}),
+            "due_at": forms.DateTimeInput(
+                attrs={"id": "id_decision_due_at", "type": "datetime-local"}
+            ),
         }
 
     def __init__(self, *args, meeting=None, **kwargs):
