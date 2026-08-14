@@ -209,6 +209,7 @@ def _notify_report_created(report, active_school):
 def add_report(request: HttpRequest) -> HttpResponse:
     active_school = _get_active_school(request)
     leadership_section = _leadership_section_for_new_report(request, active_school)
+    response_status = 200
 
     def _has_report_types(bound_form) -> bool:
         """Empty choices mean the school has not defined report types for this
@@ -247,6 +248,11 @@ def add_report(request: HttpRequest) -> HttpResponse:
                         "has_report_types": _has_report_types(form),
                         **_report_ai_template_context(request.user),
                     },
+                    status=(
+                        422
+                        if request.headers.get("X-Requested-With") == "XMLHttpRequest"
+                        else 200
+                    ),
                 )
 
             report = form.save(commit=False)
@@ -333,6 +339,12 @@ def add_report(request: HttpRequest) -> HttpResponse:
         )
         opmetrics.increment("report.create.failure")
         messages.error(request, "فضلاً تحقق من الحقول وأعد المحاولة.")
+        # The editor submits with XHR.  Returning a validation page as HTTP 200
+        # made the client treat it as a successful save and redirect to the
+        # blank add page.  A semantic 422 keeps the response body (and inline
+        # errors) while making the failure unambiguous to the browser.
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            response_status = 422
     else:
         form = ReportForm(active_school=active_school)
         evidence_formset = ReportEvidenceFormSet(instance=form.instance, prefix="evidence")
@@ -347,6 +359,7 @@ def add_report(request: HttpRequest) -> HttpResponse:
             "has_report_types": _has_report_types(form),
             **_report_ai_template_context(request.user),
         },
+        status=response_status,
     )
 
 

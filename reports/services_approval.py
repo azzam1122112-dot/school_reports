@@ -507,6 +507,10 @@ def available_actions(obj, user, *, school=None) -> list[str]:
             # فوقه يجعله يختار طريقاً ينتهي بانتظار لا يأتي.
             actions.append("issue" if may_issue else "submit")
         if state == ApprovalState.SUBMITTED:
+            # سجلاتٌ أُرسلت قبل إضافة مسار الإصدار لا ينبغي أن تبقى معلقة.
+            # نُبقي السحب متاحاً، ونضيف الإصدار لصاحب السلطة وحده.
+            if may_issue:
+                actions.append("issue")
             actions.append("withdraw")
         return actions
 

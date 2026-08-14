@@ -132,6 +132,22 @@ class Document(ApprovalMixin):
         if not (self.academic_year or "").strip():
             raise ValidationError("حدّد السنة الدراسية — الأرشيف يُقلَّب بالسنة أولاً.")
 
+    def allows_issuance(self, user, school) -> bool:
+        """Let a school manager issue their own authoritative document.
+
+        This is deliberately *issuance*, not self-approval.  The shared
+        approval service records the distinction in the immutable timeline,
+        while preventing a manager-owned document from waiting forever for a
+        reviewer that does not exist above the school manager.
+        """
+        from ..permissions import is_school_manager
+
+        return (
+            self.owner_id == getattr(user, "pk", None)
+            and self.school_id == getattr(school, "pk", None)
+            and is_school_manager(user, active_school=school)
+        )
+
     def can_review_approval(self, user, school):
         """من يعتمد نقل الوثيقة إلى الأرشيف.
 

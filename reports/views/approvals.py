@@ -17,12 +17,13 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from .. import capabilities as caps
 from ..model_parts.approvals import ApprovalState, PENDING_REVIEW_STATES
-from ..models import Report
+from ..models import Document, Report
 from ..permissions import (
     capability_source,
     is_school_manager,
@@ -74,6 +75,30 @@ def _reviewable_reports(user, school):
     return base.filter(category__departments__id__in=supervised).distinct()
 
 
+def _reviewable_documents(user, school):
+    """Documents that belong in the same decision inbox as reports."""
+    base = (
+        Document.objects.filter(
+            school=school,
+            approval_state__in=PENDING_REVIEW_STATES,
+        )
+        .select_related("owner", "department", "reviewed_by")
+        .order_by("-submitted_at", "-id")
+    )
+
+    if is_school_manager(user, active_school=school):
+        return base
+
+    if capability_source(user, caps.ARCHIVE_DOCUMENTS, school) is None:
+        return base.none()
+
+    supervised = supervised_department_ids(user, school)
+    if not supervised:
+        return base.none()
+
+    return base.filter(department_id__in=supervised).exclude(owner=user)
+
+
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def approval_inbox(request):
@@ -85,14 +110,19 @@ def approval_inbox(request):
 
     is_manager = is_school_manager(request.user, active_school=active_school)
     may_review = capability_source(request.user, caps.REVIEW_REPORTS, active_school) is not None
-    if not (is_manager or may_review or request.user.is_superuser):
+    may_review_documents = (
+        capability_source(request.user, caps.ARCHIVE_DOCUMENTS, active_school) is not None
+    )
+    if not (is_manager or may_review or may_review_documents or request.user.is_superuser):
         messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
         return redirect("reports:home")
 
     state_filter = (request.GET.get("state") or "").strip()
     reports = _reviewable_reports(request.user, active_school)
+    documents = _reviewable_documents(request.user, active_school)
     if state_filter in {value for value, _ in ApprovalState.choices}:
         reports = reports.filter(approval_state=state_filter)
+        documents = documents.filter(approval_state=state_filter)
     else:
         state_filter = ""
 
@@ -108,7 +138,11 @@ def approval_inbox(request):
         )
         rows.append(
             {
+                "item": report,
                 "report": report,
+                "kind": "report",
+                "detail_url": reverse("reports:approval_detail", args=[report.pk]),
+                "action_url": reverse("reports:approval_action", args=[report.pk]),
                 "actions": actions,
                 "order": _STATE_ORDER.get(report.approval_state, 9),
                 "waiting_days": waiting_days,
@@ -116,10 +150,28 @@ def approval_inbox(request):
                 "is_mine": bool({"approve", "recommend"} & set(actions)),
             }
         )
+    for document in documents[:200]:
+        actions = available_actions(document, request.user, school=active_school)
+        waiting_days = (
+            (now - document.submitted_at).days if document.submitted_at else None
+        )
+        rows.append(
+            {
+                "item": document,
+                "document": document,
+                "kind": "document",
+                "detail_url": reverse("reports:document_detail", args=[document.pk]),
+                "action_url": reverse("reports:document_action", args=[document.pk]),
+                "actions": actions,
+                "order": _STATE_ORDER.get(document.approval_state, 9),
+                "waiting_days": waiting_days,
+                "is_mine": bool({"approve", "recommend", "issue"} & set(actions)),
+            }
+        )
     # ما ينتهي عندك أولاً، ثم بترتيب الحالة. و``regroup`` في القالب يجمع
     # المتجاورَ وحده، فالفرز بـ ``is_mine`` شرطُ صحّته لا تحسينُ عرض.
     rows.sort(
-        key=lambda row: (not row["is_mine"], row["order"], -(row["report"].pk or 0))
+        key=lambda row: (not row["is_mine"], row["order"], -(row["item"].pk or 0))
     )
 
     mine_count = sum(1 for row in rows if row["is_mine"])
@@ -129,7 +181,7 @@ def approval_inbox(request):
     )
 
     counts = {
-        state: sum(1 for row in rows if row["report"].approval_state == state)
+        state: sum(1 for row in rows if row["item"].approval_state == state)
         for state in PENDING_REVIEW_STATES
     }
 

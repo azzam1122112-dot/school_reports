@@ -176,7 +176,11 @@
         </h2>
         <p class="asg-card__hint">
           {% if is_owner %}
-            وثيقتك — ترسلها للأرشفة، ولا تعتمد أرشفتها بنفسك.
+            {% if 'issue' in actions %}
+              وثيقتك بصفتك مدير المدرسة — إصدارها ينقلها إلى الأرشيف ويُسجَّل كإصدار، لا كاعتماد لعملك.
+            {% else %}
+              وثيقتك — ترسلها للأرشفة، ولا تعتمد أرشفتها بنفسك.
+            {% endif %}
           {% else %}
             اعتماد النقل يجعل الوثيقة أرشيفاً لا يُعدَّل ولا يُحذف.
           {% endif %}
@@ -193,6 +197,12 @@
               </div>
             {% endif %}
             <div class="dc-actions">
+              {% if 'issue' in actions %}
+                <button type="submit" class="asg-btn asg-btn--primary" data-dc="issue">
+                  <i class="fa-solid fa-file-circle-check" aria-hidden="true"></i>
+                  إصدار وأرشفة
+                </button>
+              {% endif %}
               {% if 'submit' in actions %}
                 <button type="submit" class="asg-btn asg-btn--primary" data-dc="submit">
                   <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>

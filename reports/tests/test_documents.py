@@ -27,7 +27,13 @@ from reports.models import (
     SubscriptionPlan,
     Teacher,
 )
-from reports.services_approval import ApprovalError, approve, available_actions, submit
+from reports.services_approval import (
+    ApprovalError,
+    approve,
+    available_actions,
+    issue,
+    submit,
+)
 from reports.services_documents import apply_document_filters, visible_documents
 
 
@@ -123,6 +129,22 @@ class DocumentApprovalTests(DocumentBase):
 
         document.refresh_from_db()
         self.assertNotEqual(document.approval_state, ApprovalState.APPROVED)
+
+    def test_the_manager_issues_their_own_document_instead_of_self_approving(self):
+        document = self._document(owner=self.manager, uploaded_by=self.manager)
+        submit(document, self.manager, school=self.school)
+
+        actions = available_actions(document, self.manager, school=self.school)
+        self.assertIn("issue", actions)
+        self.assertIn("withdraw", actions)
+
+        with self.assertRaises((PermissionDenied, ApprovalError)):
+            approve(document, self.manager, school=self.school)
+
+        issue(document, self.manager, school=self.school)
+        document.refresh_from_db()
+        self.assertEqual(document.approval_state, ApprovalState.APPROVED)
+        self.assertEqual(document.decided_by_id, self.manager.pk)
 
     def test_an_archived_document_cannot_be_resubmitted(self):
         document = self._document()
@@ -325,6 +347,32 @@ class DocumentScreenTests(DocumentBase):
         self.client.post(
             reverse("reports:document_action", args=[document.pk]),
             {"approval_action": "approve", "note": "مطابق"},
+        )
+        document.refresh_from_db()
+        self.assertEqual(document.approval_state, ApprovalState.APPROVED)
+
+    def test_manager_owned_document_appears_in_inbox_and_can_be_issued(self):
+        document = self._document(owner=self.manager, uploaded_by=self.manager)
+        submit(document, self.manager, school=self.school)
+        self._enter(self.manager)
+
+        inbox = self.client.get(reverse("reports:approval_inbox"))
+
+        self.assertEqual(inbox.status_code, 200)
+        self.assertContains(inbox, document.title)
+        self.assertContains(inbox, "إصدار وأرشفة")
+        self.assertEqual(inbox.context["total"], 1)
+        self.assertEqual(inbox.context["rows"][0]["kind"], "document")
+
+        response = self.client.post(
+            reverse("reports:document_action", args=[document.pk]),
+            {"approval_action": "issue"},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("reports:document_detail", args=[document.pk]),
+            fetch_redirect_response=False,
         )
         document.refresh_from_db()
         self.assertEqual(document.approval_state, ApprovalState.APPROVED)

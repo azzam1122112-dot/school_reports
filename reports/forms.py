@@ -564,6 +564,24 @@ class ReportEvidenceForm(forms.ModelForm):
             self.initial.setdefault("order", index + 1)
             self.initial.setdefault("show_in_print", True)
 
+    def has_changed(self):
+        """Do not turn an empty evidence slot into a required image form.
+
+        The report editor renders four ready-to-use evidence rows.  Their
+        ordering and ``show_in_print`` controls are posted even when the user
+        did not choose an image, which made Django consider every row changed
+        and reject the whole formset because ``image`` was missing.
+
+        A new evidence row has no meaning without an uploaded image, so ignore
+        the presentation-only values until a file is actually present.  Saved
+        evidence rows keep the normal ModelForm change detection.
+        """
+        if not self.instance.pk:
+            image = self.files.get(self.add_prefix("image"))
+            if not image:
+                return False
+        return super().has_changed()
+
     def clean_image(self):
         image = self.cleaned_data.get("image")
         if not image:
