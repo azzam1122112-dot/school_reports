@@ -101,6 +101,9 @@ tmp/
 # and machine-specific paths; reports belong in CI logs or release notes instead.
 qa-artifacts/
 .claude/skills/dark-mode-audit/scripts/mobile_sweep.cjs
+# تقارير الاختبار اليدوي المحلية قد تتضمن حسابات تجريبية وبيانات جلسة.
+tawtheeq-*-qa-report.md
+qa-test-document.txt
 
 # ---------------------------
 # ملفات بيانات الدخول المحلية
