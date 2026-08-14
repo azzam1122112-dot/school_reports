@@ -420,6 +420,14 @@ def build_staff_workspaces(user, school) -> dict:
         admin_delegated = delegated if deputy_membership is None else set()
         effective = permanent | admin_delegated
         scope_names = _scope_names(scope, school)
+        # أدوات المتابعة المرتبطة بنطاق لا تفيد بلا أقسام: تفتح شاشة فارغة
+        # وتوحي للمحضّر أن عليه عملاً إشرافياً لم يُسند إليه. نحفظ الصلاحيات
+        # كما هي، ونُظهر تنبيه الإعداد، لكن لا نعرض الأداة حتى يكتمل نطاقها.
+        visible_effective = (
+            effective - _SCOPE_DEPENDENT
+            if is_lab_technician and not scope_names
+            else effective
+        )
         template = caps.TEMPLATES_BY_CODE.get(
             (getattr(scope, "template_code", "") or "").strip()
         )
@@ -440,8 +448,8 @@ def build_staff_workspaces(user, school) -> dict:
                     else "المهام الأساسية"
                 ),
                 "admin_staff_scope_names": scope_names,
-                "admin_staff_capability_labels": _capability_labels(effective),
-                "admin_staff_capability_count": len(effective),
+                "admin_staff_capability_labels": _capability_labels(visible_effective),
+                "admin_staff_capability_count": len(visible_effective),
                 "admin_staff_core_actions": (
                     _lab_technician_core_actions()
                     if is_lab_technician
@@ -449,14 +457,14 @@ def build_staff_workspaces(user, school) -> dict:
                 ),
                 "admin_staff_workspace_actions": _actions(
                     _ADMIN_CAPABILITY_ACTIONS,
-                    effective,
+                    visible_effective,
                     permanent,
                     admin_delegated,
                 ),
                 "admin_staff_scope_missing": bool(effective & _SCOPE_DEPENDENT)
                 and not scope_names,
                 "admin_staff_has_temporary_delegation": bool(admin_delegated),
-                "admin_staff_has_enhanced_permissions": bool(effective),
+                "admin_staff_has_enhanced_permissions": bool(visible_effective),
             }
         )
 

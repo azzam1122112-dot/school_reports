@@ -736,6 +736,17 @@ class TheTechnicianKeepsEveryTeacherFeatureTests(LabTestCase):
         self.assertNotIn("مركز عمل الموظف الإداري", page)
         self.assertNotIn("توثيق عمل إداري", page)
 
+    def test_scope_dependent_supervision_stays_hidden_until_a_scope_is_assigned(self):
+        StaffScope.objects.create(
+            membership=self.tech_membership,
+            capabilities=[caps.VIEW_SCHOOL_DASHBOARD, caps.REVIEW_REPORTS],
+        )
+        page = self._page(self.tech, "reports:home")
+
+        self.assertIn("نطاق الأقسام غير مكتمل", page)
+        self.assertNotIn("صلاحياتي الإضافية", page)
+        self.assertNotIn("مراجعة تقارير النطاق", page)
+
     def test_report_copy_is_written_for_the_laboratory_role(self):
         page = self._page(self.tech, "reports:add_report")
 
