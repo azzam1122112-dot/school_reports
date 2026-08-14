@@ -849,7 +849,7 @@
         <i class="fa-solid fa-id-badge" aria-hidden="true"></i>
         <span>{% if active_school_role_labels %}{{ active_school_role_labels|join:" • " }}{% else %}{{ USER_ROLE_LABEL|default:SCHOOL_TEACHER_LABEL|default:"المعلم" }}{% endif %}</span>
         {% if is_deputy_workspace and deputy_domain_label %}<span aria-hidden="true">•</span><span>{{ deputy_domain_label }}</span>{% endif %}
-        {% if is_admin_staff_workspace and admin_staff_template_label %}<span aria-hidden="true">•</span><span>{{ admin_staff_template_label }}</span>{% endif %}
+        {% if is_admin_staff_workspace and admin_staff_template_label and not is_lab_technician_workspace %}<span aria-hidden="true">•</span><span>{{ admin_staff_template_label }}</span>{% endif %}
         {% if teacher_scope_label %}<span aria-hidden="true">•</span><span>{{ teacher_scope_label }}</span>{% endif %}
       </div>
       <div class="th-hero-actions">

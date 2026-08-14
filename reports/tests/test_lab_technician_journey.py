@@ -741,11 +741,24 @@ class TheTechnicianKeepsEveryTeacherFeatureTests(LabTestCase):
             membership=self.tech_membership,
             capabilities=[caps.VIEW_SCHOOL_DASHBOARD, caps.REVIEW_REPORTS],
         )
-        page = self._page(self.tech, "reports:home")
+        self._enter(self.tech)
+        response = self.client.get(reverse("reports:home"))
+        page = response.content.decode()
 
         self.assertIn("نطاق الأقسام غير مكتمل", page)
         self.assertNotIn("صلاحياتي الإضافية", page)
         self.assertNotIn("مراجعة تقارير النطاق", page)
+        self.assertNotIn('aria-label="الإشراف"', page)
+        self.assertFalse(response.context["SHOW_SUPERVISION_GROUP"])
+        self.assertFalse(response.context["CAN_VIEW_SCHOOL_DASHBOARD"])
+        self.assertFalse(response.context["CAN_REVIEW_APPROVALS"])
+
+    def test_the_role_context_names_the_laboratory_role_once(self):
+        self._enter(self.tech)
+        response = self.client.get(reverse("reports:home"))
+
+        self.assertEqual(response.context["active_school_role_labels"], ["محضر مختبر"])
+        self.assertEqual(response.content.decode().count("محضر مختبر • محضّر المختبر"), 0)
 
     def test_report_copy_is_written_for_the_laboratory_role(self):
         page = self._page(self.tech, "reports:add_report")

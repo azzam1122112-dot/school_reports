@@ -361,7 +361,12 @@ def build_staff_workspaces(user, school) -> dict:
         SchoolMembership.RoleType.TEACHER: 3,
     }
     ordered = sorted(memberships, key=lambda item: role_order.get(item.role_type, 99))
-    role_labels = [membership.get_role_type_display() for membership in ordered]
+    role_labels = [
+        membership.get_job_title_display()
+        if membership.job_title == SchoolMembership.JobTitle.LAB_TECH
+        else membership.get_role_type_display()
+        for membership in ordered
+    ]
 
     deputy_membership = by_role.get(SchoolMembership.RoleType.DEPUTY)
     admin_membership = by_role.get(SchoolMembership.RoleType.ADMIN_STAFF)

@@ -182,7 +182,11 @@ def _supervision_queue(user, school) -> dict:
         return dict(_EMPTY_SUPERVISION)
 
     from .. import capabilities as caps
-    from ..permissions import capability_source, supervised_department_ids
+    from ..permissions import (
+        capability_source,
+        is_lab_technician,
+        supervised_department_ids,
+    )
 
     try:
         granted = {
@@ -198,6 +202,15 @@ def _supervision_queue(user, school) -> dict:
             return dict(_EMPTY_SUPERVISION)
 
         supervised = supervised_department_ids(user, school)
+        if is_lab_technician(user, school) and not supervised:
+            for code in (
+                caps.REVIEW_REPORTS,
+                caps.ASSIGN_TASKS,
+                caps.HANDLE_REQUESTS,
+            ):
+                granted[code] = False
+            if not any(granted.values()):
+                return dict(_EMPTY_SUPERVISION)
         rows: list[dict] = []
         now = timezone.now()
 

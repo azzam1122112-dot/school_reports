@@ -818,6 +818,17 @@ _NAV_CAPABILITY_FLAGS: tuple[tuple[str, str], ...] = (
     ("CAN_MANAGE_LAB", caps.MANAGE_LAB),
 )
 
+_NAV_SCOPE_DEPENDENT_CODES = {
+    caps.VIEW_SCHOOL_DASHBOARD,
+    caps.REVIEW_REPORTS,
+    caps.VIEW_ACHIEVEMENTS,
+    caps.HANDLE_REQUESTS,
+    caps.VIEW_AUDIT_LOG,
+    caps.ASSIGN_TASKS,
+    caps.TRACK_PLANS,
+    caps.MANAGE_LAB,
+}
+
 
 def _empty_capability_flags() -> Dict[str, bool]:
     return {name: False for name, _code in _NAV_CAPABILITY_FLAGS}
@@ -1386,6 +1397,20 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     capability_flags = _capability_flags(
         user, active_school, is_school_manager=is_school_manager
     )
+    if role_flags["IS_LAB_TECHNICIAN"] and active_school is not None:
+        from .permissions import supervised_department_ids
+
+        lab_supervised = soft_call(
+            "nav.lab_supervised_departments",
+            lambda: supervised_department_ids(user, active_school),
+            default=set(),
+            user_id=getattr(user, "pk", None),
+            school_id=getattr(active_school, "pk", None),
+        )
+        if not lab_supervised:
+            for flag_name, code in _NAV_CAPABILITY_FLAGS:
+                if code in _NAV_SCOPE_DEPENDENT_CODES:
+                    capability_flags[flag_name] = False
 
     # ── وجهات التقارير ──
     # مدير المدرسة يرى «تقارير المدرسة» لا «تقارير قسمي».
