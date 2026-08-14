@@ -121,7 +121,7 @@
       </article>
       <article class="inb-kpi" data-tone="mine">
         <div class="inb-kpi__v">{{ mine_count }}</div>
-        <div class="inb-kpi__l">ينتهي عندك</div>
+        <div class="inb-kpi__l">يتطلب إجراءً منك</div>
       </article>
       {% if oldest_days %}
         <article class="inb-kpi" data-tone="old">
@@ -154,7 +154,7 @@
 
   {% if rows %}
     {% comment %}
-    الصندوق مقسوم قسمين: ما ينتهي القرار فيه عندك، وما تراه وتنتظر فيه غيرك.
+    الصندوق مقسوم قسمين: ما يتطلب إجراء المستخدم الآن، وما يراه للمتابعة فقط.
     خلطُهما يجعل المدير يقلّب عشرين سطراً ليجد الثلاثة التي تخصّه.
     {% endcomment %}
     {% regroup rows by is_mine as groups %}
@@ -163,10 +163,10 @@
         <span class="inb-head__t">
           {% if group.grouper %}
             <i class="fa-solid fa-gavel xs-approval-inbox-1" aria-hidden="true"></i>
-            ينتهي القرار عندك
+            دورك الآن
           {% else %}
             <i class="fa-solid fa-eye" aria-hidden="true"></i>
-            تتابعه وينتظر غيرك
+            للمتابعة فقط
           {% endif %}
         </span>
         <span class="inb-head__n">{{ group.list|length }}</span>

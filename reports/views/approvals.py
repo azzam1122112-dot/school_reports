@@ -152,7 +152,8 @@ def approval_inbox(request):
                 "actions": actions,
                 "order": _STATE_ORDER.get(report.approval_state, 9),
                 "waiting_days": waiting_days,
-                # «قرارك» = ما ينتهي عندك، تمييزاً عمّا تراه وتنتظر فيه غيرك.
+                # «دورك الآن» يشمل التوصية أو الاعتماد أو الإصدار، بخلاف ما
+                # يراه المستخدم للمتابعة فقط وينتظر إجراء شخص آخر.
                 "is_mine": bool({"approve", "recommend"} & set(actions)),
             }
         )
@@ -174,7 +175,7 @@ def approval_inbox(request):
                 "is_mine": bool({"approve", "recommend", "issue"} & set(actions)),
             }
         )
-    # ما ينتهي عندك أولاً، ثم بترتيب الحالة. و``regroup`` في القالب يجمع
+    # ما يتطلب إجراء المستخدم أولاً، ثم بترتيب الحالة. و``regroup`` في القالب يجمع
     # المتجاورَ وحده، فالفرز بـ ``is_mine`` شرطُ صحّته لا تحسينُ عرض.
     rows.sort(
         key=lambda row: (not row["is_mine"], row["order"], -(row["item"].pk or 0))

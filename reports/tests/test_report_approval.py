@@ -533,6 +533,9 @@ class ApprovalInboxTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "تقرير في النطاق")
         self.assertNotContains(response, "تقرير خارج النطاق")
+        self.assertContains(response, "يتطلب إجراءً منك")
+        self.assertContains(response, "دورك الآن")
+        self.assertNotContains(response, "ينتهي القرار عندك")
 
     def test_a_direct_manager_report_never_appears_in_the_deputy_inbox(self):
         direct_category = ReportType.objects.create(
