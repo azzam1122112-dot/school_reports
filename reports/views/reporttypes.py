@@ -30,7 +30,9 @@ def reporttypes_list(request: HttpRequest) -> HttpResponse:
 
     # Single annotated query instead of N+1 count queries per ReportType
     count_filter = _Q(reports__school=active_school) if (active_school and hasattr(Report, "school")) else _Q()
-    qs = qs.annotate(report_count=Count("reports", filter=count_filter))
+    qs = qs.annotate(report_count=Count("reports", filter=count_filter)).prefetch_related(
+        "departments"
+    )
 
     route_labels = dict(ApprovalRoute.choices)
     items = [
@@ -44,6 +46,9 @@ def reporttypes_list(request: HttpRequest) -> HttpResponse:
             "approval_route": rt.approval_route,
             "approval_route_label": route_labels.get(
                 rt.approval_route, route_labels[ApprovalRoute.DIRECT]
+            ),
+            "departments_label": "، ".join(
+                department.name for department in rt.departments.all()
             ),
         }
         for rt in qs

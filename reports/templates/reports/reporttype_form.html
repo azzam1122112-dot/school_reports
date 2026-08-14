@@ -194,6 +194,10 @@
       .smart-switch input:checked + .sw-track::after { transform: translateX(-26px); }
       .smart-switch input:focus-visible + .sw-track { box-shadow: 0 0 0 3px rgba(10,92,51,.25); }
       .smart-switch .sw-text { font-weight: 900; color: #0f172a; font-size: 1.06rem; }
+      .smart-check-list ul { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin:10px 0 0; padding:0; list-style:none; }
+      .smart-check-list label { display:flex; align-items:center; gap:9px; min-height:42px; padding:9px 11px; border:1px solid #d8e2dc; border-radius:10px; background:#fff; color:#17251f; font-weight:800; cursor:pointer; }
+      .smart-check-list input { width:18px; height:18px; accent-color:#0a5c33; }
+      @media (max-width:600px) { .smart-check-list ul { grid-template-columns:1fr; } }
 
       /* ============================================================
          👑 ROYAL LUXURY — نموذج نوع تقرير (زمرّدي + ذهبي)
@@ -272,6 +276,12 @@
             «مباشرةً» يرسل التقرير إلى مدير المدرسة، و«عبر الوكيل» يطلب توصية الوكيل أولًا،
             أما «الوكيل يعتمد نهائيًا» فيمنح الوكيل قرار الاعتماد ضمن الأقسام المسندة إليه.
           </div>
+        </div>
+        <div class="smart-section smart-check-list">
+          <span class="smart-label">الأقسام المستلمة</span>
+          {{ form.departments }}
+          {% if form.departments.errors %}<div class="smart-error">{{ form.departments.errors.0 }}</div>{% endif %}
+          <div class="smart-help">مطلوب عند اختيار مسار يمر بالوكيل؛ يُعرض التقرير لوكيل يشرف على أحد الأقسام المحددة.</div>
         </div>
         <div class="smart-section">
           <label class="smart-label" for="{{ form.order.id_for_label }}">الترتيب</label>

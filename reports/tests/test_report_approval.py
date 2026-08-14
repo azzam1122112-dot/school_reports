@@ -577,6 +577,7 @@ class ApprovalInboxTests(TestCase):
                 "name": self.category.name,
                 "description": "",
                 "approval_route": ApprovalRoute.DEPUTY_FINAL,
+                "departments": [str(self.department.pk)],
                 "order": "0",
                 "is_active": "on",
             },
@@ -591,6 +592,26 @@ class ApprovalInboxTests(TestCase):
 
         listing = self.client.get(reverse("reports:reporttypes_list"))
         self.assertContains(listing, "الوكيل يعتمد نهائياً")
+        self.assertContains(listing, self.department.name)
+
+    def test_deputy_route_requires_at_least_one_receiving_department(self):
+        self._enter(self.manager)
+        response = self.client.post(
+            reverse("reports:reporttype_update", args=[self.category.pk]),
+            {
+                "name": self.category.name,
+                "description": "",
+                "approval_route": ApprovalRoute.VIA_DEPUTY,
+                "order": "0",
+                "is_active": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "اختر قسمًا واحدًا على الأقل حتى يعرف النظام أي وكيل يستلم التقرير",
+        )
 
     def test_a_plain_teacher_is_refused_the_inbox(self):
         self._enter(self.teacher)

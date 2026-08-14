@@ -1851,6 +1851,15 @@ class DepartmentForm(forms.ModelForm):
 class ReportTypeForm(forms.ModelForm):
     """Report type form with an internal auto-generated code."""
 
+    departments = forms.ModelMultipleChoiceField(
+        label="الأقسام المستلمة",
+        queryset=Department.objects.none(),
+        required=False,
+        help_text="تظهر تقارير هذا النوع للوكلاء المشرفين على قسم واحد على الأقل من هذه الأقسام.",
+        widget=forms.CheckboxSelectMultiple(
+            attrs={"aria-label": "اختر الأقسام المستلمة لهذا النوع"}
+        ),
+    )
     approval_route = forms.ChoiceField(
         label="مسار الاعتماد",
         choices=ApprovalRoute.choices,
@@ -1860,7 +1869,14 @@ class ReportTypeForm(forms.ModelForm):
 
     class Meta:
         model = ReportType
-        fields = ["name", "description", "approval_route", "order", "is_active"]
+        fields = [
+            "name",
+            "description",
+            "approval_route",
+            "departments",
+            "order",
+            "is_active",
+        ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "smart-input", "maxlength": "120"}),
             "description": forms.Textarea(attrs={"class": "smart-input", "rows": 6}),
@@ -1871,6 +1887,29 @@ class ReportTypeForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.active_school = kwargs.pop("active_school", None)
         super().__init__(*args, **kwargs)
+        departments = Department.objects.filter(is_active=True).order_by("name", "id")
+        if self.active_school is not None:
+            departments = departments.filter(school=self.active_school)
+        elif hasattr(Department, "school"):
+            departments = departments.none()
+        self.fields["departments"].queryset = departments
+        if self.instance.pk:
+            self.fields["departments"].initial = self.instance.departments.all()
+
+    def clean(self):
+        cleaned = super().clean()
+        route = cleaned.get("approval_route")
+        departments = cleaned.get("departments")
+        if route in {ApprovalRoute.VIA_DEPUTY, ApprovalRoute.DEPUTY_FINAL} and not departments:
+            self.add_error(
+                "departments",
+                "اختر قسمًا واحدًا على الأقل حتى يعرف النظام أي وكيل يستلم التقرير.",
+            )
+        return cleaned
+
+    def _save_m2m(self):
+        super()._save_m2m()
+        self.instance.departments.set(self.cleaned_data.get("departments") or [])
 
     def _slugify_english(self, text: str) -> str:
         try:
