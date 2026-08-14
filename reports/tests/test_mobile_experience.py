@@ -104,11 +104,16 @@ class MobilePwaWorkflowTests(SimpleTestCase):
     def test_report_evidence_picker_exposes_camera_and_gallery(self):
         template = _source("reports/templates/reports/partials/report_evidence_formset.html")
         script = _source("static/js/report-evidence.js")
+        styles = _source("static/css/report-evidence.css")
 
         self.assertIn('data-image-source="camera"', template)
         self.assertIn('data-image-source="gallery"', template)
         self.assertIn('input.setAttribute("capture", "environment")', script)
         self.assertIn('input.removeAttribute("capture")', script)
+        # The generic preview rules set ``display`` on both the placeholder
+        # and the image.  Without an explicit hidden rule they both consume a
+        # full frame, pushing the selected image below the clipped viewport.
+        self.assertIn('.ree-preview [hidden] { display: none !important; }', styles)
 
 
 class ToastLayerTests(SimpleTestCase):
