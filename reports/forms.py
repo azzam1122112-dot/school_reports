@@ -1956,6 +1956,12 @@ class ReportTypeForm(forms.ModelForm):
         instance.code = self._generate_unique_code(self.cleaned_data.get("name") or instance.name or "")
         if commit:
             instance.save()
+            self._save_m2m()
+        else:
+            # Match Django's ModelForm contract: callers that save the instance
+            # later (the create view does this to attach the active school) must
+            # still be able to persist both model and reverse M2M fields.
+            self.save_m2m = self._save_m2m
         return instance
 
 # ==============================

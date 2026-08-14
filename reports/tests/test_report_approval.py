@@ -565,6 +565,9 @@ class ApprovalInboxTests(TestCase):
     def test_manager_can_configure_and_see_the_approval_route(self):
         self._enter(self.manager)
         edit_url = reverse("reports:reporttype_update", args=[self.category.pk])
+        receiving_department = Department.objects.create(
+            school=self.school, name="قسم الاستلام", slug="receiving"
+        )
 
         response = self.client.get(edit_url)
         self.assertContains(response, 'name="approval_route"', html=False)
@@ -577,7 +580,7 @@ class ApprovalInboxTests(TestCase):
                 "name": self.category.name,
                 "description": "",
                 "approval_route": ApprovalRoute.DEPUTY_FINAL,
-                "departments": [str(self.department.pk)],
+                "departments": [str(receiving_department.pk)],
                 "order": "0",
                 "is_active": "on",
             },
@@ -589,10 +592,14 @@ class ApprovalInboxTests(TestCase):
         )
         self.category.refresh_from_db()
         self.assertEqual(self.category.approval_route, ApprovalRoute.DEPUTY_FINAL)
+        self.assertEqual(
+            list(self.category.departments.values_list("pk", flat=True)),
+            [receiving_department.pk],
+        )
 
         listing = self.client.get(reverse("reports:reporttypes_list"))
         self.assertContains(listing, "الوكيل يعتمد نهائياً")
-        self.assertContains(listing, self.department.name)
+        self.assertContains(listing, receiving_department.name)
 
     def test_deputy_route_requires_at_least_one_receiving_department(self):
         self._enter(self.manager)
