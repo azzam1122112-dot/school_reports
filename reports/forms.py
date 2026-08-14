@@ -769,7 +769,10 @@ class ReportForm(forms.ModelForm):
             current_key = getattr(self.instance, "submission_key", None)
             self.fields["client_submission_id"].initial = current_key or uuid.uuid4()
 
-        qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
+        current_category_id = getattr(self.instance, "category_id", None)
+        qs = ReportType.objects.filter(
+            Q(is_active=True) | Q(pk=current_category_id)
+        ).order_by("order", "name")
         if active_school is not None and hasattr(ReportType, "school"):
             qs = qs.filter(school=active_school)
 
@@ -781,6 +784,16 @@ class ReportForm(forms.ModelForm):
             to_field_name="code",
             widget=forms.Select(attrs={"class": "form-select"}),
         )
+        # ``BaseModelForm`` builds ``self.initial`` before the field above is
+        # replaced.  At that point Django stores the category's numeric PK,
+        # while this field deliberately posts ``ReportType.code``.  On edit
+        # pages the mismatch left the select on its empty option, so every
+        # update (including a newly attached image) failed validation.
+        if not self.is_bound and current_category_id:
+            try:
+                self.initial["category"] = self.instance.category.code
+            except ReportType.DoesNotExist:
+                self.initial["category"] = None
         self.fields["beneficiaries_count"].label = f"عدد {self.gender_labels['beneficiaries_object']}"
         # تطبيقات أو تبويبات فُتحت قبل إضافة الخيار لا ترسله في POST؛ الوضع
         # التلقائي هو التوافق الآمن ولا ينبغي أن يمنع حفظ تقرير مكتمل.

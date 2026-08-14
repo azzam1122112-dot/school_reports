@@ -27,6 +27,7 @@
     var note = card.querySelector("[data-file-note]");
     var fit = card.querySelector('select[name$="-fit_mode"]');
     var deletion = card.querySelector('input[name$="-DELETE"]');
+    var description = card.querySelector('input[name$="-description"]');
 
     card.querySelectorAll("[data-image-source]").forEach(function (button) {
       button.addEventListener("click", function () {
@@ -54,6 +55,13 @@
       input.removeAttribute("capture");
       if (!file) return;
       note.className = "ree-file-note";
+      var extension = (file.name.split(".").pop() || "").toLowerCase();
+      if (["jpg", "jpeg", "png", "webp"].indexOf(extension) === -1) {
+        note.textContent = "صيغة الصورة غير مدعومة. اختر JPG أو PNG أو WebP.";
+        note.classList.add("is-error");
+        input.value = "";
+        return;
+      }
       if (file.size > MAX_UPLOAD_BYTES) {
         note.textContent = "حجم الملف أكبر من 10MB ولن يقبله النظام.";
         note.classList.add("is-error");
@@ -72,10 +80,19 @@
         ratio.textContent = width + " × " + height + " · " + (width / divisor) + ":" + (height / divisor);
         URL.revokeObjectURL(url);
       };
+      preview.onerror = function () {
+        note.textContent = "تعذرت معاينة الصورة. اختر ملف JPG أو PNG أو WebP صالحًا.";
+        note.classList.add("is-error");
+        URL.revokeObjectURL(url);
+      };
       preview.src = url;
       preview.hidden = false;
       if (placeholder) placeholder.hidden = true;
       if (deletion) { deletion.checked = false; card.classList.remove("is-deleted"); }
+      if (description) {
+        description.required = true;
+        description.setAttribute("aria-required", "true");
+      }
       syncFit();
     });
 

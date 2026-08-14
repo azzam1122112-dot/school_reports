@@ -2498,6 +2498,7 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
 
     # لا نجبر تغيير المدرسة النشطة بالجَلسة، لكن نستخدم مدرسة التقرير لتصفية الأنواع عند الحاجة.
     form_school = active_school or getattr(r, "school", None)
+    response_status = 200
 
     if request.method == "POST":
         form = ReportForm(request.POST, request.FILES, instance=r, active_school=form_school)
@@ -2536,6 +2537,11 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
                         "evidence_formset": evidence_formset,
                         **_report_ai_template_context(request.user),
                     },
+                    status=(
+                        422
+                        if request.headers.get("X-Requested-With") == "XMLHttpRequest"
+                        else 200
+                    ),
                 )
 
             with transaction.atomic():
@@ -2552,6 +2558,8 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
                 return redirect("reports:admin_reports")
             return redirect("reports:my_reports")
         messages.error(request, "تحقّق من الحقول.")
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            response_status = 422
     else:
         form = ReportForm(instance=r, active_school=form_school)
         evidence_formset = ReportEvidenceFormSet(instance=r, prefix="evidence")
@@ -2565,6 +2573,7 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
             "evidence_formset": evidence_formset,
             **_report_ai_template_context(request.user),
         },
+        status=response_status,
     )
 
 @login_required(login_url="reports:login")

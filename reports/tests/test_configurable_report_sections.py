@@ -1,5 +1,10 @@
+from io import BytesIO
+import tempfile
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
 from reports.models import (
     Report,
@@ -16,6 +21,11 @@ from reports.models import (
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class ConfigurableReportSectionTests(TestCase):
     def setUp(self):
+        self.media = tempfile.TemporaryDirectory()
+        self.addCleanup(self.media.cleanup)
+        self.media_override = override_settings(MEDIA_ROOT=self.media.name)
+        self.media_override.enable()
+        self.addCleanup(self.media_override.disable)
         self.school = School.objects.create(
             name="مدرسة البنود المرنة",
             code="configurable-report-sections",
@@ -51,6 +61,98 @@ class ConfigurableReportSectionTests(TestCase):
         session = self.client.session
         session["active_school_id"] = self.school.id
         session.save()
+
+    @staticmethod
+    def _evidence_upload(name="evidence.png"):
+        output = BytesIO()
+        Image.new("RGB", (320, 180), (12, 108, 58)).save(output, format="PNG")
+        return SimpleUploadedFile(name, output.getvalue(), content_type="image/png")
+
+    def _editable_report(self):
+        return Report.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            title="تقرير قابل للتعديل",
+            report_date="2026-08-14",
+            category=self.category,
+            show_details=True,
+            idea="تفاصيل التقرير قبل التعديل.",
+        )
+
+    def _edit_payload(self, report, *, description="صورة تنفيذ النشاط"):
+        payload = {
+            "section_selection_enabled": "True",
+            "title": report.title,
+            "report_date": "2026-08-14",
+            "day_name": "الجمعة",
+            "category": self.category.code,
+            "show_details": "on",
+            "idea": report.idea,
+            "evidence-TOTAL_FORMS": "4",
+            "evidence-INITIAL_FORMS": "0",
+            "evidence-MIN_NUM_FORMS": "0",
+            "evidence-MAX_NUM_FORMS": "8",
+            "evidence-0-image": self._evidence_upload(),
+            "evidence-0-order": "1",
+            "evidence-0-description": description,
+            "evidence-0-display_size": "auto",
+            "evidence-0-fit_mode": "contain",
+            "evidence-0-show_in_print": "on",
+        }
+        for index in range(1, 4):
+            payload[f"evidence-{index}-order"] = str(index + 1)
+            payload[f"evidence-{index}-display_size"] = "auto"
+            payload[f"evidence-{index}-fit_mode"] = "contain"
+            payload[f"evidence-{index}-show_in_print"] = "on"
+        return payload
+
+    def test_edit_page_keeps_code_backed_category_selected(self):
+        report = self._editable_report()
+
+        response = self.client.get(reverse("reports:edit_my_report", args=[report.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["form"]["category"].value(), self.category.code)
+        self.assertContains(
+            response,
+            f'<option value="{self.category.code}" selected>',
+            html=False,
+        )
+
+    def test_edit_report_saves_uploaded_evidence(self):
+        report = self._editable_report()
+
+        response = self.client.post(
+            reverse("reports:edit_my_report", args=[report.pk]),
+            self._edit_payload(report),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("reports:my_reports"),
+            fetch_redirect_response=False,
+        )
+        evidence = report.evidences.get()
+        self.assertEqual(evidence.description, "صورة تنفيذ النشاط")
+        self.assertTrue(evidence.image.name.endswith(".webp"))
+
+    def test_edit_report_image_validation_failure_returns_422(self):
+        report = self._editable_report()
+
+        response = self.client.post(
+            reverse("reports:edit_my_report", args=[report.pk]),
+            self._edit_payload(report, description=""),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertContains(
+            response,
+            "أضف وصفًا موجزًا يوضح ما يظهر في الشاهد.",
+            status_code=422,
+        )
+        self.assertFalse(report.evidences.exists())
 
     def test_teacher_selects_sections_and_print_shows_only_selected_content(self):
         create_page = self.client.get(reverse("reports:add_report"))
