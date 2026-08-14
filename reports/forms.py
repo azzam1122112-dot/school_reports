@@ -1855,7 +1855,7 @@ class ReportTypeForm(forms.ModelForm):
         label="الأقسام المستلمة",
         queryset=Department.objects.none(),
         required=False,
-        help_text="تظهر تقارير هذا النوع للوكلاء المشرفين على قسم واحد على الأقل من هذه الأقسام.",
+        help_text="تظهر تقارير هذا النوع للوكلاء المرتبطين بقسم واحد على الأقل من هذه الأقسام.",
         widget=forms.CheckboxSelectMultiple(
             attrs={"aria-label": "اختر الأقسام المستلمة لهذا النوع"}
         ),
