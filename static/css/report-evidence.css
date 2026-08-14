@@ -15,7 +15,7 @@
 .ree-heading p { margin: 5px 0 0; color: var(--ree-muted); font-size: .84rem; line-height: 1.7; }
 .ree-page-mode { min-width: 210px; }
 .ree-page-mode label, .ree-description > span, .ree-options label > span { display: block; margin-bottom: 6px; color: var(--ree-muted); font-size: .76rem; font-weight: 800; }
-.ree-description > span small { color: #9a5f00; font-size: .69rem; font-weight: 800; }
+.ree-description > span small { color: var(--ree-muted); font-size: .69rem; font-weight: 800; }
 .ree-page-mode select, .ree-fields input[type="text"], .ree-options select { width: 100%; min-height: 42px; border: 1px solid var(--ree-line); border-radius: 7px; background: #fff; color: var(--ree-ink); font: inherit; padding: 8px 10px; }
 .ree-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .ar-col-side .ree-list { grid-template-columns: 1fr; }

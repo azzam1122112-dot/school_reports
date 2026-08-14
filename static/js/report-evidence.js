@@ -27,7 +27,6 @@
     var note = card.querySelector("[data-file-note]");
     var fit = card.querySelector('select[name$="-fit_mode"]');
     var deletion = card.querySelector('input[name$="-DELETE"]');
-    var description = card.querySelector('input[name$="-description"]');
 
     card.querySelectorAll("[data-image-source]").forEach(function (button) {
       button.addEventListener("click", function () {
@@ -89,10 +88,6 @@
       preview.hidden = false;
       if (placeholder) placeholder.hidden = true;
       if (deletion) { deletion.checked = false; card.classList.remove("is-deleted"); }
-      if (description) {
-        description.required = true;
-        description.setAttribute("aria-required", "true");
-      }
       syncFit();
     });
 

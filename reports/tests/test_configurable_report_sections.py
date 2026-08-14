@@ -137,7 +137,7 @@ class ConfigurableReportSectionTests(TestCase):
         self.assertEqual(evidence.description, "صورة تنفيذ النشاط")
         self.assertTrue(evidence.image.name.endswith(".webp"))
 
-    def test_edit_report_image_validation_failure_returns_422(self):
+    def test_edit_report_saves_image_without_optional_description(self):
         report = self._editable_report()
 
         response = self.client.post(
@@ -146,10 +146,29 @@ class ConfigurableReportSectionTests(TestCase):
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
 
+        self.assertRedirects(
+            response,
+            reverse("reports:my_reports"),
+            fetch_redirect_response=False,
+        )
+        evidence = report.evidences.get()
+        self.assertEqual(evidence.description, "")
+
+    def test_edit_report_xhr_validation_failure_returns_422(self):
+        report = self._editable_report()
+        payload = self._edit_payload(report, description="")
+        payload["category"] = ""
+
+        response = self.client.post(
+            reverse("reports:edit_my_report", args=[report.pk]),
+            payload,
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
         self.assertEqual(response.status_code, 422)
         self.assertContains(
             response,
-            "أضف وصفًا موجزًا يوضح ما يظهر في الشاهد.",
+            "هذا الحقل مطلوب",
             status_code=422,
         )
         self.assertFalse(report.evidences.exists())

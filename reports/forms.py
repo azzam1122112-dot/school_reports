@@ -607,13 +607,6 @@ class ReportEvidenceForm(forms.ModelForm):
                 "تعذر تجهيز الصورة. جرّب ملف JPG أو PNG أو WebP صالحًا."
             ) from exc
 
-    def clean(self):
-        cleaned = super().clean()
-        image = cleaned.get("image") or getattr(self.instance, "image", None)
-        if image and not (cleaned.get("description") or "").strip():
-            self.add_error("description", "أضف وصفًا موجزًا يوضح ما يظهر في الشاهد.")
-        return cleaned
-
     def save(self, commit=True):
         instance = super().save(commit=False)
         dimensions = getattr(self, "_normalized_dimensions", None)
