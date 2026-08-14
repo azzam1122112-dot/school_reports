@@ -548,6 +548,13 @@ class MeetingScreenTests(MeetingBase):
             full_form.fields["attendees"].help_text,
         )
 
+        self._enter(self.staff)
+        response = self.client.get(reverse("reports:meeting_create"))
+        self.assertContains(
+            response,
+            "يشمل جميع منسوبي المدرسة لأن نطاقك يغطي جميع الأقسام.",
+        )
+
     def test_meeting_forms_render_unique_field_ids(self):
         meeting = self._meeting()
         mark_held(meeting, self.manager)

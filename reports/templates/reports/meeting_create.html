@@ -112,6 +112,9 @@
         من دُعي ولم يحضر يُسجَّل غيابه — الدعوة والحضور صفٌّ واحد، فلا تُمحى
         الواقعة بحذف اسم.
       </p>
+      {% if form.attendees.help_text %}
+        <p class="asg-field__help">{{ form.attendees.help_text }}</p>
+      {% endif %}
 
       {% if form.attendees.field.queryset.exists %}
         <div class="mtg-picker__bar">
