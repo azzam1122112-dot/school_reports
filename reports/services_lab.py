@@ -76,29 +76,84 @@ def outstanding_handovers(school):
     السؤال العملي عند الجرد ليس «كم حركةً وقعت؟» بل «ماذا لا يزال خارج
     المختبر وعند من؟»، وهو فرقٌ لا يجيبه سردُ الحركات بترتيب زمني.
     """
-    rows = (
+    # الحركات القديمة كانت تسمح بإرجاعٍ بلا اسم. التجميع بـ ``person_id``
+    # يجعل هذا الإرجاع في مجموعة مستقلة سالبة، فيبقى المستلم ظاهراً في كشف
+    # المتأخرات رغم عودة الصنف فعلياً. نبني رصيداً زمنياً (FIFO) لكل صنف:
+    # الإرجاع المسمّى يسوّي عهدة الشخص أولاً، وغير المسمّى يسوّي أقدم عهدة.
+    movements = (
         LabAssetHandover.objects.filter(school=school)
-        .values("asset_id", "asset__name", "person_id", "person_name")
-        .annotate(
-            out=Sum("quantity", filter=Q(direction=LabAssetHandover.Direction.OUT)),
-            back=Sum("quantity", filter=Q(direction=LabAssetHandover.Direction.IN)),
+        .values(
+            "asset_id",
+            "asset__name",
+            "person_id",
+            "person_name",
+            "direction",
+            "quantity",
         )
-        .order_by("asset__name")
+        .order_by("asset_id", "happened_at", "id")
     )
-    result = []
-    for row in rows:
-        remaining = int(row.get("out") or 0) - int(row.get("back") or 0)
-        if remaining > 0:
-            result.append(
+    lots_by_asset: dict[int, list[dict]] = {}
+    asset_names: dict[int, str] = {}
+
+    for movement in movements:
+        asset_id = movement["asset_id"]
+        asset_names[asset_id] = movement["asset__name"]
+        lots = lots_by_asset.setdefault(asset_id, [])
+        quantity = int(movement.get("quantity") or 0)
+
+        if movement["direction"] == LabAssetHandover.Direction.OUT:
+            lots.append(
                 {
-                    "asset_id": row["asset_id"],
-                    "asset_name": row["asset__name"],
-                    "person_id": row["person_id"],
-                    "person_name": row["person_name"] or "—",
-                    "quantity": remaining,
+                    "person_id": movement["person_id"],
+                    "person_name": movement["person_name"] or "—",
+                    "quantity": quantity,
                 }
             )
-    return result
+            continue
+
+        # المسمّى يطابق صاحبه أولاً. ويأتي بقية الرصيد بعده لإبقاء الإجمالي
+        # متسقاً حتى مع بيانات تاريخية غير مكتملة أو حساب حُذف لاحقاً.
+        person_id = movement["person_id"]
+        person_name = movement["person_name"] or ""
+
+        def same_person(lot):
+            if person_id is not None:
+                return lot["person_id"] == person_id
+            return bool(person_name) and lot["person_name"] == person_name
+
+        candidates = (
+            [lot for lot in lots if same_person(lot)]
+            + [lot for lot in lots if not same_person(lot)]
+            if person_id is not None or person_name
+            else list(lots)
+        )
+        remaining = quantity
+        for lot in candidates:
+            if remaining <= 0:
+                break
+            consumed = min(remaining, lot["quantity"])
+            lot["quantity"] -= consumed
+            remaining -= consumed
+
+    result = []
+    for asset_id, lots in lots_by_asset.items():
+        grouped: dict[tuple[int | None, str], int] = {}
+        for lot in lots:
+            if lot["quantity"] <= 0:
+                continue
+            key = (lot["person_id"], lot["person_name"])
+            grouped[key] = grouped.get(key, 0) + lot["quantity"]
+        for (person_id, person_name), quantity in grouped.items():
+            result.append(
+                {
+                    "asset_id": asset_id,
+                    "asset_name": asset_names[asset_id],
+                    "person_id": person_id,
+                    "person_name": person_name,
+                    "quantity": quantity,
+                }
+            )
+    return sorted(result, key=lambda row: (row["asset_name"], row["person_name"]))
 
 
 def lab_summary(school) -> dict:
@@ -150,6 +205,12 @@ def record_handover(
     أكثر من الخارج» تعيش في ``clean`` النموذج، و``save`` وحدها لا تستدعيها —
     فمسارٌ يتخطاها يكتب جرداً يقول إن خارج المختبر خمساً من أربع.
     """
+    if person is None:
+        if direction == LabAssetHandover.Direction.OUT:
+            raise ValidationError("حدّد من تسلَّم الصنف.")
+        if direction == LabAssetHandover.Direction.IN:
+            raise ValidationError("حدّد من أعاد الصنف لتسوية عهدته بدقة.")
+
     handover = LabAssetHandover(
         school=asset.school,
         asset=asset,

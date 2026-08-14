@@ -354,6 +354,43 @@ class LabCustodyTests(LabTestCase):
         )
         self.assertEqual(outstanding_handovers(self.school), [])
 
+    def test_a_legacy_unnamed_return_reconciles_the_recipient_balance(self):
+        """الحركات القديمة غير المسمّاة لا تُبقي عهدة وهمية في الكشف."""
+        asset = self._asset(quantity=3)
+        record_handover(
+            asset, direction=LabAssetHandover.Direction.OUT,
+            person=self.teacher, quantity=2, actor=self.tech,
+        )
+        record_handover(
+            asset, direction=LabAssetHandover.Direction.IN,
+            person=self.teacher, quantity=1, actor=self.tech,
+        )
+        # يمثّل صفاً تاريخياً كُتب قبل اشتراط اسم المُعيد.
+        LabAssetHandover.objects.create(
+            school=self.school,
+            asset=asset,
+            direction=LabAssetHandover.Direction.IN,
+            person=None,
+            quantity=1,
+            recorded_by=self.tech,
+        )
+
+        self.assertEqual(asset.out_quantity, 0)
+        self.assertEqual(outstanding_handovers(self.school), [])
+        self.assertEqual(lab_summary(self.school)["outstanding"], 0)
+
+    def test_the_service_rejects_a_new_unnamed_return(self):
+        asset = self._asset(quantity=2)
+        record_handover(
+            asset, direction=LabAssetHandover.Direction.OUT,
+            person=self.teacher, quantity=1, actor=self.tech,
+        )
+        with self.assertRaisesMessage(ValidationError, "حدّد من أعاد الصنف"):
+            record_handover(
+                asset, direction=LabAssetHandover.Direction.IN,
+                person=None, quantity=1, actor=self.tech,
+            )
+
     def test_handing_out_through_the_screen(self):
         asset = self._asset(quantity=3)
         self._enter(self.tech)
@@ -379,6 +416,34 @@ class LabCustodyTests(LabTestCase):
             follow=True,
         )
         self.assertEqual(asset.handovers.count(), 0)
+
+    def test_returning_through_the_screen_requires_naming_the_recipient(self):
+        asset = self._asset()
+        record_handover(
+            asset, direction=LabAssetHandover.Direction.OUT,
+            person=self.teacher, quantity=1, actor=self.tech,
+        )
+        self._enter(self.tech)
+        response = self.client.post(
+            reverse("reports:lab_asset_action", args=[asset.pk]),
+            {
+                "lab_action": "handover",
+                "direction": LabAssetHandover.Direction.IN,
+                "quantity": 1,
+            },
+            follow=True,
+        )
+
+        self.assertContains(response, "حدّد من أعاد الصنف")
+        self.assertEqual(asset.handovers.count(), 1)
+
+    def test_asset_detail_uses_unique_accessible_field_ids(self):
+        asset = self._asset()
+        page = self._page(self.tech, "reports:lab_asset_detail", asset.pk)
+
+        self.assertEqual(page.count('id="id_quantity"'), 1)
+        self.assertEqual(page.count('id="id_handover_quantity"'), 1)
+        self.assertIn('for="id_handover_quantity"', page)
 
     # ── الحالة والإخراج ───────────────────────────────────────────────
     def test_an_asset_partly_handed_out_is_not_marked_missing(self):
@@ -661,6 +726,22 @@ class TheTechnicianKeepsEveryTeacherFeatureTests(LabTestCase):
     def test_the_header_still_calls_them_a_lab_technician(self):
         page = self._page(self.tech, "reports:home")
         self.assertIn("محضر مختبر", page)
+
+    def test_the_home_is_a_lab_workspace_not_a_generic_admin_workspace(self):
+        page = self._page(self.tech, "reports:home")
+
+        self.assertIn("مركز عمل محضّر المختبر", page)
+        self.assertIn("مهام المختبر اليومية", page)
+        self.assertIn("إدارة عهدة المختبر", page)
+        self.assertNotIn("مركز عمل الموظف الإداري", page)
+        self.assertNotIn("توثيق عمل إداري", page)
+
+    def test_report_copy_is_written_for_the_laboratory_role(self):
+        page = self._page(self.tech, "reports:add_report")
+
+        self.assertIn("توثيق إنجاز مهني", page)
+        self.assertIn("أعمال المختبر", page)
+        self.assertNotIn("توثيق عمل إداري", page)
 
     def test_the_dashboard_summarises_the_lab(self):
         self._asset(condition=LabAsset.Condition.DAMAGED)

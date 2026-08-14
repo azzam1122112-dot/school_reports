@@ -102,26 +102,34 @@ class LabHandoverForm(forms.Form):
     direction = forms.ChoiceField(
         label="الحركة",
         choices=LabAssetHandover.Direction.choices,
-        widget=forms.Select(attrs={"class": "form-control"}),
+        widget=forms.Select(attrs={"class": "form-control", "id": "id_handover_direction"}),
     )
     person = forms.ModelChoiceField(
         queryset=Teacher.objects.none(),
-        label="المستلم",
+        label="المستلم / المُعيد",
         required=False,
-        widget=forms.Select(attrs={"class": "form-control"}),
+        widget=forms.Select(attrs={"class": "form-control", "id": "id_handover_person"}),
         error_messages={"invalid_choice": "هذا المستخدم ليس من منسوبي مدرستك."},
     )
     quantity = forms.IntegerField(
         label="الكمية",
         min_value=1,
         initial=1,
-        widget=forms.NumberInput(attrs={"class": "form-control", "min": 1}),
+        widget=forms.NumberInput(
+            attrs={"class": "form-control", "min": 1, "id": "id_handover_quantity"}
+        ),
     )
     note = forms.CharField(
         label="ملاحظة",
         required=False,
         max_length=255,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "اختياري"}),
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "اختياري",
+                "id": "id_handover_note",
+            }
+        ),
     )
 
     def __init__(self, *args, school=None, **kwargs):
@@ -131,10 +139,12 @@ class LabHandoverForm(forms.Form):
 
     def clean(self):
         cleaned = super().clean()
-        # التسليم بلا مستلم لا معنى له: العهدة تُسلَّم *لأحد*. أما الإرجاع فقد
-        # يقع بلا تسمية (وُجد الصنف في المختبر)، فيبقى المستلم اختيارياً فيه.
-        if cleaned.get("direction") == LabAssetHandover.Direction.OUT and not cleaned.get("person"):
-            self.add_error("person", "حدّد من تسلَّم الصنف.")
+        direction = cleaned.get("direction")
+        if not cleaned.get("person"):
+            if direction == LabAssetHandover.Direction.OUT:
+                self.add_error("person", "حدّد من تسلَّم الصنف.")
+            elif direction == LabAssetHandover.Direction.IN:
+                self.add_error("person", "حدّد من أعاد الصنف لتسوية عهدته بدقة.")
         return cleaned
 
 

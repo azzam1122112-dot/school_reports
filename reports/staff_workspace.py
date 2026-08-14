@@ -30,6 +30,7 @@ EMPTY_STAFF_WORKSPACES = {
     "deputy_scope_missing": False,
     "deputy_has_temporary_delegation": False,
     "is_admin_staff_workspace": False,
+    "is_lab_technician_workspace": False,
     "admin_staff_template_label": "",
     "admin_staff_scope_names": [],
     "admin_staff_capability_labels": [],
@@ -294,6 +295,48 @@ def _admin_core_actions(effective) -> list[dict]:
     ]
 
 
+def _lab_technician_core_actions() -> list[dict]:
+    """المهام المتكررة للمحضّر، مع إبقاء أدواته المهنية الشخصية."""
+    return [
+        {
+            "label": "لوحة المختبر",
+            "hint": "ملخص العهدة والتجارب والتنبيهات التي تحتاج متابعة",
+            "icon": "fa-flask-vial",
+            "url": reverse("reports:lab_dashboard"),
+        },
+        {
+            "label": "إدارة عهدة المختبر",
+            "hint": "إضافة الأصناف وتسجيل التسليم والإرجاع ومراجعة الجرد",
+            "icon": "fa-boxes-stacked",
+            "url": reverse("reports:lab_assets"),
+        },
+        {
+            "label": "توثيق التجارب",
+            "hint": "حفظ التجارب وإكمالها ثم إرسالها للاعتماد",
+            "icon": "fa-microscope",
+            "url": reverse("reports:lab_experiments"),
+        },
+        {
+            "label": "تقاريري المهنية",
+            "hint": "توثيق إنجازات العمل وشواهدها ومتابعة اعتمادها",
+            "icon": "fa-file-circle-plus",
+            "url": reverse("reports:add_report"),
+        },
+        {
+            "label": "تكليفاتي",
+            "hint": "متابعة ما أُسند إليّ وتحديث الإنجاز ورفع الشواهد",
+            "icon": "fa-list-check",
+            "url": reverse("reports:my_assignments"),
+        },
+        {
+            "label": "الاجتماعات والمحاضر",
+            "hint": "متابعة الاجتماعات التي دُعيت إليها ومحاضرها",
+            "icon": "fa-users-rectangle",
+            "url": reverse("reports:meeting_list"),
+        },
+    ]
+
+
 def build_staff_workspaces(user, school) -> dict:
     if school is None or not getattr(user, "is_authenticated", False):
         return dict(EMPTY_STAFF_WORKSPACES)
@@ -367,6 +410,9 @@ def build_staff_workspaces(user, school) -> dict:
         )
 
     if admin_membership is not None:
+        is_lab_technician = (
+            admin_membership.job_title == SchoolMembership.JobTitle.LAB_TECH
+        )
         scope = _scope_for(admin_membership)
         permanent = set(scope.capability_codes()) if scope is not None else set()
         # عند اجتماع دور الوكيل والموظف، يُنسب التفويض إلى مركز الوكيل حتى لا
@@ -381,8 +427,11 @@ def build_staff_workspaces(user, school) -> dict:
         result.update(
             {
                 "is_admin_staff_workspace": True,
+                "is_lab_technician_workspace": is_lab_technician,
                 "admin_staff_template_label": (
-                    template.label
+                    "محضّر المختبر"
+                    if is_lab_technician
+                    else template.label
                     if template is not None
                     else "صلاحيات إدارية مخصصة"
                     if effective
@@ -393,7 +442,11 @@ def build_staff_workspaces(user, school) -> dict:
                 "admin_staff_scope_names": scope_names,
                 "admin_staff_capability_labels": _capability_labels(effective),
                 "admin_staff_capability_count": len(effective),
-                "admin_staff_core_actions": _admin_core_actions(effective),
+                "admin_staff_core_actions": (
+                    _lab_technician_core_actions()
+                    if is_lab_technician
+                    else _admin_core_actions(effective)
+                ),
                 "admin_staff_workspace_actions": _actions(
                     _ADMIN_CAPABILITY_ACTIONS,
                     effective,

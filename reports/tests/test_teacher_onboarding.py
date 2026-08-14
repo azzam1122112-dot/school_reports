@@ -245,6 +245,33 @@ class TeacherOnboardingTests(TestCase):
         self.assertEqual(membership.role_type, SchoolMembership.RoleType.ADMIN_STAFF)
         self.assertEqual(membership.job_title, SchoolMembership.JobTitle.LAB_TECH)
 
+    def test_capacity_error_names_all_school_staff_not_only_teachers(self):
+        existing = Teacher.objects.create_user(
+            phone="0552223388", name="منسوب قائم", password="safe-password"
+        )
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=existing,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        self.plan.max_teachers = 1
+        self.plan.save(update_fields=["max_teachers"])
+
+        response = self.client.post(
+            reverse("reports:add_teacher"),
+            {
+                "name": "محضّر فوق السعة",
+                "phone": "0552223399",
+                "national_id": "",
+                "job_title": SchoolMembership.JobTitle.LAB_TECH,
+                "is_active": "on",
+            },
+        )
+
+        self.assertContains(response, "حسابات منسوبي المدرسة")
+        self.assertNotContains(response, "حسابات المعلمين")
+        self.assertFalse(Teacher.objects.filter(phone="0552223399").exists())
+
     def test_individual_form_offers_the_same_four_assignments_as_roles_screen(self):
         from reports.forms_staff_roles import StaffRoleAssignForm
 

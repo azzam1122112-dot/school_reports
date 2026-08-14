@@ -1009,7 +1009,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
     ):
         messages.error(
             request,
-            f"لا يمكن إضافة أكثر من {maximum} من حسابات {labels['teachers_object']} لهذه المدرسة حسب الباقة.",
+            f"لا يمكن إضافة أكثر من {maximum} من حسابات منسوبي المدرسة حسب الباقة.",
         )
         return render_form(form)
 

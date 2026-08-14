@@ -830,13 +830,15 @@
   <section class="th-hero" aria-labelledby="teacherHomeTitle">
     <div class="th-hero-main">
       <div class="th-eyebrow">
-        <i class="fa-solid {% if is_deputy_workspace %}fa-user-tie{% elif is_admin_staff_workspace %}fa-user-gear{% else %}fa-chalkboard-user{% endif %}" aria-hidden="true"></i>
+        <i class="fa-solid {% if is_deputy_workspace %}fa-user-tie{% elif is_lab_technician_workspace %}fa-flask-vial{% elif is_admin_staff_workspace %}fa-user-gear{% else %}fa-chalkboard-user{% endif %}" aria-hidden="true"></i>
         مساحة عمل {{ USER_ROLE_LABEL|default:SCHOOL_TEACHER_LABEL|default:"المعلم" }}
       </div>
       <h1 class="th-title" id="teacherHomeTitle">مرحبًا، {{ request.user.name|default:USER_ROLE_LABEL|default:SCHOOL_TEACHER_LABEL }}</h1>
       <p class="th-lead">
         {% if is_deputy_workspace %}
           تابع ما ينتظر قرارك ضمن نطاقك، وأدر مهامك الإشرافية وعملك الشخصي من مساحة واحدة واضحة.
+        {% elif is_lab_technician_workspace %}
+          أدر عهدة المختبر، وثّق التجارب، وتابع أعمالك المهنية من مساحة واحدة واضحة.
         {% elif is_admin_staff_workspace %}
           نفّذ ما أُسند إليك، ارفع الشواهد والوثائق، وتابع ما عاد إليك للاستكمال من مساحة يومية واحدة.
         {% else %}
@@ -873,12 +875,14 @@
         </a>
       </div>
     </div>
-    <aside class="th-hero-side" aria-label="{% if is_deputy_workspace %}ملخص نطاق الوكيل{% elif is_admin_staff_workspace %}ملخص عمل الموظف الإداري{% else %}ملخص المدرسة وآخر توثيق{% endif %}">
+    <aside class="th-hero-side" aria-label="{% if is_deputy_workspace %}ملخص نطاق الوكيل{% elif is_lab_technician_workspace %}ملخص عمل محضّر المختبر{% elif is_admin_staff_workspace %}ملخص عمل الموظف الإداري{% else %}ملخص المدرسة وآخر توثيق{% endif %}">
       <div>
-        <div class="th-side-label">{% if is_deputy_workspace %}نطاق الإشراف{% elif is_admin_staff_workspace %}نطاق العمل{% else %}المدرسة الحالية{% endif %}</div>
+        <div class="th-side-label">{% if is_deputy_workspace %}نطاق الإشراف{% elif is_lab_technician_workspace %}مسؤولية المختبر{% elif is_admin_staff_workspace %}نطاق العمل{% else %}المدرسة الحالية{% endif %}</div>
         <div class="th-side-value">
           {% if is_deputy_workspace %}
             {% if deputy_scope_names %}{{ deputy_scope_names|join:" • " }}{% else %}لم تُسنَد أقسام بعد{% endif %}
+          {% elif is_lab_technician_workspace %}
+            العهدة والتجارب
           {% elif is_admin_staff_workspace %}
             {% if admin_staff_scope_names %}{{ admin_staff_scope_names|join:" • " }}{% else %}مهام المدرسة الأساسية{% endif %}
           {% else %}{{ SCHOOL_NAME|default:"لم تُحدد المدرسة" }}{% endif %}
@@ -886,8 +890,8 @@
       </div>
       <div class="th-side-separator" aria-hidden="true"></div>
       <div>
-        <div class="th-side-label">{% if is_deputy_workspace or is_admin_staff_workspace %}الصلاحيات الإضافية{% else %}آخر تقرير موثّق{% endif %}</div>
-        <div class="th-side-value">{% if is_deputy_workspace %}{{ deputy_capability_count }} صلاحية{% elif is_admin_staff_workspace %}{{ admin_staff_capability_count }} صلاحية{% else %}{{ stats.last_title|default:"لا يوجد حتى الآن" }}{% endif %}</div>
+        <div class="th-side-label">{% if is_deputy_workspace %}الصلاحيات الإضافية{% elif is_lab_technician_workspace %}نطاق إشرافي إضافي{% elif is_admin_staff_workspace %}الصلاحيات الإضافية{% else %}آخر تقرير موثّق{% endif %}</div>
+        <div class="th-side-value">{% if is_deputy_workspace %}{{ deputy_capability_count }} صلاحية{% elif is_lab_technician_workspace %}{% if admin_staff_capability_count %}{{ admin_staff_capability_count }} صلاحية{% else %}غير مسند{% endif %}{% elif is_admin_staff_workspace %}{{ admin_staff_capability_count }} صلاحية{% else %}{{ stats.last_title|default:"لا يوجد حتى الآن" }}{% endif %}</div>
       </div>
     </aside>
   </section>
@@ -957,12 +961,12 @@
       <div class="th-deputy-head">
         <div>
           <h2 class="th-deputy-title" id="adminStaffCommandTitle">
-            <i class="fa-solid fa-user-gear" aria-hidden="true"></i>
-            مركز عمل الموظف الإداري
+            <i class="fa-solid {% if is_lab_technician_workspace %}fa-flask-vial{% else %}fa-user-gear{% endif %}" aria-hidden="true"></i>
+            {% if is_lab_technician_workspace %}مركز عمل محضّر المختبر{% else %}مركز عمل الموظف الإداري{% endif %}
           </h2>
-          <p class="th-deputy-lead">ابدأ بما ينتظر تنفيذك، ثم انتقل إلى التوثيق والأرشفة. أدوات المراجعة لا تظهر إلا عند منحها فعلياً.</p>
+          <p class="th-deputy-lead">{% if is_lab_technician_workspace %}ابدأ بالعهدة والتجارب التي تحتاج متابعة، ثم وثّق أعمالك المهنية. أدوات الإشراف الإضافية لا تظهر إلا عند منحها فعلياً.{% else %}ابدأ بما ينتظر تنفيذك، ثم انتقل إلى التوثيق والأرشفة. أدوات المراجعة لا تظهر إلا عند منحها فعلياً.{% endif %}</p>
         </div>
-        <div class="th-deputy-badges" aria-label="ملخص دور الموظف الإداري">
+        <div class="th-deputy-badges" aria-label="{% if is_lab_technician_workspace %}ملخص دور محضّر المختبر{% else %}ملخص دور الموظف الإداري{% endif %}">
           <span class="th-deputy-badge">{{ admin_staff_template_label }}</span>
           {% if admin_staff_scope_names %}<span class="th-deputy-badge">{{ admin_staff_scope_names|join:" • " }}</span>{% endif %}
           {% if admin_staff_has_temporary_delegation %}<span class="th-deputy-badge">تفويض مؤقت فعّال</span>{% endif %}
@@ -984,7 +988,7 @@
         </div>
       {% endif %}
 
-      <h3 class="th-staff-section-title"><i class="fa-solid fa-bolt" aria-hidden="true"></i> التنفيذ اليومي</h3>
+      <h3 class="th-staff-section-title"><i class="fa-solid fa-bolt" aria-hidden="true"></i> {% if is_lab_technician_workspace %}مهام المختبر اليومية{% else %}التنفيذ اليومي{% endif %}</h3>
       <div class="th-deputy-actions">
         {% for item in admin_staff_core_actions %}
           <a class="th-deputy-action" href="{{ item.url }}">
@@ -1008,8 +1012,8 @@
         </div>
       {% else %}
         <div class="th-role-context u-mt-5">
-          <strong><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> القالب الأساسي فعّال</strong>
-          تنفّذ أعمالك وتوثّقها وترفعها للمراجعة، دون صلاحية إشراف أو اعتماد. غياب أدوات الوكيل هنا مقصود وليس خللاً في الحساب.
+          <strong><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> {% if is_lab_technician_workspace %}صلاحية المختبر الأساسية فعّالة{% else %}القالب الأساسي فعّال{% endif %}</strong>
+          {% if is_lab_technician_workspace %}تدير العهدة والتجارب وتوثّق أعمالك. لا تظهر أدوات الإشراف على أعمال الآخرين إلا عند إسناد نطاق إضافي من المدير.{% else %}تنفّذ أعمالك وتوثّقها وترفعها للمراجعة، دون صلاحية إشراف أو اعتماد. غياب أدوات الوكيل هنا مقصود وليس خللاً في الحساب.{% endif %}
         </div>
       {% endif %}
 
@@ -1021,7 +1025,7 @@
           </div>
         </details>
       {% endif %}
-      <p class="th-note u-mb-0">الاعتماد النهائي ونشر التعاميم يبقيان لمدير المدرسة، حتى عند منح صلاحيات المراجعة والإعداد.</p>
+      <p class="th-note u-mb-0">{% if is_lab_technician_workspace %}تسجيل العهدة من مسؤولية محضّر المختبر، أما اعتماد التجارب والتقارير فيبقى لمدير المدرسة أو لمسار الاعتماد المحدد.{% else %}الاعتماد النهائي ونشر التعاميم يبقيان لمدير المدرسة، حتى عند منح صلاحيات المراجعة والإعداد.{% endif %}</p>
     </section>
   {% endif %}
 
