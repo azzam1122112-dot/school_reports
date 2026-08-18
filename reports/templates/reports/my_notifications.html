@@ -948,6 +948,28 @@ html[data-theme="dark"] .notif-scope .time-badge{
     background: var(--notif-surface);
   }
   .notif-scope .filter-empty i { font-size: 2.5rem; display: block; margin-bottom: 14px; opacity: .4; }
+
+  /* Final inbox polish: the page has legacy layers above; these rules are the
+     intentional last word for hierarchy, unread state, and small screens. */
+  .notif-scope .page-head-copy{position:relative;min-width:min(100%,320px);flex:1}
+  .notif-scope .page-eyebrow{display:inline-flex;align-items:center;gap:7px;margin-bottom:8px;color:#e6cf9a;font-size:.78rem;font-weight:950}
+  .notif-scope .page-subtitle{position:relative;margin:0;color:rgba(255,255,255,.78);font-size:.84rem;font-weight:750;line-height:1.75}
+  .notif-scope .head-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .notif-scope .head-summary span{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(255,255,255,.1);color:#fff;font-size:.74rem;font-weight:850}
+  .notif-scope .head-summary i{color:#e6cf9a}
+  .notif-scope .inbox-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .notif-scope .inbox-nav a{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid var(--notif-border);border-radius:12px;background:var(--notif-surface);color:var(--notif-text);font-size:.8rem;font-weight:900;text-decoration:none;transition:transform .18s ease,border-color .18s ease,color .18s ease}
+  .notif-scope .inbox-nav a:hover{border-color:var(--notif-primary);color:var(--notif-primary);transform:translateY(-1px)}
+  .notif-scope .n-card:not(.read){border-color:rgba(10,92,51,.38);box-shadow:0 16px 34px -24px rgba(10,92,51,.72)}
+  .notif-scope .n-card:not(.read) .n-title::after{content:'جديد';display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;background:rgba(10,92,51,.1);color:var(--notif-primary);font-size:.65rem;font-weight:950}
+  .notif-scope .n-card.read{opacity:.82}
+  .notif-scope .n-actions .btn-sm{min-height:42px}
+  @media(max-width:768px){
+    .notif-scope .page-head-copy{width:100%}
+    .notif-scope .head-summary span{flex:1;justify-content:center}
+    .notif-scope .n-actions .btn-sm,.notif-scope .n-actions form{flex:1;justify-content:center}
+  }
+  @media(prefers-reduced-motion:reduce){.notif-scope .inbox-nav a{transition:none}}
 </style>
 {% endblock %}
 
@@ -956,9 +978,11 @@ html[data-theme="dark"] .notif-scope .time-badge{
   <div class="notif-container" dir="rtl">
 
     <header class="page-head">
-      <h1 class="page-title">
-        <i class="fa-solid fa-bell" aria-hidden="true"></i>
-        إشعاراتي
+      <div class="page-head-copy">
+        <div class="page-eyebrow"><i class="fa-solid fa-inbox" aria-hidden="true"></i> مركز التنبيهات</div>
+        <h1 class="page-title">
+          <i class="fa-solid fa-bell" aria-hidden="true"></i>
+          إشعاراتي
 
         {% with unread=NAV_NOTIFICATIONS_UNREAD|default_if_none:"0"|add:"0" %}
           <span class="chip" id="unreadCount" aria-live="polite" {% if unread == 0 %}style="display:none"{% endif %} data-initial="{{ unread }}">
@@ -967,7 +991,13 @@ html[data-theme="dark"] .notif-scope .time-badge{
             غير مقروءة
           </span>
         {% endwith %}
-      </h1>
+        </h1>
+        <p class="page-subtitle">تابع رسائل الإدارة والتنبيهات المهمة، وافتح التفاصيل عند الحاجة دون أن تفقد حالة القراءة.</p>
+        <div class="head-summary">
+          <span><i class="fa-solid fa-bell" aria-hidden="true"></i> إشعارات المدرسة</span>
+          <span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> عزل حسب المدرسة النشطة</span>
+        </div>
+      </div>
 
       <div class="head-actions">
         <div class="notif-search">
@@ -990,6 +1020,11 @@ html[data-theme="dark"] .notif-scope .time-badge{
         </form>
       </div>
     </header>
+
+    <nav class="inbox-nav" aria-label="التنقل بين الوارد">
+      <a href="{% url 'reports:my_notifications' %}"><i class="fa-solid fa-bell" aria-hidden="true"></i> الإشعارات</a>
+      <a href="{% url 'reports:my_circulars' %}"><i class="fa-solid fa-file-signature" aria-hidden="true"></i> التعاميم والتوقيعات</a>
+    </nav>
 
     {% if page_obj and page_obj.object_list %}
       <section class="cards" id="cards">
