@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}كود الخصم {{ code.code }}{% endblock %}
+
+{% block head %}
+<style nonce="{{ CSP_NONCE }}">
+  .dcode-detail-scope { direction: rtl; }
+  .dcode-detail-scope .panel {
+    background: var(--card, #fff);
+    border: 1px solid rgba(185, 151, 91, .22);
+    border-radius: 16px;
+    box-shadow: 0 22px 58px rgba(16,37,31,.10);
+  }
+  .dcode-detail-scope .head {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .dcode-detail-scope h1 {
+    margin: 0;
+    color: var(--ink, #0f172a);
+    font-size: 1.4rem;
+    font-weight: 950;
+    letter-spacing: .04em;
+  }
+  .dcode-detail-scope .head-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .dcode-detail-scope .meta {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .dcode-detail-scope .meta .panel { padding: 14px; min-height: 92px; }
+  .dcode-detail-scope .label { color: var(--muted, #64748b); font-weight: 900; }
+  .dcode-detail-scope .value { margin-top: 8px; color: var(--ink, #0f172a); font-size: 1.2rem; font-weight: 950; }
+  .dcode-detail-scope .table-card { margin-top: 14px; overflow: hidden; }
+  .dcode-detail-scope .table-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-2, var(--line, #e5e7eb));
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .dcode-detail-scope .table-head h2 { margin: 0; color: var(--ink, #0f172a); font-size: 1.05rem; font-weight: 950; }
+  .dcode-detail-scope .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: .84rem;
+    border: 1px solid var(--line-2, var(--line, #e5e7eb));
+    white-space: nowrap;
+  }
+  .dcode-detail-scope .success { background: rgba(22,132,91,.10); color: #16845b; border-color: rgba(22,132,91,.18); }
+  .dcode-detail-scope .warning { background: rgba(217,119,6,.12); color: #d97706; border-color: rgba(217,119,6,.20); }
+  .dcode-detail-scope .danger { background: rgba(220,38,38,.10); color: #dc2626; border-color: rgba(220,38,38,.18); }
+  .dcode-detail-scope .subline { margin-top: 5px; color: var(--muted, #64748b); font-weight: 800; font-size: .88rem; }
+  @media(max-width:980px){ .dcode-detail-scope .meta{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  @media(max-width:620px){ .dcode-detail-scope .meta{grid-template-columns:1fr} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="royal-page dcode-detail-scope">
+  <section class="panel head">
+    <div>
+      <span class="royal-kicker"><i class="fa-solid fa-ticket" aria-hidden="true"></i> كود خصم</span>
+      <h1 dir="ltr">{{ code.code }}</h1>
+      <div class="subline">
+        {{ code.get_discount_type_display }} · {{ code.display_value }}
+        {% if code.valid_until %} · يسري حتى {{ code.valid_until|date:"Y-m-d" }}{% endif %}
+        {% if code.created_by %} · أصدره {{ code.created_by.name|default:code.created_by }}{% endif %}
+      </div>
+      {% if code.notes %}<div class="subline">{{ code.notes }}</div>{% endif %}
+    </div>
+    <div class="head-actions">
+      {% if not code.is_active %}
+        <span class="badge danger"><i class="fa-solid fa-pause"></i> موقوف</span>
+      {% elif code.is_exhausted %}
+        <span class="badge warning"><i class="fa-solid fa-ban"></i> مستنفد</span>
+      {% elif code.is_expired %}
+        <span class="badge warning"><i class="fa-solid fa-clock"></i> منتهي الصلاحية</span>
+      {% elif code.is_scheduled %}
+        <span class="badge warning"><i class="fa-solid fa-calendar"></i> يبدأ لاحقاً</span>
+      {% else %}
+        <span class="badge success"><i class="fa-solid fa-circle-check"></i> متاح</span>
+      {% endif %}
+      <a class="btn btn-outline" href="{% url 'reports:platform_discount_code_edit' code.id %}">
+        <i class="fa-solid fa-pen-to-square"></i> تعديل
+      </a>
+      {% if not redemptions %}
+        <form method="post" action="{% url 'reports:platform_discount_code_delete' code.id %}">
+          {% csrf_token %}
+          <button class="btn btn-outline" type="submit"><i class="fa-solid fa-trash"></i> حذف</button>
+        </form>
+      {% endif %}
+      <a class="btn btn-outline" href="{% url 'reports:platform_discount_codes_list' %}">
+        <i class="fa-solid fa-arrow-right"></i> رجوع
+      </a>
+    </div>
+  </section>
+
+  <section class="meta" aria-label="مؤشرات الكود">
+    <article class="panel"><div class="label">الاستخدامات</div><div class="value">{{ code.used_count }} / {{ code.max_uses }}</div></article>
+    <article class="panel"><div class="label">الرصيد المتبقي</div><div class="value">{{ code.remaining_uses }}</div></article>
+    <article class="panel"><div class="label">إجمالي الخصومات الممنوحة</div><div class="value">{{ granted_total|floatformat:2|intcomma }} ريال</div></article>
+    <article class="panel"><div class="label">تاريخ الإصدار</div><div class="value">{{ code.created_at|date:"Y-m-d" }}</div></article>
+  </section>
+
+  <section class="panel table-card">
+    <div class="table-head">
+      <h2>المدارس التي استخدمت الكود</h2>
+      <div class="label">{{ redemptions|length }} استخدام</div>
+    </div>
+    <div class="table-responsive">
+      <table class="royal-table rtable">
+        <thead>
+          <tr>
+            <th class="u-text-start">المدرسة</th>
+            <th>تاريخ الاستخدام</th>
+            <th>قيمة الخصم</th>
+            <th>الدفعة</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for redemption in redemptions %}
+            <tr>
+              <td data-label="المدرسة" class="u-text-start">
+                <div>{{ redemption.school.name }}</div>
+                <div class="subline">{{ redemption.school.code|default:"بدون كود" }}</div>
+              </td>
+              <td data-label="التاريخ">{{ redemption.created_at|date:"Y-m-d H:i" }}</td>
+              <td data-label="قيمة الخصم">{{ redemption.amount_discounted|floatformat:2|intcomma }} ريال</td>
+              <td data-label="الدفعة">
+                {% if redemption.payment %}
+                  <a class="btn btn-outline" href="{% url 'reports:platform_payment_detail' redemption.payment.id %}">
+                    دفعة #{{ redemption.payment.id }} · {{ redemption.payment.get_status_display }}
+                  </a>
+                {% else %}
+                  <span class="subline">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="label">لم تستخدم أي مدرسة هذا الكود بعد.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

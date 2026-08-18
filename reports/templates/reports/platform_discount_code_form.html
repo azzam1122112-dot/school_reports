@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}{% if code %}تعديل كود الخصم{% else %}إصدار كود خصم{% endif %}{% endblock %}
+
+{% block head %}
+<style nonce="{{ CSP_NONCE }}">
+  .dcode-form-scope {
+    direction: rtl;
+  }
+  .dcode-form-scope .card {
+    background: var(--card, #fff);
+    border: 1px solid rgba(185, 151, 91, .22);
+    border-radius: 18px;
+    box-shadow: 0 22px 58px rgba(16,37,31,.10);
+    overflow: hidden;
+    position: relative;
+  }
+  .dcode-form-scope .card::before {
+    content: "";
+    position: absolute;
+    inset-inline: 20px;
+    top: 0;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, var(--royal-gold, #b9975b), var(--brand, #006c35), transparent);
+  }
+  .dcode-form-scope .head {
+    padding: 20px;
+    border-bottom: 1px solid rgba(185, 151, 91, .22);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .dcode-form-scope h1 {
+    margin: 0;
+    color: var(--ink, #0f172a);
+    font-size: 1.35rem;
+    font-weight: 950;
+  }
+  .dcode-form-scope .sub {
+    margin-top: 6px;
+    color: var(--muted, #64748b);
+    font-weight: 850;
+    line-height: 1.7;
+  }
+  .dcode-form-scope .body {
+    padding: 20px;
+    display: grid;
+    gap: 16px;
+  }
+  .dcode-form-scope .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .dcode-form-scope .field.full { grid-column: 1 / -1; }
+  .dcode-form-scope label {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--muted, #64748b);
+    font-weight: 950;
+  }
+  .dcode-form-scope input:not([type="checkbox"]),
+  .dcode-form-scope select,
+  .dcode-form-scope textarea {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid rgba(185, 151, 91, .22);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: var(--card, #fff);
+    color: var(--ink, #0f172a);
+    font-weight: 800;
+  }
+  .dcode-form-scope .check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+  }
+  .dcode-form-scope .error {
+    color: #dc2626;
+    font-weight: 850;
+    margin-top: 6px;
+    font-size: .9rem;
+  }
+  .dcode-form-scope .actions {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(185, 151, 91, .22);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  @media(max-width:720px){
+    .dcode-form-scope .grid{grid-template-columns:1fr}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="royal-page royal-page--narrow dcode-form-scope">
+  <form class="card" method="post" novalidate>
+    {% csrf_token %}
+    <div class="head">
+      <div>
+        <span class="royal-kicker">
+          <i class="fa-solid fa-ticket" aria-hidden="true"></i>
+          {% if code %}تعديل الكود{% else %}إصدار جديد{% endif %}
+        </span>
+        <h1>{% if code %}تعديل كود الخصم {{ code.code }}{% else %}إصدار كود خصم{% endif %}</h1>
+        <div class="royal-subtitle sub">الخصم يسري على بند الاشتراك فقط عند الاشتراك أو التجديد، ويستخدمه كل عميل مرة واحدة.</div>
+      </div>
+      <a href="{% url 'reports:platform_discount_codes_list' %}" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        رجوع
+      </a>
+    </div>
+
+    <div class="body">
+      {% if form.non_field_errors %}
+        <div class="error">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="grid">
+        <div class="field full">
+          <label for="{{ form.code.id_for_label }}">{{ form.code.label }}</label>
+          {{ form.code }}
+          {% if form.code.help_text %}<div class="royal-note">{{ form.code.help_text }}</div>{% endif %}
+          {% for e in form.code.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          <label for="{{ form.discount_type.id_for_label }}">{{ form.discount_type.label }}</label>
+          {{ form.discount_type }}
+          {% for e in form.discount_type.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label>
+          {{ form.value }}
+          {% if form.value.help_text %}<div class="royal-note">{{ form.value.help_text }}</div>{% endif %}
+          {% for e in form.value.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          <label for="{{ form.max_uses.id_for_label }}">{{ form.max_uses.label }}</label>
+          {{ form.max_uses }}
+          {% if form.max_uses.help_text %}<div class="royal-note">{{ form.max_uses.help_text }}</div>{% endif %}
+          {% for e in form.max_uses.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          <label>{{ form.is_active.label }}</label>
+          <div class="royal-note check-row">{{ form.is_active }} <span>إيقاف الكود يمنع استخدامه الجديد فوراً دون أثر على من استخدمه</span></div>
+          {% for e in form.is_active.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          <label for="{{ form.valid_from.id_for_label }}">{{ form.valid_from.label }}</label>
+          {{ form.valid_from }}
+          {% for e in form.valid_from.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          <label for="{{ form.valid_until.id_for_label }}">{{ form.valid_until.label }}</label>
+          {{ form.valid_until }}
+          {% if form.valid_until.help_text %}<div class="royal-note">{{ form.valid_until.help_text }}</div>{% endif %}
+          {% for e in form.valid_until.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field full">
+          <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+          {{ form.notes }}
+          {% for e in form.notes.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">
+        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+        حفظ الكود
+      </button>
+      <a href="{% url 'reports:platform_discount_codes_list' %}" class="btn btn-outline">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

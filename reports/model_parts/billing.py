@@ -233,6 +233,21 @@ class Payment(models.Model):
         verbose_name="الاشتراك المرتبط"
     )
     amount = models.DecimalField("المبلغ", max_digits=10, decimal_places=2)
+    discount_code = models.ForeignKey(
+        "DiscountCode",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payments",
+        verbose_name="كود الخصم",
+    )
+    discount_amount = models.DecimalField(
+        "قيمة الخصم",
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="ما خُصم من هذا البند بكود خصم. ``amount`` هو الصافي بعد الخصم.",
+    )
     payment_method = models.CharField(
         "طريقة الدفع",
         max_length=20,
@@ -372,6 +387,11 @@ class Payment(models.Model):
     def bank_review_is_overdue(self):
         due_date = self.bank_review_due_date
         return bool(due_date and timezone.localdate() > due_date)
+
+    @property
+    def original_amount(self):
+        """المبلغ قبل الخصم — مشتق ولا يُخزّن حتى لا يوجد مصدران للحقيقة."""
+        return (self.amount or 0) + (self.discount_amount or 0)
 
     def __str__(self):
         return f"دفع #{self.id} - {self.school.name} - {self.amount}"

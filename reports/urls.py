@@ -513,6 +513,11 @@ urlpatterns = [
         views.moyasar_checkout_cancel,
         name="moyasar_checkout_cancel",
     ),
+    path(
+        "subscription/discount-code/check/",
+        views.discount_code_check,
+        name="discount_code_check",
+    ),
 
     # =========================
     # إدارة المنصة (Custom Views)
@@ -564,6 +569,12 @@ urlpatterns = [
     path("platform/archive-addons/add/", views.platform_archive_addon_form, name="platform_archive_addon_add"),
     path("platform/archive-addons/<int:pk>/edit/", views.platform_archive_addon_form, name="platform_archive_addon_edit"),
     path("platform/archive-addons/<int:pk>/toggle/", views.platform_archive_addon_toggle, name="platform_archive_addon_toggle"),
+    path("platform/discount-codes/", views.platform_discount_codes_list, name="platform_discount_codes_list"),
+    path("platform/discount-codes/add/", views.platform_discount_code_form, name="platform_discount_code_add"),
+    path("platform/discount-codes/<int:pk>/", views.platform_discount_code_detail, name="platform_discount_code_detail"),
+    path("platform/discount-codes/<int:pk>/edit/", views.platform_discount_code_form, name="platform_discount_code_edit"),
+    path("platform/discount-codes/<int:pk>/toggle/", views.platform_discount_code_toggle, name="platform_discount_code_toggle"),
+    path("platform/discount-codes/<int:pk>/delete/", views.platform_discount_code_delete, name="platform_discount_code_delete"),
 
     # =========================
     # صفحات المحتوى (Footer)

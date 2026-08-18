@@ -339,6 +339,21 @@
           <span class="value amount">{{ payment.amount|floatformat:0|intcomma }} ريال</span>
         </div>
 
+        {% if payment.discount_code or payment.discount_amount > 0 %}
+        <div class="row">
+          <span class="label">كود الخصم</span>
+          <span class="value">
+            {% if payment.discount_code %}
+              <a href="{% url 'reports:platform_discount_code_detail' payment.discount_code.id %}" dir="ltr">{{ payment.discount_code.code }}</a>
+            {% else %}
+              —
+            {% endif %}
+            · خصم {{ payment.discount_amount|floatformat:2|intcomma }} ريال
+            (الأصل {{ payment.original_amount|floatformat:2|intcomma }} ريال)
+          </span>
+        </div>
+        {% endif %}
+
         <div class="row">
           <span class="label">طريقة الدفع</span>
           <span class="value">{{ payment.get_payment_method_display }}</span>

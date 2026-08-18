@@ -55,6 +55,7 @@ from .models import (
     SchoolSubscription,
     SchoolArchiveAddon,
     ArchiveStorageOption,
+    DiscountCode,
     TeacherAchievementFile,
     AchievementSection,
     AchievementEvidenceImage,
@@ -3290,4 +3291,101 @@ class PricingMatrixForm(forms.Form):
                         f"(سعر {int(months)} أشهر بالسعر الشهري) حتى يقدّم توفيراً حقيقياً.",
                     )
 
+        return cleaned
+
+class DiscountCodeForm(forms.ModelForm):
+    class Meta:
+        model = DiscountCode
+        fields = [
+            "code",
+            "discount_type",
+            "value",
+            "max_uses",
+            "valid_from",
+            "valid_until",
+            "is_active",
+            "notes",
+        ]
+        widgets = {
+            "code": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "مثال: BACK2SCHOOL",
+                    "dir": "ltr",
+                    "autocomplete": "off",
+                }
+            ),
+            "discount_type": forms.Select(attrs={"class": "form-select"}),
+            "value": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01"}),
+            "max_uses": forms.NumberInput(attrs={"class": "form-control", "min": "1", "step": "1"}),
+            "valid_from": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "valid_until": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        }
+        labels = {
+            "code": "الكود",
+            "discount_type": "نوع الخصم",
+            "value": "قيمة الخصم",
+            "max_uses": "عدد الاستخدامات الكلي",
+            "valid_from": "يسري من",
+            "valid_until": "يسري حتى",
+            "is_active": "نشط؟",
+            "notes": "ملاحظات داخلية",
+        }
+        help_texts = {
+            "code": "أحرف إنجليزية كبيرة وأرقام (والشرطة -)، من 4 إلى 32 خانة.",
+            "value": "نسبة مئوية (حتى 100) أو مبلغ بالريال حسب النوع المختار.",
+            "max_uses": "إجمالي مرات الاستخدام لجميع المدارس. كل مدرسة تستخدم الكود مرة واحدة فقط.",
+            "valid_until": "بعد هذا اليوم يُرفض الكود تلقائياً. اتركه فارغاً بلا انتهاء.",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # الكود هوية السجل: تغييره بعد أول استخدام يفصل الاستخدامات عن معناها.
+        if getattr(self.instance, "pk", None) and self.instance.redemptions.exists():
+            self.fields["code"].disabled = True
+
+    def clean_code(self):
+        import re
+
+        if self.fields["code"].disabled:
+            return self.instance.code
+        code = (self.cleaned_data.get("code") or "").strip().upper()
+        if not re.fullmatch(r"[A-Z0-9-]{4,32}", code):
+            raise ValidationError(
+                "الكود يتكون من أحرف إنجليزية كبيرة وأرقام (والشرطة -)، من 4 إلى 32 خانة."
+            )
+        duplicate = DiscountCode.objects.filter(code=code)
+        if self.instance.pk:
+            duplicate = duplicate.exclude(pk=self.instance.pk)
+        if duplicate.exists():
+            raise ValidationError("يوجد كود آخر بنفس الاسم.")
+        return code
+
+    def clean(self):
+        cleaned = super().clean()
+        discount_type = cleaned.get("discount_type")
+        value = cleaned.get("value")
+        valid_from = cleaned.get("valid_from")
+        valid_until = cleaned.get("valid_until")
+        max_uses = cleaned.get("max_uses")
+
+        if (
+            discount_type == DiscountCode.DiscountType.PERCENT
+            and value is not None
+            and value > 100
+        ):
+            self.add_error("value", "النسبة المئوية لا تتجاوز 100.")
+        if valid_from and valid_until and valid_from > valid_until:
+            self.add_error("valid_until", "تاريخ الانتهاء يسبق تاريخ البداية.")
+        if (
+            self.instance.pk
+            and max_uses is not None
+            and max_uses < self.instance.used_count
+        ):
+            self.add_error(
+                "max_uses",
+                f"لا يمكن خفض العدد تحت الاستخدامات المسجلة فعلاً ({self.instance.used_count}).",
+            )
         return cleaned

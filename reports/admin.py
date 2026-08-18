@@ -981,3 +981,31 @@ class TeacherTotpDeviceAdmin(admin.ModelAdmin):
     @admin.display(boolean=True, description="نافذ")
     def is_confirmed(self, obj):
         return obj.is_confirmed
+
+
+from .models import DiscountCode, DiscountRedemption
+
+
+@admin.register(DiscountCode)
+class DiscountCodeAdmin(admin.ModelAdmin):
+    list_display = (
+        "code", "discount_type", "value", "max_uses", "used_count",
+        "valid_from", "valid_until", "is_active", "created_at",
+    )
+    list_filter = ("discount_type", "is_active", "created_at")
+    search_fields = ("code", "notes")
+    readonly_fields = ("created_by", "created_at", "updated_at")
+
+    def used_count(self, obj):
+        return obj.used_count
+
+    used_count.short_description = "الاستخدامات"
+
+
+@admin.register(DiscountRedemption)
+class DiscountRedemptionAdmin(admin.ModelAdmin):
+    list_display = ("code", "school", "payment", "amount_discounted", "created_at")
+    list_filter = ("created_at",)
+    search_fields = ("code__code", "school__name", "school__code")
+    list_select_related = ("code", "school", "payment")
+    autocomplete_fields = ("code", "school")

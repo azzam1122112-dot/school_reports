@@ -143,6 +143,13 @@ def _generate_invoice_pdf_fallback(context: dict) -> bytes:
     draw_right("المجموع قبل الضريبة", totals_x, y, 8.5, regular, muted)
     draw_right(f"{context['subtotal']:.2f} SAR", totals_x - 70 * mm, y, 9, bold)
     y -= 7 * mm
+    discount_total = context.get("discount_total") or 0
+    if discount_total:
+        codes_label = context.get("discount_codes_label") or ""
+        label = f"الخصم (كود {codes_label})" if codes_label else "الخصم"
+        draw_right(label, totals_x, y, 8.5, regular, muted)
+        draw_right(f"-{discount_total:.2f} SAR", totals_x - 70 * mm, y, 9, bold)
+        y -= 7 * mm
     draw_right("ضريبة القيمة المضافة", totals_x, y, 8.5, regular, muted)
     draw_right(f"{context['tax_amount']:.2f} SAR", totals_x - 70 * mm, y, 9, bold)
     y -= 9 * mm

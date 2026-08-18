@@ -78,7 +78,13 @@ from .billing_core import (
     _subscription_quote_from_request,
     _build_unified_payment_items,
     _create_unified_payment,
+    _activate_free_discount_order,
     _manager_payment_membership,
+)
+from ..discount_codes import (
+    DiscountCodeError,
+    release_dead_redemptions,
+    reserve_redemption,
 )
 
 
@@ -178,6 +184,7 @@ def _sync_moyasar_batch(batch_ref: str) -> str:
             batch_ref=batch_ref,
             status=Payment.Status.PENDING,
         ).update(status=local_status, gateway_status=invoice_status)
+        release_dead_redemptions(batch_ref=batch_ref)
     else:
         Payment.objects.filter(
             payment_method=Payment.Method.MOYASAR,
@@ -211,9 +218,14 @@ def moyasar_checkout_create(request):
         messages.error(request, str(exc))
         return _subscription_redirect(membership)
 
+    total = sum((Decimal(str(item["amount"])) for item in items), Decimal("0"))
+
+    # كود خصم غطّى الطلب كاملاً: لا فاتورة لدى البوابة لمبلغ صفري — تفعيل مباشر.
+    if total <= 0:
+        return _activate_free_discount_order(request, membership, subscription, items)
+
     _remember_acting_school(request, membership)
     batch_ref = uuid.uuid4().hex[:16]
-    total = sum((Decimal(str(item["amount"])) for item in items), Decimal("0"))
     labels = "، ".join(item["label"] for item in items)
     callback_url = request.build_absolute_uri(
         reverse("reports:moyasar_callback", args=[batch_ref])
@@ -254,24 +266,40 @@ def moyasar_checkout_create(request):
     invoice_id = str(invoice.get("id") or "").strip()
     gateway_status = str(invoice.get("status") or "initiated")[:32]
     note = f"[فاتورة دفع إلكتروني {batch_ref.upper()}] {labels} — الإجمالي {total} ريال."
-    with transaction.atomic():
-        for item in items:
-            Payment.objects.create(**_stamp_payer({
-                "school": membership.school,
-                "subscription": subscription,
-                "requested_plan": item.get("requested_plan"),
-                "requested_teacher_limit": item.get("requested_teacher_limit"),
-                "purpose": item["purpose"],
-                "amount": item["amount"],
-                "archive_storage_gb": item.get("archive_storage_gb", 0),
-                "notes": note,
-                "batch_ref": batch_ref,
-                "payment_method": Payment.Method.MOYASAR,
-                "gateway_order_id": invoice_id,
-                "gateway_checkout_id": invoice_id,
-                "gateway_status": gateway_status,
-                "created_by": request.user,
-            }, membership))
+    try:
+        with transaction.atomic():
+            for item in items:
+                payment = Payment.objects.create(**_stamp_payer({
+                    "school": membership.school,
+                    "subscription": subscription,
+                    "requested_plan": item.get("requested_plan"),
+                    "requested_teacher_limit": item.get("requested_teacher_limit"),
+                    "purpose": item["purpose"],
+                    "amount": item["amount"],
+                    "discount_code": item.get("discount_code"),
+                    "discount_amount": item.get("discount_amount", 0),
+                    "archive_storage_gb": item.get("archive_storage_gb", 0),
+                    "notes": note,
+                    "batch_ref": batch_ref,
+                    "payment_method": Payment.Method.MOYASAR,
+                    "gateway_order_id": invoice_id,
+                    "gateway_checkout_id": invoice_id,
+                    "gateway_status": gateway_status,
+                    "created_by": request.user,
+                }, membership))
+                if item.get("discount_code") is not None:
+                    reserve_redemption(
+                        item["discount_code"],
+                        membership.school,
+                        payment=payment,
+                        batch_ref=batch_ref,
+                        amount=item.get("discount_amount", Decimal("0.00")),
+                    )
+    except DiscountCodeError as exc:
+        # نُفد الكود بين التحقق والحجز؛ فاتورة البوابة اليتيمة تنتهي صلاحيتها
+        # وحدها ولا يملك أحد رابط دفعها.
+        messages.error(request, str(exc))
+        return _subscription_redirect(membership)
 
     if warnings:
         messages.warning(request, "لم تُضف بعض العناصر: " + " ، ".join(warnings))
@@ -351,6 +379,7 @@ def moyasar_checkout_cancel(request, payment_id: int):
         batch_ref=payment.batch_ref,
         status=Payment.Status.PENDING,
     ).update(status=Payment.Status.CANCELLED, gateway_status="customer_cancelled")
+    release_dead_redemptions(batch_ref=payment.batch_ref)
     if cancelled:
         messages.success(request, "أُلغي الطلب غير المدفوع. يمكنك إنشاء طلب جديد متى شئت.")
     else:
@@ -397,6 +426,7 @@ def _abandon_stale_gateway_batch(payment, *, cutoff) -> bool:
         batch_ref=payment.batch_ref,
         status=Payment.Status.PENDING,
     ).update(status=Payment.Status.CANCELLED, gateway_status="abandoned")
+    release_dead_redemptions(batch_ref=payment.batch_ref)
     if updated:
         logger.info(
             "Cancelled abandoned %s order batch=%s rows=%s",
