@@ -1910,8 +1910,10 @@
       <form action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data" id="paymentForm">
         {% csrf_token %}
         <input type="hidden" name="unified" value="1">
-        {# ‏POST لا يحمل معاملات المسار عبر formaction، فالمدرسة تُمرَّر في الجسم.
-           صلاحيتها تُعاد قراءتها من الخادم، فتزويرها لا يوسّع وصولاً. #}
+        {% comment %}
+          POST لا يحمل معاملات المسار عبر formaction، فالمدرسة تُمرَّر في الجسم.
+          صلاحيتها تُعاد قراءتها من الخادم، فتزويرها لا يوسّع وصولاً.
+        {% endcomment %}
         {% if acting_on_behalf %}<input type="hidden" name="on_behalf_school" value="{{ school.pk }}">{% endif %}
 
         <div class="subx-order-grid">
@@ -2200,10 +2202,12 @@
               </div>
             </section>
 
-            {# ─── 04 · مساحة الأرشفة السنوية ────────────────────
+            {% comment %}
+              04 · مساحة الأرشفة السنوية
               مساحة الأرشفة تُباع وحدها لأنها تُفرض وحدها: امتلاؤها يوقف حفظ
               النسخ السنوية فقط. كانت رسالة الامتلاء تطلب من المدير «مساحة
-              أرشيف إضافية» ولا يوجد في المنصة ما يبيعها له. #}
+              أرشيف إضافية» ولا يوجد في المنصة ما يبيعها له.
+            {% endcomment %}
             <section class="purchase-section order-item purchase-section--storage {% if pending_archive_space_payment or not archive_space_options or not archive_overview.is_subscribed %}is-locked{% endif %}" id="archiveSpaceService">
               <div class="purchase-section-head">
                 <div class="purchase-number">04</div>
