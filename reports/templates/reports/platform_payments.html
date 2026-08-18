@@ -49,6 +49,8 @@
   .paylist-scope .hero-actions{display:flex;gap:10px;flex-wrap:wrap}
   .paylist-scope .hero-actions .btn{min-height:44px;border-radius:14px}
   .paylist-scope .hero-actions .btn-outline{color:#fff;border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.12)}
+  .paylist-scope .hero-actions .btn{transition:transform .18s ease,background .18s ease,border-color .18s ease}
+  .paylist-scope .hero-actions .btn:hover{transform:translateY(-2px)}
 
   .paylist-scope .kpis{
     margin-top:-26px;
@@ -86,11 +88,12 @@
     border-radius:18px;
     box-shadow:var(--pl-shadow);
   }
-  .paylist-scope .filters{display:block;margin-top:14px;padding:14px}
+  .paylist-scope .filters{display:block;margin-top:14px;padding:16px}
   .paylist-scope .filters form{display:grid;width:100%;grid-template-columns:minmax(180px,1fr) 160px 160px auto auto;gap:10px;align-items:end}
   .paylist-scope .f-label{display:block;margin-bottom:6px;color:var(--pl-muted);font-weight:950}
   .paylist-scope .filters input{width:100%;min-height:44px}
   .paylist-scope .filters .btn{min-height:44px;border-radius:14px;justify-content:center}
+  .paylist-scope .filters form > div{min-width:0}
   .paylist-scope .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
   .paylist-scope .tab{
     display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;
@@ -111,6 +114,7 @@
     display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap
   }
   .paylist-scope .table-head h2{margin:0;color:var(--pl-ink);font-size:1.05rem;font-weight:950}
+  .paylist-scope .table-head{background:var(--pl-card)}
   .paylist-scope .muted{color:var(--pl-muted);font-weight:850}
   .paylist-scope .school{font-weight:950;color:var(--pl-ink)}
   .paylist-scope .subline{margin-top:5px;color:var(--pl-muted);font-weight:800;font-size:.88rem}
@@ -131,9 +135,11 @@
     .paylist-scope .filters form{grid-template-columns:1fr 1fr}
   }
   @media(max-width:620px){
+    .paylist-scope{padding-inline:12px}
     .paylist-scope .hero-actions,.paylist-scope .hero-actions .btn{width:100%;justify-content:center}
     .paylist-scope .kpis,.paylist-scope .filters form{grid-template-columns:1fr}
   }
+  @media (prefers-reduced-motion: reduce){.paylist-scope .hero-actions .btn,.paylist-scope .kpi,.paylist-scope .tab{transition:none !important}}
 
   /* ============================================================
      👑 ROYAL LUXURY — هوية فخمة (زمرّدي + ذهبي)
@@ -318,16 +324,16 @@
     <form method="get" novalidate>
       <input type="hidden" name="status" value="{{ status }}">
       <div>
-        <label class="f-label">بحث</label>
-        <input class="input" type="search" name="q" value="{{ q|default:'' }}" placeholder="اسم المدرسة / الكود / الملاحظات...">
+        <label class="f-label" for="paymentSearch">بحث في العمليات</label>
+        <input id="paymentSearch" class="input" type="search" name="q" value="{{ q|default:'' }}" placeholder="اسم المدرسة / الكود / الملاحظات...">
       </div>
       <div>
-        <label class="f-label">من تاريخ</label>
-        <input class="input" type="date" name="start_date" value="{{ start_date }}">
+        <label class="f-label" for="paymentStartDate">من تاريخ</label>
+        <input id="paymentStartDate" class="input" type="date" name="start_date" value="{{ start_date }}">
       </div>
       <div>
-        <label class="f-label">إلى تاريخ</label>
-        <input class="input" type="date" name="end_date" value="{{ end_date }}">
+        <label class="f-label" for="paymentEndDate">إلى تاريخ</label>
+        <input id="paymentEndDate" class="input" type="date" name="end_date" value="{{ end_date }}">
       </div>
       <button class="btn btn-primary" type="submit">
         <i class="fa-solid fa-filter"></i>

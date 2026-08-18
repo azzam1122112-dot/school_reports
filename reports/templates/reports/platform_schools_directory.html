@@ -5,22 +5,28 @@
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/consumption-panel.css' %}?v=20260805.1">
 <style nonce="{{ CSP_NONCE }}">
-  .ps-page{max-width:1120px;margin:0 auto;padding:clamp(12px,2.5vw,22px)}
-  .ps-shell{display:grid;gap:14px}
+  .ps-page{max-width:1180px;margin:0 auto;padding:clamp(14px,3vw,30px)}
+  .ps-shell{display:grid;gap:18px}
   .ps-hero,.ps-panel{
-    background:var(--card);border:1px solid var(--line-2);border-radius:18px;
-    box-shadow:0 14px 38px rgba(15,23,42,.07);padding:clamp(16px,3vw,24px)
+    background:var(--card);border:1px solid var(--line-2);border-radius:20px;
+    box-shadow:0 18px 45px rgba(15,23,42,.06);padding:clamp(18px,3vw,28px)
   }
-  .ps-hero{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
-  .ps-title{margin:0;color:var(--ink);font-size:clamp(1.3rem,2vw,1.7rem);font-weight:950}
-  .ps-sub{margin:8px 0 0;color:var(--muted);font-weight:850;line-height:1.8;max-width:760px}
+  .ps-hero{display:flex;justify-content:space-between;align-items:center;gap:22px;flex-wrap:wrap}
+  .ps-hero-copy{min-width:min(100%,440px);flex:1}
+  .ps-kicker{display:inline-flex;align-items:center;gap:8px;color:var(--brand);font-size:.82rem;font-weight:950;margin-bottom:8px}
+  .ps-kicker i{color:#b9975b}
+  .ps-title{margin:0;color:var(--brand);font-size:clamp(1.45rem,2.5vw,2rem);font-weight:950;line-height:1.25}
+  .ps-sub{margin:10px 0 0;color:var(--muted);font-weight:800;line-height:1.8;max-width:760px}
   .ps-actions{display:flex;gap:8px;flex-wrap:wrap}
-  .ps-actions .btn{border-radius:14px}
+  .ps-actions .btn{border-radius:13px;min-height:44px}
+  .ps-panel-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .ps-panel-title{margin:0;color:var(--ink);font-size:1.05rem;font-weight:950}
+  .ps-panel-note{margin:4px 0 0;color:var(--muted);font-size:.88rem;font-weight:800}
   .ps-filter{
     display:grid;
     grid-template-columns:minmax(0,1.5fr) minmax(150px,.7fr) minmax(170px,.8fr) auto auto;
     gap:10px;
-    align-items:end;
+    align-items:end;padding:14px;border-radius:16px;background:var(--line-2)
   }
   .ps-label{display:block;margin-bottom:7px;color:var(--muted);font-weight:950}
   .ps-input{
@@ -34,11 +40,13 @@
     display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;white-space:nowrap
   }
   .ps-btn.secondary{background:transparent;color:var(--id-accent);border-color:var(--id-gold-line)}
-  .ps-hint{margin:10px 0 0;color:var(--muted);font-size:.88rem;font-weight:850}
-  .ps-grid{margin-top:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+  .ps-hint{margin:10px 2px 0;color:var(--muted);font-size:.86rem;font-weight:850}
+  .ps-results{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:18px 2px 0;color:var(--muted);font-size:.9rem;font-weight:850}
+  .ps-results strong{color:var(--ink);font-weight:950}
+  .ps-grid{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
   .ps-card{
     border:1px solid var(--line-2);border-radius:14px;background:var(--card);
-    padding:14px;display:grid;gap:12px;min-height:180px
+    padding:16px;display:grid;gap:14px;min-height:208px;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease
   }
   .ps-name{margin:0;color:var(--ink);font-size:1.06rem;font-weight:950;line-height:1.5}
   .ps-code{color:var(--muted);font-weight:900;direction:ltr;unicode-bidi:plaintext}
@@ -48,7 +56,8 @@
     border:1px solid var(--line-2);background:rgba(0,108,53,.05);
     color:var(--muted);font-size:.82rem;font-weight:900
   }
-  .ps-card-actions{margin-top:auto;display:flex;gap:8px;align-items:center;justify-content:space-between}
+  .ps-card:hover{border-color:rgba(185,151,91,.45);box-shadow:0 16px 32px -20px rgba(10,92,51,.45);transform:translateY(-2px)}
+  .ps-card-actions{margin-top:auto;display:flex;gap:8px;align-items:center;justify-content:space-between;border-top:1px solid var(--line-2);padding-top:12px}
   .ps-card-actions .btn{border-radius:12px;padding:8px 12px;min-height:40px}
   .ps-empty{
     margin-top:16px;padding:18px;border-radius:14px;border:1px dashed var(--line);
@@ -62,12 +71,17 @@
   }
   .ps-page-link.current{background:var(--brand);border-color:var(--brand);color:#fff}
   @media(max-width:840px){
+    .ps-page{padding:12px}
+    .ps-hero,.ps-panel{border-radius:16px;padding:16px}
     .ps-filter{grid-template-columns:1fr}
     .ps-btn{width:100%}
     .ps-actions{width:100%}
     .ps-actions .btn{width:100%;justify-content:center}
     .ps-grid{grid-template-columns:1fr}
   }
+  html[data-theme="dark"] .ps-filter{background:rgba(148,163,184,.10)}
+  html[data-theme="dark"] .ps-tag{background:rgba(96,165,250,.08)}
+  @media(prefers-reduced-motion:reduce){.ps-card{transition:none}.ps-card:hover{transform:none}}
 </style>
 {% endblock %}
 
@@ -75,9 +89,10 @@
 <div class="ps-page" dir="rtl">
   <div class="ps-shell">
     <section class="ps-hero">
-      <div>
+      <div class="ps-hero-copy">
+        <div class="ps-kicker"><i class="fa-solid fa-school" aria-hidden="true"></i> دليل المنصة</div>
         <h1 class="ps-title">قائمة المدارس</h1>
-        <p class="ps-sub">عرض كل مدارس المنصة مع فلاتر وبطاقات مناسبة للتنقل بين عدد كبير من المدارس.</p>
+        <p class="ps-sub">استعرض المدارس وحالتها واستهلاكها، ثم ادخل إلى ملف المدرسة مباشرة عند الحاجة.</p>
       </div>
       <div class="ps-actions">
         {% if request.user.is_superuser %}
@@ -87,6 +102,13 @@
     </section>
 
     <section class="ps-panel" aria-label="بحث وتصفح مدارس المنصة">
+      <div class="ps-panel-head">
+        <div>
+          <h2 class="ps-panel-title">دليل المدارس</h2>
+          <p class="ps-panel-note">استخدم البحث والفلاتر للوصول إلى المدرسة المطلوبة بسرعة.</p>
+        </div>
+        <div class="ps-count"><i class="fa-solid fa-list-ol" aria-hidden="true"></i> {{ page_obj.paginator.count }} مدرسة</div>
+      </div>
       <form method="get" class="ps-filter">
         <div>
           <label class="ps-label" for="schoolSearch">بحث</label>
@@ -117,10 +139,11 @@
       </form>
 
       <div class="ps-hint">
-        {{ page_obj.paginator.count }} مدرسة ضمن النطاق الحالي. يعرض النظام 25 مدرسة في كل صفحة.
+        يعرض النظام 25 مدرسة في كل صفحة.
       </div>
 
       {% if schools %}
+        <div class="ps-results"><span><strong>{{ page_obj.paginator.count }}</strong> مدرسة ضمن النطاق الحالي</span><span>اختر «دخول» لفتح مساحة المدرسة</span></div>
         <div class="ps-grid">
           {% for s in schools %}
             <article class="ps-card">
