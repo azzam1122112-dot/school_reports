@@ -3,10 +3,10 @@
 {% block title %}إدارة الأقسام{% endblock %}
 {% block head %}
 <style nonce="{{ CSP_NONCE }}">
-  body { background: linear-gradient(120deg, #e0e7ff 0%, #f0fdfa 100%); min-height: 100vh; }
+  .departments-page { min-height: 100vh; padding: 14px 0 36px; background: linear-gradient(120deg, #eef3ee 0%, #f7f3ea 100%); }
   .smart-card {
     max-width: 1100px;
-    margin: 40px auto 24px auto;
+    margin: 0 auto;
     background: #fff;
     border-radius: 32px;
     box-shadow: 0 8px 48px #006c3522, 0 1.5px 0 #006c3511;
@@ -182,7 +182,7 @@
   /* ============================================================
      👑 ROYAL LUXURY — أقسام (زمرّدي + ذهبي)
      ============================================================ */
-  body { background: linear-gradient(120deg, #eef3ee 0%, #f7f3ea 100%); }
+  .departments-page { background: linear-gradient(120deg, #eef3ee 0%, #f7f3ea 100%); }
   .smart-card { border:1px solid rgba(185,151,91,.22); box-shadow:0 26px 60px -28px rgba(10,92,51,.5); }
   .smart-card::before{ content:""; position:absolute; inset-inline:0; top:0; height:4px; z-index:3;
     background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent); }
@@ -218,10 +218,43 @@
   .dept-count.members i{ color:#b9975b; }
   .dept-tickets{ font-weight:850; color:#475569; }
   .smart-pill.on{ color:#16a34a; background:#f0fdf4; border-color:#bbf7d0; }
+  .smart-table-actions .smart-btn{ min-width:auto; padding:8px 12px; font-size:.86rem; }
+  .dept-tickets{ display:inline-flex; align-items:center; min-height:34px; padding:6px 10px; border-radius:10px; background:#f8fafc; }
+  html[data-theme="dark"] .departments-page{background:var(--id-canvas)}
+  html[data-theme="dark"] .smart-card{background:var(--id-surface);border-color:var(--id-line)}
+  html[data-theme="dark"] table.smart-table{background:var(--id-surface)}
+  html[data-theme="dark"] table.smart-table thead th{background:var(--id-surface-2);color:var(--id-gold-300)}
+  html[data-theme="dark"] .dept-name{color:var(--id-ink)}
+  html[data-theme="dark"] .dept-tickets{background:var(--id-surface-2);color:var(--id-muted)}
+  @media (max-width:700px){
+    .departments-page{padding:10px 0 28px}
+    .smart-card{border-radius:18px;margin-inline:10px}
+    .smart-header{padding:24px 18px 20px!important}
+    .smart-header .dashboard-btn{position:static;display:inline-flex;margin-bottom:16px}
+    .smart-header .title{font-size:1.65rem}
+    .smart-actions{padding-inline:18px}
+    .smart-actions .smart-btn{width:100%;justify-content:center}
+    .smart-table-wrap{margin:14px 10px 0;border:0;background:transparent;box-shadow:none;overflow:visible}
+    table.smart-table{display:block;background:transparent}
+    table.smart-table thead{display:none}
+    table.smart-table tbody{display:grid;gap:10px}
+    table.smart-table tbody tr{display:grid;gap:0;border:1px solid rgba(185,151,91,.28);border-radius:15px;background:var(--card);box-shadow:0 10px 24px -18px rgba(10,92,51,.7);overflow:hidden}
+    table.smart-table tbody td{display:grid;grid-template-columns:112px minmax(0,1fr);gap:10px;align-items:center;padding:11px 12px;border-bottom:1px solid var(--line-2);white-space:normal;text-align:start;font-size:.88rem}
+    table.smart-table tbody td::before{content:attr(data-label);color:var(--muted);font-size:.76rem;font-weight:950}
+    table.smart-table tbody td:first-child{display:none}
+    table.smart-table tbody td:last-child{display:block;padding:12px;border-bottom:0}
+    table.smart-table tbody td:last-child::before{display:block;margin-bottom:8px}
+    .smart-table-actions{display:flex;gap:7px;justify-content:stretch}
+    .smart-table-actions .smart-btn{flex:1;justify-content:center;font-size:.78rem;padding:8px 6px}
+    .smart-table-actions form{display:flex;flex:1}
+    .smart-table-actions form .smart-btn{width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){.smart-table tbody tr,.smart-btn{transition:none!important}}
 </style>
 {% endblock head %}
 
 {% block content %}
+<div class="departments-page">
 <div class="smart-card" dir="rtl">
   <div class="smart-header">
     <a href="{% url 'reports:admin_dashboard' %}" class="dashboard-btn" title="عودة إلى لوحة المدرسة">
@@ -260,19 +293,19 @@
         {% for d in departments %}
           {% with code=d.slug|default:d.pk %}
           <tr>
-            <td>{{ forloop.counter }}</td>
-            <td class="dept-name"><i class="fa-solid fa-layer-group"></i> {{ d.name|default:"—" }}</td>
-            <td>
+            <td data-label="الترتيب">{{ forloop.counter }}</td>
+            <td data-label="القسم" class="dept-name"><i class="fa-solid fa-layer-group"></i> {{ d.name|default:"—" }}</td>
+            <td data-label="الحالة">
               {% if d.is_active %}
                 <span class="smart-pill on"><i class="fa-solid fa-circle-check"></i> نشط</span>
               {% else %}
                 <span class="smart-pill off"><i class="fa-solid fa-circle-pause"></i> غير نشط</span>
               {% endif %}
             </td>
-            <td><span class="dept-count reports"><i class="fa-solid fa-file-lines"></i> {{ d.reports_count|default:"0" }}</span></td>
-            <td><span class="dept-count members"><i class="fa-solid fa-users"></i> {{ d.members_count|default:"0" }}</span></td>
-            <td><span class="dept-tickets">{{ d.tickets_summary|default:"—" }}</span></td>
-            <td class="smart-table-actions">
+            <td data-label="التقارير"><span class="dept-count reports"><i class="fa-solid fa-file-lines"></i> {{ d.reports_count|default:"0" }}</span></td>
+            <td data-label="الأعضاء"><span class="dept-count members"><i class="fa-solid fa-users"></i> {{ d.members_count|default:"0" }}</span></td>
+            <td data-label="التذاكر"><span class="dept-tickets">{{ d.tickets_summary|default:"—" }}</span></td>
+            <td data-label="الإجراءات" class="smart-table-actions">
               <a class="smart-btn ghost" href="{% url 'reports:department_edit' code=code %}"><i class="fa-solid fa-pen-to-square"></i> تعديل</a>
               <a class="smart-btn ghost" href="{% url 'reports:department_members' code=code %}"><i class="fa-solid fa-users"></i> الأعضاء</a>
               <form method="post" action="{% url 'reports:department_delete' code=code %}" data-confirm="هل تريد حذف القسم «{{ d.name|escapejs }}» نهائيًا؟" class="u-inline">{% csrf_token %}<button class="smart-btn danger" type="submit"><i class="fa-solid fa-trash-can"></i> حذف</button></form>
@@ -286,5 +319,6 @@
     </table>
   </div>
 </div>
+ </div>
 
 {% endblock content %}

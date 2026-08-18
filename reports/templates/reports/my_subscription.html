@@ -152,6 +152,47 @@
     color: var(--id-green-950);
   }
 
+  /* ── مسار الاستخدام المختصر ────────────────────────────────────── */
+  .subx-journey {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0 0 20px;
+    padding: 10px;
+    border: 1px solid var(--sx-line);
+    border-radius: var(--id-r3);
+    background: var(--sx-card);
+    box-shadow: var(--id-e1);
+  }
+  .subx-journey__step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: var(--id-r2);
+    color: var(--sx-ink);
+    text-decoration: none;
+    transition: background var(--id-fast) var(--id-ease), transform var(--id-fast) var(--id-ease);
+  }
+  .subx-journey__step:hover { background: var(--id-accent-wash); transform: translateY(-1px); color: var(--sx-ink); }
+  .subx-journey__number {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--id-accent-ink);
+    background: linear-gradient(135deg, var(--id-green-600), var(--id-green-800));
+    font-size: .76rem;
+    font-weight: 950;
+  }
+  .subx-journey__copy { min-width: 0; }
+  .subx-journey__copy strong { display: block; font-size: .82rem; font-weight: 950; }
+  .subx-journey__copy small { display: block; margin-top: 2px; color: var(--sx-muted); font-size: .7rem; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .subx-journey__arrow { margin-inline-start: auto; color: var(--id-gold-700); font-size: .72rem; }
+
   /* حلقة العدّ */
   .subx-gauge {
     display: grid;
@@ -834,7 +875,7 @@
   }
 
   /* ── سكة ملخّص الطلب ─────────────────────────────────────────────── */
-  .subx-rail { position: sticky; top: 86px; display: grid; gap: 14px; }
+  .subx-rail { position: sticky; top: 86px; display: grid; gap: 14px; z-index: 2; }
   .order-summary {
     border: 1px solid var(--id-gold-line);
     border-radius: var(--id-r3);
@@ -842,6 +883,7 @@
     box-shadow: var(--id-e3);
     overflow: hidden;
   }
+  .order-summary:focus-within { box-shadow: 0 0 0 3px var(--id-accent-wash), var(--id-e3); }
   .summary-head {
     padding: 15px 17px;
     color: var(--id-hero-ink);
@@ -1622,6 +1664,9 @@
     .archive-offer { grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); }
   }
   @media (max-width: 760px) {
+    .subx-journey { grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 7px; }
+    .subx-journey__step { padding: 10px 11px; }
+    .subx-journey__arrow { display: none; }
     .subx-facts { grid-template-columns: minmax(0, 1fr); }
     .purchase-section-head { grid-template-columns: 40px minmax(0, 1fr); }
     .purchase-number { width: 40px; height: 40px; }
@@ -1655,6 +1700,9 @@
       font-size: .72rem;
       font-weight: 950;
     }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .subx-journey__step { transition: none; }
   }
 </style>
 {% endblock %}
@@ -1756,6 +1804,24 @@
       {% endif %}
     </aside>
   </header>
+
+  <nav class="subx-journey" aria-label="خطوات إدارة الاشتراك">
+    <a class="subx-journey__step" href="#archiveOrder">
+      <span class="subx-journey__number">1</span>
+      <span class="subx-journey__copy"><strong>اختر ما تحتاجه</strong><small>التجديد أو الخدمات الإضافية</small></span>
+      <i class="fa-solid fa-arrow-left subx-journey__arrow" aria-hidden="true"></i>
+    </a>
+    <a class="subx-journey__step" href="#orderSummaryItems">
+      <span class="subx-journey__number">2</span>
+      <span class="subx-journey__copy"><strong>راجع ملخص الطلب</strong><small>السعر والبنود المختارة</small></span>
+      <i class="fa-solid fa-arrow-left subx-journey__arrow" aria-hidden="true"></i>
+    </a>
+    <a class="subx-journey__step" href="#paymentPanelBank">
+      <span class="subx-journey__number">3</span>
+      <span class="subx-journey__copy"><strong>اختر طريقة الدفع</strong><small>إلكتروني أو تحويل بنكي</small></span>
+      <i class="fa-solid fa-arrow-left subx-journey__arrow" aria-hidden="true"></i>
+    </a>
+  </nav>
 
   {# ═══ تنبيه الحالة ═══════════════════════════════════════════════ #}
   {% if not subscription or subscription.is_expired or subscription.is_cancelled %}

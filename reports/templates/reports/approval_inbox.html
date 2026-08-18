@@ -33,6 +33,7 @@
     background: var(--apr-soft); color: var(--apr-green);
   }
   .inb-chip.is-active .inb-chip__n { background: rgba(255,255,255,.24); color: inherit; }
+  .inb-chip:focus-visible,.inb-item a:focus-visible,.inb-item button:focus-visible { outline: 2px solid var(--apr-gold); outline-offset: 2px; }
 
   .inb-head { display: flex; align-items: center; gap: .55rem; margin: 1.3rem 0 .1rem; }
   .inb-head__t { font-size: .84rem; font-weight: 900; }
@@ -67,6 +68,8 @@
   .inb-item:hover .inb-item__title a { color: var(--apr-green); }
   .inb-item__sub { font-size: .78rem; color: var(--apr-muted); margin-top: .24rem; line-height: 1.7; }
   .inb-item__side { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; position: relative; z-index: 1; }
+  .inb-kind { display: inline-flex; align-items: center; gap: .3rem; margin-inline-end: .35rem; padding: .16rem .5rem; border-radius: 999px; background: var(--apr-soft); color: var(--apr-muted); font-size: .68rem; font-weight: 900; }
+  .inb-primary-form { margin: 0; }
 
   /* عمر الانتظار: ما ينتظر أسبوعين يجب أن يُرى قبل أن يُقرأ. */
   .inb-age {
@@ -87,6 +90,8 @@
     .apr-hero { padding: 1.35rem 1.15rem; border-radius: 16px; }
     .apr-hero__title { font-size: 1.26rem; }
     .inb-item__side { width: 100%; }
+    .inb-item__side .apr-btn,.inb-primary-form { flex: 1; }
+    .inb-item__side .apr-btn { justify-content: center; }
   }
 </style>
 {% endblock %}
@@ -145,6 +150,8 @@
           {% if state == 'submitted' %}مُرسل للمراجعة
           {% elif state == 'under_review' %}قيد المراجعة
           {% elif state == 'recommended' %}موصى باعتماده
+          {% elif state == 'needs_info' %}بانتظار الاستكمال
+          {% elif state == 'returned' %}مُعاد للملاحظة
           {% else %}{{ state }}{% endif %}
           <span class="inb-chip__n">{{ count }}</span>
         </a>
@@ -188,6 +195,7 @@
 
             <div class="inb-item__main">
               <div class="inb-item__title">
+                <span class="inb-kind"><i class="fa-solid {% if row.kind == 'document' %}fa-file-lines{% else %}fa-chart-line{% endif %}" aria-hidden="true"></i>{% if row.kind == 'document' %}وثيقة{% else %}تقرير{% endif %}</span>
                 <a href="{{ row.detail_url }}">{{ row.item.title }}</a>
               </div>
               <div class="inb-item__sub">
@@ -220,14 +228,14 @@
                 {{ row.item.get_approval_state_display }}
               </span>
 
-              {% if 'approve' in row.actions or 'issue' in row.actions %}
-                <form method="post" action="{{ row.action_url }}">
+              {% if 'approve' in row.actions or 'issue' in row.actions or 'recommend' in row.actions or 'start_review' in row.actions %}
+                <form method="post" action="{{ row.action_url }}" class="inb-primary-form">
                   {% csrf_token %}
-                  <input type="hidden" name="approval_action" value="{% if 'issue' in row.actions %}issue{% else %}approve{% endif %}">
+                  <input type="hidden" name="approval_action" value="{% if 'issue' in row.actions %}issue{% elif 'approve' in row.actions %}approve{% elif 'recommend' in row.actions %}recommend{% else %}start_review{% endif %}">
                   <input type="hidden" name="next" value="inbox">
                   <button type="submit" class="apr-btn apr-btn--primary apr-btn--sm">
-                    <i class="fa-solid {% if 'issue' in row.actions %}fa-file-circle-check{% else %}fa-circle-check{% endif %}" aria-hidden="true"></i>
-                    {% if 'issue' in row.actions %}إصدار وأرشفة{% else %}اعتماد{% endif %}
+                    <i class="fa-solid {% if 'issue' in row.actions %}fa-file-circle-check{% elif 'approve' in row.actions %}fa-circle-check{% elif 'recommend' in row.actions %}fa-thumbs-up{% else %}fa-eye{% endif %}" aria-hidden="true"></i>
+                    {% if 'issue' in row.actions %}إصدار وأرشفة{% elif 'approve' in row.actions %}اعتماد{% elif 'recommend' in row.actions %}توصية{% else %}بدء المراجعة{% endif %}
                   </button>
                 </form>
               {% endif %}

@@ -7,11 +7,12 @@
   <div class="admin-container">
     <div class="admin-header">
       <div class="header-content">
+        <div class="admin-kicker"><i class="fas fa-users-gear" aria-hidden="true"></i> إدارة فريق المدرسة</div>
         <h1 class="admin-title">
           <i class="fas fa-chalkboard-teacher"></i>
           إدارة منسوبي المدرسة
         </h1>
-        <p class="admin-subtitle">حسابات فريق المدرسة الحالية، مع البحث والتصفية وإدارة حالة كل مستخدم.</p>
+        <p class="admin-subtitle">راجع الحسابات والأدوار والأقسام، ثم عدّل بيانات أي مستخدم أو أضف فريقاً جديداً.</p>
       </div>
 
       <div class="header-actions">
@@ -93,10 +94,10 @@
       {% if teachers_page and teachers_page.object_list %}
         <div class="meta-bar" aria-label="إحصاءات الجدول">
           <div class="muted">
-            العدد المعروض: <b id="rowsCount">{{ teachers_page.object_list|length }}</b>
+            <i class="fas fa-list" aria-hidden="true"></i> في هذه الصفحة: <b id="rowsCount">{{ teachers_page.object_list|length }}</b>
           </div>
           <div class="muted">
-            الإجمالي: <b>{{ teachers_page.paginator.count }}</b>
+            الإجمالي: <b>{{ teachers_page.paginator.count }}</b> منسوبي مدرسة
           </div>
         </div>
 
@@ -242,6 +243,17 @@
 </div>
 
 <style nonce="{{ CSP_NONCE }}">
+  .admin-scope .admin-kicker{display:inline-flex;align-items:center;gap:8px;margin-bottom:8px;color:#0a5c33;font-size:.8rem;font-weight:950}
+  .admin-scope .admin-kicker i{color:#b9975b}
+  .admin-scope .admin-title{font-size:clamp(1.45rem,2.5vw,2rem)}
+  .admin-scope .admin-card{border-radius:18px;box-shadow:0 14px 34px rgba(15,23,42,.06)}
+  .admin-scope .meta-bar{justify-content:space-between;padding:0 2px 3px}
+  .admin-scope .filters-panel{box-shadow:0 10px 28px rgba(15,23,42,.04)}
+  .admin-scope .teachers-table tbody tr{transition:background .18s ease,box-shadow .18s ease}
+  .admin-scope .teachers-table tbody tr:hover{box-shadow:inset 3px 0 0 rgba(185,151,91,.45)}
+  .admin-scope .teacher-actions-cell{min-width:116px}
+  html[data-theme="dark"] .admin-scope .admin-kicker{color:#9ee6b8}
+
   /* =========================================================
      Manage Teachers (scoped) — بدون كسر app.css
      - دعم data-theme للوضع الداكن/الفاتح
@@ -501,21 +513,28 @@
     .admin-scope .admin-header{flex-direction:column;align-items:flex-start}
     .admin-scope .teachers-table{min-width:100%}
     .admin-scope .teachers-table thead{display:none}
+    .admin-scope .teachers-table tbody{
+      display:grid;
+      gap:12px;
+      padding:12px;
+      background:var(--line-2);
+    }
     .admin-scope .teachers-table tr{
-      display:block;
-      margin-bottom:14px;
-      border:1px solid var(--line);
-      border-radius:14px;
+      display:grid;
+      margin:0;
+      border:1px solid rgba(185,151,91,.28);
+      border-radius:16px;
       overflow:hidden;
-      background: var(--card);
+      background:var(--card);
+      box-shadow:0 10px 24px -18px rgba(10,92,51,.6);
     }
     .admin-scope .teachers-table td{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
+      display:grid;
+      grid-template-columns:110px minmax(0,1fr);
+      align-items:start;
       padding:12px 14px;
       border-bottom:1px solid var(--line);
-      text-align:left;
+      text-align:start;
       gap: 10px;
     }
     .admin-scope .teachers-table td:last-child{border-bottom:none}
@@ -529,8 +548,10 @@
     html[data-theme="dark"] .admin-scope .teachers-table td::before{
       color: rgba(226,232,240,.80);
     }
-    .admin-scope .teacher-info{flex-direction:column;align-items:flex-start;gap:8px}
-    .admin-scope .action-buttons{justify-content:flex-end}
+    .admin-scope .teacher-info{align-items:center;gap:10px}
+    .admin-scope .teacher-role-cell .chips{justify-content:flex-start}
+    .admin-scope .teacher-actions-cell .action-buttons{justify-content:flex-start}
+    .admin-scope .teacher-actions-cell .btn-icon{min-width:44px}
     .admin-scope .filters-panel{grid-template-columns:repeat(2,minmax(0,1fr))}
     .admin-scope .filter-field--search{grid-column:1/-1}
   }
@@ -541,6 +562,29 @@
     .admin-scope .filters-panel{grid-template-columns:1fr}
     .admin-scope .filter-field--search{grid-column:auto}
     .admin-scope .filter-actions .btn{flex:1}
+    .admin-scope .admin-container{padding:12px}
+    .admin-scope .admin-card{padding:10px}
+    .admin-scope .teachers-table tbody{padding:8px}
+    .admin-scope .teachers-table td{grid-template-columns:92px minmax(0,1fr);padding:11px 10px}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .admin-scope .teachers-table tbody tr{transition:none}
+  }
+
+  /* Final page layer: keep the directory readable on tablet and mobile. */
+  @media (max-width: 992px){
+    .admin-scope .teachers-table tbody{display:grid;gap:12px;padding:12px;background:var(--line-2)}
+    .admin-scope .teachers-table tbody tr{display:grid;margin:0;border:1px solid rgba(185,151,91,.28);border-radius:16px;overflow:hidden;background:var(--card);box-shadow:0 10px 24px -18px rgba(10,92,51,.6)}
+    .admin-scope .teachers-table tbody td{display:grid;grid-template-columns:110px minmax(0,1fr);align-items:start;text-align:start;gap:10px}
+    .admin-scope .teacher-info{flex-direction:row;align-items:center;gap:10px}
+    .admin-scope .teacher-role-cell .chips,.admin-scope .teacher-actions-cell .action-buttons{justify-content:flex-start}
+  }
+  @media (max-width:520px){
+    .admin-scope .admin-container{padding:12px}
+    .admin-scope .admin-card{padding:10px}
+    .admin-scope .teachers-table tbody{padding:8px}
+    .admin-scope .teachers-table tbody td{grid-template-columns:92px minmax(0,1fr);padding:11px 10px}
   }
 </style>
 {% endblock %}
