@@ -231,7 +231,7 @@ class UnifiedPaymentTests(TestCase):
         )
         self.assertContains(
             response,
-            'src="/static/js/subscription-checkout.js?v=20260804.1"',
+            'src="/static/js/subscription-checkout.js?v=20260818.1"',
         )
         self.assertContains(response, "document.readyState === 'loading'")
         self.assertContains(response, "initSubscriptionPage()")

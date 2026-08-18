@@ -6,6 +6,7 @@ from .achievements import *
 from .tickets import *
 from .notifications import *
 from .billing import *
+from .coupons import *
 from .customer_care import *
 from .platform_email import *
 from .assignments import *

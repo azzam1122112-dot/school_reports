@@ -45,6 +45,12 @@ from ..flexible_pricing import (
     serialize_flexible_pricing_catalog,
 )
 from ..pricing import SUBSCRIPTION_ADDON_NOTES, SUBSCRIPTION_INCLUDED_FEATURES
+from ..discount_codes import (
+    DiscountCodeError,
+    find_usable_code,
+    release_dead_redemptions,
+    reserve_redemption,
+)
 from ..moyasar_gateway import (
     MoyasarGatewayError,
     create_invoice as create_moyasar_invoice,
@@ -891,7 +897,44 @@ def _build_unified_payment_items(request, membership, subscription):
     if not items:
         detail = " ، ".join(warnings) if warnings else "لا توجد عناصر صالحة للدفع."
         raise _PaymentSelectionError(f"تعذّر إنشاء الطلب: {detail}")
+
+    _apply_discount_code_to_items(request, school, items)
     return items, warnings
+
+
+def _apply_discount_code_to_items(request, school, items) -> None:
+    """يطبّق كود الخصم (إن أُرسل) على بند الاشتراك وحده.
+
+    الخصم يسري على الاشتراك فقط بقرار منتج صريح — لا على الأرشفة والمساحات.
+    التحقق هنا بلا حجز؛ الحجز الفعلي يجري داخل معاملة إنشاء الدفع حيث يُعاد
+    الفحص تحت قفل الصف.
+    """
+    raw_code = (request.POST.get("discount_code") or "").strip()
+    if not raw_code:
+        return
+
+    subscription_item = next(
+        (it for it in items if it["purpose"] == Payment.Purpose.SUBSCRIPTION),
+        None,
+    )
+    if subscription_item is None:
+        raise _PaymentSelectionError(
+            "كود الخصم يسري على بند الاشتراك فقط؛ أضف تجديد الاشتراك إلى الطلب لاستخدامه."
+        )
+
+    try:
+        code = find_usable_code(raw_code, school)
+    except DiscountCodeError as exc:
+        raise _PaymentSelectionError(str(exc)) from exc
+
+    original = Decimal(str(subscription_item["amount"]))
+    discount = code.discount_for(original)
+    subscription_item["amount"] = original - discount
+    subscription_item["discount_code"] = code
+    subscription_item["discount_amount"] = discount
+    subscription_item["label"] = (
+        f"{subscription_item['label']} · كود خصم {code.code} (-{discount} ريال)"
+    )
 
 
 def _create_unified_payment(request, membership, subscription):
@@ -909,18 +952,23 @@ def _create_unified_payment(request, membership, subscription):
     receipt = request.FILES.get("receipt_image")
     notes = (request.POST.get("notes") or "").strip()
 
-    if not receipt:
-        messages.error(request, "يرجى إرفاق صورة الإيصال.")
-        return _subscription_redirect(membership)
-
     try:
         items, warnings = _build_unified_payment_items(request, membership, subscription)
     except _PaymentSelectionError as exc:
         messages.error(request, str(exc))
         return _subscription_redirect(membership)
 
-    batch = uuid.uuid4().hex[:8]
     total = sum((Decimal(str(it["amount"])) for it in items), Decimal("0"))
+
+    # خصم 100% يجعل الطلب صفرياً: لا تحويل بنكي ولا إيصال — تفعيل مباشر.
+    if total <= 0:
+        return _activate_free_discount_order(request, membership, subscription, items)
+
+    if not receipt:
+        messages.error(request, "يرجى إرفاق صورة الإيصال.")
+        return _subscription_redirect(membership)
+
+    batch = uuid.uuid4().hex[:8]
     labels = "، ".join(it["label"] for it in items)
     base_note = f"[طلب موحّد {batch}] {labels} — الإجمالي {total} ريال."
     if membership.is_on_behalf:
@@ -929,35 +977,50 @@ def _create_unified_payment(request, membership, subscription):
     if notes:
         base_note = f"{base_note}\nملاحظة المدير: {notes}"
 
-    with transaction.atomic():
-        shared_name = None
-        for it in items:
-            payment = Payment(
-                **_stamp_payer(
-                    {
-                        "school": school,
-                        "subscription": subscription,
-                        "requested_plan": it.get("requested_plan"),
-                        "requested_teacher_limit": it.get("requested_teacher_limit"),
-                        "purpose": it["purpose"],
-                        "amount": it["amount"],
-                        "archive_storage_gb": it.get("archive_storage_gb", 0),
-                        "notes": base_note,
-                        "batch_ref": batch if len(items) > 1 else "",
-                        "payment_method": Payment.Method.BANK_TRANSFER,
-                        "created_by": request.user,
-                    },
-                    membership,
+    try:
+        with transaction.atomic():
+            shared_name = None
+            for it in items:
+                payment = Payment(
+                    **_stamp_payer(
+                        {
+                            "school": school,
+                            "subscription": subscription,
+                            "requested_plan": it.get("requested_plan"),
+                            "requested_teacher_limit": it.get("requested_teacher_limit"),
+                            "purpose": it["purpose"],
+                            "amount": it["amount"],
+                            "discount_code": it.get("discount_code"),
+                            "discount_amount": it.get("discount_amount", 0),
+                            "archive_storage_gb": it.get("archive_storage_gb", 0),
+                            "notes": base_note,
+                            "batch_ref": batch if len(items) > 1 else "",
+                            "payment_method": Payment.Method.BANK_TRANSFER,
+                            "created_by": request.user,
+                        },
+                        membership,
+                    )
                 )
-            )
-            if shared_name is None:
-                # نحفظ الملف مرة واحدة ثم نعيد استخدام اسمه لبقية السجلات
-                payment.receipt_image = receipt
-                payment.save()
-                shared_name = payment.receipt_image.name
-            else:
-                payment.receipt_image.name = shared_name
-                payment.save()
+                if shared_name is None:
+                    # نحفظ الملف مرة واحدة ثم نعيد استخدام اسمه لبقية السجلات
+                    payment.receipt_image = receipt
+                    payment.save()
+                    shared_name = payment.receipt_image.name
+                else:
+                    payment.receipt_image.name = shared_name
+                    payment.save()
+                if it.get("discount_code") is not None:
+                    reserve_redemption(
+                        it["discount_code"],
+                        school,
+                        payment=payment,
+                        batch_ref=payment.batch_ref,
+                        amount=it.get("discount_amount", Decimal("0.00")),
+                    )
+    except DiscountCodeError as exc:
+        # سبقتنا مدرسة أخرى إلى آخر استخدام بين التحقق والحجز — الطلب كله تراجع.
+        messages.error(request, str(exc))
+        return _subscription_redirect(membership)
 
     msg = format_html(
         """
@@ -977,6 +1040,95 @@ def _create_unified_payment(request, membership, subscription):
         membership,
         total=total,
         labels=labels,
+        payment_method=Payment.Method.BANK_TRANSFER,
+    )
+    return _subscription_redirect(membership)
+
+
+def _activate_free_discount_order(request, membership, subscription, items):
+    """يفعّل طلباً صار مجموعه صفراً بكود خصم 100% — بلا إيصال وبلا بوابة.
+
+    مجموعٌ صفري لا يقع إلا حين يكون الطلب بندَ اشتراكٍ وحيداً خُصم بالكامل:
+    بقية البنود أسعارها موجبة دائماً، وبند الاشتراك يُرفض أصلاً لو كانت باقته
+    مجانية قبل الخصم. الدفعة تُنشأ معتمدةً ويُطبَّق أثرها في نفس المعاملة،
+    فلا تمرّ على مراجعة يدوية لمبلغٍ لا يوجد.
+    """
+    school = membership.school
+    subscription_items = [
+        it for it in items if it["purpose"] == Payment.Purpose.SUBSCRIPTION
+    ]
+    if (
+        len(items) != 1
+        or not subscription_items
+        or subscription_items[0].get("discount_code") is None
+    ):
+        messages.error(request, "تعذّر إنشاء الطلب: مجموع الطلب غير صالح.")
+        return _subscription_redirect(membership)
+
+    item = subscription_items[0]
+    code = item["discount_code"]
+    note = (
+        f"تفعيل مجاني بكود خصم {code.code} "
+        f"(خصم {item.get('discount_amount', 0)} ريال من كامل قيمة الاشتراك)."
+    )
+    extra_note = (request.POST.get("notes") or "").strip()
+    if extra_note:
+        note = f"{note}\nملاحظة المدير: {extra_note}"
+
+    today = timezone.localdate()
+    pricing = _archive_pricing()
+    try:
+        with transaction.atomic():
+            payment = Payment.objects.create(
+                **_stamp_payer(
+                    {
+                        "school": school,
+                        "subscription": subscription,
+                        "requested_plan": item.get("requested_plan"),
+                        "requested_teacher_limit": item.get("requested_teacher_limit"),
+                        "purpose": Payment.Purpose.SUBSCRIPTION,
+                        "amount": item["amount"],
+                        "discount_code": code,
+                        "discount_amount": item.get("discount_amount", 0),
+                        "notes": note,
+                        "payment_method": Payment.Method.BANK_TRANSFER,
+                        "status": Payment.Status.APPROVED,
+                        "created_by": request.user,
+                    },
+                    membership,
+                )
+            )
+            reserve_redemption(
+                code,
+                school,
+                payment=payment,
+                batch_ref="",
+                amount=item.get("discount_amount", Decimal("0.00")),
+            )
+            _apply_payment_effects(payment, today, pricing)
+    except DiscountCodeError as exc:
+        messages.error(request, str(exc))
+        return _subscription_redirect(membership)
+    except _ApprovalError as exc:
+        messages.error(request, f"تعذّر تفعيل الاشتراك: {exc}")
+        return _subscription_redirect(membership)
+
+    messages.success(
+        request,
+        format_html(
+            """
+            <div style="text-align:center; line-height:1.7;">
+                <p style="margin:0 0 .4rem; font-weight:800; font-size:1.1rem;">تم تفعيل الاشتراك مجاناً</p>
+                <p style="margin:0;">غطّى كود الخصم <strong dir="ltr">{}</strong> كامل قيمة الاشتراك، وتم التفعيل فوراً دون الحاجة لأي دفع.</p>
+            </div>
+            """,
+            code.code,
+        ),
+    )
+    _notify_managers_of_group_payment(
+        membership,
+        total=Decimal("0.00"),
+        labels=item["label"],
         payment_method=Payment.Method.BANK_TRANSFER,
     )
     return _subscription_redirect(membership)

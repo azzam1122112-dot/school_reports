@@ -95,6 +95,7 @@
 
   <section class="totals">
     <div class="totals-row"><span>المجموع قبل الضريبة</span><strong>{{ subtotal|floatformat:2|intcomma }} SAR</strong></div>
+    {% if discount_total %}<div class="totals-row"><span>الخصم{% if discount_codes_label %} (كود {{ discount_codes_label }}){% endif %}</span><strong>-{{ discount_total|floatformat:2|intcomma }} SAR</strong></div>{% endif %}
     <div class="totals-row"><span>ضريبة القيمة المضافة</span><strong>{{ tax_amount|floatformat:2|intcomma }} SAR</strong></div>
     <div class="totals-row total"><span>الإجمالي المدفوع</span><strong>{{ total|floatformat:2|intcomma }} SAR</strong></div>
   </section>

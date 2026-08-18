@@ -98,7 +98,7 @@
             <a class="tab {% if active == 'schools_admin_list' or active == 'platform_schools_directory' or active == 'school_profile' or active == 'school_create' or active == 'school_update' %}is-active{% endif %}" href="{% url 'reports:schools_admin_list' %}">المدارس</a>
             <a class="tab {% if active == 'platform_executive_directors' or active == 'platform_executive_director_add' or active == 'platform_executive_director_edit' %}is-active{% endif %}" href="{% url 'reports:platform_executive_directors' %}">المدراء التنفيذيون</a>
             <a class="tab {% if active == 'platform_subscriptions_list' or active == 'platform_subscription_detail' or active == 'platform_subscription_add' %}is-active{% endif %}" href="{% url 'reports:platform_subscriptions_list' %}">الاشتراكات</a>
-            <a class="tab {% if active == 'platform_payments_list' or active == 'platform_payment_detail' %}is-active{% endif %}" href="{% url 'reports:platform_payments_list' %}">المالية</a>
+            <a class="tab {% if active == 'platform_payments_list' or active == 'platform_payment_detail' or active == 'platform_discount_codes_list' or active == 'platform_discount_code_add' or active == 'platform_discount_code_edit' or active == 'platform_discount_code_detail' %}is-active{% endif %}" href="{% url 'reports:platform_payments_list' %}">المالية</a>
             <a class="tab {% if active == 'platform_tickets_list' %}is-active{% endif %}" href="{% url 'reports:platform_tickets_list' %}">الدعم</a>
             <a class="tab {% if active == 'platform_complaints_list' or active == 'platform_complaint_detail' %}is-active{% endif %}" href="{% url 'reports:platform_complaints_list' %}">الشكاوى</a>
             <a class="tab {% if active == 'platform_email_inbox' or active == 'platform_email_detail' or active == 'platform_email_compose' or active == 'platform_email_settings' %}is-active{% endif %}" href="{% url 'reports:platform_email_inbox' %}">البريد</a>
@@ -741,6 +741,10 @@
           <a class="{% if active == 'platform_archive_addons_list' %}is-active{% endif %}" href="{% url 'reports:platform_archive_addons_list' %}">
             <span>التخزين والأرشيف</span>
             <i class="fa-solid fa-box-archive"></i>
+          </a>
+          <a class="{% if active == 'platform_discount_codes_list' or active == 'platform_discount_code_add' or active == 'platform_discount_code_edit' or active == 'platform_discount_code_detail' %}is-active{% endif %}" href="{% url 'reports:platform_discount_codes_list' %}">
+            <span>أكواد الخصم</span>
+            <i class="fa-solid fa-ticket"></i>
           </a>
           <a class="{% if active == 'platform_audit_logs' %}is-active{% endif %}" href="{% url 'reports:platform_audit_logs' %}">
             <span>سجل النظام</span>

@@ -62,6 +62,24 @@
       return form.querySelector(`input[name="${name}"]`);
     }
 
+    // كود الخصم المقبول من الخادم: {code, type: "percent"|"fixed", value}.
+    // العرض هنا تقريب للمتصفح؛ الخصم الملزم يحسبه الخادم عند الإرسال.
+    let discountState = null;
+    let lastTotal = 0;
+    const receiptInput = form.querySelector("#receipt");
+
+    function discountAmount() {
+      if (!discountState || !isOn("include_subscription")) return 0;
+      const base = subscriptionAmount();
+      let amount =
+        discountState.type === "percent"
+          ? (base * discountState.value) / 100
+          : discountState.value;
+      amount = Math.min(amount, base);
+      if (!Number.isFinite(amount) || amount < 0) return 0;
+      return Math.round((amount + Number.EPSILON) * 100) / 100;
+    }
+
     function isOn(name) {
       const control = input(name);
       return Boolean(control && control.checked && !control.disabled);
@@ -190,6 +208,20 @@
       if (addonSelected) total += addonAmount();
       if (storageSelected) total += storageAmount() || 0;
       if (archiveSpaceSelected) total += archiveSpaceAmount() || 0;
+
+      const discountValue = discountAmount();
+      total = Math.max(0, total - discountValue);
+      const discountRow = form.querySelector('[data-summary-for="discount"]');
+      if (discountRow) {
+        discountRow.hidden = !(discountValue > 0);
+        const amountEl = discountRow.querySelector('[data-amount-for="discount"]');
+        if (amountEl) amountEl.textContent = `-${formatAmount(discountValue)} ريال`;
+        const codeEl = discountRow.querySelector("[data-discount-code-label]");
+        if (codeEl) codeEl.textContent = discountState ? discountState.code : "";
+      }
+      lastTotal = Math.round((total + Number.EPSILON) * 100) / 100;
+      // طلبٌ غطّاه الكود بالكامل يُفعَّل بلا إيصال، فلا يحجبه شرط المتصفح.
+      if (receiptInput) receiptInput.required = lastTotal > 0;
 
       const selectedCount = [
         subscriptionSelected,
@@ -326,6 +358,16 @@
       receiptSubmit,
       moyasarSubmit,
       selectPaymentMethod,
+      setDiscount(state) {
+        discountState = state || null;
+        recompute();
+      },
+      getDiscount() {
+        return discountState;
+      },
+      currentTotal() {
+        return lastTotal;
+      },
     };
     Object.defineProperty(pageRoot, "__subscriptionCheckout", {
       configurable: false,

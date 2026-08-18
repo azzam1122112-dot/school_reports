@@ -884,6 +884,49 @@
     line-height: 1.7;
     text-align: center;
   }
+  .summary-line--discount strong { color: var(--sx-ok, #16845b); }
+  .summary-discount {
+    padding: 13px 17px;
+    border-top: 1px dashed var(--sx-line);
+    display: grid;
+    gap: 8px;
+  }
+  .summary-discount > label {
+    color: var(--sx-muted);
+    font-weight: 900;
+    font-size: .85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .discount-input-row { display: flex; gap: 8px; }
+  .discount-input-row input {
+    flex: 1;
+    min-width: 0;
+    min-height: 42px;
+    border: 1px solid var(--sx-line);
+    border-radius: 11px;
+    padding: 8px 12px;
+    background: var(--sx-card, #fff);
+    color: var(--sx-ink, #0f172a);
+    font-weight: 900;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .discount-input-row button {
+    min-height: 42px;
+    padding: 8px 14px;
+    border-radius: 11px;
+    border: 1px solid var(--sx-line);
+    background: var(--sx-card-2);
+    color: var(--sx-ink, #0f172a);
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .discount-input-row button:disabled { opacity: .55; cursor: wait; }
+  .discount-status { margin: 0; font-size: .82rem; font-weight: 850; line-height: 1.7; }
+  .discount-status[data-state="ok"] { color: var(--sx-ok, #16845b); }
+  .discount-status[data-state="error"] { color: #dc2626; }
   .summary-total-panel {
     display: grid;
     gap: 3px;
@@ -2194,9 +2237,23 @@
                     <span data-summary-label="archiveSpace">مساحة إضافية للأرشفة السنوية</span>
                     <strong data-amount-for="archiveSpace">0.00 ريال</strong>
                   </div>
+                  <div class="summary-line summary-line--discount" data-summary-for="discount" hidden>
+                    <span>خصم الكود <span data-discount-code-label dir="ltr"></span></span>
+                    <strong data-amount-for="discount">-0.00 ريال</strong>
+                  </div>
                 </div>
 
                 <p class="summary-empty" id="orderEmptyState">لم تختر أي بند بعد. فعّل البند الذي تريد إضافته إلى الطلب.</p>
+              </div>
+              <div class="summary-discount">
+                <label for="discountCodeInput"><i class="fa-solid fa-ticket" aria-hidden="true"></i> هل لديك كود خصم؟</label>
+                <div class="discount-input-row">
+                  <input type="text" id="discountCodeInput" name="discount_code" autocomplete="off"
+                         placeholder="أدخل الكود" dir="ltr" maxlength="32" aria-describedby="discountStatus">
+                  <button type="button" id="discountApplyBtn">تطبيق</button>
+                  <button type="button" id="discountClearBtn" hidden>إزالة</button>
+                </div>
+                <p class="discount-status" id="discountStatus" hidden></p>
               </div>
               <div class="summary-total-panel">
                 <span class="summary-total-label">مجموع الطلب</span>
@@ -2490,6 +2547,9 @@
               {% elif payment.payer_kind == 'platform' %}
                 <span class="subx-payer-tag subx-payer-tag--platform"><i class="fa-solid fa-headset" aria-hidden="true"></i> سجّلتها إدارة المنصة</span>
               {% endif %}
+              {% if payment.discount_amount > 0 %}
+                <span class="subx-payer-tag"><i class="fa-solid fa-ticket" aria-hidden="true"></i> كود خصم{% if payment.discount_code %} <span dir="ltr">{{ payment.discount_code.code }}</span>{% endif %} (-{{ payment.discount_amount|floatformat:2 }} ريال)</span>
+              {% endif %}
             </td>
             <td data-label="المبلغ">
               <span dir="ltr" class="{% if payment.amount < 0 %}subx-amount-negative{% endif %}">{{ payment.amount }} SAR</span>
@@ -2557,7 +2617,7 @@
 
 {% block scripts %}
 <script src="{% static 'js/flexible-pricing.js' %}?v=20260804.1" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
-<script src="{% static 'js/subscription-checkout.js' %}?v=20260804.1" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
+<script src="{% static 'js/subscription-checkout.js' %}?v=20260818.1" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 (() => {
   function initSubscriptionPage() {
@@ -2574,6 +2634,101 @@
     const control = document.querySelector('input[name="' + name + '"]');
     return !!(control && control.checked && !control.disabled);
   });
+
+  /* ── 1.ب كود الخصم: تحقق فوري من الخادم وتحديث الملخص ── */
+  const discountInput = document.getElementById('discountCodeInput');
+  const discountApplyBtn = document.getElementById('discountApplyBtn');
+  const discountClearBtn = document.getElementById('discountClearBtn');
+  const discountStatus = document.getElementById('discountStatus');
+
+  function setDiscountStatus(message, state) {
+    if (!discountStatus) return;
+    discountStatus.hidden = !message;
+    discountStatus.textContent = message || '';
+    if (state) discountStatus.dataset.state = state; else delete discountStatus.dataset.state;
+  }
+
+  function clearDiscount() {
+    checkout?.setDiscount?.(null);
+    if (discountClearBtn) discountClearBtn.hidden = true;
+    setDiscountStatus('', null);
+  }
+
+  if (discountInput && discountApplyBtn && checkout) {
+    discountApplyBtn.addEventListener('click', () => {
+      const code = (discountInput.value || '').trim().toUpperCase();
+      if (!code) {
+        setDiscountStatus('أدخل كود الخصم أولاً.', 'error');
+        return;
+      }
+      if (!checkout.isOn('include_subscription')) {
+        setDiscountStatus('كود الخصم يسري على بند الاشتراك — فعّل بند التجديد أولاً.', 'error');
+        return;
+      }
+      const body = new URLSearchParams();
+      body.set('discount_code', code);
+      const planInput = form?.querySelector('input[name="plan_id"]:checked');
+      if (planInput?.value) body.set('plan_id', planInput.value);
+      const capacityInput = form?.querySelector('input[name="teacher_capacity"]');
+      if (capacityInput?.value) body.set('teacher_capacity', capacityInput.value);
+      const onBehalf = form?.querySelector('input[name="on_behalf_school"]');
+      if (onBehalf?.value) body.set('on_behalf_school', onBehalf.value);
+      const csrf = form?.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
+
+      discountApplyBtn.disabled = true;
+      fetch('{% url "reports:discount_code_check" %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrf,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: body.toString(),
+        credentials: 'same-origin',
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (!data || !data.ok) {
+            clearDiscount();
+            setDiscountStatus((data && data.message) || 'تعذّر التحقق من الكود.', 'error');
+            return;
+          }
+          discountInput.value = data.code;
+          checkout.setDiscount({
+            code: data.code,
+            type: data.discount_type,
+            value: parseFloat(data.value) || 0,
+          });
+          if (discountClearBtn) discountClearBtn.hidden = false;
+          let message = data.message || 'تم تطبيق كود الخصم.';
+          if (checkout.currentTotal?.() === 0) {
+            message += ' الطلب أصبح مجانياً بالكامل — أرسل الطلب وسيُفعّل فوراً بلا إيصال.';
+          }
+          setDiscountStatus(message, 'ok');
+        })
+        .catch(() => {
+          setDiscountStatus('تعذّر الاتصال بالخادم. حاول مرة أخرى.', 'error');
+        })
+        .finally(() => {
+          discountApplyBtn.disabled = false;
+        });
+    });
+
+    if (discountClearBtn) {
+      discountClearBtn.addEventListener('click', () => {
+        discountInput.value = '';
+        clearDiscount();
+      });
+    }
+
+    // تعديل الكود بعد قبوله يلغي القبول القديم حتى لا يُعرض خصم كودٍ آخر.
+    discountInput.addEventListener('input', () => {
+      const applied = checkout.getDiscount?.();
+      if (applied && discountInput.value.trim().toUpperCase() !== applied.code) {
+        clearDiscount();
+      }
+    });
+  }
 
   /* ── 2. حلقة الأيام المتبقية ──
      اللون يأتي من `data-tone` لا من قيمة مكتوبة هنا، وإلا احتاج
@@ -2692,7 +2847,8 @@
         showToast('اختر باقة لتجديد اشتراك المدرسة', 'error');
         return;
       }
-      if (!isElectronic && fileInput && !fileInput.value) {
+      const orderIsFree = (checkout?.currentTotal?.() ?? 1) === 0 && !!checkout?.getDiscount?.();
+      if (!isElectronic && !orderIsFree && fileInput && !fileInput.value) {
         e.preventDefault();
         if (dropArea) {
           dropArea.classList.add('drag-active');

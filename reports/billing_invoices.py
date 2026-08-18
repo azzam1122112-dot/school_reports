@@ -41,7 +41,7 @@ def _business_identity() -> dict:
 
 def _group_payments(payment: Payment) -> list[Payment]:
     queryset = Payment.objects.filter(school_id=payment.school_id).select_related(
-        "school", "requested_plan", "payer_group"
+        "school", "requested_plan", "payer_group", "discount_code"
     )
     if payment.batch_ref:
         queryset = queryset.filter(batch_ref=payment.batch_ref)
@@ -75,11 +75,16 @@ def _item_description(payment: Payment) -> str:
     return " - ".join([plan_name, *details])
 
 
+def _invoice_row_eligible(row: Payment) -> bool:
+    # بندٌ صفريّ المبلغ يبقى مفوتراً إن كان صفره أثرَ كود خصم غطّاه كاملاً.
+    return row.status == Payment.Status.APPROVED and (
+        row.amount > 0 or (row.discount_amount or 0) > 0
+    )
+
+
 def build_invoice_context(payment: Payment) -> dict:
     payments = _group_payments(payment)
-    if not payments or any(
-        row.status != Payment.Status.APPROVED or row.amount <= 0 for row in payments
-    ):
+    if not payments or any(not _invoice_row_eligible(row) for row in payments):
         raise InvoiceUnavailable("لا تتوفر الفاتورة إلا بعد اعتماد جميع بنود الطلب.")
 
     issued_candidates = [
@@ -87,9 +92,14 @@ def build_invoice_context(payment: Payment) -> dict:
         for row in payments
     ]
     issued_at = timezone.localtime(max(issued_candidates))
-    subtotal = sum((row.amount for row in payments), Decimal("0.00"))
+    # المجموع قبل الخصم، ثم سطر الخصم، ثم الضريبة (صفر حالياً)، ثم المدفوع فعلاً.
+    subtotal = sum((row.amount + (row.discount_amount or 0) for row in payments), Decimal("0.00"))
+    discount_total = sum(((row.discount_amount or 0) for row in payments), Decimal("0.00"))
+    discount_codes_label = "، ".join(
+        sorted({row.discount_code.code for row in payments if row.discount_code_id and row.discount_code})
+    )
     tax_amount = Decimal("0.00")
-    total = subtotal + tax_amount
+    total = subtotal - discount_total + tax_amount
     anchor = min(payments, key=lambda row: row.pk)
     gateway_reference = next(
         (
@@ -127,14 +137,18 @@ def build_invoice_context(payment: Payment) -> dict:
         },
         "items": [
             {
+                # أعمدة الجدول قبل الخصم حتى يساوي مجموعها «المجموع قبل الضريبة»،
+                # ثم يظهر الخصم سطراً مستقلاً في الملخص.
                 "description": _item_description(row),
                 "quantity": 1,
-                "unit_price": row.amount,
-                "amount": row.amount,
+                "unit_price": row.amount + (row.discount_amount or 0),
+                "amount": row.amount + (row.discount_amount or 0),
             }
             for row in payments
         ],
         "subtotal": subtotal,
+        "discount_total": discount_total,
+        "discount_codes_label": discount_codes_label,
         "tax_amount": tax_amount,
         "total": total,
         "payment_method": payment_method,
@@ -152,7 +166,7 @@ def decorate_payments_with_invoice_access(payments) -> None:
     grouped_keys = {
         (row.school_id, row.batch_ref)
         for row in rows
-        if row.batch_ref and row.status == Payment.Status.APPROVED and row.amount > 0
+        if row.batch_ref and _invoice_row_eligible(row)
     }
     related_by_key: dict[tuple[int, str], list[Payment]] = defaultdict(list)
     if grouped_keys:
@@ -160,7 +174,7 @@ def decorate_payments_with_invoice_access(payments) -> None:
         for school_id, batch_ref in grouped_keys:
             query |= Q(school_id=school_id, batch_ref=batch_ref)
         for related in Payment.objects.filter(query).only(
-            "id", "school_id", "batch_ref", "status", "amount"
+            "id", "school_id", "batch_ref", "status", "amount", "discount_amount"
         ):
             related_by_key[(related.school_id, related.batch_ref)].append(related)
 
@@ -168,7 +182,7 @@ def decorate_payments_with_invoice_access(payments) -> None:
     for row in rows:
         row.invoice_available = False
         row.invoice_anchor_id = row.pk
-        if row.status != Payment.Status.APPROVED or row.amount <= 0:
+        if not _invoice_row_eligible(row):
             continue
         if not row.batch_ref:
             invoice_key = (row.school_id, row.pk)
@@ -178,8 +192,7 @@ def decorate_payments_with_invoice_access(payments) -> None:
         related = related_by_key.get((row.school_id, row.batch_ref), [])
         invoice_key = (row.school_id, row.batch_ref)
         group_is_ready = bool(related) and all(
-            item.status == Payment.Status.APPROVED and item.amount > 0
-            for item in related
+            _invoice_row_eligible(item) for item in related
         )
         if related:
             row.invoice_anchor_id = min(item.pk for item in related)

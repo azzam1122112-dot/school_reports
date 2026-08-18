@@ -177,7 +177,7 @@ def my_subscription(request):
     # تظهر آخر 4 عمليات فقط
     payments = list(
         Payment.objects.filter(school=membership.school)
-        .select_related("requested_plan", "payer_group")
+        .select_related("requested_plan", "payer_group", "discount_code")
         .order_by("-created_at")[:4]
     )
     decorate_payments_with_invoice_access(payments)
@@ -274,7 +274,7 @@ def subscription_history(request):
     # جلب كامل العمليات
     payments = (
         Payment.objects.filter(school=membership.school)
-        .select_related("payer_group", "requested_plan")
+        .select_related("payer_group", "requested_plan", "discount_code")
         .order_by('-created_at')
     )
 
@@ -553,3 +553,57 @@ def faq(request: HttpRequest) -> HttpResponse:
 def privacy_policy(request: HttpRequest) -> HttpResponse:
     """صفحة سياسة الخصوصية"""
     return render(request, "reports/privacy_policy.html")
+
+@login_required(login_url="reports:login")
+@ratelimit(key="user", rate="15/m", method="POST", block=True)
+@require_http_methods(["POST"])
+def discount_code_check(request):
+    """تحقق فوري من كود الخصم لعرض قيمته في ملخص الطلب.
+
+    نتيجة هذا المسار للعرض فقط؛ التحقق الملزم يُعاد بالكامل عند إنشاء الطلب،
+    والحجز يجري هناك تحت قفل الصف — فالمتصفح لا يُصدّق على شيء.
+    """
+    from ..discount_codes import DiscountCodeError, find_usable_code
+
+    actor = _resolve_payment_actor(request)
+    if actor is None:
+        return JsonResponse(
+            {"ok": False, "message": "هذه الخدمة مخصصة لإدارة المدرسة."}, status=403
+        )
+
+    try:
+        code = find_usable_code(request.POST.get("discount_code") or "", actor.school)
+    except DiscountCodeError as exc:
+        return JsonResponse({"ok": False, "message": str(exc)})
+
+    payload = {
+        "ok": True,
+        "code": code.code,
+        "discount_type": code.discount_type,
+        "value": str(code.value),
+        "display_value": code.display_value,
+        "message": f"تم قبول الكود {code.code} — خصم {code.display_value} على بند الاشتراك.",
+    }
+
+    # لو أرسل العميل سياق الباقة الحالية نعيد المبلغ المخصوم بحساب الخادم نفسه.
+    plan_id = (request.POST.get("plan_id") or "").strip()
+    if plan_id.isdigit():
+        plan = SubscriptionPlan.objects.filter(
+            pk=plan_id, is_active=True, price__gt=0
+        ).first()
+        if plan is not None:
+            try:
+                quote = _subscription_quote_from_request(request, actor.school, plan)
+            except _PaymentSelectionError:
+                quote = None
+            if quote is not None:
+                original = Decimal(str(quote["price"]))
+                discount = code.discount_for(original)
+                payload.update(
+                    {
+                        "original_amount": str(original),
+                        "discount_amount": str(discount),
+                        "amount_after": str(original - discount),
+                    }
+                )
+    return JsonResponse(payload)

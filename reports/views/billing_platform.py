@@ -42,6 +42,7 @@ from ..flexible_pricing import (
     serialize_flexible_pricing_catalog,
 )
 from ..pricing import SUBSCRIPTION_ADDON_NOTES, SUBSCRIPTION_INCLUDED_FEATURES
+from ..discount_codes import release_dead_redemptions
 from ..moyasar_gateway import (
     MoyasarGatewayError,
     create_invoice as create_moyasar_invoice,
@@ -1660,7 +1661,9 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
     payment = get_object_or_404(
-        Payment.objects.select_related("school", "subscription", "requested_plan"),
+        Payment.objects.select_related(
+            "school", "subscription", "requested_plan", "discount_code"
+        ),
         pk=pk,
     )
 
@@ -1725,6 +1728,14 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 if prev_status != Payment.Status.APPROVED and payment.status == Payment.Status.APPROVED:
                     level, msg = _apply_payment_effects(payment, today, pricing)
                     getattr(messages, level)(request, msg)
+                if payment.status in {Payment.Status.REJECTED, Payment.Status.CANCELLED}:
+                    # رفضُ الطلب يحرّر حجز كود الخصم ليعود استخدامه إلى الرصيد.
+                    released = release_dead_redemptions(payment_id=payment.pk)
+                    if released:
+                        messages.info(
+                            request,
+                            "أُعيد استخدام كود الخصم المرتبط بهذه الدفعة إلى رصيد الكود.",
+                        )
         except _ApprovalError as exc:
             messages.error(request, str(exc))
             return redirect("reports:platform_payment_detail", pk=pk)
@@ -2232,3 +2243,150 @@ def platform_pricing_matrix(request: HttpRequest) -> HttpResponse:
             "addon_notes": SUBSCRIPTION_ADDON_NOTES,
         },
     )
+
+# =========================
+# أكواد الخصم (Platform Admin)
+# =========================
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_discount_codes_list(request: HttpRequest) -> HttpResponse:
+    """قائمة أكواد الخصم مع مؤشراتها: الاستخدامات والرصيد وقيمة الخصومات الممنوحة."""
+    today = timezone.localdate()
+    status = (request.GET.get("status") or "all").strip().lower()
+    q = _clean_query_value(request.GET.get("q"))
+
+    codes = (
+        DiscountCode.objects.annotate(
+            uses=Count("redemptions", distinct=True),
+            granted=Sum("redemptions__amount_discounted"),
+        )
+        .order_by("-created_at", "-id")
+    )
+    if q:
+        codes = codes.filter(code__icontains=q.upper())
+
+    if status == "usable":
+        codes = codes.filter(is_active=True, uses__lt=F("max_uses")).filter(
+            Q(valid_from__isnull=True) | Q(valid_from__lte=today),
+            Q(valid_until__isnull=True) | Q(valid_until__gte=today),
+        )
+    elif status == "exhausted":
+        codes = codes.filter(uses__gte=F("max_uses"))
+    elif status == "expired":
+        codes = codes.filter(valid_until__lt=today)
+    elif status == "disabled":
+        codes = codes.filter(is_active=False)
+
+    stats_base = DiscountCode.objects.annotate(uses=Count("redemptions", distinct=True))
+    stats = {
+        "total": stats_base.count(),
+        "usable": stats_base.filter(is_active=True, uses__lt=F("max_uses"))
+        .filter(
+            Q(valid_from__isnull=True) | Q(valid_from__lte=today),
+            Q(valid_until__isnull=True) | Q(valid_until__gte=today),
+        )
+        .count(),
+        "exhausted": stats_base.filter(uses__gte=F("max_uses")).count(),
+        "redemptions": DiscountRedemption.objects.count(),
+        "granted_total": DiscountRedemption.objects.aggregate(
+            total=Sum("amount_discounted")
+        )["total"] or Decimal("0.00"),
+    }
+
+    page_obj = svc_paginate(codes, per_page=30, page=request.GET.get("page", 1))
+    return render(
+        request,
+        "reports/platform_discount_codes.html",
+        {
+            "codes": page_obj,
+            "page_obj": page_obj,
+            "stats": stats,
+            "status": status,
+            "q": q,
+            "today": today,
+            "results_count": codes.count(),
+            "qs": _clean_query_params(request.GET),
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def platform_discount_code_form(request: HttpRequest, pk: Optional[int] = None) -> HttpResponse:
+    """إضافة أو تعديل كود خصم."""
+    code = get_object_or_404(DiscountCode, pk=pk) if pk else None
+    form = DiscountCodeForm(request.POST or None, instance=code)
+
+    if request.method == "POST":
+        if form.is_valid():
+            obj = form.save(commit=False)
+            if obj.pk is None:
+                obj.created_by = request.user
+            obj.save()
+            messages.success(request, f"تم حفظ كود الخصم {obj.code} بنجاح.")
+            return redirect("reports:platform_discount_codes_list")
+        messages.error(request, "تعذّر الحفظ. تحقق من الحقول.")
+
+    return render(
+        request,
+        "reports/platform_discount_code_form.html",
+        {"form": form, "code": code},
+    )
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_discount_code_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    """تفاصيل الكود: من استخدمه، متى، وعلى أي دفعة."""
+    code = get_object_or_404(DiscountCode, pk=pk)
+    redemptions = list(
+        code.redemptions.select_related("school", "payment").order_by("-created_at")
+    )
+    return render(
+        request,
+        "reports/platform_discount_code_detail.html",
+        {
+            "code": code,
+            "redemptions": redemptions,
+            "granted_total": sum(
+                (r.amount_discounted or Decimal("0.00") for r in redemptions),
+                Decimal("0.00"),
+            ),
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["POST"])
+def platform_discount_code_toggle(request: HttpRequest, pk: int) -> HttpResponse:
+    code = get_object_or_404(DiscountCode, pk=pk)
+    code.is_active = not bool(code.is_active)
+    code.save(update_fields=["is_active", "updated_at"])
+    messages.success(
+        request,
+        f"تم تفعيل الكود {code.code}." if code.is_active else f"تم إيقاف الكود {code.code}.",
+    )
+    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+    return redirect(next_url or "reports:platform_discount_codes_list")
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["POST"])
+def platform_discount_code_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    code = get_object_or_404(DiscountCode, pk=pk)
+    if code.redemptions.exists():
+        # حذف كود مستخدَم يمحو أثره من السجل المالي؛ الإيقاف يمنع استخدامه الجديد.
+        messages.error(
+            request,
+            "لا يمكن حذف كود استُخدم من قبل — أوقفه بدلاً من ذلك ليبقى سجل استخداماته.",
+        )
+        return redirect("reports:platform_discount_codes_list")
+    code_label = code.code
+    code.delete()
+    messages.success(request, f"تم حذف كود الخصم {code_label}.")
+    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+    return redirect(next_url or "reports:platform_discount_codes_list")
