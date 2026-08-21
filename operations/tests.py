@@ -7,6 +7,7 @@ from django.utils import timezone
 from reports.models import Teacher
 
 from .models import HealthCheck, Incident, ManagedProject, ManagedServer, MobileAccessToken, MobileDevice, OperationAction
+from .services import capture_server_metrics
 
 
 @override_settings(DEBUG=True)
@@ -95,3 +96,46 @@ class OperationsApiTests(TestCase):
         incident.refresh_from_db()
         self.assertEqual(incident.status, Incident.Status.ACKNOWLEDGED)
         self.assertEqual(incident.acknowledged_by, self.admin)
+
+    @override_settings(OPERATIONS_CAPACITY_SUSTAINED_SAMPLES=3, CPU_ALERT_PERCENT=80)
+    @patch("operations.tasks.send_incident_push_task.delay")
+    def test_capacity_alert_requires_sustained_pressure(self, push_delay):
+        for cpu_percent in (95, 20, 95):
+            capture_server_metrics(
+                self.server,
+                {
+                    "cpu_percent": cpu_percent,
+                    "memory_percent": 40,
+                    "disk_percent": 30,
+                    "redis_used_percent": 10,
+                    "queue_lengths": {"default": 0},
+                },
+            )
+
+        self.assertFalse(Incident.objects.filter(dedupe_key=f"server:{self.server.pk}:capacity").exists())
+        push_delay.assert_not_called()
+
+    @override_settings(
+        OPERATIONS_CAPACITY_SUSTAINED_SAMPLES=3,
+        CPU_ALERT_PERCENT=80,
+        CELERY_QUEUE_ALERT_LENGTH=10,
+    )
+    @patch("operations.tasks.send_incident_push_task.delay")
+    def test_capacity_alert_includes_recommended_action(self, push_delay):
+        for _ in range(3):
+            capture_server_metrics(
+                self.server,
+                {
+                    "cpu_percent": 91,
+                    "memory_percent": 40,
+                    "disk_percent": 30,
+                    "redis_used_percent": 10,
+                    "queue_lengths": {"images": 12},
+                },
+            )
+
+        incident = Incident.objects.get(dedupe_key=f"server:{self.server.pk}:capacity")
+        self.assertIn("CPU مرتفع بشكل مستمر", incident.message)
+        self.assertIn("الإجراء المناسب", incident.message)
+        self.assertIn("worker إضافي", incident.message)
+        push_delay.assert_called_once_with(incident.pk)

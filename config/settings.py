@@ -1115,6 +1115,7 @@ CELERY_QUEUE_ALERT_LENGTH = int(os.getenv("CELERY_QUEUE_ALERT_LENGTH", "200") or
 HTTP_ALERT_MIN_SAMPLES = int(os.getenv("HTTP_ALERT_MIN_SAMPLES", "20") or "20")
 HTTP_5XX_ALERT_PERCENT = float(os.getenv("HTTP_5XX_ALERT_PERCENT", "2.0") or "2.0")
 HTTP_LATENCY_ALERT_MS = int(os.getenv("HTTP_LATENCY_ALERT_MS", "2000") or "2000")
+OPERATIONS_CAPACITY_SUSTAINED_SAMPLES = int(os.getenv("OPERATIONS_CAPACITY_SUSTAINED_SAMPLES", "3") or "3")
 
 
 # ----------------- Landing page pricing cache -----------------

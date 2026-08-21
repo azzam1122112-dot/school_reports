@@ -4,6 +4,7 @@ import json
 import logging
 import socket
 import time
+from decimal import InvalidOperation
 from urllib.parse import urlsplit
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -15,6 +16,103 @@ from django.utils import timezone
 from .models import HealthCheck, Incident, ManagedProject, ManagedServer, ServerMetricSnapshot
 
 logger = logging.getLogger(__name__)
+
+
+def _float_or_none(value) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError, InvalidOperation):
+        return None
+
+
+def _setting_int(name: str, default: int, *, minimum: int = 1, maximum: int | None = None) -> int:
+    try:
+        value = int(getattr(settings, name, default) or default)
+    except (TypeError, ValueError):
+        value = default
+    value = max(minimum, value)
+    return min(value, maximum) if maximum is not None else value
+
+
+def _all_at_or_above(snapshots: list[ServerMetricSnapshot], field: str, threshold: int) -> bool:
+    values = [_float_or_none(getattr(snapshot, field, None)) for snapshot in snapshots]
+    return bool(values) and all(value is not None and value >= threshold for value in values)
+
+
+def _queue_names_over_threshold(snapshots: list[ServerMetricSnapshot], threshold: int) -> list[str]:
+    if not snapshots:
+        return []
+    queue_names = set()
+    for snapshot in snapshots:
+        queue_names.update((snapshot.queue_lengths or {}).keys())
+    sustained = []
+    for queue_name in sorted(queue_names):
+        lengths = []
+        for snapshot in snapshots:
+            try:
+                lengths.append(int((snapshot.queue_lengths or {}).get(queue_name) or 0))
+            except (TypeError, ValueError):
+                lengths.append(0)
+        if lengths and all(length >= threshold for length in lengths):
+            sustained.append(queue_name)
+    return sustained
+
+
+def _capacity_pressure_messages(server: ManagedServer) -> tuple[list[str], str]:
+    sample_count = _setting_int("OPERATIONS_CAPACITY_SUSTAINED_SAMPLES", 3, minimum=2, maximum=12)
+    snapshots = list(server.metric_snapshots.order_by("-captured_at")[:sample_count])
+    if len(snapshots) < sample_count:
+        return [], f"لا يكفي سجل القياسات بعد. المطلوب {sample_count} قياسات متتالية قبل التنبيه."
+
+    cpu_threshold = _setting_int("CPU_ALERT_PERCENT", 85, minimum=1, maximum=100)
+    memory_threshold = _setting_int("MEMORY_ALERT_PERCENT", 85, minimum=1, maximum=100)
+    disk_threshold = _setting_int("DISK_ALERT_PERCENT", 80, minimum=1, maximum=100)
+    redis_threshold = _setting_int("REDIS_MEMORY_ALERT_PERCENT", 80, minimum=1, maximum=100)
+    queue_threshold = _setting_int("CELERY_QUEUE_ALERT_LENGTH", 200, minimum=1)
+    window_minutes = sample_count * 5
+
+    messages: list[str] = []
+    latest = snapshots[0]
+    latest_queues = latest.queue_lengths or {}
+
+    if _all_at_or_above(snapshots, "cpu_percent", cpu_threshold):
+        messages.append(
+            f"CPU مرتفع بشكل مستمر: آخر قراءة {latest.cpu_percent}%، والحد {cpu_threshold}% "
+            f"لمدة تقارب {window_minutes} دقيقة. الإجراء المناسب: راجع المهام الثقيلة والـ workers أولًا، "
+            "ثم ارفع الخادم إلى خطة CPU أعلى إذا تكرر الضغط أثناء الاستخدام الطبيعي."
+        )
+    if _all_at_or_above(snapshots, "memory_percent", memory_threshold):
+        messages.append(
+            f"الذاكرة مرتفعة بشكل مستمر: آخر قراءة {latest.memory_percent}%، والحد {memory_threshold}% "
+            f"لمدة تقارب {window_minutes} دقيقة. الإجراء المناسب: افحص أكثر الحاويات استهلاكًا للذاكرة، "
+            "ثم ارفع RAM أو افصل قاعدة البيانات/العمال إلى خادم مستقل إذا كان النمو مستمرًا."
+        )
+    if _all_at_or_above(snapshots, "disk_percent", disk_threshold):
+        messages.append(
+            f"القرص ممتلئ بشكل متزايد: آخر قراءة {latest.disk_percent}%، والحد {disk_threshold}% "
+            f"لمدة تقارب {window_minutes} دقيقة. الإجراء المناسب: نظف صور Docker القديمة والسجلات، "
+            "ثم وسع القرص أو انقل الملفات الكبيرة إلى R2 إذا استمر النمو."
+        )
+    if _all_at_or_above(snapshots, "redis_memory_percent", redis_threshold):
+        messages.append(
+            f"Redis قريب من حد الذاكرة: آخر قراءة {latest.redis_memory_percent}%، والحد {redis_threshold}% "
+            f"لمدة تقارب {window_minutes} دقيقة. الإجراء المناسب: قلل حجم الكاش والمهام المتراكمة، "
+            "ثم افصل Redis أو ارفع حد ذاكرته إذا كانت الزيادة طبيعية."
+        )
+
+    sustained_queues = _queue_names_over_threshold(snapshots, queue_threshold)
+    if sustained_queues:
+        details = ", ".join(
+            f"{queue}={latest_queues.get(queue, 0)}" for queue in sustained_queues
+        )
+        messages.append(
+            f"طوابير Celery متراكمة بشكل مستمر: {details}، والحد {queue_threshold} مهمة "
+            f"لمدة تقارب {window_minutes} دقيقة. الإجراء المناسب: شغّل worker إضافي للطابور المتأخر، "
+            "وافحص سبب بطء المهام قبل زيادة الزيارات أو تشغيل أعمال دفعية جديدة."
+        )
+    return messages, f"تم تقييم آخر {sample_count} قياسات متتالية."
 
 
 def _safe_error_code(exc: Exception) -> str:
@@ -139,15 +237,21 @@ def capture_server_metrics(server: ManagedServer, report: dict) -> ServerMetricS
         status__in=(Incident.Status.OPEN, Incident.Status.ACKNOWLEDGED),
     ).first()
     notify_incident = None
-    alerts = list(report.get("alerts") or [])
+    alerts, evaluation_summary = _capacity_pressure_messages(server)
+    severity = Incident.Severity.CRITICAL if any("القرص" in alert for alert in alerts) else Incident.Severity.WARNING
     if alerts and open_incident is None:
         notify_incident = Incident.objects.create(
             server=server,
             dedupe_key=key,
             title=f"ضغط مرتفع على {server.name}",
-            message=" ".join(str(alert) for alert in alerts)[:2000],
-            severity=Incident.Severity.WARNING,
+            message=("\n\n".join(alerts) + f"\n\n{evaluation_summary}")[:2000],
+            severity=severity,
         )
+    elif alerts and open_incident is not None:
+        open_incident.title = f"ضغط مرتفع على {server.name}"
+        open_incident.message = ("\n\n".join(alerts) + f"\n\n{evaluation_summary}")[:2000]
+        open_incident.severity = severity
+        open_incident.save(update_fields=("title", "message", "severity"))
     elif not alerts and open_incident is not None:
         open_incident.status = Incident.Status.RESOLVED
         open_incident.resolved_at = now
