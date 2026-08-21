@@ -131,6 +131,81 @@ class OperationsApi {
     );
   }
 
+  Future<List<OperationsAccount>> accounts() async {
+    final data = await _request(
+      () => _dio.get<Map<String, dynamic>>('/accounts/'),
+    );
+    return (data['accounts'] as List? ?? const [])
+        .map(
+          (item) => OperationsAccount.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList();
+  }
+
+  Future<OperationsAccount> createAccount({
+    required String name,
+    required String phone,
+    required String password,
+    String email = '',
+    String role = 'viewer',
+  }) async {
+    return OperationsAccount.fromJson(
+      await _request(
+        () => _dio.post<Map<String, dynamic>>(
+          '/accounts/',
+          data: {
+            'name': name,
+            'phone': phone,
+            'password': password,
+            'role': role,
+            if (email.isNotEmpty) 'email': email,
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<OperationsAccount> updateAccount(
+    int id, {
+    String? name,
+    String? email,
+    String? password,
+    bool? isActive,
+    String? role,
+  }) async {
+    return OperationsAccount.fromJson(
+      await _request(
+        () => _dio.patch<Map<String, dynamic>>(
+          '/accounts/$id/',
+          data: {
+            'name': ?name,
+            'email': ?email,
+            'password': ?password,
+            'is_active': ?isActive,
+            'role': ?role,
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _request(
+      () => _dio.post<Map<String, dynamic>>(
+        '/auth/password/',
+        data: {
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        },
+      ),
+    );
+  }
+
   Future<void> acknowledgeIncident(int id) async {
     await _request(
       () => _dio.post<Map<String, dynamic>>('/incidents/$id/acknowledge/'),

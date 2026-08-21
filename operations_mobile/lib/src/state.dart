@@ -151,6 +151,12 @@ final deploymentProvider = FutureProvider.autoDispose<DeploymentOverview>((ref) 
   return ref.watch(apiProvider).deploymentStatus();
 });
 
+final accountsProvider = FutureProvider.autoDispose<List<OperationsAccount>>((
+  ref,
+) {
+  return ref.watch(apiProvider).accounts();
+});
+
 final notificationProvider = Provider<NotificationService>((ref) {
   return NotificationService(ref.watch(apiProvider));
 });

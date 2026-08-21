@@ -211,6 +211,36 @@ class OperationAction(models.Model):
         ordering = ("-requested_at", "-id")
 
 
+class OperationsMembership(models.Model):
+    class Role(models.TextChoices):
+        ADMIN = "admin", "مدير عمليات"
+        OPERATOR = "operator", "مشغّل"
+        VIEWER = "viewer", "مشاهدة فقط"
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="operations_membership",
+    )
+    role = models.CharField(max_length=16, choices=Role.choices, default=Role.VIEWER, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_operations_memberships",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("user__name", "user__phone")
+
+    def __str__(self) -> str:
+        return f"{self.user} ({self.get_role_display()})"
+
+
 class MobileAccessToken(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="operations_mobile_tokens")
     public_id = models.CharField(max_length=20, unique=True, db_index=True)

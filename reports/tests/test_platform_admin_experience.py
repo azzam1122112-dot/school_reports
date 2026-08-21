@@ -15,6 +15,8 @@ from reports.models import (
     AuditLog,
     Payment,
     PlatformSettings,
+    Report,
+    ReportType,
     School,
     Teacher,
 )
@@ -118,6 +120,18 @@ class PlatformAdminExperienceTests(TestCase):
 
     def test_school_delete_requires_typed_name_and_keeps_audit_record(self):
         delete_url = reverse("reports:school_delete", args=[self.school.pk])
+        report_type = ReportType.objects.create(
+            school=self.school,
+            code="visit",
+            name="زيارة صفية",
+        )
+        report = Report.objects.create(
+            school=self.school,
+            teacher=self.admin,
+            title="تقرير مرتبط بتصنيف المدرسة",
+            report_date=timezone.localdate(),
+            category=report_type,
+        )
 
         confirmation = self.client.get(delete_url)
         self.assertEqual(confirmation.status_code, 200)
@@ -132,6 +146,8 @@ class PlatformAdminExperienceTests(TestCase):
         accepted = self.client.post(delete_url, {"confirm_name": self.school.name})
         self.assertRedirects(accepted, reverse("reports:schools_admin_list"))
         self.assertFalse(School.objects.filter(pk=school_id).exists())
+        self.assertFalse(Report.all_objects.filter(pk=report.pk).exists())
+        self.assertFalse(ReportType.objects.filter(pk=report_type.pk).exists())
 
         audit = AuditLog.objects.filter(
             action=AuditLog.Action.DELETE,

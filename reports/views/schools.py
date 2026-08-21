@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from django.db import transaction
 from django.db.models import Count, Q
 from django.db.models.functions import TruncWeek
 
@@ -715,8 +716,10 @@ def school_delete(request: HttpRequest, pk: int) -> HttpResponse:
 
     school_id = school.pk
     try:
-        set_audit_logging_suppressed(True)
-        school.delete()
+        with transaction.atomic():
+            set_audit_logging_suppressed(True)
+            Report.all_objects.filter(school=school).delete()
+            school.delete()
     except Exception:
         logger.exception("school_delete failed")
         messages.error(request, "تعذّر حذف المدرسة. ربما توجد قيود على البيانات المرتبطة.")
@@ -1198,7 +1201,7 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             "setup_total": setup_total,
             "setup_percent": setup_percent,
             "setup_next_step": setup["next_step"],
-            "dashboard_period_payload": json.dumps(dashboard_payload, ensure_ascii=False),
+            "dashboard_period_payload": dashboard_payload,
             "reports_labels": json.dumps(payload_charts["reports"]["labels"], ensure_ascii=False),
             "reports_data": json.dumps(payload_charts["reports"]["data"]),
             "dept_labels": json.dumps(payload_charts["categories"]["labels"], ensure_ascii=False),
@@ -1888,6 +1891,8 @@ def _dept_set_member_role(dep, teacher: Teacher, role_type: str) -> bool:
     try:
         if DepartmentMembership is None or Department is None:
             return False
+        if getattr(dep, "slug", "").lower() == MANAGER_SLUG and role_type != DM_TEACHER:
+            return False
 
         dep_field, tea_field = _deptmember_field_names()
         if not dep_field or not tea_field:
@@ -1904,7 +1909,8 @@ def _dept_set_member_role(dep, teacher: Teacher, role_type: str) -> bool:
         if (not created) and getattr(obj, "role_type", None) != role_type:
             obj.role_type = role_type
             obj.save(update_fields=["role_type"])
-        return True
+        obj.refresh_from_db(fields=["role_type"])
+        return getattr(obj, "role_type", None) == role_type
     except Exception:
         logger.exception("Failed to set DepartmentMembership role_type")
         return False
@@ -1912,6 +1918,8 @@ def _dept_set_member_role(dep, teacher: Teacher, role_type: str) -> bool:
 def _dept_set_officer(dep, teacher: Teacher) -> bool:
     try:
         if DepartmentMembership is None or Department is None:
+            return False
+        if getattr(dep, "slug", "").lower() == MANAGER_SLUG:
             return False
 
         dep_field, tea_field = _deptmember_field_names()
@@ -1985,10 +1993,14 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
                             labels = school_gender_labels(active_school)
                             messages.error(request, f"تعذّر إسناد {labels['teacher']} — تحقّق من بنية DepartmentMembership.")
                     elif action == "set_officer":
-                        ok = _dept_set_officer(obj, teacher)
+                        if getattr(obj, "slug", "").lower() == MANAGER_SLUG:
+                            messages.error(request, "قسم الإدارة لا يحتاج مسؤول قسم منفصل؛ مدير المدرسة هو المسؤول عن هذا القسم.")
+                            ok = False
+                        else:
+                            ok = _dept_set_officer(obj, teacher)
                         if ok:
                             messages.success(request, f"تم تعيين {teacher.name} مسؤولاً لقسم «{dept_label}». ")
-                        else:
+                        elif not getattr(obj, "slug", "").lower() == MANAGER_SLUG:
                             messages.error(request, "تعذّر تعيين مسؤول القسم — تحقّق من دعم role_type.")
                     elif action == "unset_officer":
                         ok = _dept_remove_member(obj, teacher)
@@ -2077,5 +2089,6 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
             "all_teachers": all_teachers,
             "available_teachers": available,
             "has_dept_model": Department is not None,
+            "officer_assignment_allowed": str(dept_code).lower() != MANAGER_SLUG,
         },
     )

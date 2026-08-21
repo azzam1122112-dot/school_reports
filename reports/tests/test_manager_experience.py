@@ -11,6 +11,8 @@ from django.utils import timezone
 from reports.forms import NotificationCreateForm
 from reports.models import (
     AcademicYear,
+    Department,
+    DepartmentMembership,
     Report,
     ReportType,
     School,
@@ -421,6 +423,39 @@ class ManagerExperienceTests(TestCase):
         self.assertContains(response, "جاهزية مساحة المدرسة")
         self.assertContains(response, "بيانات المدرسة والسنة الحالية")
         self.assertContains(response, "الأقسام")
+
+    def test_manager_department_does_not_offer_impossible_officer_assignment(self):
+        department = Department.objects.create(
+            school=self.school,
+            name="الإدارة",
+            slug="manager",
+            is_active=True,
+        )
+        self._login_manager()
+
+        response = self.client.get(
+            reverse("reports:department_members", args=[department.slug])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["officer_assignment_allowed"])
+        self.assertContains(response, "قسم الإدارة لا يحتاج مسؤول قسم منفصل")
+        self.assertNotContains(response, 'name="action" value="set_officer"')
+
+        posted = self.client.post(
+            reverse("reports:department_members", args=[department.slug]),
+            {"action": "set_officer", "teacher_id": self.teacher.pk},
+            follow=True,
+        )
+
+        self.assertContains(posted, "قسم الإدارة لا يحتاج مسؤول قسم منفصل")
+        self.assertFalse(
+            DepartmentMembership.objects.filter(
+                department=department,
+                teacher=self.teacher,
+                role_type=DepartmentMembership.OFFICER,
+            ).exists()
+        )
 
     def test_dashboard_has_no_weekly_summary_email_control(self):
         """The summary is in-app only, so the dashboard offers no send toggle."""

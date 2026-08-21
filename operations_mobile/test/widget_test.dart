@@ -38,11 +38,40 @@ void main() {
         },
       ],
       'incidents': [],
+      'current_user': {
+        'id': 3,
+        'name': 'Ops',
+        'phone': '0500000000',
+        'role': 'operator',
+        'role_label': 'مشغّل',
+        'capabilities': ['view', 'run_checks'],
+      },
+      'agent': {'ready': false, 'label': 'غير مفعّل'},
       'generated_at': '2026-08-21T12:00:00Z',
     });
 
     expect(dashboard.serverCount, 1);
     expect(dashboard.servers.single.projects.single.id, 7);
     expect(dashboard.generatedAt, isNotNull);
+    expect(dashboard.currentUser.can('run_checks'), isTrue);
+    expect(dashboard.currentUser.can('manage_team'), isFalse);
+    expect(dashboard.agentReady, isFalse);
   });
+
+  test(
+    'keeps legacy superuser access and labels a missing agent as disabled',
+    () {
+      final dashboard = DashboardData.fromJson({
+        'summary': const {},
+        'servers': const [],
+        'incidents': const [],
+      });
+
+      expect(dashboard.currentUser.isSuperuser, isTrue);
+      expect(dashboard.currentUser.can('run_checks'), isTrue);
+      expect(dashboard.currentUser.can('manage_team'), isTrue);
+      expect(dashboard.agentReady, isFalse);
+      expect(dashboard.agentLabel, 'غير مفعّل');
+    },
+  );
 }

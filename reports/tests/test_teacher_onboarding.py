@@ -71,7 +71,13 @@ class TeacherOnboardingTests(TestCase):
         session["active_school_id"] = self.school.pk
         session.save()
 
-    def _quick_preview(self, *, phone="0551234567", name="محمد المعلم"):
+    def _quick_preview(
+        self,
+        *,
+        phone="0551234567",
+        name="محمد المعلم",
+        job_title=SchoolMembership.JobTitle.TEACHER,
+    ):
         return self.client.post(
             reverse("reports:bulk_import_teachers"),
             {
@@ -79,7 +85,7 @@ class TeacherOnboardingTests(TestCase):
                 "name": [name],
                 "phone": [phone],
                 "national_id": ["1012345678"],
-                "job_title": [SchoolMembership.JobTitle.TEACHER],
+                "job_title": [job_title],
                 "department": [str(self.department.pk)],
             },
         )
@@ -401,6 +407,49 @@ class TeacherOnboardingTests(TestCase):
         self.assertEqual(preview["summary"]["total"], 1)
         self.assertTrue(preview["can_confirm"])
 
+    def test_bulk_import_offers_the_same_four_assignments_as_individual_add(self):
+        response = self.client.get(reverse("reports:bulk_import_teachers"))
+        html = response.content.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('value="teacher"', html)
+        self.assertIn('value="deputy"', html)
+        self.assertIn('value="admin_staff"', html)
+        self.assertIn('value="lab_tech"', html)
+
+    def test_bulk_import_can_create_a_deputy(self):
+        self._quick_preview(
+            phone="0551234599",
+            name="وكيل مستورد",
+            job_title=SchoolMembership.RoleType.DEPUTY,
+        )
+        response = self._confirm_current_preview()
+
+        self.assertRedirects(
+            response,
+            f"{reverse('reports:bulk_import_teachers')}?completed=1",
+            fetch_redirect_response=False,
+        )
+        membership = SchoolMembership.objects.get(
+            school=self.school,
+            teacher__phone="0551234599",
+        )
+        self.assertEqual(membership.role_type, SchoolMembership.RoleType.DEPUTY)
+
+    def test_bulk_import_accepts_deputy_label_from_spreadsheet(self):
+        self._quick_preview(
+            phone="0551234501",
+            name="وكيل من ملف",
+            job_title="وكيل مدرسة",
+        )
+
+        preview = self.client.session[PREVIEW_SESSION_KEY]
+        self.assertTrue(preview["can_confirm"])
+        self.assertEqual(
+            preview["rows"][0]["job_title"],
+            SchoolMembership.RoleType.DEPUTY,
+        )
+
     def test_quick_preview_writes_nothing_then_confirmation_creates_everything(self):
         response = self._quick_preview()
 
@@ -557,6 +606,12 @@ class TeacherOnboardingTests(TestCase):
         template_book = openpyxl.load_workbook(BytesIO(template_response.content))
         self.assertEqual(template_book["المعلمون"].max_row, 1)
         self.assertIn("التعليمات والأمثلة", template_book.sheetnames)
+        instructions_text = "\n".join(
+            str(cell.value or "")
+            for row in template_book["التعليمات والأمثلة"].iter_rows()
+            for cell in row
+        )
+        self.assertIn("وكيل", instructions_text)
 
         book = openpyxl.Workbook()
         sheet = book.active

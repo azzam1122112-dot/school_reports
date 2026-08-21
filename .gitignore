@@ -96,6 +96,9 @@ tmp/
 
 # Local scratch scripts
 *.tmp.py
+.infra-temp/
+operations_mobile/*.png
+operations_mobile/*.xml
 
 # Local browser/visual QA output. These can contain session profiles, screenshots,
 # and machine-specific paths; reports belong in CI logs or release notes instead.

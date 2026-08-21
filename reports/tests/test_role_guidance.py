@@ -101,6 +101,12 @@ class RoleGuidanceTests(TestCase):
             slug="administration",
             is_active=True,
         )
+        Department.objects.create(
+            school=self.school,
+            name="الإدارة",
+            slug="manager",
+            is_active=True,
+        )
         department.reporttypes.add(report_type)
         DepartmentMembership.objects.create(
             department=department,

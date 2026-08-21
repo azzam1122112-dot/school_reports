@@ -20,6 +20,7 @@ from .models import (
     SchoolMembership,
     Teacher,
 )
+from .staff_assignments import get_assignment
 
 
 PREVIEW_SESSION_KEY = "teacher_onboarding_preview"
@@ -57,9 +58,11 @@ def normalize_job_title(value: Any) -> str | None:
     raw = normalize_text(value).lower()
     if not raw:
         return SchoolMembership.JobTitle.TEACHER
-    if raw in SchoolMembership.JobTitle.values:
+    if raw in SchoolMembership.JobTitle.values or raw in SchoolMembership.RoleType.values:
         return raw
     compact = re.sub(r"\s+", "", raw)
+    if "وكيل" in compact or "وكيلة" in compact or "deputy" in compact:
+        return SchoolMembership.RoleType.DEPUTY
     if "مختبر" in compact or "lab" in compact:
         return SchoolMembership.JobTitle.LAB_TECH
     if "إدار" in compact or "ادار" in compact or "admin" in compact:
@@ -71,12 +74,11 @@ def normalize_job_title(value: Any) -> str | None:
 
 def job_title_label(value: str, school: School) -> str:
     gender_labels = school_gender_labels(school)
-    labels = {
-        SchoolMembership.JobTitle.TEACHER: gender_labels["teacher_indefinite"],
-        SchoolMembership.JobTitle.ADMIN_STAFF: gender_labels["admin_staff"],
-        SchoolMembership.JobTitle.LAB_TECH: gender_labels["lab_tech"],
-    }
-    return str(labels.get(value, gender_labels["teacher_indefinite"]))
+    try:
+        assignment = get_assignment(value)
+        return str(gender_labels[assignment.label_key])
+    except Exception:
+        return str(gender_labels["teacher_indefinite"])
 
 
 def available_departments(school: School):
@@ -460,17 +462,18 @@ def confirm_preview(request, school: School, token: str) -> dict[str, Any]:
                     }
                 )
 
-            # الدور من قاعدة النموذج: ملفٌّ فيه «محضر مختبر» يُنشئ موظفاً
-            # إدارياً بمسمّاه، لا معلّماً يحمل اسم المحضّر.
+            # الاختيار الظاهر للمدير يترجم إلى دور وصفي ومسمى تنظيمي من
+            # كتالوج واحد تستخدمه شاشة الإضافة الفردية وشاشة الأدوار.
+            assignment = get_assignment(row["job_title"])
             membership, membership_created = SchoolMembership.objects.get_or_create(
                 school=school,
                 teacher=teacher,
-                role_type=SchoolMembership.role_for_job_title(row["job_title"]),
-                defaults={
-                    "is_active": True,
-                    "job_title": row["job_title"],
-                },
+                role_type=assignment.role_type,
+                defaults={"is_active": True},
             )
+            if assignment.job_title and membership_created:
+                membership.job_title = assignment.job_title
+                membership.save(update_fields=["job_title"])
             if membership_created:
                 if row["state"] == "link":
                     linked_count += 1
@@ -482,8 +485,8 @@ def confirm_preview(request, school: School, token: str) -> dict[str, Any]:
                     reactivated_count += 1
                 else:
                     existing_count += 1
-                if membership.job_title != row["job_title"]:
-                    membership.job_title = row["job_title"]
+                if assignment.job_title and membership.job_title != assignment.job_title:
+                    membership.job_title = assignment.job_title
                     changed_fields.append("job_title")
                 if changed_fields:
                     membership.save(update_fields=changed_fields)

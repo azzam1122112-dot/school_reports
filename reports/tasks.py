@@ -372,6 +372,13 @@ def monitor_infrastructure_capacity_task(self) -> dict:
         except Exception:
             logger.exception("Unable to queue infrastructure capacity alert")
 
+    try:
+        from operations.tasks import store_capacity_snapshot_task
+
+        store_capacity_snapshot_task.delay(report)
+    except Exception:
+        logger.exception("Unable to queue operations capacity snapshot")
+
     logger.info(
         "Task success name=monitor_infrastructure_capacity_task task_id=%s trace_id=%s retries=%s report=%s",
         task_id,

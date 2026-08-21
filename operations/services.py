@@ -13,7 +13,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from .models import HealthCheck, Incident, ManagedProject, ManagedServer, ServerMetricSnapshot
+from .models import HealthCheck, Incident, ManagedProject, ManagedServer, ManagedService, ServerMetricSnapshot
 
 logger = logging.getLogger(__name__)
 
@@ -125,12 +125,55 @@ def _safe_error_code(exc: Exception) -> str:
     return "probe_error"
 
 
+def _component_status(payload: dict, service: ManagedService) -> bool | None:
+    containers = [payload]
+    for key in ("services", "checks", "components", "dependencies"):
+        value = payload.get(key)
+        if isinstance(value, dict):
+            containers.insert(0, value)
+    aliases = {service.service_key.lower(), service.kind.lower()}
+    if service.kind == ManagedService.Kind.DATABASE:
+        aliases.update(("database", "db", "postgres", "postgresql"))
+    elif service.kind == ManagedService.Kind.CACHE:
+        aliases.update(("cache", "redis"))
+    elif service.kind == ManagedService.Kind.WEB:
+        aliases.update(("web", "app", "application"))
+    for container in containers:
+        for key, value in container.items():
+            if str(key).lower() not in aliases:
+                continue
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, dict):
+                value = value.get("ok", value.get("healthy", value.get("status")))
+            normalized = str(value).strip().lower()
+            if normalized in {"true", "ok", "up", "healthy", "ready", "connected", "pass", "passed"}:
+                return True
+            if normalized in {"false", "down", "unhealthy", "failed", "error", "disconnected"}:
+                return False
+    return None
+
+
+def _update_service_health(project: ManagedProject, payload: dict, *, project_ok: bool, checked_at) -> None:
+    for service in project.services.filter(is_active=True):
+        result = _component_status(payload, service)
+        if result is None and service.kind == ManagedService.Kind.WEB:
+            result = project_ok
+        if result is None:
+            continue
+        ManagedService.objects.filter(pk=service.pk).update(
+            status=ManagedProject.Status.HEALTHY if result else ManagedProject.Status.DOWN,
+            last_checked_at=checked_at,
+        )
+
+
 def probe_project(project: ManagedProject) -> HealthCheck:
     started = time.monotonic()
     status_code = None
     summary = ""
     error_code = ""
     ok = False
+    health_payload: dict = {}
     timeout = float(getattr(settings, "OPERATIONS_PROBE_TIMEOUT_SECONDS", 8) or 8)
     try:
         scheme = urlsplit(project.health_url).scheme.lower()
@@ -145,6 +188,12 @@ def probe_project(project: ManagedProject) -> HealthCheck:
             status_code = int(response.status)
             raw = response.read(2048).decode("utf-8", errors="replace")
             summary = " ".join(raw.split())[:300]
+            try:
+                decoded = json.loads(raw)
+                if isinstance(decoded, dict):
+                    health_payload = decoded
+            except (TypeError, ValueError, json.JSONDecodeError):
+                health_payload = {}
             ok = status_code == project.expected_status
     except Exception as exc:
         error_code = _safe_error_code(exc)
@@ -176,6 +225,7 @@ def probe_project(project: ManagedProject) -> HealthCheck:
             last_checked_at=now,
             consecutive_failures=failures,
         )
+        _update_service_health(project, health_payload, project_ok=ok, checked_at=now)
 
         key = f"project:{project.pk}:health"
         open_incident = Incident.objects.filter(dedupe_key=key, status__in=(Incident.Status.OPEN, Incident.Status.ACKNOWLEDGED)).first()

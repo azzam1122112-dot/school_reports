@@ -546,6 +546,7 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
         rows_from_uploaded_file,
         save_preview,
     )
+    from ..staff_assignments import assignment_choices
 
     active_school = _get_active_school(request)
     if active_school is None:
@@ -683,10 +684,7 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
 
     preview = load_preview(request, active_school)
     result = load_result(request, active_school)
-    current_count = SchoolMembership.objects.filter(
-        school=active_school,
-        role_type=SchoolMembership.RoleType.TEACHER,
-    ).count()
+    current_count = SchoolMembership.seats_used(active_school)
     maximum = int(getattr(subscription, "teacher_limit", 0) or 0)
     capacity = {
         "current": current_count,
@@ -719,7 +717,7 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
             "result": result,
             "capacity": capacity,
             "departments": departments,
-            "job_title_choices": SchoolMembership.JobTitle.choices,
+            "job_title_choices": assignment_choices(active_school),
             "active_mode": (request.GET.get("mode") or "quick").strip(),
             "quick_rows": quick_rows,
         },
@@ -839,6 +837,9 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
 
     active_school = _get_active_school(request)
     labels = school_gender_labels(active_school)
+    from ..staff_assignments import assignment_choices
+
+    job_labels = [label for _, label in assignment_choices(active_school)]
     sample_name = "نورة أحمد الغامدي" if labels["is_girls"] else "محمد أحمد الغامدي"
     wb = Workbook()
     ws = wb.active
@@ -870,7 +871,7 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
 
     job_validation = DataValidation(
         type="list",
-        formula1=f'"{labels["teacher_indefinite"]},{labels["admin_staff"]},{labels["lab_tech"]}"',
+        formula1=f'"{",".join(job_labels)}"',
         allow_blank=True,
     )
     job_validation.error = "اختر مسمى وظيفيًا من القائمة."
@@ -885,7 +886,7 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
         ["الاسم الكامل", "مطلوب", sample_name, "يظهر بهذا الشكل داخل النظام."],
         ["رقم الجوال", "مطلوب", "0551234567", "اسم الدخول وكلمة المرور المؤقتة."],
         ["رقم الهوية", "اختياري", "1012345678", "10 أرقام عند إدخاله."],
-        ["المسمى الوظيفي", "اختياري", labels["teacher_indefinite"], f"{labels['teacher_indefinite']} أو {labels['admin_staff']} أو {labels['lab_tech']}."],
+        ["المسمى الوظيفي", "اختياري", labels["teacher_indefinite"], " أو ".join(job_labels) + "."],
         ["القسم", "اختياري", "النشاط الطلابي", "اكتب اسم القسم كما يظهر في النظام."],
         ["تنبيه", "", "", f"لا تنسخ صفوف الأمثلة إلى ورقة {labels['teachers']}."],
     ]

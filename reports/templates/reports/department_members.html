@@ -540,23 +540,29 @@
 
         <div class="bar-item">
           <label class="bar-label" for="officer_id">تعيين مسؤول القسم</label>
-          <form class="hform" method="post" action="">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="set_officer">
+          {% if officer_assignment_allowed %}
+            <form class="hform" method="post" action="">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="set_officer">
 
-            <label for="officer_id" class="sr-only">تعيين مسؤول القسم</label>
-            <select id="officer_id" name="teacher_id" required>
-              <option value="" disabled selected>اختر مسؤول القسم</option>
-              {% for t in all_teachers %}
-                <option value="{{ t.id }}">{{ t.name }}</option>
-              {% endfor %}
-            </select>
+              <label for="officer_id" class="sr-only">تعيين مسؤول القسم</label>
+              <select id="officer_id" name="teacher_id" required>
+                <option value="" disabled selected>اختر مسؤول القسم</option>
+                {% for t in all_teachers %}
+                  <option value="{{ t.id }}">{{ t.name }}</option>
+                {% endfor %}
+              </select>
 
-            <button type="submit" class="d-btn d-btn-primary">
-              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
-              تعيين مسؤول
-            </button>
-          </form>
+              <button type="submit" class="d-btn d-btn-primary">
+                <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                تعيين مسؤول
+              </button>
+            </form>
+          {% else %}
+            <p class="u-m-0 u-text-muted u-fw-800">
+              قسم الإدارة لا يحتاج مسؤول قسم منفصل؛ مدير المدرسة هو المسؤول عنه.
+            </p>
+          {% endif %}
         </div>
 
         <div class="bar-item">

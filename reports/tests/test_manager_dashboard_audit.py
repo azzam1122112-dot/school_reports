@@ -8,6 +8,7 @@ on isolated views.
 
 from __future__ import annotations
 
+import json
 import re
 
 from django.core.cache import cache
@@ -220,6 +221,15 @@ class ManagerDashboardAuditTests(TestCase):
         self.assertContains(response, 'id="schoolDashboardPayload"')
         self.assertContains(response, "مركز إدارة المدرسة")
         self.assertEqual(response.context["initial_period"], "all")
+        match = re.search(
+            r'<script id="schoolDashboardPayload" type="application/json">(.*?)</script>',
+            response.content.decode("utf-8"),
+            re.S,
+        )
+        self.assertIsNotNone(match)
+        payload = json.loads(match.group(1))
+        self.assertIsInstance(payload, dict)
+        self.assertEqual(payload["kpis"]["reports_count"], response.context["reports_count"])
 
     def test_period_switch_keeps_follow_up_counters_stable(self):
         """Follow-up counters are all-time by design; they must not move with the period."""

@@ -27,6 +27,7 @@ from .models import (
     TeacherAchievementFile,
     Ticket,
 )
+from .model_parts.base import MANAGER_SLUG
 
 
 @dataclass(frozen=True)
@@ -92,10 +93,12 @@ def school_readiness(school: School) -> dict:
     )
     departments = Department.objects.filter(school=school, is_active=True)
     department_count = departments.count()
+    officer_departments = departments.exclude(slug=MANAGER_SLUG)
+    officer_department_required_count = officer_departments.count()
     report_type_count = ReportType.objects.filter(school=school, is_active=True).count()
     officer_department_count = (
         DepartmentMembership.objects.filter(
-            department__in=departments,
+            department__in=officer_departments,
             role_type=DepartmentMembership.OFFICER,
         )
         .values("department_id")
@@ -163,7 +166,7 @@ def school_readiness(school: School) -> dict:
             "مسؤولو الأقسام",
             "عيّن مسؤولًا لكل قسم ليستقبل الطلبات ويتابع أعماله.",
             reverse("reports:departments_list"),
-            department_count > 0 and officer_department_count == department_count,
+            department_count > 0 and officer_department_count == officer_department_required_count,
             "القسم بلا مسؤول قد يظهر للمستخدم دون مستلم صالح.",
         ),
         GuidanceStep(
@@ -185,6 +188,7 @@ def school_readiness(school: School) -> dict:
                 "departments": department_count,
                 "report_types": report_type_count,
                 "department_owners": officer_department_count,
+                "department_owners_required": officer_department_required_count,
                 "scoped_roles": scoped_role_count,
                 "configured_scopes": configured_scope_count,
             },

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import HealthCheck, Incident, ManagedProject, ManagedServer, ManagedService, MobileAccessToken, MobileDevice, OperationAction, ServerMetricSnapshot
+from .models import HealthCheck, Incident, ManagedProject, ManagedServer, ManagedService, MobileAccessToken, MobileDevice, OperationAction, OperationsMembership, ServerMetricSnapshot
 
 
 @admin.register(ManagedServer)
@@ -34,6 +34,13 @@ admin.site.register(HealthCheck)
 admin.site.register(ServerMetricSnapshot)
 admin.site.register(OperationAction)
 admin.site.register(MobileDevice)
+
+
+@admin.register(OperationsMembership)
+class OperationsMembershipAdmin(admin.ModelAdmin):
+    list_display = ("user", "role", "is_active", "created_by", "updated_at")
+    list_filter = ("role", "is_active")
+    search_fields = ("user__name", "user__phone", "user__email")
 
 
 @admin.register(MobileAccessToken)

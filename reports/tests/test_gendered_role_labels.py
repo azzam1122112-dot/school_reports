@@ -13,8 +13,9 @@ from reports.models import (
     Teacher,
 )
 from reports.permissions import effective_user_role_label, _school_role_labels
-from reports.forms import _school_job_title_choices
+from reports.forms import TeacherCreateForm, _school_job_title_choices
 from reports.services_export import build_school_export_workbook
+from reports.staff_assignments import assignment_choices
 
 
 class GenderedRoleLabelTests(TestCase):
@@ -117,6 +118,25 @@ class GenderedRoleLabelTests(TestCase):
             girls_choices[SchoolMembership.JobTitle.LAB_TECH], "محضرة مختبر"
         )
 
+    def test_staff_assignment_choices_switch_to_feminine_labels(self):
+        boys_choices = dict(assignment_choices(self.boys))
+        girls_choices = dict(assignment_choices(self.girls))
+
+        self.assertEqual(boys_choices[SchoolMembership.RoleType.TEACHER], "معلم")
+        self.assertEqual(girls_choices[SchoolMembership.RoleType.TEACHER], "معلمة")
+        self.assertEqual(boys_choices[SchoolMembership.RoleType.DEPUTY], "وكيل المدرسة")
+        self.assertEqual(girls_choices[SchoolMembership.RoleType.DEPUTY], "وكيلة المدرسة")
+        self.assertEqual(boys_choices[SchoolMembership.RoleType.ADMIN_STAFF], "موظف إداري")
+        self.assertEqual(girls_choices[SchoolMembership.RoleType.ADMIN_STAFF], "موظفة إدارية")
+        self.assertEqual(boys_choices[SchoolMembership.JobTitle.LAB_TECH], "محضر مختبر")
+        self.assertEqual(girls_choices[SchoolMembership.JobTitle.LAB_TECH], "محضرة مختبر")
+
+        form = TeacherCreateForm(active_school=self.girls)
+        self.assertEqual(
+            dict(form.fields["job_title"].choices)[SchoolMembership.RoleType.DEPUTY],
+            "وكيلة المدرسة",
+        )
+
     @override_settings(ALLOWED_HOSTS=["testserver"])
     def test_girls_school_pages_render_feminine_report_and_workspace_labels(self):
         teacher = self._make_member(self.girls, SchoolMembership.RoleType.TEACHER)
@@ -149,6 +169,7 @@ class GenderedRoleLabelTests(TestCase):
         self.assertIn("المعلمات", template_book.sheetnames)
         instructions = template_book["التعليمات والأمثلة"]
         self.assertEqual(instructions["C5"].value, "معلمة")
+        self.assertIn("وكيلة المدرسة", instructions["D5"].value)
         self.assertIn("محضرة مختبر", instructions["D5"].value)
 
         export_book = build_school_export_workbook(self.girls)
@@ -156,3 +177,20 @@ class GenderedRoleLabelTests(TestCase):
         summary = export_book["ملخص"]
         summary_labels = [summary.cell(row=row, column=1).value for row in range(1, summary.max_row + 1)]
         self.assertIn("عدد المعلمات", summary_labels)
+
+    @override_settings(ALLOWED_HOSTS=["testserver"])
+    def test_girls_school_import_page_renders_feminine_assignment_choices(self):
+        manager = self._make_member(self.girls, SchoolMembership.RoleType.MANAGER)
+        self.client.force_login(manager)
+        session = self.client.session
+        session["active_school_id"] = self.girls.pk
+        session.save()
+
+        response = self.client.get(reverse("reports:bulk_import_teachers"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "معلمة")
+        self.assertContains(response, "وكيلة المدرسة")
+        self.assertContains(response, "موظفة إدارية")
+        self.assertContains(response, "محضرة مختبر")
+        self.assertNotContains(response, ">وكيل المدرسة</option>", html=False)

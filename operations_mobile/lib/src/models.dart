@@ -21,6 +21,7 @@ class ServiceInfo {
     required this.kindLabel,
     required this.status,
     required this.restartAllowed,
+    this.lastCheckedAt,
   });
   final int id;
   final String name;
@@ -28,6 +29,7 @@ class ServiceInfo {
   final String kindLabel;
   final HealthStatus status;
   final bool restartAllowed;
+  final DateTime? lastCheckedAt;
 
   factory ServiceInfo.fromJson(Map<String, dynamic> json) => ServiceInfo(
     id: json['id'] as int,
@@ -36,6 +38,7 @@ class ServiceInfo {
     kindLabel: '${json['kind_label'] ?? ''}',
     status: healthStatusFrom('${json['status'] ?? ''}'),
     restartAllowed: json['restart_allowed'] == true,
+    lastCheckedAt: _date(json['last_checked_at']),
   );
 }
 
@@ -165,7 +168,11 @@ class DashboardData {
     required this.projectCount,
     required this.healthyProjectCount,
     required this.openIncidentCount,
+    required this.teamMemberCount,
     required this.generatedAt,
+    required this.currentUser,
+    required this.agentReady,
+    required this.agentLabel,
   });
   final List<ServerInfo> servers;
   final List<IncidentInfo> incidents;
@@ -173,12 +180,18 @@ class DashboardData {
   final int projectCount;
   final int healthyProjectCount;
   final int openIncidentCount;
+  final int teamMemberCount;
   final DateTime? generatedAt;
+  final OperationsAccount currentUser;
+  final bool agentReady;
+  final String agentLabel;
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
     final summary = Map<String, dynamic>.from(
       json['summary'] as Map? ?? const {},
     );
+    final agent = Map<String, dynamic>.from(json['agent'] as Map? ?? const {});
+    final currentUserPayload = json['current_user'] as Map?;
     return DashboardData(
       servers: (json['servers'] as List? ?? const [])
           .map(
@@ -196,7 +209,15 @@ class DashboardData {
       projectCount: (summary['projects'] as num?)?.toInt() ?? 0,
       healthyProjectCount: (summary['healthy_projects'] as num?)?.toInt() ?? 0,
       openIncidentCount: (summary['open_incidents'] as num?)?.toInt() ?? 0,
+      teamMemberCount: (summary['team_members'] as num?)?.toInt() ?? 0,
       generatedAt: _date(json['generated_at']),
+      currentUser: currentUserPayload == null
+          ? OperationsAccount.legacyOwner()
+          : OperationsAccount.fromJson(
+              Map<String, dynamic>.from(currentUserPayload),
+            ),
+      agentReady: agent['ready'] == true,
+      agentLabel: '${agent['label'] ?? 'غير مفعّل'}',
     );
   }
 }
@@ -344,10 +365,12 @@ class ProjectDetails {
     required this.project,
     required this.metrics,
     required this.checks,
+    required this.actions,
   });
   final ProjectInfo project;
   final List<MetricPoint> metrics;
   final List<CheckPoint> checks;
+  final List<OperationActionInfo> actions;
   factory ProjectDetails.fromJson(Map<String, dynamic> json) => ProjectDetails(
     project: ProjectInfo.fromJson(json),
     metrics: (json['metrics'] as List? ?? const [])
@@ -361,5 +384,120 @@ class ProjectDetails {
           (item) => CheckPoint.fromJson(Map<String, dynamic>.from(item as Map)),
         )
         .toList(),
+    actions: (json['actions'] as List? ?? const [])
+        .map(
+          (item) => OperationActionInfo.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList(),
   );
+}
+
+class OperationActionInfo {
+  const OperationActionInfo({
+    required this.id,
+    required this.requestId,
+    required this.action,
+    required this.actionLabel,
+    required this.status,
+    required this.resultSummary,
+    required this.errorCode,
+    this.requestedAt,
+    this.finishedAt,
+  });
+  final int id;
+  final String requestId;
+  final String action;
+  final String actionLabel;
+  final String status;
+  final String resultSummary;
+  final String errorCode;
+  final DateTime? requestedAt;
+  final DateTime? finishedAt;
+
+  factory OperationActionInfo.fromJson(Map<String, dynamic> json) =>
+      OperationActionInfo(
+        id: json['id'] as int,
+        requestId: '${json['request_id'] ?? ''}',
+        action: '${json['action'] ?? ''}',
+        actionLabel: '${json['action_label'] ?? ''}',
+        status: '${json['status'] ?? ''}',
+        resultSummary: '${json['result_summary'] ?? ''}',
+        errorCode: '${json['error_code'] ?? ''}',
+        requestedAt: _date(json['requested_at']),
+        finishedAt: _date(json['finished_at']),
+      );
+}
+
+class OperationsAccount {
+  const OperationsAccount({
+    required this.id,
+    required this.name,
+    required this.phone,
+    required this.email,
+    required this.isActive,
+    required this.isStaff,
+    required this.isSuperuser,
+    required this.role,
+    required this.roleLabel,
+    required this.capabilities,
+    required this.activeDevices,
+    this.dateJoined,
+    this.lastSeenAt,
+  });
+  final int id;
+  final String name;
+  final String phone;
+  final String email;
+  final bool isActive;
+  final bool isStaff;
+  final bool isSuperuser;
+  final String role;
+  final String roleLabel;
+  final Set<String> capabilities;
+  final int activeDevices;
+  final DateTime? dateJoined;
+  final DateTime? lastSeenAt;
+
+  bool can(String capability) => capabilities.contains(capability);
+
+  factory OperationsAccount.legacyOwner() => const OperationsAccount(
+    id: 0,
+    name: '',
+    phone: '',
+    email: '',
+    isActive: true,
+    isStaff: true,
+    isSuperuser: true,
+    role: 'owner',
+    roleLabel: 'مالك مركز العمليات',
+    capabilities: {
+      'view',
+      'run_checks',
+      'run_actions',
+      'acknowledge_incidents',
+      'manage_team',
+    },
+    activeDevices: 0,
+  );
+
+  factory OperationsAccount.fromJson(Map<String, dynamic> json) =>
+      OperationsAccount(
+        id: (json['id'] as num?)?.toInt() ?? 0,
+        name: '${json['name'] ?? ''}',
+        phone: '${json['phone'] ?? ''}',
+        email: '${json['email'] ?? ''}',
+        isActive: json['is_active'] == true,
+        isStaff: json['is_staff'] == true,
+        isSuperuser: json['is_superuser'] == true,
+        role: '${json['role'] ?? ''}',
+        roleLabel: '${json['role_label'] ?? 'غير محدد'}',
+        capabilities: (json['capabilities'] as List? ?? const [])
+            .map((item) => '$item')
+            .toSet(),
+        activeDevices: (json['active_devices'] as num?)?.toInt() ?? 0,
+        dateJoined: _date(json['date_joined']),
+        lastSeenAt: _date(json['last_seen_at']),
+      );
 }
