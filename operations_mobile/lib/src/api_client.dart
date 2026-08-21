@@ -91,20 +91,21 @@ class OperationsApi {
     await _request(() => _dio.get<Map<String, dynamic>>('/projects/$id/')),
   );
 
-  Future<DeploymentInfo> deploymentStatus() async =>
-      DeploymentInfo.fromJson(
+  Future<DeploymentOverview> deploymentStatus() async =>
+      DeploymentOverview.fromJson(
         await _request(
           () => _dio.get<Map<String, dynamic>>('/deployment/status/'),
         ),
       );
 
   Future<DeploymentInfo> triggerDeployment({
+    required int projectId,
     required String confirmation,
   }) async {
     final data = await _request(
       () => _dio.post<Map<String, dynamic>>(
         '/deployment/deploy/',
-        data: {'confirmation': confirmation},
+        data: {'project_id': projectId, 'confirmation': confirmation},
       ),
     );
     return DeploymentInfo.fromJson(

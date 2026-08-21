@@ -12,7 +12,7 @@ from reports.models import TeacherTotpDevice
 from reports.totp import decrypt_secret, verify_code
 
 from .authentication import OperationsTokenAuthentication
-from .deployments import DeploymentIntegrationError, GitHubDeploymentClient
+from .deployments import DeploymentIntegrationError, GitHubDeploymentClient, all_deployment_states
 from .models import Incident, ManagedProject, ManagedServer, MobileAccessToken, MobileDevice, OperationAction
 from .serializers import IncidentSerializer, ManagedProjectSerializer, ManagedServerSerializer, MetricSerializer, OperationActionSerializer
 from .services import probe_project
@@ -90,14 +90,22 @@ def dashboard(request):
 @api_view(["GET"])
 @authentication_classes([OperationsTokenAuthentication])
 def deployment_status(request):
-    state = GitHubDeploymentClient().deployment_state()
-    return Response(state.as_dict())
+    states = all_deployment_states()
+    return Response({
+        "deployments": [state.as_dict() for state in states],
+        "repository_ahead_count": sum(1 for state in states if state.repository_ahead),
+        "can_deploy_count": sum(1 for state in states if state.as_dict()["can_deploy"]),
+    })
 
 
 @api_view(["POST"])
 @authentication_classes([OperationsTokenAuthentication])
 def trigger_deployment(request):
-    client = GitHubDeploymentClient()
+    project_id = request.data.get("project_id")
+    project = ManagedProject.objects.filter(pk=project_id, is_active=True).first()
+    if project is None:
+        return Response({"detail": "المشروع غير موجود."}, status=404)
+    client = GitHubDeploymentClient(project)
     state = client.deployment_state()
     confirmation = str(request.data.get("confirmation") or "").strip()
     if not state.repository_ahead:

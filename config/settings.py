@@ -1058,6 +1058,7 @@ CELERY_TASK_ROUTES = {
     "reports.tasks.monitor_infrastructure_capacity_task": {"queue": "periodic"},
     "operations.tasks.run_operations_monitor_task": {"queue": "periodic"},
     "operations.tasks.store_capacity_snapshot_task": {"queue": "periodic"},
+    "operations.tasks.sync_deployed_revisions_task": {"queue": "periodic"},
     "operations.tasks.monitor_deployment_state_task": {"queue": "periodic"},
     "operations.tasks.send_incident_push_task": {"queue": "notifications"},
     "operations.tasks.cleanup_operations_history_task": {"queue": "periodic"},
@@ -1300,6 +1301,10 @@ if crontab is not None:
         }
         CELERY_BEAT_SCHEDULE["monitor-deployment-state"] = {
             "task": "operations.tasks.monitor_deployment_state_task",
+            "schedule": crontab(minute="*/5"),
+        }
+        CELERY_BEAT_SCHEDULE["sync-deployed-revisions"] = {
+            "task": "operations.tasks.sync_deployed_revisions_task",
             "schedule": crontab(minute="*/5"),
         }
 

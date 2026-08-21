@@ -203,10 +203,14 @@ class DashboardData {
 
 class DeploymentInfo {
   const DeploymentInfo({
+    required this.projectId,
+    required this.projectSlug,
+    required this.projectName,
     required this.repository,
     required this.branch,
     required this.workflow,
     required this.configured,
+    required this.deploymentEnabled,
     required this.latestSha,
     required this.latestShortSha,
     required this.latestMessage,
@@ -223,10 +227,14 @@ class DeploymentInfo {
     this.workflowRunId,
   });
 
+  final int projectId;
+  final String projectSlug;
+  final String projectName;
   final String repository;
   final String branch;
   final String workflow;
   final bool configured;
+  final bool deploymentEnabled;
   final String latestSha;
   final String latestShortSha;
   final String latestMessage;
@@ -244,10 +252,14 @@ class DeploymentInfo {
 
   factory DeploymentInfo.fromJson(Map<String, dynamic> json) =>
       DeploymentInfo(
+        projectId: (json['project_id'] as num?)?.toInt() ?? 0,
+        projectSlug: '${json['project_slug'] ?? ''}',
+        projectName: '${json['project_name'] ?? ''}',
         repository: '${json['repository'] ?? ''}',
         branch: '${json['branch'] ?? ''}',
         workflow: '${json['workflow'] ?? ''}',
         configured: json['configured'] == true,
+        deploymentEnabled: json['deployment_enabled'] == true,
         latestSha: '${json['latest_sha'] ?? ''}',
         latestShortSha: '${json['latest_short_sha'] ?? ''}',
         latestMessage: '${json['latest_message'] ?? ''}',
@@ -262,6 +274,32 @@ class DeploymentInfo {
         actionRequired: '${json['action_required'] ?? ''}',
         canDeploy: json['can_deploy'] == true,
         workflowRunId: (json['workflow_run_id'] as num?)?.toInt(),
+      );
+}
+
+class DeploymentOverview {
+  const DeploymentOverview({
+    required this.deployments,
+    required this.repositoryAheadCount,
+    required this.canDeployCount,
+  });
+
+  final List<DeploymentInfo> deployments;
+  final int repositoryAheadCount;
+  final int canDeployCount;
+
+  factory DeploymentOverview.fromJson(Map<String, dynamic> json) =>
+      DeploymentOverview(
+        deployments: (json['deployments'] as List? ?? const [])
+            .map(
+              (item) => DeploymentInfo.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList(),
+        repositoryAheadCount:
+            (json['repository_ahead_count'] as num?)?.toInt() ?? 0,
+        canDeployCount: (json['can_deploy_count'] as num?)?.toInt() ?? 0,
       );
 }
 

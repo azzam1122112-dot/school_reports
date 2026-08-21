@@ -256,7 +256,7 @@ class _DeploymentPanel extends ConsumerWidget {
               : 'تعذر قراءة حالة GitHub والخادم.',
         ),
       ),
-      data: (info) => Card(
+      data: (overview) => Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -265,19 +265,19 @@ class _DeploymentPanel extends ConsumerWidget {
               Row(
                 children: [
                   Icon(
-                    info.repositoryAhead
+                    overview.repositoryAheadCount > 0
                         ? Icons.system_update_alt
                         : Icons.verified_outlined,
-                    color: info.repositoryAhead
+                    color: overview.repositoryAheadCount > 0
                         ? const Color(0xFFA66B00)
                         : const Color(0xFF138A4B),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      info.repositoryAhead
-                          ? 'يوجد إصدار أحدث جاهز للنشر'
-                          : 'الخادم مطابق للمستودع',
+                      overview.repositoryAheadCount > 0
+                          ? 'يوجد ${overview.repositoryAheadCount} مشروع يحتاج مراجعة نشر'
+                          : 'المشاريع المطابقة محدثة',
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
@@ -291,72 +291,23 @@ class _DeploymentPanel extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _ReleaseChip(
-                    label: 'GitHub',
-                    value: info.latestShortSha.isEmpty
-                        ? 'غير معروف'
-                        : info.latestShortSha,
-                    icon: Icons.commit,
-                  ),
-                  _ReleaseChip(
-                    label: 'الخادم',
-                    value: info.deployedShortSha.isEmpty
-                        ? 'غير معروف'
-                        : info.deployedShortSha,
-                    icon: Icons.dns_outlined,
-                  ),
-                  _ReleaseChip(
-                    label: 'Actions',
-                    value: _workflowLabel(info),
-                    icon: Icons.playlist_play,
-                  ),
-                ],
-              ),
-              if (info.latestMessage.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  info.latestMessage,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF596674),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 10),
-              Text(
-                info.actionRequired,
-                style: const TextStyle(color: Color(0xFF596674)),
-              ),
               const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${info.repository} · ${info.branch}',
-                      textDirection: TextDirection.ltr,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF7C8793),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: info.canDeploy
+              if (overview.deployments.isEmpty)
+                const EmptyState(
+                  icon: Icons.hub_outlined,
+                  title: 'لا توجد مستودعات مرتبطة',
+                  message: 'اربط كل مشروع بمستودعه من إعدادات العمليات.',
+                )
+              else
+                ...overview.deployments.map(
+                  (info) => _DeploymentRow(
+                    info: info,
+                    workflowLabel: _workflowLabel(info),
+                    onDeploy: info.canDeploy
                         ? () => _confirmDeploy(context, ref, info)
                         : null,
-                    icon: const Icon(Icons.rocket_launch_outlined),
-                    label: const Text('نشر'),
                   ),
-                ],
-              ),
+                ),
             ],
           ),
         ),
@@ -421,7 +372,10 @@ class _DeploymentPanel extends ConsumerWidget {
     try {
       await ref
           .read(apiProvider)
-          .triggerDeployment(confirmation: info.latestShortSha);
+          .triggerDeployment(
+            projectId: info.projectId,
+            confirmation: info.latestShortSha,
+          );
       ref.invalidate(deploymentProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -435,6 +389,134 @@ class _DeploymentPanel extends ConsumerWidget {
         ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     }
+  }
+}
+
+class _DeploymentRow extends StatelessWidget {
+  const _DeploymentRow({
+    required this.info,
+    required this.workflowLabel,
+    required this.onDeploy,
+  });
+
+  final DeploymentInfo info;
+  final String workflowLabel;
+  final VoidCallback? onDeploy;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = info.repositoryAhead
+        ? const Color(0xFFA66B00)
+        : info.upToDate
+        ? const Color(0xFF138A4B)
+        : const Color(0xFF596674);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFD6DEE6)),
+        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFF8FAFC),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                info.repositoryAhead
+                    ? Icons.outbound_outlined
+                    : Icons.check_circle_outline,
+                color: accent,
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  info.projectName,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (!info.deploymentEnabled)
+                const Tooltip(
+                  message: 'النشر اليدوي من التطبيق غير مفعل لهذا المشروع',
+                  child: Icon(
+                    Icons.lock_outline,
+                    size: 19,
+                    color: Color(0xFF7C8793),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _ReleaseChip(
+                label: 'GitHub',
+                value: info.latestShortSha.isEmpty
+                    ? 'غير معروف'
+                    : info.latestShortSha,
+                icon: Icons.commit,
+              ),
+              _ReleaseChip(
+                label: 'الخادم',
+                value: info.deployedShortSha.isEmpty
+                    ? 'غير معروف'
+                    : info.deployedShortSha,
+                icon: Icons.dns_outlined,
+              ),
+              _ReleaseChip(
+                label: 'Actions',
+                value: workflowLabel,
+                icon: Icons.playlist_play,
+              ),
+            ],
+          ),
+          if (info.latestMessage.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              info.latestMessage,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF596674),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          const SizedBox(height: 9),
+          Text(
+            info.actionRequired,
+            style: const TextStyle(color: Color(0xFF596674)),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${info.repository} · ${info.branch}',
+                  textDirection: TextDirection.ltr,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF7C8793),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: onDeploy,
+                icon: const Icon(Icons.rocket_launch_outlined),
+                label: const Text('نشر'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 

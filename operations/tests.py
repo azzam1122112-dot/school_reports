@@ -11,6 +11,33 @@ from .deployments import DeploymentState
 from .services import capture_server_metrics
 
 
+def deployment_state(**overrides):
+    data = {
+        "project_id": 1,
+        "project_slug": "project",
+        "project_name": "Project",
+        "repository": "owner/repo",
+        "branch": "main",
+        "workflow": "ci.yml",
+        "configured": True,
+        "deployment_enabled": True,
+        "latest_sha": "b" * 40,
+        "latest_message": "new release",
+        "deployed_sha": "a" * 40,
+        "deployed_image": "ghcr.io/owner/repo:" + "a" * 40,
+        "up_to_date": False,
+        "repository_ahead": True,
+        "workflow_status": "completed",
+        "workflow_conclusion": "success",
+        "workflow_url": "https://github.example/run",
+        "workflow_run_id": 123,
+        "action_required": "اضغط زر النشر.",
+        "generated_note": "",
+    }
+    data.update(overrides)
+    return DeploymentState(**data)
+
+
 @override_settings(DEBUG=True)
 class OperationsApiTests(TestCase):
     def setUp(self):
@@ -141,60 +168,29 @@ class OperationsApiTests(TestCase):
         self.assertIn("worker إضافي", incident.message)
         push_delay.assert_called_once_with(incident.pk)
 
-    @patch("operations.views.GitHubDeploymentClient")
-    def test_deployment_status_reports_repository_drift(self, client_cls):
-        client_cls.return_value.deployment_state.return_value = DeploymentState(
-            repository="owner/repo",
-            branch="main",
-            workflow="ci.yml",
-            configured=True,
-            latest_sha="b" * 40,
-            latest_message="new release",
-            deployed_sha="a" * 40,
-            deployed_image="ghcr.io/owner/repo:" + "a" * 40,
-            up_to_date=False,
-            repository_ahead=True,
-            workflow_status="completed",
-            workflow_conclusion="success",
-            workflow_url="https://github.example/run",
-            workflow_run_id=123,
-            action_required="اضغط زر النشر.",
-            generated_note="",
-        )
+    @patch("operations.views.all_deployment_states")
+    def test_deployment_status_reports_repository_drift(self, all_states):
+        all_states.return_value = [deployment_state(project_id=self.project.pk)]
         token = self._login()
         response = self.client.get(reverse("operations:deployment-status"), HTTP_AUTHORIZATION=f"Ops-Token {token}")
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json()["repository_ahead"])
-        self.assertEqual(response.json()["latest_short_sha"], "b" * 12)
+        payload = response.json()
+        self.assertEqual(payload["repository_ahead_count"], 1)
+        self.assertEqual(payload["can_deploy_count"], 1)
+        self.assertTrue(payload["deployments"][0]["repository_ahead"])
+        self.assertEqual(payload["deployments"][0]["latest_short_sha"], "b" * 12)
 
     @patch("operations.views.GitHubDeploymentClient")
     def test_trigger_deployment_requires_latest_sha_confirmation(self, client_cls):
-        state = DeploymentState(
-            repository="owner/repo",
-            branch="main",
-            workflow="ci.yml",
-            configured=True,
-            latest_sha="b" * 40,
-            latest_message="new release",
-            deployed_sha="a" * 40,
-            deployed_image="ghcr.io/owner/repo:" + "a" * 40,
-            up_to_date=False,
-            repository_ahead=True,
-            workflow_status="completed",
-            workflow_conclusion="success",
-            workflow_url="",
-            workflow_run_id=None,
-            action_required="اضغط زر النشر.",
-            generated_note="",
-        )
+        state = deployment_state(project_id=self.project.pk, workflow_url="", workflow_run_id=None)
         client = client_cls.return_value
         client.deployment_state.return_value = state
         token = self._login()
 
         rejected = self.client.post(
             reverse("operations:trigger-deployment"),
-            {"confirmation": "wrong"},
+            {"project_id": self.project.pk, "confirmation": "wrong"},
             content_type="application/json",
             HTTP_AUTHORIZATION=f"Ops-Token {token}",
         )
@@ -203,7 +199,7 @@ class OperationsApiTests(TestCase):
 
         accepted = self.client.post(
             reverse("operations:trigger-deployment"),
-            {"confirmation": "b" * 12},
+            {"project_id": self.project.pk, "confirmation": "b" * 12},
             content_type="application/json",
             HTTP_AUTHORIZATION=f"Ops-Token {token}",
         )

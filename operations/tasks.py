@@ -3,8 +3,8 @@ from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
-from .deployments import GitHubDeploymentClient
-from .models import HealthCheck, Incident, ManagedServer, OperationAction, ServerMetricSnapshot
+from .deployments import all_deployment_states
+from .models import HealthCheck, Incident, ManagedProject, ManagedServer, OperationAction, ServerMetricSnapshot
 from .push import send_incident_push
 from .services import capture_server_metrics, probe_all_projects
 
@@ -23,30 +23,44 @@ def store_capacity_snapshot_task(report: dict) -> None:
 
 
 @shared_task(ignore_result=True)
+def sync_deployed_revisions_task() -> dict[str, int]:
+    release_sha = str(getattr(settings, "RELEASE_SHA", "") or "").strip()
+    release_image = str(getattr(settings, "RELEASE_IMAGE", "") or "").strip()
+    if not release_sha or release_sha == "unknown":
+        return {"updated": 0}
+    values = {"deployed_sha": release_sha[:64]}
+    if release_image:
+        values["deployed_image"] = release_image[:300]
+    updated = ManagedProject.objects.filter(slug="tawtheeq", is_active=True).update(**values)
+    return {"updated": updated}
+
+
+@shared_task(ignore_result=True)
 def monitor_deployment_state_task() -> dict[str, object]:
     if not getattr(settings, "OPERATIONS_DEPLOY_MONITOR_ENABLED", True):
         return {"enabled": False}
     server = ManagedServer.objects.filter(is_active=True).order_by("id").first()
-    state = GitHubDeploymentClient().deployment_state()
+    states = all_deployment_states()
     key = "deployment:repository-ahead"
     open_incident = Incident.objects.filter(
         dedupe_key=key,
         status__in=(Incident.Status.OPEN, Incident.Status.ACKNOWLEDGED),
     ).first()
     notify_incident = None
-    if state.repository_ahead and open_incident is None:
+    ahead = [state for state in states if state.repository_ahead]
+    if ahead and open_incident is None:
+        names = "، ".join(state.project_name for state in ahead[:5])
         notify_incident = Incident.objects.create(
             server=server,
             dedupe_key=key,
             title="يوجد إصدار أحدث في المستودع",
             message=(
-                f"GitHub main أحدث من الخادم. المستودع: {state.latest_sha[:12]}، "
-                f"الخادم: {state.deployed_sha[:12]}. الإجراء المناسب: افتح التطبيق واضغط نشر "
-                "لتشغيل GitHub Actions ومتابعة حالة النشر."
+                f"المشاريع التي لديها نسخة أحدث: {names}. الإجراء المناسب: افتح بطاقة النشر "
+                "في التطبيق واختر المشروع المطلوب ثم اضغط نشر إذا كان مساره مفعلاً."
             ),
             severity=Incident.Severity.INFO,
         )
-    elif not state.repository_ahead and open_incident is not None:
+    elif not ahead and open_incident is not None:
         open_incident.status = Incident.Status.RESOLVED
         open_incident.resolved_at = timezone.now()
         open_incident.save(update_fields=("status", "resolved_at"))
@@ -55,9 +69,8 @@ def monitor_deployment_state_task() -> dict[str, object]:
         send_incident_push_task.delay(notify_incident.pk)
     return {
         "enabled": True,
-        "repository_ahead": state.repository_ahead,
-        "latest_sha": state.latest_sha[:12],
-        "deployed_sha": state.deployed_sha[:12],
+        "repository_ahead": bool(ahead),
+        "ahead_count": len(ahead),
     }
 
 

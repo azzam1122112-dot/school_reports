@@ -19,14 +19,53 @@ class Command(BaseCommand):
             },
         )
         projects = (
-            ("tawtheeq", "منصة توثيق", "https://tawtheeq-ksa.com", "/healthz/"),
-            ("xmansx", "منصة TANAL", "https://xmansx.com", "/api/health/readiness"),
-            ("school-display", "لوحة العرض المدرسية", "https://school-display.com", "/"),
+            {
+                "slug": "tawtheeq",
+                "name": "منصة توثيق",
+                "url": "https://tawtheeq-ksa.com",
+                "path": "/healthz/",
+                "repository": "azzam1122112-dot/school_reports",
+                "workflow": "ci.yml",
+                "container": "school-reports-web-1",
+                "deployment_enabled": True,
+            },
+            {
+                "slug": "xmansx",
+                "name": "منصة TANAL",
+                "url": "https://xmansx.com",
+                "path": "/api/health/readiness",
+                "repository": "azzam1122112-dot/Tanal-Barbershop-Interface",
+                "workflow": "CI",
+                "container": "tanal-web-1",
+                "deployment_enabled": False,
+            },
+            {
+                "slug": "school-display",
+                "name": "لوحة العرض المدرسية",
+                "url": "https://school-display.com",
+                "path": "/",
+                "repository": "azzam1122112-dot/school_display",
+                "workflow": "CI",
+                "container": "school-display-web-1",
+                "deployment_enabled": False,
+            },
         )
-        for order, (slug, name, url, path) in enumerate(projects, start=1):
+        for order, item in enumerate(projects, start=1):
             project, _ = ManagedProject.objects.update_or_create(
-                slug=slug,
-                defaults={"server": server, "name": name, "base_url": url, "health_path": path, "sort_order": order, "is_active": True},
+                slug=item["slug"],
+                defaults={
+                    "server": server,
+                    "name": item["name"],
+                    "base_url": item["url"],
+                    "health_path": item["path"],
+                    "repository": item["repository"],
+                    "deploy_branch": "main",
+                    "deploy_workflow": item["workflow"],
+                    "deploy_container": item["container"],
+                    "deployment_enabled": item["deployment_enabled"],
+                    "sort_order": order,
+                    "is_active": True,
+                },
             )
             for service_key, service_name, kind, restart_allowed in (
                 ("web", "تطبيق الويب", ManagedService.Kind.WEB, True),

@@ -146,7 +146,7 @@ final projectProvider = FutureProvider.autoDispose.family<ProjectDetails, int>((
   return ref.watch(apiProvider).project(id);
 });
 
-final deploymentProvider = FutureProvider.autoDispose<DeploymentInfo>((ref) {
+final deploymentProvider = FutureProvider.autoDispose<DeploymentOverview>((ref) {
   ref.watch(dashboardProvider);
   return ref.watch(apiProvider).deploymentStatus();
 });
