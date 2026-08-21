@@ -17,7 +17,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="school",
             name="storage_key",
-            field=models.SlugField(
+            # Use a plain CharField for the temporary backfill stage. On
+            # PostgreSQL SlugField schedules a LIKE index; changing that same
+            # field to unique in this migration would schedule the identical
+            # index a second time at schema-editor exit.
+            field=models.CharField(
                 default="",
                 editable=False,
                 max_length=96,
