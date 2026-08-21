@@ -1,0 +1,165 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'config.dart';
+import 'models.dart';
+
+class ApiException implements Exception {
+  const ApiException(this.message, {this.statusCode, this.data});
+  final String message;
+  final int? statusCode;
+  final Map<String, dynamic>? data;
+  @override
+  String toString() => message;
+}
+
+class OperationsApi {
+  OperationsApi()
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: AppConfig.apiBaseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 15),
+          headers: const {'Accept': 'application/json'},
+        ),
+      ) {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (_token != null && options.extra['skipAuth'] != true) {
+            options.headers['Authorization'] = 'Ops-Token $_token';
+          }
+          handler.next(options);
+        },
+      ),
+    );
+  }
+
+  static const _storage = FlutterSecureStorage(aOptions: AndroidOptions());
+  static const _tokenKey = 'operations_access_token';
+  final Dio _dio;
+  String? _token;
+
+  Future<bool> restoreSession() async {
+    _token = await _storage.read(key: _tokenKey);
+    return _token != null;
+  }
+
+  Future<void> login({
+    required String phone,
+    required String password,
+    required String deviceName,
+    String otp = '',
+  }) async {
+    final data = await _request(
+      () => _dio.post<Map<String, dynamic>>(
+        '/auth/login/',
+        options: Options(extra: {'skipAuth': true}),
+        data: {
+          'phone': phone,
+          'password': password,
+          'device_name': deviceName,
+          if (otp.isNotEmpty) 'otp': otp,
+        },
+      ),
+    );
+    _token = '${data['token']}';
+    await _storage.write(key: _tokenKey, value: _token);
+  }
+
+  Future<void> logout() async {
+    try {
+      await _request(() => _dio.post<Map<String, dynamic>>('/auth/logout/'));
+    } catch (_) {
+      // Local logout must still complete if the server is unavailable.
+    } finally {
+      _token = null;
+      await _storage.delete(key: _tokenKey);
+    }
+  }
+
+  Future<void> clearSession() async {
+    _token = null;
+    await _storage.delete(key: _tokenKey);
+  }
+
+  Future<DashboardData> dashboard() async => DashboardData.fromJson(
+    await _request(() => _dio.get<Map<String, dynamic>>('/dashboard/')),
+  );
+
+  Future<ProjectDetails> project(int id) async => ProjectDetails.fromJson(
+    await _request(() => _dio.get<Map<String, dynamic>>('/projects/$id/')),
+  );
+
+  Future<void> runAction(
+    int projectId,
+    String action, {
+    int? serviceId,
+    String? confirmation,
+  }) async {
+    await _request(
+      () => _dio.post<Map<String, dynamic>>(
+        '/projects/$projectId/actions/',
+        data: {
+          'action': action,
+          'service_id': ?serviceId,
+          'confirmation': ?confirmation,
+        },
+      ),
+    );
+  }
+
+  Future<void> acknowledgeIncident(int id) async {
+    await _request(
+      () => _dio.post<Map<String, dynamic>>('/incidents/$id/acknowledge/'),
+    );
+  }
+
+  Future<void> registerDevice({
+    required String deviceId,
+    required String name,
+    required String fcmToken,
+  }) async {
+    await _request(
+      () => _dio.post<Map<String, dynamic>>(
+        '/devices/',
+        data: {
+          'device_id': deviceId,
+          'name': name,
+          'platform': 'android',
+          'fcm_token': fcmToken,
+          'alerts_enabled': true,
+        },
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> _request(
+    Future<Response<Map<String, dynamic>>> Function() call,
+  ) async {
+    try {
+      final response = await call();
+      return response.data ?? <String, dynamic>{};
+    } on DioException catch (error) {
+      final raw = error.response?.data;
+      final data = raw is Map ? Map<String, dynamic>.from(raw) : null;
+      final detail = data?['detail']?.toString();
+      throw ApiException(
+        detail?.isNotEmpty == true ? detail! : _networkMessage(error),
+        statusCode: error.response?.statusCode,
+        data: data,
+      );
+    }
+  }
+
+  String _networkMessage(DioException error) {
+    if (error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout) {
+      return 'انتهت مهلة الاتصال بالخادم.';
+    }
+    if (error.type == DioExceptionType.connectionError) {
+      return 'تعذر الاتصال. تحقق من الإنترنت وحالة الخادم.';
+    }
+    return 'تعذر إكمال الطلب الآن.';
+  }
+}

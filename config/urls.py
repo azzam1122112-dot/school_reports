@@ -184,6 +184,7 @@ urlpatterns = [
     path("sw.js", service_worker, name="service_worker"),
     # REST API v1
     path("api/v1/", include("reports.api_urls")),
+    path("api/operations/v1/", include("operations.urls")),
     path("dashboard/system/", include("maintenance.urls")),
     path("", include("reports.urls")),  # واجهة المشروع الأساسية
 ]

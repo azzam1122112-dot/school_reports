@@ -67,6 +67,10 @@ django-celery-results==2.5.1
 # Standards-based Web Push for installed PWAs (VAPID + payload encryption)
 pywebpush==2.4.0
 
+# Native Android/tablet operations alerts (FCM HTTP v1 OAuth)
+google-auth==2.56.3
+requests==2.34.2
+
 # Markdown rendering (User guide page)
 Markdown==3.10.3
 

@@ -240,6 +240,8 @@ services:
     <<: *app
     mem_limit: 768m
     cpus: 0.50
+    volumes:
+      - ${FIREBASE_SERVICE_ACCOUNT_FILE:-./deploy/hetzner/firebase-service-account.json}:/run/secrets/firebase-service-account.json:ro
     networks:
       - backend
       - edge

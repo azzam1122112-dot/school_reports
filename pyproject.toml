@@ -8,6 +8,7 @@ extend-exclude = [
   "pytest-cache-files-*",
   "reports/migrations",
   "maintenance/migrations",
+  "operations/migrations",
 ]
 
 [tool.ruff.lint]
@@ -106,6 +107,7 @@ ignore = [
 # الاختبارات: مسارات مؤقتة ثابتة وكلمات مرور تجريبية، وكلاهما بيانات اختبار.
 "reports/tests/*" = ["S106", "S107", "S108", "S110", "S112"]
 "maintenance/tests.py" = ["S106", "S107", "S108"]
+"operations/tests.py" = ["S106", "S107", "S108"]
 "core/tests.py" = ["S106", "S107", "S108"]
 # بيانات أداء اصطناعية: ``random`` هنا لتوليد عيّنات لا لتوليد أسرار.
 "reports/management/commands/seed_perf.py" = ["S311", "S110", "S112"]

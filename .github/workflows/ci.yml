@@ -49,7 +49,7 @@ jobs:
       - name: Static correctness checks
         run: |
           ruff check .
-          python -m compileall -q config core reports maintenance manage.py
+          python -m compileall -q config core reports maintenance operations manage.py
           python -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"
 
       # ملف الأسرار لا يعود إلى التتبع. أُزيل مرة، وبقيت نسخه في التاريخ —
@@ -68,8 +68,8 @@ jobs:
           # القفل لا requirements.txt: الأخير يصف المباشرة وحدها، والثغرات
           # وصلت الإنتاج عبر ما وراءها.
           python -m pip_audit -r requirements.lock.txt --no-deps
-          python -m bandit -r config core reports maintenance manage.py \
-            -x "reports/tests,reports/migrations,core/migrations,maintenance/migrations,maintenance/tests.py" \
+          python -m bandit -r config core reports maintenance operations manage.py \
+            -x "reports/tests,reports/migrations,core/migrations,maintenance/migrations,maintenance/tests.py,operations/migrations,operations/tests.py" \
             --severity-level high --confidence-level high --quiet
 
       # قفلٌ لا يواكب requirements.txt يعني أن ما يُفحص ليس ما يُبنى.

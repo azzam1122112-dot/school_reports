@@ -555,6 +555,7 @@ INSTALLED_APPS = [
     "core",
     "reports",
     "maintenance",
+    "operations",
 ]
 
 
@@ -1055,6 +1056,10 @@ CELERY_TASK_ROUTES = {
     "reports.tasks.cleanup_audit_logs_task": {"queue": "periodic"},
     "reports.tasks.cleanup_expired_sessions_task": {"queue": "periodic"},
     "reports.tasks.monitor_infrastructure_capacity_task": {"queue": "periodic"},
+    "operations.tasks.run_operations_monitor_task": {"queue": "periodic"},
+    "operations.tasks.store_capacity_snapshot_task": {"queue": "periodic"},
+    "operations.tasks.send_incident_push_task": {"queue": "notifications"},
+    "operations.tasks.cleanup_operations_history_task": {"queue": "periodic"},
     "reports.tasks.cleanup_generated_exports_task": {"queue": "periodic"},
     "reports.tasks.cleanup_platform_email_task": {"queue": "periodic"},
 }
@@ -1282,6 +1287,14 @@ if crontab is not None:
         CELERY_BEAT_SCHEDULE["monitor-infrastructure-capacity"] = {
             "task": "reports.tasks.monitor_infrastructure_capacity_task",
             "schedule": crontab(minute="*/5"),
+        }
+        CELERY_BEAT_SCHEDULE["monitor-managed-projects"] = {
+            "task": "operations.tasks.run_operations_monitor_task",
+            "schedule": crontab(minute="*/2"),
+        }
+        CELERY_BEAT_SCHEDULE["cleanup-operations-history"] = {
+            "task": "operations.tasks.cleanup_operations_history_task",
+            "schedule": crontab(minute=25, hour=4),
         }
 
     CELERY_BEAT_SCHEDULE["cleanup-generated-exports-hourly"] = {
@@ -1553,6 +1566,14 @@ SITE_URL = _validated_site_url(_site_url_from_env, environment=ENV)
 # A PWA is permanently tied to the origin it was installed from. Avoid
 # advertising a localhost app unless installation testing is explicitly on.
 PWA_INSTALL_ENABLED = _env_bool("PWA_INSTALL_ENABLED", ENV == "production")
+
+# Native operations app alerts. Credentials are read by Google ADC from the
+# file path in GOOGLE_APPLICATION_CREDENTIALS; the JSON key is never stored in
+# Django settings or the repository.
+FCM_PROJECT_ID = (os.getenv("FCM_PROJECT_ID") or "").strip()
+OPERATIONS_MOBILE_TOKEN_HOURS = int(os.getenv("OPERATIONS_MOBILE_TOKEN_HOURS", "12") or "12")
+OPERATIONS_PROBE_TIMEOUT_SECONDS = float(os.getenv("OPERATIONS_PROBE_TIMEOUT_SECONDS", "8") or "8")
+OPERATIONS_HISTORY_RETENTION_DAYS = int(os.getenv("OPERATIONS_HISTORY_RETENTION_DAYS", "30") or "30")
 
 # Public business disclosure shown in a collapsed, low-prominence section on
 # the landing and legal pages. Never place a national ID or personal photo here.

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "602552704037",
+    "project_id": "tawtheeq-operations",
+    "storage_bucket": "tawtheeq-operations.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:602552704037:android:433f47238606f07eabf3cc",
+        "android_client_info": {
+          "package_name": "com.tawtheeq.tawtheeq_operations"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBerONKnUfFkunc97OPNPfj-qWDYJ4Doy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
