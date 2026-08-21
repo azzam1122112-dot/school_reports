@@ -166,6 +166,7 @@ class LandingPageTests(TestCase):
         self.assertGreater(html.index('class="footer-payments"'), html.index("<footer"))
         self.assertLess(html.index('class="footer-payments"'), html.index('class="footer-bottom"'))
 
+    @override_settings(MOYASAR_ENABLED=True, TAMARA_ENABLED=False)
     def test_footer_advertises_only_payment_methods_the_platform_accepts(self):
         """إعلان وسيلة دفع غير مدعومة يقود الزائر إلى خيار لن يجده عند الدفع."""
         response = self.client.get(reverse("reports:landing"))
