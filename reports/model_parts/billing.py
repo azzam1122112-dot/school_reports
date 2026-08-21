@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import os
-import uuid
-
 from .base import *
 from .schools import School
 
@@ -534,10 +531,14 @@ class ArchiveStorageOption(models.Model):
 
 def school_year_archive_upload_to(instance, filename: str) -> str:
     """Private, collision-resistant path for immutable yearly archive packages."""
-    school_code = slugify(getattr(getattr(instance, "school", None), "code", "") or "school")
     year = slugify(str(getattr(instance, "academic_year", "") or "year"), allow_unicode=False) or "year"
-    extension = os.path.splitext(filename or "")[1].lower() or ".zip"
-    return f"school-archives/{school_code}/{year}/{uuid.uuid4().hex}{extension}"
+    return school_file_path(
+        instance.school,
+        "archives",
+        filename,
+        parts=(year,),
+        fallback="archive.zip",
+    )
 
 
 class SchoolYearArchive(models.Model):
@@ -685,9 +686,7 @@ class SchoolYearArchiveDownload(models.Model):
 
 
 def generated_export_upload_to(instance, filename: str) -> str:
-    extension = os.path.splitext(filename or "")[1].lower() or ".bin"
-    school_id = int(getattr(instance, "school_id", 0) or 0)
-    return f"generated-exports/school-{school_id}/{uuid.uuid4().hex}{extension}"
+    return school_file_path(instance.school, "exports", filename, fallback="export.bin")
 
 
 class GeneratedExportJob(models.Model):

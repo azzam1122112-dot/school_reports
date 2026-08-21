@@ -82,6 +82,13 @@ class School(models.Model):
         unique=True,
         help_text="كود قصير لتمييز المدرسة، يُستخدم في الاختيار والتقارير.",
     )
+    storage_key = models.SlugField(
+        "مفتاح مجلد التخزين",
+        max_length=96,
+        unique=True,
+        editable=False,
+        help_text="معرّف ثابت لمجلد المدرسة في التخزين، ولا يتغير عند تعديل رمز المدرسة.",
+    )
     stage = models.CharField(
         "المرحلة",
         max_length=16,
@@ -210,6 +217,20 @@ class School(models.Model):
     def save(self, *args, **kwargs):
         if self.code:
             self.code = self.code.strip().lower()
+        persisted_storage_key = ""
+        if self.pk and not self._state.adding:
+            persisted_storage_key = (
+                type(self)._base_manager.filter(pk=self.pk)
+                .values_list("storage_key", flat=True)
+                .first()
+                or ""
+            )
+        if persisted_storage_key:
+            # The object prefix is part of the storage identity, not branding.
+            # Changing it would strand every previously uploaded object.
+            self.storage_key = persisted_storage_key
+        elif not self.storage_key:
+            self.storage_key = self.code
         if self.current_academic_year:
             self.current_academic_year = _normalize_academic_year_hijri(self.current_academic_year)
         super().save(*args, **kwargs)

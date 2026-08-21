@@ -201,17 +201,17 @@ def _achievement_report_evidence_upload_to(instance: "AchievementEvidenceReport"
     won't break the achievement file PDF.
     """
 
-    try:
-        file_id = instance.section.file_id
-    except Exception:
-        file_id = "file"
-    try:
-        section_code = instance.section.code
-    except Exception:
-        section_code = "sec"
-
+    achievement_file = instance.section.file
+    file_id = instance.section.file_id or "file"
+    section_code = instance.section.code or "sec"
     ev_id = instance.pk or "new"
-    return f"achievements/report_evidence/{file_id}/section_{section_code}/evidence_{ev_id}/{filename}"
+    return school_file_path(
+        achievement_file.school,
+        "achievements/report-evidence",
+        filename,
+        parts=(f"file-{file_id}", f"section-{section_code}", f"evidence-{ev_id}"),
+        fallback="evidence",
+    )
 
 
 class AchievementEvidenceReport(models.Model):

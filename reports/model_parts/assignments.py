@@ -10,7 +10,14 @@ __all__ = ["Assignment", "AssignmentTarget", "AssignmentEvidence"]
 def _assignment_evidence_upload_to(instance, filename: str) -> str:
     target = getattr(instance, "target", None)
     assignment_id = getattr(target, "assignment_id", None) or "unknown"
-    return f"assignments/evidence/{assignment_id}/{_safe_unique_filename(filename, fallback='evidence')}"
+    school = getattr(target, "school", None) or getattr(getattr(target, "assignment", None), "school", None)
+    return school_file_path(
+        school,
+        "assignments/evidence",
+        filename,
+        parts=(f"assignment-{assignment_id}",),
+        fallback="evidence",
+    )
 
 
 class Assignment(models.Model):

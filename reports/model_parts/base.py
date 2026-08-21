@@ -21,6 +21,7 @@ from django.utils import timezone
 
 # تخزين المرفقات (R2 أو محلي)
 from ..storage import PublicRawMediaStorage
+from ..school_storage import school_file_path, school_or_platform_file_path
 from ..validators import validate_attachment_file, validate_circular_attachment_file, validate_image_file, validate_pdf_file
 
 if TYPE_CHECKING:
@@ -72,7 +73,13 @@ def _safe_unique_filename(filename: str, *, fallback: str = "file") -> str:
 
 def _achievement_pdf_upload_to(instance: "TeacherAchievementFile", filename: str) -> str:
     year = _normalize_academic_year_hijri(getattr(instance, "academic_year", "")) or "unknown"
-    return f"achievements/pdfs/{year}/teacher_{instance.teacher_id}_{secrets.token_hex(8)}.pdf"
+    return school_file_path(
+        instance.school,
+        "achievements/pdfs",
+        filename,
+        parts=(year, f"teacher-{instance.teacher_id or 'unknown'}"),
+        fallback="achievement.pdf",
+    )
 
 
 def _achievement_evidence_upload_to(instance: "AchievementEvidenceImage", filename: str) -> str:
@@ -80,65 +87,96 @@ def _achievement_evidence_upload_to(instance: "AchievementEvidenceImage", filena
         year = _normalize_academic_year_hijri(instance.section.file.academic_year)
     except Exception:
         year = "unknown"
-    safe_name = _safe_unique_filename(filename, fallback="evidence")
-    return f"achievements/evidence/{year}/section_{instance.section.code}/teacher_{instance.section.file.teacher_id}/{safe_name}"
+    achievement_file = instance.section.file
+    return school_file_path(
+        achievement_file.school,
+        "achievements/evidence",
+        filename,
+        parts=(year, f"section-{instance.section.code}", f"teacher-{achievement_file.teacher_id}"),
+        fallback="evidence",
+    )
 
 
 def _leadership_evidence_upload_to(instance, filename: str) -> str:
     try:
         portfolio = instance.section.portfolio
         year = _normalize_academic_year_hijri(portfolio.academic_year) or "unknown"
-        school_id = portfolio.school_id or "school"
         section_code = instance.section.code
     except Exception:
-        year, school_id, section_code = "unknown", "school", "section"
-    safe_name = _safe_unique_filename(filename, fallback="evidence")
-    return f"leadership/evidence/{year}/school_{school_id}/section_{section_code}/{safe_name}"
+        year, section_code = "unknown", "section"
+        portfolio = None
+    return school_file_path(
+        getattr(portfolio, "school", None),
+        "leadership/evidence",
+        filename,
+        parts=(year, f"section-{section_code}"),
+        fallback="evidence",
+    )
 
 
 def _payment_receipt_upload_to(instance: "Payment", filename: str) -> str:
     """مسار رفع صورة إيصال الدفع"""
-    return f"payments/receipts/{_safe_unique_filename(filename, fallback='receipt')}"
+    return school_file_path(instance.school, "payments/receipts", filename, fallback="receipt")
 
 
 def _report_image_upload_to(instance: "Report", filename: str) -> str:
     """مسار رفع صور التقرير"""
-    base = _safe_unique_filename(filename, fallback="image")
-    try:
-        teacher_id = getattr(instance, "teacher_id", None) or "unknown"
-    except Exception:
-        teacher_id = "unknown"
-    return f"reports/teacher_{teacher_id}/{base}"
+    teacher_id = getattr(instance, "teacher_id", None) or "unknown"
+    return school_or_platform_file_path(
+        getattr(instance, "school", None),
+        "reports/images",
+        filename,
+        parts=(f"teacher-{teacher_id}",),
+        fallback="image",
+    )
 
 
 def _report_evidence_upload_to(instance: "ReportEvidence", filename: str) -> str:
     """مسار شاهد التقرير عبر صاحب التقرير الأب."""
-    base = _safe_unique_filename(filename, fallback="evidence")
-    try:
-        teacher_id = getattr(getattr(instance, "report", None), "teacher_id", None) or "unknown"
-    except Exception:
-        teacher_id = "unknown"
-    return f"reports/teacher_{teacher_id}/evidence/{base}"
+    report = instance.report
+    teacher_id = getattr(report, "teacher_id", None) or "unknown"
+    return school_or_platform_file_path(
+        getattr(report, "school", None),
+        "reports/evidence",
+        filename,
+        parts=(f"teacher-{teacher_id}",),
+        fallback="evidence",
+    )
 
 
 def _ticket_attachment_upload_to(instance: "Ticket", filename: str) -> str:
     """مسار رفع مرفقات التذاكر"""
-    return f"tickets/attachments/{_safe_unique_filename(filename, fallback='attachment')}"
+    return school_or_platform_file_path(
+        getattr(instance, "school", None),
+        "tickets/attachments",
+        filename,
+        fallback="attachment",
+    )
 
 
 def _notification_attachment_upload_to(instance: "Notification", filename: str) -> str:
     """مسار رفع مرفقات الإشعارات/التعاميم"""
-    return f"notifications/attachments/{_safe_unique_filename(filename, fallback='attachment')}"
+    return school_or_platform_file_path(
+        getattr(instance, "school", None),
+        "notifications/attachments",
+        filename,
+        fallback="attachment",
+    )
 
 
 # NOTE: kept for historical migrations that referenced it.
 def _school_logo_upload_to(instance: "School", filename: str) -> str:
     """مسار رفع شعار المدرسة (legacy)."""
-    return f"schools/logos/{_safe_unique_filename(filename, fallback='logo')}"
+    return school_file_path(instance, "branding/logos", filename, fallback="logo")
 
 def _ticket_image_upload_to(instance: "TicketImage", filename: str) -> str:
     """مسار رفع صور التذاكر"""
-    return f"tickets/images/{_safe_unique_filename(filename, fallback='image')}"
+    return school_or_platform_file_path(
+        getattr(instance.ticket, "school", None),
+        "tickets/images",
+        filename,
+        fallback="image",
+    )
 
 
 # =========================

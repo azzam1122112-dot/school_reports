@@ -9,8 +9,13 @@ __all__ = ["Document"]
 
 def _document_upload_to(instance, filename: str) -> str:
     year = (getattr(instance, "academic_year", "") or "unknown").replace("/", "-")
-    school_id = getattr(instance, "school_id", None) or "school"
-    return f"documents/{school_id}/{year}/{_safe_unique_filename(filename, fallback='document')}"
+    return school_file_path(
+        instance.school,
+        "documents",
+        filename,
+        parts=(year,),
+        fallback="document",
+    )
 
 
 class Document(ApprovalMixin):
