@@ -28,6 +28,7 @@ __all__ = [
     "share_initiative",
     "plans_for_school",
     "plans_visible_to",
+    "initiatives_visible_to",
     "plan_board_rows",
     "shared_practices_for_group",
 ]
@@ -178,6 +179,25 @@ def plans_visible_to(user, school):
     # مُعِدُّها أو منفّذُ مهمةٍ فيها. و``distinct`` لازمة: خطةٌ فيها مهمتان
     # لصاحبها نفسه تعود صفّين من الضمّ.
     return base.filter(Q(owner=user) | Q(tasks__responsible=user)).distinct()
+
+
+def initiatives_visible_to(user, school):
+    """مبادرات المدرسة بحسب دور المشاهد.
+
+    المدير يرى السجل الكامل ليراجع ويعتمد ويشارك. والمنسوب يرى
+    مقترحاته بكل حالاتها، ومبادرات مدرسته المعتمدة فقط. وبذلك لا
+    يتسرّب مقترح زميل قبل قرار المدير، ولا تختفي المبادرة بعد اعتمادها.
+    """
+    from .permissions import is_school_manager
+
+    base = (
+        Initiative.objects.filter(school=school)
+        .select_related("teacher", "plan")
+        .order_by("-created_at", "-id")
+    )
+    if is_school_manager(user, active_school=school):
+        return base
+    return base.filter(Q(teacher=user) | Q(approval_state=ApprovalState.APPROVED)).distinct()
 
 
 def plan_board_rows(plans) -> list[dict]:

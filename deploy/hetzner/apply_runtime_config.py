@@ -53,11 +53,18 @@ BACKUPS_TO_KEEP = 5
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-path", type=Path, default=DEFAULT_ENV_PATH)
+    parser.add_argument("--tamara-enabled", choices=BOOL_CHOICES)
+    parser.add_argument("--tamara-environment", choices=("production", "sandbox"))
     parser.add_argument("--moyasar-enabled", choices=BOOL_CHOICES)
     parser.add_argument("--moyasar-environment", choices=("live", "test"))
     parser.add_argument("--pdf-offload-enabled", choices=BOOL_CHOICES)
     parser.add_argument("--celery-media-concurrency", type=int)
     parser.add_argument("--web-concurrency", type=int)
+    parser.add_argument(
+        "--tamara-config-from-stdin",
+        action="store_true",
+        help="Read TAMARA_API_TOKEN and TAMARA_NOTIFICATION_TOKEN from two stdin lines.",
+    )
     parser.add_argument(
         "--moyasar-key-from-stdin",
         action="store_true",
@@ -84,6 +91,10 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
     """Build the key set, validating every value before anything is written."""
     values: dict[str, str] = {}
 
+    if getattr(args, "tamara_enabled", None):
+        values["TAMARA_ENABLED"] = args.tamara_enabled
+    if getattr(args, "tamara_environment", None):
+        values["TAMARA_ENVIRONMENT"] = args.tamara_environment
     if args.moyasar_enabled:
         values["MOYASAR_ENABLED"] = args.moyasar_enabled
     if args.moyasar_environment:
@@ -101,6 +112,26 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
 
     if args.web_push_enabled:
         values["WEB_PUSH_ENABLED"] = args.web_push_enabled
+
+    if getattr(args, "tamara_config_from_stdin", False):
+        lines = sys.stdin.read().splitlines()
+        if len(lines) != 2:
+            raise SystemExit(
+                "Tamara configuration requires exactly two stdin lines: API token and notification token."
+            )
+        api_token, notification_token = (line.strip() for line in lines)
+        for label, token in (
+            ("TAMARA_API_TOKEN", api_token),
+            ("TAMARA_NOTIFICATION_TOKEN", notification_token),
+        ):
+            if len(token) < 16 or re.search(r"\s", token):
+                raise SystemExit(f"{label} is empty or malformed.")
+        values.update(
+            {
+                "TAMARA_API_TOKEN": api_token,
+                "TAMARA_NOTIFICATION_TOKEN": notification_token,
+            }
+        )
 
     if args.moyasar_key_from_stdin:
         key = sys.stdin.read().strip()
@@ -215,6 +246,33 @@ def _assert_gateway_can_boot(path: Path, values: dict[str, str]) -> None:
         )
 
 
+def _assert_tamara_can_boot(path: Path, values: dict[str, str]) -> None:
+    """Refuse to advertise Tamara until both merchant secrets are installed."""
+    if values.get("TAMARA_ENABLED") != "True":
+        return
+    existing: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = re.match(r"^([A-Z0-9_]+)=(.*)$", line)
+        if match:
+            existing[match.group(1)] = match.group(2).strip()
+    missing = [
+        key
+        for key in ("TAMARA_API_TOKEN", "TAMARA_NOTIFICATION_TOKEN")
+        if not (values.get(key) or existing.get(key, ""))
+    ]
+    if missing:
+        raise SystemExit(
+            "Refusing to enable Tamara without: " + ", ".join(missing)
+        )
+    environment = values.get("TAMARA_ENVIRONMENT") or existing.get(
+        "TAMARA_ENVIRONMENT", "sandbox"
+    )
+    if environment != "production":
+        raise SystemExit(
+            "Refusing to enable live Tamara with TAMARA_ENVIRONMENT=" + environment
+        )
+
+
 def _assert_web_push_can_boot(path: Path, values: dict[str, str]) -> None:
     if values.get("WEB_PUSH_ENABLED") != "True":
         return
@@ -309,6 +367,7 @@ def main() -> None:
 
     values = _collect(args)
     _assert_gateway_can_boot(path, values)
+    _assert_tamara_can_boot(path, values)
     _assert_web_push_can_boot(path, values)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

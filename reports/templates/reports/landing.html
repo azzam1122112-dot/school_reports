@@ -1202,7 +1202,7 @@
       <section class="footer-payments" aria-label="وسائل الدفع المدعومة">
         <div class="footer-payments-copy">
           <strong><i class="fa-solid fa-lock" aria-hidden="true"></i> دفع آمن وموثوق</strong>
-          <small>عبر ميسر · تظهر الوسائل المفعّلة والمتاحة عند إتمام الدفع</small>
+          <small>{% if active_payment_gateway_names %}عبر {{ active_payment_gateway_names }} · {% endif %}تظهر الوسائل المفعّلة والمتاحة عند إتمام الدفع</small>
         </div>
         <div class="payment-marks" role="list" aria-label="شبكات البطاقات والمحافظ الرقمية">
           <span class="payment-mark payment-mark--mada" role="listitem" aria-label="مدى"><b>مدى</b><small>mada</small></span>
@@ -1213,6 +1213,7 @@
           <span class="payment-mark payment-mark--google" role="listitem" aria-label="Google Pay"><b>G</b> Pay</span>
           <span class="payment-mark payment-mark--samsung" role="listitem" aria-label="Samsung Pay">SAMSUNG Pay</span>
           <span class="payment-mark payment-mark--stc" role="listitem" aria-label="STC Pay">stc pay</span>
+          {% if tamara_enabled %}<span class="payment-mark" role="listitem" aria-label="تمارا">تمارا · 4 دفعات</span>{% endif %}
         </div>
       </section>
       <div class="footer-bottom">

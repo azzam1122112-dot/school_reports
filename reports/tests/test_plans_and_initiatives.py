@@ -44,6 +44,7 @@ from reports.services_approval import (
 from reports.services_plans import (
     PlanError,
     convert_task_to_assignment,
+    initiatives_visible_to,
     share_initiative,
     shared_practices_for_group,
 )
@@ -296,6 +297,41 @@ class InitiativeTests(PlanBase):
         submit(initiative, self.teacher, school=self.school)
         approve(initiative, self.manager, school=self.school)
         self.assertEqual(initiative.approval_state, ApprovalState.APPROVED)
+
+    def test_the_manager_issues_their_own_initiative(self):
+        """المدير صاحب المبادرة وسلطتها، فيُصدرها ولا يرفعها لنفسه."""
+        initiative = self._initiative(teacher=self.manager, title="مبادرة المدير")
+
+        actions = available_actions(initiative, self.manager, school=self.school)
+        self.assertIn("issue", actions)
+        self.assertNotIn("submit", actions)
+
+        issue(initiative, self.manager, school=self.school)
+        self.assertEqual(initiative.approval_state, ApprovalState.APPROVED)
+        self.assertEqual(initiative.decided_by_id, self.manager.pk)
+
+    def test_approved_school_initiatives_are_visible_to_staff(self):
+        initiative = self._initiative(teacher=self.manager, title="مبادرة مدرسية")
+        issue(initiative, self.manager, school=self.school)
+
+        visible = initiatives_visible_to(self.teacher, self.school)
+        self.assertTrue(visible.filter(pk=initiative.pk).exists())
+
+    def test_another_staff_members_draft_remains_private(self):
+        other = _user("معلم آخر", "0500070012")
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=other,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        initiative = self._initiative(teacher=other, title="مسودة خاصة")
+
+        self.assertFalse(
+            initiatives_visible_to(self.teacher, self.school).filter(pk=initiative.pk).exists()
+        )
+        self.assertTrue(
+            initiatives_visible_to(self.manager, self.school).filter(pk=initiative.pk).exists()
+        )
 
     def test_an_empty_initiative_cannot_be_submitted(self):
         initiative = self._initiative(summary="   ")
@@ -565,6 +601,38 @@ class PlanScreenTests(PlanBase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Initiative.objects.filter(title="نادي العلوم").exists())
+
+    def test_a_manager_created_initiative_is_issued_and_visible_to_the_teacher(self):
+        self._enter(self.manager)
+        response = self.client.post(
+            reverse("reports:initiative_list"),
+            {
+                "title": "مبادرة الإتقان",
+                "summary": "برنامج مدرسي لرفع جودة التعلم.",
+                "plan": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        initiative = Initiative.objects.get(title="مبادرة الإتقان")
+        self.assertEqual(initiative.approval_state, ApprovalState.APPROVED)
+        self.assertEqual(initiative.decided_by_id, self.manager.pk)
+
+        self._enter(self.teacher)
+        teacher_page = self.client.get(reverse("reports:initiative_list"))
+        self.assertContains(teacher_page, initiative.title)
+        self.assertContains(teacher_page, "معتمد")
+
+    def test_a_manager_cannot_issue_an_empty_initiative(self):
+        self._enter(self.manager)
+        response = self.client.post(
+            reverse("reports:initiative_list"),
+            {"title": "مبادرة ناقصة", "summary": "", "plan": ""},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Initiative.objects.filter(title="مبادرة ناقصة").exists())
+        self.assertContains(response, "اشرح فكرة المبادرة وأثرها")
 
     def test_a_teacher_does_not_see_other_peoples_initiatives(self):
         other = _user("زميل", "0500070030")

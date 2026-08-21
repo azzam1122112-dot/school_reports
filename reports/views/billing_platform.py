@@ -1681,9 +1681,14 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
         today = timezone.localdate()
         pricing = _archive_pricing()
 
+        settled_gateway_statuses = {
+            Payment.Method.MOYASAR: {"paid"},
+            Payment.Method.TAMARA: {"fully_captured"},
+        }
         gateway_unsettled = (
-            payment.payment_method == Payment.Method.MOYASAR
-            and payment.gateway_status != "paid"
+            payment.payment_method in settled_gateway_statuses
+            and payment.gateway_status
+            not in settled_gateway_statuses[payment.payment_method]
         )
         if gateway_unsettled:
             requested_status = (request.POST.get("status") or "").strip()

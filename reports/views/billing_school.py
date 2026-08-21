@@ -47,6 +47,7 @@ from ..moyasar_gateway import (
     fetch_invoice as fetch_moyasar_invoice,
     is_enabled as moyasar_is_enabled,
 )
+from ..tamara_gateway import is_enabled as tamara_is_enabled
 
 from .billing_core import *  # noqa: F401,F403
 from .billing_core import (
@@ -251,6 +252,8 @@ def my_subscription(request):
         "pending_archive_space_payment": pending_archive_space_payment,
         "moyasar_enabled": moyasar_is_enabled(),
         "moyasar_environment": str(getattr(settings, "MOYASAR_ENVIRONMENT", "test") or "test"),
+        "tamara_enabled": tamara_is_enabled(),
+        "tamara_environment": str(getattr(settings, "TAMARA_ENVIRONMENT", "sandbox") or "sandbox"),
         "has_saved_archives": SchoolYearArchive.objects.filter(
             school=membership.school,
             status__in=[

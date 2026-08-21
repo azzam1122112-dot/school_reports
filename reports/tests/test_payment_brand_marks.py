@@ -1,10 +1,8 @@
 """A payment brand mark is a claim that we accept that method.
 
-Tamara was removed from the platform entirely — gateway module, routes,
-settings, wordmark and payment-method choice. This file used to gate the mark
-behind ``TAMARA_ENABLED``; it now pins the stronger invariant: the name and the
-logo must not reappear on any page, public or behind login. Re-adding the
-integration should be a deliberate act that fails this test first.
+Tamara is available behind ``TAMARA_ENABLED``. Its name must disappear from
+public and member pages while disabled, and appear with the checkout only when
+the production operator deliberately enables it.
 
 **لماذا تُعدّ الصفحات كلها لا صفحة الهبوط وحدها؟** النسخة الأولى من هذا
 الاختبار غطّت ثلاث صفحات عامة، وكانت سياسة الخصوصية — وهي عامة كذلك — تسمّي
@@ -25,7 +23,7 @@ from reports.models import (
 )
 
 
-TAMARA_LOGO = "tamara-wordmark"
+TAMARA_LOGO = "paymentPanelTamara"
 TAMARA_WORD = "تمارا"
 
 # كل ما يبلغه زائر غير مسجَّل ويحمل — أو قد يحمل — ذكراً لوسيلة دفع.
@@ -58,20 +56,21 @@ def _assert_clean(testcase, bodies):
     testcase.assertEqual(
         offenders,
         [],
-        "تمارا محذوفة من المنصة، فلا يجوز أن يظهر شعارها أو اسمها:\n"
+        "تمارا غير مفعّلة، فلا يجوز أن يظهر شعارها أو اسمها:\n"
         + "\n".join(offenders),
     )
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
-class TamaraIsGoneFromPublicPagesTests(TestCase):
+class TamaraBrandMarkIsGatedOnPublicPagesTests(TestCase):
     def _bodies(self):
         for name in PUBLIC_PAGES:
             response = self.client.get(reverse(name), follow=True)
             self.assertEqual(response.status_code, 200, name)
             yield name, response.content.decode("utf-8", errors="replace")
 
-    def test_no_public_page_mentions_the_removed_gateway(self):
+    @override_settings(TAMARA_ENABLED=False)
+    def test_no_public_page_mentions_tamara_while_disabled(self):
         _assert_clean(self, self._bodies())
 
     @override_settings(MOYASAR_ENABLED=True)
@@ -84,9 +83,16 @@ class TamaraIsGoneFromPublicPagesTests(TestCase):
         self.assertNotIn(TAMARA_WORD, body)
         self.assertIn("ميسر", body)
 
+    @override_settings(TAMARA_ENABLED=True, MOYASAR_ENABLED=False)
+    def test_public_disclosure_names_tamara_when_enabled(self):
+        body = self.client.get(
+            reverse("reports:privacy_policy"), follow=True
+        ).content.decode("utf-8", errors="replace")
+        self.assertIn(TAMARA_WORD, body)
+
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
-class TamaraIsGoneFromMemberPagesTests(TestCase):
+class TamaraBrandMarkIsGatedOnMemberPagesTests(TestCase):
     """ما يراه المشترك بعد الدخول يخضع للقاعدة نفسها.
 
     اختيار وسيلة الدفع يقع في «اشتراكي»، وسجلّ المدفوعات يعرض حالة البوابة —
@@ -112,8 +118,8 @@ class TamaraIsGoneFromMemberPagesTests(TestCase):
         session["active_school_id"] = self.school.id
         session.save()
 
-    @override_settings(MOYASAR_ENABLED=True)
-    def test_no_member_page_mentions_the_removed_gateway(self):
+    @override_settings(TAMARA_ENABLED=False, MOYASAR_ENABLED=True)
+    def test_no_member_page_mentions_tamara_while_disabled(self):
         def bodies():
             for name in MEMBER_PAGES:
                 response = self.client.get(reverse(name), follow=True)
@@ -124,7 +130,7 @@ class TamaraIsGoneFromMemberPagesTests(TestCase):
 
     @override_settings(MOYASAR_ENABLED=True)
     def test_the_electronic_payment_option_is_still_offered_through_moyasar(self):
-        """حذف تمارا لا يجوز أن يُخفي الدفع الإلكتروني نفسه."""
+        """تعطيل تمارا لا يجوز أن يُخفي الدفع الإلكتروني نفسه."""
         body = self.client.get(
             reverse("reports:my_subscription"), follow=True
         ).content.decode("utf-8", errors="replace")

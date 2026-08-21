@@ -513,6 +513,18 @@ urlpatterns = [
         views.moyasar_checkout_cancel,
         name="moyasar_checkout_cancel",
     ),
+    path("subscription/payment/tamara/", views.tamara_checkout_create, name="tamara_checkout_create"),
+    path(
+        "subscription/payment/tamara/<int:payment_id>/cancel/",
+        views.tamara_checkout_cancel,
+        name="tamara_checkout_cancel",
+    ),
+    path(
+        "subscription/payment/tamara/return/<str:result>/",
+        views.tamara_return,
+        name="tamara_return",
+    ),
+    path("payments/tamara/webhook/", views.tamara_webhook, name="tamara_webhook"),
     path(
         "subscription/discount-code/check/",
         views.discount_code_check,

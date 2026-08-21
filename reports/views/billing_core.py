@@ -698,7 +698,7 @@ def _notify_managers_of_group_payment(actor, *, total, labels, payment_method) -
         if not manager_ids:
             return
         group_name = getattr(actor.group, "name", "") or "مجموعة المدارس"
-        if payment_method == Payment.Method.MOYASAR:
+        if payment_method in {Payment.Method.MOYASAR, Payment.Method.TAMARA}:
             activation_detail = "ستُفعّل تلقائيًا فور تأكيد نجاح الدفع من البوابة."
         else:
             activation_detail = "ستُراجع صورة التحويل وتُفعّل خلال يوم عمل واحد كحد أقصى."

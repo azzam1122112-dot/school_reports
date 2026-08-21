@@ -47,9 +47,17 @@
     const orderTotal = form.querySelector("#orderTotal");
     const orderEmptyState = form.querySelector("#orderEmptyState");
     const receiptSubmit = form.querySelector("#submitBtn");
+    const tamaraSubmit = form.querySelector("#tamaraSubmit");
     const moyasarSubmit = form.querySelector("#moyasarSubmit");
     const paymentChoices = form.querySelectorAll("[data-payment-choice]");
     const paymentPanels = form.querySelectorAll("[data-payment-panel]");
+    const tamaraCheckout = form.querySelector('[data-payment-panel="tamara"]');
+    const tamaraInstallmentAmount = form.querySelector(
+      "#tamaraInstallmentAmount",
+    );
+    const tamaraInstallmentAmounts = form.querySelectorAll(
+      "[data-tamara-installment-amount]",
+    );
     const mobileSelectedCount = document.querySelector(
       "#mobileSelectedCount",
     );
@@ -250,6 +258,23 @@
         "إرسال إيصال التحويل البنكي",
         "اختر خدمة لإرسال إيصال التحويل",
       );
+      const installment = total / 4;
+      const formattedInstallment = formatAmount(installment);
+      if (tamaraInstallmentAmount) {
+        tamaraInstallmentAmount.textContent = formattedInstallment;
+      }
+      tamaraInstallmentAmounts.forEach((element) => {
+        element.textContent = `${formattedInstallment} ر.س`;
+      });
+      if (tamaraCheckout) {
+        tamaraCheckout.classList.toggle("is-ready", anySelected);
+      }
+      setSubmitState(
+        tamaraSubmit,
+        anySelected,
+        "المتابعة والدفع عبر تمارا",
+        "اختر خدمة للدفع عبر تمارا",
+      );
       setSubmitState(
         moyasarSubmit,
         anySelected,
@@ -356,6 +381,7 @@
       isOn,
       recompute,
       receiptSubmit,
+      tamaraSubmit,
       moyasarSubmit,
       selectPaymentMethod,
       setDiscount(state) {

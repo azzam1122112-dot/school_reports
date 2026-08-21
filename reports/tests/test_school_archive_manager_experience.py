@@ -45,6 +45,7 @@ from reports.models import (
     TicketNote,
 )
 from reports.pdf_report import build_report_print_context
+from reports.model_parts.approvals import ApprovalState
 from reports.services_archive import (
     archive_available_years,
     calculate_school_archive_storage_bytes,
@@ -521,6 +522,14 @@ class SchoolArchiveManagerExperienceTests(TestCase):
             title="مبادرة القراءة اليومية",
             summary="رفع أثر القراءة اليومية داخل المدرسة.",
             is_best_practice=True,
+            approval_state=ApprovalState.APPROVED,
+        )
+        draft_initiative = Initiative.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            plan=plan,
+            title="مسودة مبادرة لا تُؤرشف",
+            summary="مقترح لم يعتمد بعد.",
         )
 
         with (
@@ -587,6 +596,9 @@ class SchoolArchiveManagerExperienceTests(TestCase):
                 self.assertTrue(any(row[1] == plan.title for row in plan_rows[1:]))
                 initiative_rows = list(workbook["المبادرات"].iter_rows(values_only=True))
                 self.assertTrue(any(row[1] == initiative.title for row in initiative_rows[1:]))
+                self.assertFalse(
+                    any(row[1] == draft_initiative.title for row in initiative_rows[1:])
+                )
         finally:
             package.close()
 

@@ -16,6 +16,7 @@ from reports.middleware import ContentSecurityPolicyMiddleware
 
 
 MOYASAR_ORIGIN = "https://checkout.moyasar.com"
+TAMARA_ORIGIN = "https://checkout.tamara.co"
 
 
 def _form_action(path: str = "/subscription/my/") -> str:
@@ -35,7 +36,7 @@ class PaymentCheckoutFormActionTests(SimpleTestCase):
     def test_enabled_moyasar_origin_is_allowed(self):
         self.assertIn(MOYASAR_ORIGIN, _form_action())
 
-    @override_settings(MOYASAR_ENABLED=False)
+    @override_settings(MOYASAR_ENABLED=False, TAMARA_ENABLED=False)
     def test_no_gateway_origin_leaks_while_every_gateway_is_off(self):
         directive = _form_action()
         self.assertEqual(directive, "form-action 'self'")
@@ -57,9 +58,13 @@ class PaymentCheckoutFormActionTests(SimpleTestCase):
         self.assertIn("'self'", directive)
         self.assertIn(MOYASAR_ORIGIN, directive)
 
-    @override_settings(MOYASAR_ENABLED=True)
+    @override_settings(MOYASAR_ENABLED=False, TAMARA_ENABLED=False)
     def test_every_declared_gateway_is_covered_by_the_directive(self):
         """Adding a gateway without its origin here must fail loudly."""
-        directive = _form_action()
-        for _setting, origin in ContentSecurityPolicyMiddleware.PAYMENT_CHECKOUT_ORIGINS:
-            self.assertIn(origin, directive, origin)
+        for setting_name, origin in ContentSecurityPolicyMiddleware.PAYMENT_CHECKOUT_ORIGINS:
+            with self.settings(**{setting_name: True}):
+                self.assertIn(origin, _form_action(), origin)
+
+    @override_settings(MOYASAR_ENABLED=False, TAMARA_ENABLED=True)
+    def test_enabled_tamara_origin_is_allowed(self):
+        self.assertIn(TAMARA_ORIGIN, _form_action())

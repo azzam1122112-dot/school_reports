@@ -124,13 +124,21 @@ SUBSCRIPTION_EXPIRY_REMINDER_ENABLED=True
 SUBSCRIPTION_EXPIRY_REMINDER_DAYS=14,7,3,1
 SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED=True
 
-# Written out even though both gateways start off. Omitting them let the
+# Written out even though gateways may start off. Omitting them let the
 # settings default decide in silence, and a server whose env never mentioned
 # MOYASAR_ENABLED served a checkout page with no electronic payment on it and
 # nothing anywhere saying why. Present-and-False is a setting; absent is a
-# question nobody knows to ask. Enabling Moyasar needs the matching key —
+# question nobody knows to ask. Tamara stays off until both merchant tokens are
+# installed for Tawtheeq. Enabling Moyasar needs the matching key —
 # MOYASAR_ENVIRONMENT=live wants an sk_live_ key, and the app refuses to boot
 # on a mismatch rather than take money against test credentials.
+TAMARA_ENABLED=False
+TAMARA_ENVIRONMENT=production
+TAMARA_API_TOKEN=
+TAMARA_NOTIFICATION_TOKEN=
+TAMARA_INSTALMENTS=4
+TAMARA_REQUEST_TIMEOUT=15
+
 MOYASAR_ENABLED=False
 MOYASAR_ENVIRONMENT=live
 MOYASAR_SECRET_KEY=

@@ -14,6 +14,7 @@ from io import BytesIO
 from django.utils import timezone
 
 from .gender_labels import school_gender_labels
+from .model_parts.approvals import ApprovalState
 from .models import (
     AchievementEvidenceImage,
     AchievementEvidenceReport,
@@ -1196,6 +1197,11 @@ def _plans_qs(school, *, academic_year=None):
 
 
 def _initiatives_qs(school, *, academic_year=None):
+    """مبادرات التصدير.
+
+    التنزيل الكامل نسخة بيانات، فيحفظ كل الحالات. أما نسخة السنة
+    فهي أرشيف رسمي، ولذلك لا تدخلها مسودة أو مقترح لم يُعتمد.
+    """
     qs = (
         Initiative.objects.filter(school=school)
         .select_related("teacher", "plan")
@@ -1204,7 +1210,10 @@ def _initiatives_qs(school, *, academic_year=None):
     if academic_year:
         from django.db.models import Q
 
-        qs = qs.filter(Q(plan__academic_year=academic_year) | Q(plan__isnull=True))
+        qs = qs.filter(
+            Q(plan__academic_year=academic_year) | Q(plan__isnull=True),
+            approval_state=ApprovalState.APPROVED,
+        )
     return qs
 
 

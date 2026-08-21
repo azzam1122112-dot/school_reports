@@ -793,6 +793,7 @@ class ContentSecurityPolicyMiddleware:
     # page. Every gateway that can be switched on must be listed.
     PAYMENT_CHECKOUT_ORIGINS = (
         ("MOYASAR_ENABLED", "https://checkout.moyasar.com"),
+        ("TAMARA_ENABLED", "https://checkout.tamara.co"),
     )
 
     @classmethod

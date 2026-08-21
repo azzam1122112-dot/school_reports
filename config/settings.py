@@ -1639,6 +1639,50 @@ if ENV == "production" and PRODUCTION_STRICT_MODE:
             + ", ".join(_business_disclosure_missing)
         )
 
+# ----------------- Tamara payments -----------------
+# Credentials are server-only and the switch stays off until the merchant,
+# production token and signed notification webhook all belong to Tawtheeq.
+TAMARA_ENABLED = _env_bool("TAMARA_ENABLED", False)
+TAMARA_ENVIRONMENT = (os.getenv("TAMARA_ENVIRONMENT") or "sandbox").strip().lower()
+TAMARA_API_TOKEN = (os.getenv("TAMARA_API_TOKEN") or "").strip()
+TAMARA_NOTIFICATION_TOKEN = (os.getenv("TAMARA_NOTIFICATION_TOKEN") or "").strip()
+if TAMARA_ENVIRONMENT not in {"sandbox", "production"}:
+    raise ImproperlyConfigured("TAMARA_ENVIRONMENT must be either sandbox or production.")
+if TAMARA_ENABLED:
+    _tamara_missing = [
+        name
+        for name, value in (
+            ("TAMARA_API_TOKEN", TAMARA_API_TOKEN),
+            ("TAMARA_NOTIFICATION_TOKEN", TAMARA_NOTIFICATION_TOKEN),
+        )
+        if not value
+    ]
+    if _tamara_missing:
+        raise ImproperlyConfigured(
+            "Tamara is enabled but required credentials are missing: "
+            + ", ".join(_tamara_missing)
+        )
+    if ENV == "production" and PRODUCTION_STRICT_MODE and TAMARA_ENVIRONMENT != "production":
+        raise ImproperlyConfigured(
+            "TAMARA_ENVIRONMENT must be production when Tamara is enabled in strict production mode."
+        )
+TAMARA_API_BASE_URL = (
+    os.getenv("TAMARA_API_BASE_URL")
+    or (
+        "https://api.tamara.co"
+        if TAMARA_ENVIRONMENT == "production"
+        else "https://api-sandbox.tamara.co"
+    )
+).strip().rstrip("/")
+try:
+    TAMARA_INSTALMENTS = max(2, min(12, int(os.getenv("TAMARA_INSTALMENTS", "4"))))
+except (TypeError, ValueError):
+    TAMARA_INSTALMENTS = 4
+try:
+    TAMARA_REQUEST_TIMEOUT = max(2, min(60, int(os.getenv("TAMARA_REQUEST_TIMEOUT", "15"))))
+except (TypeError, ValueError):
+    TAMARA_REQUEST_TIMEOUT = 15
+
 # ----------------- Moyasar payments -----------------
 # Keep test mode isolated from strict production. The secret key is server-only;
 # checkout is hosted by Moyasar and the returned invoice is verified server-side.

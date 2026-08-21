@@ -24,8 +24,8 @@
     </span>
     <h1 class="asg-hero__title">المبادرات</h1>
     <p class="asg-hero__meta">
-      اقترحها أيٌّ كان، ويعتمدها مدير المدرسة. والممارسة الناجحة تُشارَك مع
-      مدارس المجموعة بعد اعتمادها — لا قبله.
+      مبادرة المدير تصدر معتمدةً فورًا، ومقترح المنسوب يمر بمراجعة مدير
+      المدرسة. والممارسة الناجحة تُشارَك مع مدارس المجموعة بعد اعتمادها.
     </p>
   </header>
 
@@ -33,7 +33,7 @@
     <div>
       <section class="asg-card u-mt-2xl">
         <h2 class="asg-card__title">
-          {% if is_manager %}المبادرات ومتابعتها{% else %}مبادراتي{% endif %}
+          {% if is_manager %}المبادرات ومتابعتها{% else %}مبادرات المدرسة{% endif %}
         </h2>
 
         {% for row in rows %}
@@ -63,6 +63,12 @@
                   {% endif %}
                   {% if 'submit' in row.actions %}
                     <button type="submit" class="asg-btn asg-btn--primary asg-btn--sm" data-ini="submit">إرسال للاعتماد</button>
+                  {% endif %}
+                  {% if 'issue' in row.actions %}
+                    <button type="submit" class="asg-btn asg-btn--primary asg-btn--sm" data-ini="issue">
+                      <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                      إصدار واعتماد
+                    </button>
                   {% endif %}
                   {% if 'withdraw' in row.actions %}
                     <button type="submit" class="asg-btn asg-btn--ghost asg-btn--sm" data-ini="withdraw">سحب</button>
@@ -98,34 +104,22 @@
           <div class="asg-empty">
             <div class="asg-empty__icon"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></div>
             <h2>لا مبادرات بعد</h2>
-            <p>اقترح مبادرة أو ممارسة نجحت معك — وبعد اعتمادها قد تُشارَك مع بقية مدارس المجموعة.</p>
+            <p>أنشئ مبادرة أو اقترح ممارسة نجحت معك لتظهر في سجل المدرسة بعد اعتمادها.</p>
           </div>
         {% endfor %}
       </section>
-
-      {% if shared %}
-        <section class="asg-card">
-          <h2 class="asg-card__title">ممارسات مدرستك المشاركة</h2>
-          <p class="asg-card__hint">معروضة على مدارس المجموعة.</p>
-          {% for item in shared %}
-            <article class="asg-item">
-              <div class="asg-item__main">
-                <div class="asg-item__title">{{ item.title }}</div>
-                <div class="asg-item__sub">
-                  {{ item.teacher_name|default:"—" }} · شُوركت {{ item.shared_at|date:"Y-m-d" }}
-                </div>
-              </div>
-              <div class="asg-item__side"><span class="asg-tag asg-tag--done">مشاركة</span></div>
-            </article>
-          {% endfor %}
-        </section>
-      {% endif %}
     </div>
 
     <div>
       <section class="asg-card u-mt-2xl">
-        <h2 class="asg-card__title">اقتراح مبادرة</h2>
-        <p class="asg-card__hint">تُحفظ مسودةً، وترسلها للاعتماد حين تكتمل.</p>
+        <h2 class="asg-card__title">{% if is_manager %}إنشاء مبادرة{% else %}اقتراح مبادرة{% endif %}</h2>
+        <p class="asg-card__hint">
+          {% if is_manager %}
+            تصدر معتمدةً فور تسجيلها، بلا انتظار اعتماد من أي جهة.
+          {% else %}
+            تُحفظ مسودةً، وترسلها لمدير المدرسة حين تكتمل.
+          {% endif %}
+        </p>
 
         <form method="post" novalidate>
           {% csrf_token %}
@@ -137,6 +131,7 @@
           <div class="asg-field">
             <label for="{{ form.summary.id_for_label }}">{{ form.summary.label }}</label>
             {{ form.summary }}
+            {% if form.summary.errors %}<ul class="asg-errors">{% for e in form.summary.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
           </div>
           <div class="asg-field">
             <label for="{{ form.plan.id_for_label }}">{{ form.plan.label }}</label>
@@ -151,7 +146,7 @@
           </div>
           <button type="submit" class="asg-btn asg-btn--primary">
             <i class="fa-solid fa-plus" aria-hidden="true"></i>
-            تسجيل المبادرة
+            {% if is_manager %}إصدار المبادرة{% else %}تسجيل المقترح{% endif %}
           </button>
         </form>
       </section>

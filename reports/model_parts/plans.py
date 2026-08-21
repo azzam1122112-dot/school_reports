@@ -324,6 +324,20 @@ class Initiative(ApprovalMixin):
         """لا تُشارَك إلا بعد اعتمادها — ومشاركةُ غير المعتمد نقلٌ لما لم يُتحقّق منه."""
         return self.approval_state == ApprovalState.APPROVED and not self.is_shared
 
+    def allows_issuance(self, user, school) -> bool:
+        """مدير المدرسة يُصدر مبادرته ولا يرفعها لمراجع لا وجود له.
+
+        هذا إصدارٌ من صاحب السلطة، لا اعتمادٌ ذاتي. وبذلك يبقى سجل
+        الانتقالات صحيحاً، ويبقى مقترح المعلم خاضعاً لمراجعة المدير.
+        """
+        from ..permissions import is_school_manager
+
+        return (
+            self.teacher_id == getattr(user, "pk", None)
+            and self.school_id == getattr(school, "pk", None)
+            and is_school_manager(user, active_school=school)
+        )
+
     def assert_ready_for_submission(self) -> None:
         if not (self.summary or "").strip():
             raise ValidationError("اشرح فكرة المبادرة وأثرها قبل إرسالها.")

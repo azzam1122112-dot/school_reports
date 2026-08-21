@@ -13,6 +13,7 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models import Max
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -27,11 +28,13 @@ from ..services_approval import (
     ACTION_DISPATCH,
     ApprovalError,
     available_actions,
+    issue,
     transitions_for,
 )
 from ..services_plans import (
     PlanError,
     convert_task_to_assignment,
+    initiatives_visible_to,
     plan_board_rows,
     plans_for_school,
     plans_visible_to,
@@ -471,29 +474,31 @@ def initiative_list(request):
     if request.method == "POST":
         form = InitiativeForm(request.POST, school=school)
         if form.is_valid():
-            initiative = form.save(commit=False)
-            initiative.school = school
-            initiative.teacher = request.user
-            initiative.save()
-            messages.success(request, "سُجِّلت المبادرة كمسودة. أرسلها للاعتماد حين تكتمل.")
-            return redirect("reports:initiative_list")
-        messages.error(request, "تعذّر تسجيل المبادرة — تحقّق من الحقول.")
+            try:
+                with transaction.atomic():
+                    initiative = form.save(commit=False)
+                    initiative.school = school
+                    initiative.teacher = request.user
+                    initiative.save()
+                    if is_manager:
+                        issue(initiative, request.user, school=school)
+            except (ApprovalError, ValidationError) as exc:
+                detail = getattr(exc, "messages", None) or [str(exc)]
+                form.add_error("summary", detail[0])
+                messages.error(request, "لا يمكن إصدار المبادرة قبل اكتمال فكرتها وأثرها.")
+            else:
+                if is_manager:
+                    messages.success(request, "صدرت المبادرة واعتُمدت، وأصبحت ظاهرة لمنسوبي المدرسة.")
+                else:
+                    messages.success(request, "سُجِّلت المبادرة كمسودة. أرسلها للاعتماد حين تكتمل.")
+                return redirect("reports:initiative_list")
+        else:
+            messages.error(request, "تعذّر تسجيل المبادرة — تحقّق من الحقول.")
 
-    base = Initiative.objects.filter(school=school).select_related("teacher", "plan")
-    mine = list(base.filter(teacher=request.user)[:50])
-    # المدير يرى ما ينتظر قراره، وغيره يرى مبادراته وحدها.
-    awaiting = (
-        list(
-            base.exclude(teacher=request.user)
-            .filter(approval_state=ApprovalState.SUBMITTED)[:50]
-        )
-        if is_manager
-        else []
-    )
-    shared = list(base.filter(shared_at__isnull=False)[:50])
+    visible = list(initiatives_visible_to(request.user, school)[:100])
 
     rows = []
-    for item in mine + awaiting:
+    for item in visible:
         rows.append(
             {
                 "initiative": item,
@@ -511,7 +516,6 @@ def initiative_list(request):
             "active_school": school,
             "form": form,
             "rows": rows,
-            "shared": shared,
             "is_manager": is_manager,
         },
     )
@@ -544,6 +548,7 @@ def initiative_action(request, pk: int):
                 messages.success(
                     request,
                     {
+                        "issue": "صدرت المبادرة واعتُمدت.",
                         "submit": "أُرسلت المبادرة للاعتماد.",
                         "withdraw": "سُحبت المبادرة للتعديل.",
                         "return": "أُعيدت المبادرة لمقدّمها مع ملاحظتك.",

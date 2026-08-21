@@ -1600,17 +1600,22 @@ def payment_gateways(request: HttpRequest) -> Dict[str, Any]:
     واحد، ومن أراد ذكر بوابة سأل عنه.
     """
     from .moyasar_gateway import is_enabled as _moyasar_enabled
+    from .tamara_gateway import is_enabled as _tamara_enabled
 
     # بوّابةٌ تُقرأ «معطّلة» بسبب تعثّر تعني اختفاء وسيلة الدفع من صفحة
     # الاشتراك — عطلٌ تجاري مباشر لا يجوز أن يمرّ صامتاً.
     moyasar_on = bool(soft_call("gateways.moyasar_enabled", _moyasar_enabled, default=False))
+    tamara_on = bool(soft_call("gateways.tamara_enabled", _tamara_enabled, default=False))
 
     names: List[str] = []
     if moyasar_on:
         names.append("ميسر")
+    if tamara_on:
+        names.append("تمارا")
 
     return {
         "moyasar_enabled": moyasar_on,
+        "tamara_enabled": tamara_on,
         # جاهزة للعرض نصّاً: «ميسر» أو فراغ عند تعطيلها.
         "active_payment_gateway_names": " و".join(names),
         "any_payment_gateway_enabled": bool(names),

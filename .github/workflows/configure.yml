@@ -8,12 +8,26 @@ name: Configure production runtime
 # which values, kept in the workflow log. It reuses the deploy key that already
 # exists, so it grants no access that pushing to main does not already grant.
 #
-# Secrets are never inputs. MOYASAR_SECRET_KEY is read from repository secrets and
-# piped over stdin, so it stays out of argv, out of the log, and out of the URL.
+# Secrets are never inputs. Payment credentials are read from repository secrets
+# and piped over stdin, so they stay out of argv, logs, and workflow URLs.
 
 on:
   workflow_dispatch:
     inputs:
+      tamara_enabled:
+        description: "TAMARA_ENABLED — only after Tawtheeq merchant approval"
+        type: choice
+        options: ["False", "True"]
+        default: "False"
+      tamara_environment:
+        description: "TAMARA_ENVIRONMENT"
+        type: choice
+        options: ["production", "sandbox"]
+        default: "production"
+      update_tamara_tokens:
+        description: "Install both Tamara tokens from repository secrets"
+        type: boolean
+        default: false
       moyasar_enabled:
         description: "MOYASAR_ENABLED — the active launch gateway"
         type: choice
@@ -91,12 +105,16 @@ jobs:
           SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
           MOYASAR_SECRET_KEY: ${{ secrets.MOYASAR_SECRET_KEY }}
+          TAMARA_API_TOKEN: ${{ secrets.TAMARA_API_TOKEN }}
+          TAMARA_NOTIFICATION_TOKEN: ${{ secrets.TAMARA_NOTIFICATION_TOKEN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_WEBHOOK_SECRET: ${{ secrets.RESEND_WEBHOOK_SECRET }}
         run: |
           set -euo pipefail
 
-          FLAGS="--moyasar-enabled '${{ inputs.moyasar_enabled }}'"
+          FLAGS="--tamara-enabled '${{ inputs.tamara_enabled }}'"
+          FLAGS="$FLAGS --tamara-environment '${{ inputs.tamara_environment }}'"
+          FLAGS="$FLAGS --moyasar-enabled '${{ inputs.moyasar_enabled }}'"
           FLAGS="$FLAGS --moyasar-environment '${{ inputs.moyasar_environment }}'"
           FLAGS="$FLAGS --pdf-offload-enabled '${{ inputs.pdf_offload_enabled }}'"
 
@@ -119,6 +137,18 @@ jobs:
               exit 1
             fi
             FLAGS="$FLAGS --moyasar-key-from-stdin"
+          fi
+
+          # Install Tamara's pair first. This lets the guarded enable command
+          # below verify the already-written server values before switching on.
+          if [ "${{ inputs.update_tamara_tokens }}" = "true" ]; then
+            if [ -z "$TAMARA_API_TOKEN" ] || [ -z "$TAMARA_NOTIFICATION_TOKEN" ]; then
+              echo "::error title=Missing Tamara secrets::Add TAMARA_API_TOKEN and TAMARA_NOTIFICATION_TOKEN under Settings > Environments > production."
+              exit 1
+            fi
+            printf '%s\n%s\n' "$TAMARA_API_TOKEN" "$TAMARA_NOTIFICATION_TOKEN" \
+            | ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+                "DEPLOY_PATH='$DEPLOY_PATH' python3 '$DEPLOY_PATH/deploy/hetzner/apply_runtime_config.py' --tamara-environment '${{ inputs.tamara_environment }}' --tamara-config-from-stdin"
           fi
 
           # The key travels on stdin only. An empty stdin leaves the value alone.

@@ -9,6 +9,7 @@ from unittest.mock import patch
 from django.test import SimpleTestCase
 
 from deploy.hetzner.apply_runtime_config import (
+    _assert_tamara_can_boot,
     _assert_web_push_can_boot,
     _collect,
     _rewrite,
@@ -22,6 +23,9 @@ def _b64(value: bytes) -> str:
 class WebPushRuntimeConfigTests(SimpleTestCase):
     def _args(self, **overrides):
         values = {
+            "tamara_enabled": None,
+            "tamara_environment": None,
+            "tamara_config_from_stdin": False,
             "moyasar_enabled": None,
             "moyasar_environment": None,
             "pdf_offload_enabled": None,
@@ -34,6 +38,34 @@ class WebPushRuntimeConfigTests(SimpleTestCase):
         }
         values.update(overrides)
         return SimpleNamespace(**values)
+
+    def test_tamara_tokens_are_collected_without_printing(self):
+        stdin = io.StringIO("api_token_1234567890\nnotification_token_1234567890\n")
+        with patch("sys.stdin", stdin):
+            values = _collect(
+                self._args(
+                    tamara_config_from_stdin=True,
+                    web_push_enabled=None,
+                    web_push_config_from_stdin=False,
+                )
+            )
+        self.assertEqual(values["TAMARA_API_TOKEN"], "api_token_1234567890")
+        self.assertEqual(
+            values["TAMARA_NOTIFICATION_TOKEN"],
+            "notification_token_1234567890",
+        )
+
+    def test_tamara_cannot_be_enabled_without_both_tokens(self):
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "env.production"
+            path.write_text(
+                "TAMARA_ENABLED=False\nTAMARA_ENVIRONMENT=production\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesMessage(SystemExit, "TAMARA_API_TOKEN"):
+                _assert_tamara_can_boot(path, {"TAMARA_ENABLED": "True"})
 
     def test_valid_vapid_pair_is_collected_without_printing_or_reformatting(self):
         private_key = _b64(b"p" * 32)
