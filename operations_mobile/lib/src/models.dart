@@ -201,6 +201,70 @@ class DashboardData {
   }
 }
 
+class DeploymentInfo {
+  const DeploymentInfo({
+    required this.repository,
+    required this.branch,
+    required this.workflow,
+    required this.configured,
+    required this.latestSha,
+    required this.latestShortSha,
+    required this.latestMessage,
+    required this.deployedSha,
+    required this.deployedShortSha,
+    required this.deployedImage,
+    required this.upToDate,
+    required this.repositoryAhead,
+    required this.workflowStatus,
+    required this.workflowConclusion,
+    required this.workflowUrl,
+    required this.actionRequired,
+    required this.canDeploy,
+    this.workflowRunId,
+  });
+
+  final String repository;
+  final String branch;
+  final String workflow;
+  final bool configured;
+  final String latestSha;
+  final String latestShortSha;
+  final String latestMessage;
+  final String deployedSha;
+  final String deployedShortSha;
+  final String deployedImage;
+  final bool upToDate;
+  final bool repositoryAhead;
+  final String workflowStatus;
+  final String workflowConclusion;
+  final String workflowUrl;
+  final String actionRequired;
+  final bool canDeploy;
+  final int? workflowRunId;
+
+  factory DeploymentInfo.fromJson(Map<String, dynamic> json) =>
+      DeploymentInfo(
+        repository: '${json['repository'] ?? ''}',
+        branch: '${json['branch'] ?? ''}',
+        workflow: '${json['workflow'] ?? ''}',
+        configured: json['configured'] == true,
+        latestSha: '${json['latest_sha'] ?? ''}',
+        latestShortSha: '${json['latest_short_sha'] ?? ''}',
+        latestMessage: '${json['latest_message'] ?? ''}',
+        deployedSha: '${json['deployed_sha'] ?? ''}',
+        deployedShortSha: '${json['deployed_short_sha'] ?? ''}',
+        deployedImage: '${json['deployed_image'] ?? ''}',
+        upToDate: json['up_to_date'] == true,
+        repositoryAhead: json['repository_ahead'] == true,
+        workflowStatus: '${json['workflow_status'] ?? ''}',
+        workflowConclusion: '${json['workflow_conclusion'] ?? ''}',
+        workflowUrl: '${json['workflow_url'] ?? ''}',
+        actionRequired: '${json['action_required'] ?? ''}',
+        canDeploy: json['can_deploy'] == true,
+        workflowRunId: (json['workflow_run_id'] as num?)?.toInt(),
+      );
+}
+
 class MetricPoint {
   const MetricPoint({this.cpu, this.memory, this.disk, this.capturedAt});
   final double? cpu;

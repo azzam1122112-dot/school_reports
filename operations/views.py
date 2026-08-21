@@ -12,6 +12,7 @@ from reports.models import TeacherTotpDevice
 from reports.totp import decrypt_secret, verify_code
 
 from .authentication import OperationsTokenAuthentication
+from .deployments import DeploymentIntegrationError, GitHubDeploymentClient
 from .models import Incident, ManagedProject, ManagedServer, MobileAccessToken, MobileDevice, OperationAction
 from .serializers import IncidentSerializer, ManagedProjectSerializer, ManagedServerSerializer, MetricSerializer, OperationActionSerializer
 from .services import probe_project
@@ -84,6 +85,41 @@ def dashboard(request):
         "servers": ManagedServerSerializer(servers, many=True).data,
         "incidents": IncidentSerializer(incidents, many=True).data,
     })
+
+
+@api_view(["GET"])
+@authentication_classes([OperationsTokenAuthentication])
+def deployment_status(request):
+    state = GitHubDeploymentClient().deployment_state()
+    return Response(state.as_dict())
+
+
+@api_view(["POST"])
+@authentication_classes([OperationsTokenAuthentication])
+def trigger_deployment(request):
+    client = GitHubDeploymentClient()
+    state = client.deployment_state()
+    confirmation = str(request.data.get("confirmation") or "").strip()
+    if not state.repository_ahead:
+        return Response({"detail": "الخادم مطابق للمستودع ولا يوجد إصدار أحدث للنشر."}, status=409)
+    if state.workflow_status == "in_progress":
+        return Response({"detail": "يوجد نشر قيد التنفيذ بالفعل. تابع حالته بدل تشغيل نشر جديد."}, status=409)
+    if confirmation != state.latest_sha[:12]:
+        return Response(
+            {
+                "detail": f"اكتب رقم الإصدار {state.latest_sha[:12]} لتأكيد النشر.",
+                "confirmation_required": state.latest_sha[:12],
+            },
+            status=409,
+        )
+    try:
+        client.trigger_deploy()
+    except DeploymentIntegrationError as exc:
+        return Response({"detail": str(exc)}, status=502)
+    return Response({
+        "detail": "تم تشغيل مسار النشر في GitHub Actions.",
+        "state": client.deployment_state().as_dict(),
+    }, status=202)
 
 
 @api_view(["GET"])

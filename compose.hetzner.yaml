@@ -27,6 +27,9 @@ x-app: &app
     - /tmp:size=128m,mode=1777
   env_file:
     - ${ENV_FILE:-deploy/hetzner/env.production}
+  environment:
+    RELEASE_SHA: ${RELEASE_SHA:-unknown}
+    RELEASE_IMAGE: ${APP_IMAGE}
   logging: *default-logging
   depends_on:
     postgres:

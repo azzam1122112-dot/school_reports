@@ -1058,6 +1058,7 @@ CELERY_TASK_ROUTES = {
     "reports.tasks.monitor_infrastructure_capacity_task": {"queue": "periodic"},
     "operations.tasks.run_operations_monitor_task": {"queue": "periodic"},
     "operations.tasks.store_capacity_snapshot_task": {"queue": "periodic"},
+    "operations.tasks.monitor_deployment_state_task": {"queue": "periodic"},
     "operations.tasks.send_incident_push_task": {"queue": "notifications"},
     "operations.tasks.cleanup_operations_history_task": {"queue": "periodic"},
     "reports.tasks.cleanup_generated_exports_task": {"queue": "periodic"},
@@ -1296,6 +1297,10 @@ if crontab is not None:
         CELERY_BEAT_SCHEDULE["cleanup-operations-history"] = {
             "task": "operations.tasks.cleanup_operations_history_task",
             "schedule": crontab(minute=25, hour=4),
+        }
+        CELERY_BEAT_SCHEDULE["monitor-deployment-state"] = {
+            "task": "operations.tasks.monitor_deployment_state_task",
+            "schedule": crontab(minute="*/5"),
         }
 
     CELERY_BEAT_SCHEDULE["cleanup-generated-exports-hourly"] = {
@@ -1575,6 +1580,13 @@ FCM_PROJECT_ID = (os.getenv("FCM_PROJECT_ID") or "").strip()
 OPERATIONS_MOBILE_TOKEN_HOURS = int(os.getenv("OPERATIONS_MOBILE_TOKEN_HOURS", "12") or "12")
 OPERATIONS_PROBE_TIMEOUT_SECONDS = float(os.getenv("OPERATIONS_PROBE_TIMEOUT_SECONDS", "8") or "8")
 OPERATIONS_HISTORY_RETENTION_DAYS = int(os.getenv("OPERATIONS_HISTORY_RETENTION_DAYS", "30") or "30")
+OPERATIONS_GITHUB_REPOSITORY = (os.getenv("OPERATIONS_GITHUB_REPOSITORY") or "azzam1122112-dot/school_reports").strip()
+OPERATIONS_GITHUB_BRANCH = (os.getenv("OPERATIONS_GITHUB_BRANCH") or "main").strip()
+OPERATIONS_GITHUB_WORKFLOW = (os.getenv("OPERATIONS_GITHUB_WORKFLOW") or "ci.yml").strip()
+OPERATIONS_GITHUB_TOKEN = (os.getenv("OPERATIONS_GITHUB_TOKEN") or "").strip()
+OPERATIONS_DEPLOY_MONITOR_ENABLED = _env_bool("OPERATIONS_DEPLOY_MONITOR_ENABLED", True)
+RELEASE_SHA = (os.getenv("RELEASE_SHA") or "").strip()
+RELEASE_IMAGE = (os.getenv("RELEASE_IMAGE") or "").strip()
 
 # Public business disclosure shown in a collapsed, low-prominence section on
 # the landing and legal pages. Never place a national ID or personal photo here.

@@ -25,6 +25,10 @@ log() { printf '[deploy] %s\n' "$1"; }
 
 # --- preflight ---------------------------------------------------------------
 : "${APP_IMAGE:?APP_IMAGE is not set}"
+RELEASE_SHA="${RELEASE_SHA:-${APP_IMAGE##*:}}"
+case "$RELEASE_SHA" in
+  *[!0-9a-fA-F]*|"") RELEASE_SHA="unknown" ;;
+esac
 
 command -v docker >/dev/null 2>&1 || die "docker is not installed on this server."
 docker compose version >/dev/null 2>&1 || die "the docker compose v2 plugin is missing."
@@ -68,7 +72,7 @@ docker network inspect "$EDGE_NETWORK" >/dev/null 2>&1 || {
 # Remember what is running now, so a failed deploy can be reverted by hand.
 PREVIOUS_IMAGE="$(docker inspect --format '{{.Config.Image}}' school-reports-web-1 2>/dev/null || true)"
 
-export APP_IMAGE
+export APP_IMAGE RELEASE_SHA
 
 # يُثبَّت الوسم المنشور في `.env` بجانب ملفات compose.
 #
@@ -78,9 +82,9 @@ export APP_IMAGE
 # ويُسقط الموقع بخطأ صلاحيات لا علاقة له بالسبب.
 #
 # ويُكتب بذرّية (ملف مؤقت ثم `mv`) كي لا يقرأ أمرٌ متزامن ملفاً نصف مكتوب.
-printf 'APP_IMAGE=%s\n' "$APP_IMAGE" > "$DEPLOY_PATH/.env.tmp"
+printf 'APP_IMAGE=%s\nRELEASE_SHA=%s\n' "$APP_IMAGE" "$RELEASE_SHA" > "$DEPLOY_PATH/.env.tmp"
 mv -f "$DEPLOY_PATH/.env.tmp" "$DEPLOY_PATH/.env"
-log "pinned APP_IMAGE in $DEPLOY_PATH/.env"
+log "pinned APP_IMAGE and RELEASE_SHA in $DEPLOY_PATH/.env"
 
 # --- pull --------------------------------------------------------------------
 if [ "${GHCR_TOKEN_FROM_STDIN:-}" = "1" ]; then

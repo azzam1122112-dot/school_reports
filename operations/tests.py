@@ -7,6 +7,7 @@ from django.utils import timezone
 from reports.models import Teacher
 
 from .models import HealthCheck, Incident, ManagedProject, ManagedServer, MobileAccessToken, MobileDevice, OperationAction
+from .deployments import DeploymentState
 from .services import capture_server_metrics
 
 
@@ -139,3 +140,72 @@ class OperationsApiTests(TestCase):
         self.assertIn("الإجراء المناسب", incident.message)
         self.assertIn("worker إضافي", incident.message)
         push_delay.assert_called_once_with(incident.pk)
+
+    @patch("operations.views.GitHubDeploymentClient")
+    def test_deployment_status_reports_repository_drift(self, client_cls):
+        client_cls.return_value.deployment_state.return_value = DeploymentState(
+            repository="owner/repo",
+            branch="main",
+            workflow="ci.yml",
+            configured=True,
+            latest_sha="b" * 40,
+            latest_message="new release",
+            deployed_sha="a" * 40,
+            deployed_image="ghcr.io/owner/repo:" + "a" * 40,
+            up_to_date=False,
+            repository_ahead=True,
+            workflow_status="completed",
+            workflow_conclusion="success",
+            workflow_url="https://github.example/run",
+            workflow_run_id=123,
+            action_required="اضغط زر النشر.",
+            generated_note="",
+        )
+        token = self._login()
+        response = self.client.get(reverse("operations:deployment-status"), HTTP_AUTHORIZATION=f"Ops-Token {token}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["repository_ahead"])
+        self.assertEqual(response.json()["latest_short_sha"], "b" * 12)
+
+    @patch("operations.views.GitHubDeploymentClient")
+    def test_trigger_deployment_requires_latest_sha_confirmation(self, client_cls):
+        state = DeploymentState(
+            repository="owner/repo",
+            branch="main",
+            workflow="ci.yml",
+            configured=True,
+            latest_sha="b" * 40,
+            latest_message="new release",
+            deployed_sha="a" * 40,
+            deployed_image="ghcr.io/owner/repo:" + "a" * 40,
+            up_to_date=False,
+            repository_ahead=True,
+            workflow_status="completed",
+            workflow_conclusion="success",
+            workflow_url="",
+            workflow_run_id=None,
+            action_required="اضغط زر النشر.",
+            generated_note="",
+        )
+        client = client_cls.return_value
+        client.deployment_state.return_value = state
+        token = self._login()
+
+        rejected = self.client.post(
+            reverse("operations:trigger-deployment"),
+            {"confirmation": "wrong"},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Ops-Token {token}",
+        )
+        self.assertEqual(rejected.status_code, 409)
+        client.trigger_deploy.assert_not_called()
+
+        accepted = self.client.post(
+            reverse("operations:trigger-deployment"),
+            {"confirmation": "b" * 12},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Ops-Token {token}",
+        )
+        self.assertEqual(accepted.status_code, 202)
+        client.trigger_deploy.assert_called_once()

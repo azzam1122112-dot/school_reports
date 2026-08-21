@@ -75,6 +75,8 @@ class DashboardScreen extends ConsumerWidget {
               final content = <Widget>[
                 _Overview(data: data),
                 const SizedBox(height: 16),
+                const _DeploymentPanel(),
+                const SizedBox(height: 16),
                 if (data.servers.isEmpty)
                   const Card(
                     child: EmptyState(
@@ -220,6 +222,257 @@ class _Overview extends StatelessWidget {
       ],
     );
   }
+}
+
+class _DeploymentPanel extends ConsumerWidget {
+  const _DeploymentPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final deployment = ref.watch(deploymentProvider);
+    return deployment.when(
+      loading: () => const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 12),
+              Text('جاري فحص توافق المستودع مع الخادم...'),
+            ],
+          ),
+        ),
+      ),
+      error: (error, _) => Card(
+        child: EmptyState(
+          icon: Icons.hub_outlined,
+          title: 'تعذر فحص النشر',
+          message: error is ApiException
+              ? error.message
+              : 'تعذر قراءة حالة GitHub والخادم.',
+        ),
+      ),
+      data: (info) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    info.repositoryAhead
+                        ? Icons.system_update_alt
+                        : Icons.verified_outlined,
+                    color: info.repositoryAhead
+                        ? const Color(0xFFA66B00)
+                        : const Color(0xFF138A4B),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      info.repositoryAhead
+                          ? 'يوجد إصدار أحدث جاهز للنشر'
+                          : 'الخادم مطابق للمستودع',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'تحديث حالة النشر',
+                    onPressed: () => ref.invalidate(deploymentProvider),
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _ReleaseChip(
+                    label: 'GitHub',
+                    value: info.latestShortSha.isEmpty
+                        ? 'غير معروف'
+                        : info.latestShortSha,
+                    icon: Icons.commit,
+                  ),
+                  _ReleaseChip(
+                    label: 'الخادم',
+                    value: info.deployedShortSha.isEmpty
+                        ? 'غير معروف'
+                        : info.deployedShortSha,
+                    icon: Icons.dns_outlined,
+                  ),
+                  _ReleaseChip(
+                    label: 'Actions',
+                    value: _workflowLabel(info),
+                    icon: Icons.playlist_play,
+                  ),
+                ],
+              ),
+              if (info.latestMessage.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  info.latestMessage,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF596674),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
+              Text(
+                info.actionRequired,
+                style: const TextStyle(color: Color(0xFF596674)),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${info.repository} · ${info.branch}',
+                      textDirection: TextDirection.ltr,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF7C8793),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: info.canDeploy
+                        ? () => _confirmDeploy(context, ref, info)
+                        : null,
+                    icon: const Icon(Icons.rocket_launch_outlined),
+                    label: const Text('نشر'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _workflowLabel(DeploymentInfo info) {
+    if (info.workflowStatus == 'in_progress') return 'قيد التنفيذ';
+    if (info.workflowConclusion == 'success') return 'نجح';
+    if (info.workflowConclusion == 'failure') return 'فشل';
+    return info.workflowStatus.isEmpty ? 'غير معروف' : info.workflowStatus;
+  }
+
+  Future<void> _confirmDeploy(
+    BuildContext context,
+    WidgetRef ref,
+    DeploymentInfo info,
+  ) async {
+    final controller = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تأكيد النشر'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('سيتم تشغيل GitHub Actions لنشر الإصدار التالي:'),
+            const SizedBox(height: 10),
+            SelectableText(
+              info.latestShortSha,
+              textDirection: TextDirection.ltr,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: controller,
+              textDirection: TextDirection.ltr,
+              decoration: const InputDecoration(labelText: 'رقم الإصدار'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              controller.text.trim() == info.latestShortSha,
+            ),
+            icon: const Icon(Icons.rocket_launch_outlined),
+            label: const Text('تشغيل النشر'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await ref
+          .read(apiProvider)
+          .triggerDeployment(confirmation: info.latestShortSha);
+      ref.invalidate(deploymentProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تشغيل النشر. تابع الحالة من البطاقة.')),
+        );
+      }
+    } on ApiException catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    }
+  }
+}
+
+class _ReleaseChip extends StatelessWidget {
+  const _ReleaseChip({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+    decoration: BoxDecoration(
+      border: Border.all(color: const Color(0xFFD6DEE6)),
+      borderRadius: BorderRadius.circular(8),
+      color: const Color(0xFFF8FAFC),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFF356AA0)),
+        const SizedBox(width: 7),
+        Text(
+          '$label: ',
+          style: const TextStyle(color: Color(0xFF677381), fontSize: 12),
+        ),
+        Text(
+          value,
+          textDirection: TextDirection.ltr,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ],
+    ),
+  );
 }
 
 class _SummaryItem extends StatelessWidget {
