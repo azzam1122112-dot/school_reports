@@ -13,6 +13,10 @@ services:
       - "443:443/udp"
     volumes:
       - ./deploy/hetzner/Caddyfile.fragment:/etc/caddy/Caddyfile:ro
+      - ${XMANSX_ORIGIN_CERT_FILE:-/opt/tanal/ssl/origin.crt}:/run/tls/xmansx-origin.crt:ro
+      - ${XMANSX_ORIGIN_KEY_FILE:-/opt/tanal/ssl/origin.key}:/run/tls/xmansx-origin.key:ro
+      - ${SCHOOL_DISPLAY_ORIGIN_CERT_FILE:-/opt/school-display/ssl/origin.crt}:/run/tls/school-display-origin.crt:ro
+      - ${SCHOOL_DISPLAY_ORIGIN_KEY_FILE:-/opt/school-display/ssl/origin.key}:/run/tls/school-display-origin.key:ro
       - caddy-data:/data
       - caddy-config:/config
     networks:

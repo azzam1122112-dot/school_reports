@@ -57,6 +57,47 @@ tawtheeq-ksa.com {
 	}
 }
 
+xmansx.com, www.xmansx.com {
+	import cloudflare_only
+	tls /run/tls/xmansx-origin.crt /run/tls/xmansx-origin.key
+
+	reverse_proxy tanal-web:3000 {
+		lb_try_duration 15s
+		lb_try_interval 250ms
+	}
+
+	header -Server
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+school-display.com, www.school-display.com {
+	import cloudflare_only
+	tls /run/tls/school-display-origin.crt /run/tls/school-display-origin.key
+
+	# The project's Caddy owns its collected static volume. Dynamic HTTP and
+	# WebSocket traffic goes directly to ASGI to avoid stacking proxy headers.
+	@school_display_static path /static/*
+	reverse_proxy @school_display_static school-display-caddy-1:80 {
+		lb_try_duration 15s
+		lb_try_interval 250ms
+	}
+	reverse_proxy school-display-web-1:8000 {
+		lb_try_duration 15s
+		lb_try_interval 250ms
+	}
+
+	header -Server
+
+	log {
+		output stdout
+		format json
+	}
+}
+
 www.tawtheeq-ksa.com, app.tawtheeq-ksa.com {
 	import cloudflare_only
 

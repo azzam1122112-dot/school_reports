@@ -21,7 +21,7 @@ class Command(BaseCommand):
         projects = (
             ("tawtheeq", "منصة توثيق", "https://tawtheeq-ksa.com", "/healthz/"),
             ("xmansx", "منصة TANAL", "https://xmansx.com", "/api/health/readiness"),
-            ("school-display", "لوحة العرض المدرسية", "https://school-display.com", "/healthz/"),
+            ("school-display", "لوحة العرض المدرسية", "https://school-display.com", "/"),
         )
         for order, (slug, name, url, path) in enumerate(projects, start=1):
             project, _ = ManagedProject.objects.update_or_create(
