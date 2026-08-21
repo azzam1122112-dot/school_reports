@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from reports.models import Teacher
 
-from .models import HealthCheck, Incident, ManagedProject, ManagedServer, MobileAccessToken, MobileDevice, OperationAction
+from .models import HealthCheck, Incident, ManagedProject, ManagedServer, MobileAccessToken, MobileDevice, OperationAction, OperationsMembership
 from .deployments import DeploymentState
 from .services import capture_server_metrics
 
@@ -205,3 +205,22 @@ class OperationsApiTests(TestCase):
         )
         self.assertEqual(accepted.status_code, 202)
         client.trigger_deploy.assert_called_once()
+
+    @patch("operations.views.GitHubDeploymentClient")
+    def test_trigger_deployment_requires_run_actions_capability(self, client_cls):
+        OperationsMembership.objects.create(
+            user=self.regular,
+            role=OperationsMembership.Role.VIEWER,
+            created_by=self.admin,
+        )
+        _, token = MobileAccessToken.issue(user=self.regular, device_name="test")
+
+        response = self.client.post(
+            reverse("operations:trigger-deployment"),
+            {"project_id": self.project.pk, "confirmation": "b" * 12},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Ops-Token {token}",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        client_cls.assert_not_called()

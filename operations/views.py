@@ -248,6 +248,11 @@ def deployment_status(request):
 @api_view(["POST"])
 @authentication_classes([OperationsTokenAuthentication])
 def trigger_deployment(request):
+    if not _has_capability(request.user, "run_actions"):
+        return Response(
+            {"detail": "لا تملك صلاحية تشغيل نشر المشاريع."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
     project_id = request.data.get("project_id")
     project = ManagedProject.objects.filter(pk=project_id, is_active=True).first()
     if project is None:

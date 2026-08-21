@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../design_system.dart';
 import '../state.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -43,47 +44,93 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(sessionProvider);
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Icon(
-                    Icons.dns_outlined,
-                    size: 64,
-                    color: Color(0xFF006C35),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'مركز العمليات',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [Color(0xFFE8F1EB), OpsColors.canvas, Color(0xFFF8F3E8)],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    PremiumPanel(
+                      padding: const EdgeInsets.all(24),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: [OpsColors.ink, OpsColors.forest],
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 76,
+                            height: 76,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: .10),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: OpsColors.gold.withValues(alpha: .65),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.hub_outlined,
+                              size: 40,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          const Text(
+                            'مركز العمليات',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 29,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'إدارة الخوادم والنشر من مكان واحد',
+                            style: TextStyle(color: Color(0xFFC7D8D0)),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'دخول مشرف النظام لمتابعة الخادم والمشاريع',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Color(0xFF677381), fontSize: 16),
-                  ),
-                  const SizedBox(height: 28),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
+                    const SizedBox(height: 16),
+                    PremiumPanel(
                       child: Form(
                         key: _formKey,
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            const Text(
+                              'تسجيل الدخول الآمن',
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              'استخدم حساب فريق العمليات المخوّل.',
+                              style: TextStyle(color: OpsColors.slate),
+                            ),
+                            const SizedBox(height: 20),
                             TextFormField(
                               controller: _phone,
                               keyboardType: TextInputType.phone,
                               textDirection: TextDirection.ltr,
                               textAlign: TextAlign.right,
+                              autofillHints: const [
+                                AutofillHints.telephoneNumber,
+                              ],
                               decoration: const InputDecoration(
                                 labelText: 'رقم الجوال',
                                 prefixIcon: Icon(Icons.phone_android),
@@ -99,6 +146,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               obscureText: _obscure,
                               textDirection: TextDirection.ltr,
                               textAlign: TextAlign.right,
+                              autofillHints: const [AutofillHints.password],
+                              onFieldSubmitted: (_) =>
+                                  _submitting ? null : _submit(),
                               decoration: InputDecoration(
                                 labelText: 'كلمة المرور',
                                 prefixIcon: const Icon(Icons.lock_outline),
@@ -145,55 +195,63 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               const SizedBox(height: 14),
                               Semantics(
                                 liveRegion: true,
-                                child: Text(
-                                  state.error!,
-                                  style: const TextStyle(
-                                    color: Color(0xFFC5362F),
-                                    fontWeight: FontWeight.w700,
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFEBE8),
+                                    borderRadius: BorderRadius.circular(14),
                                   ),
-                                  textAlign: TextAlign.center,
+                                  child: Text(
+                                    state.error!,
+                                    style: const TextStyle(
+                                      color: OpsColors.danger,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
                               ),
                             ],
                             const SizedBox(height: 20),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: _submitting ? null : _submit,
-                                icon: _submitting
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(Icons.login),
-                                label: const Text('دخول آمن'),
-                              ),
+                            ElevatedButton.icon(
+                              onPressed: _submitting ? null : _submit,
+                              icon: _submitting
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.login_rounded),
+                              label: const Text('الدخول إلى المركز'),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.shield_outlined,
-                        size: 18,
-                        color: Color(0xFF677381),
-                      ),
-                      SizedBox(width: 7),
-                      Text(
-                        'الاتصال مشفر والصلاحية محصورة بمشرف النظام',
-                        style: TextStyle(color: Color(0xFF677381)),
-                      ),
-                    ],
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.shield_outlined,
+                          size: 18,
+                          color: OpsColors.forest,
+                        ),
+                        SizedBox(width: 7),
+                        Flexible(
+                          child: Text(
+                            'اتصال مشفر · جلسة محمية · صلاحيات دقيقة',
+                            style: TextStyle(color: OpsColors.slate),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

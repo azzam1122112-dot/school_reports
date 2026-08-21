@@ -36,8 +36,9 @@ class SessionController extends StateNotifier<SessionState> {
     try {
       await _api.dashboard();
       state = const SessionState(status: SessionStatus.signedIn);
-    } on ApiException catch (error) {
-      if (error.statusCode == 401 || error.statusCode == 403) {
+    } catch (error) {
+      if (error is ApiException &&
+          (error.statusCode == 401 || error.statusCode == 403)) {
         await _api.clearSession();
       }
       state = const SessionState(status: SessionStatus.signedOut);
@@ -108,8 +109,9 @@ class DashboardController extends StateNotifier<AsyncValue<DashboardData>> {
     if (!silent || !state.hasValue) state = const AsyncLoading();
     try {
       state = AsyncData(await _api.dashboard());
-    } on ApiException catch (error, stack) {
-      if (error.statusCode == 401 || error.statusCode == 403) {
+    } catch (error, stack) {
+      if (error is ApiException &&
+          (error.statusCode == 401 || error.statusCode == 403)) {
         await _onUnauthorized();
       }
       state = AsyncError(error, stack);
@@ -146,7 +148,9 @@ final projectProvider = FutureProvider.autoDispose.family<ProjectDetails, int>((
   return ref.watch(apiProvider).project(id);
 });
 
-final deploymentProvider = FutureProvider.autoDispose<DeploymentOverview>((ref) {
+final deploymentProvider = FutureProvider.autoDispose<DeploymentOverview>((
+  ref,
+) {
   ref.watch(dashboardProvider);
   return ref.watch(apiProvider).deploymentStatus();
 });
@@ -158,5 +162,7 @@ final accountsProvider = FutureProvider.autoDispose<List<OperationsAccount>>((
 });
 
 final notificationProvider = Provider<NotificationService>((ref) {
-  return NotificationService(ref.watch(apiProvider));
+  final service = NotificationService(ref.watch(apiProvider));
+  ref.onDispose(service.dispose);
+  return service;
 });

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'design_system.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/login_screen.dart';
 import 'state.dart';
@@ -33,53 +34,77 @@ class OperationsApp extends ConsumerWidget {
   }
 
   ThemeData _theme() {
-    const green = Color(0xFF006C35);
-    const ink = Color(0xFF17212B);
     final scheme = ColorScheme.fromSeed(
-      seedColor: green,
-      primary: green,
-      secondary: const Color(0xFFB8860B),
-      surface: Colors.white,
+      seedColor: OpsColors.forest,
+      primary: OpsColors.forest,
+      secondary: OpsColors.gold,
+      surface: OpsColors.surface,
       brightness: Brightness.light,
     );
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: const Color(0xFFF4F6F8),
+      scaffoldBackgroundColor: OpsColors.canvas,
       fontFamily: 'sans-serif',
       textTheme: ThemeData.light().textTheme.apply(
-        bodyColor: ink,
-        displayColor: ink,
+        bodyColor: OpsColors.ink,
+        displayColor: OpsColors.ink,
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.white,
-        foregroundColor: ink,
+        backgroundColor: OpsColors.ink,
+        foregroundColor: Colors.white,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
       ),
       cardTheme: const CardThemeData(
-        color: Colors.white,
+        color: OpsColors.surface,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(8)),
-          side: BorderSide(color: Color(0xFFE2E7EC)),
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+          side: BorderSide(color: OpsColors.line),
         ),
       ),
       inputDecorationTheme: const InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: OpsColors.surface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(8)),
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+          borderSide: BorderSide(color: OpsColors.line),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+          borderSide: BorderSide(color: OpsColors.line),
         ),
         contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          minimumSize: const Size(48, 50),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          backgroundColor: OpsColors.forest,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(48, 54),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: OpsColors.forest,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(48, 54),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: OpsColors.ink,
+        contentTextStyle: TextStyle(color: Colors.white),
       ),
       tooltipTheme: const TooltipThemeData(
         waitDuration: Duration(milliseconds: 450),

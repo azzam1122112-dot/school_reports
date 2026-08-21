@@ -5,6 +5,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+val releaseKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+val releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+val releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+
 android {
     namespace = "com.tawtheeq.tawtheeq_operations"
     compileSdk = flutter.compileSdkVersion
@@ -27,11 +32,27 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (
+            !releaseKeystorePath.isNullOrBlank() &&
+            !releaseKeystorePassword.isNullOrBlank() &&
+            !releaseKeyAlias.isNullOrBlank() &&
+            !releaseKeyPassword.isNullOrBlank()
+        ) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Release artifacts are never signed with the debug key. CI supplies
+            // the four ANDROID_KEY_* environment variables for production builds.
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 }

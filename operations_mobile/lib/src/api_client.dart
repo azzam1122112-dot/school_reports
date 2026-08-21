@@ -13,6 +13,14 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+String parseOperationsToken(Map<String, dynamic> data) {
+  final token = data['token'];
+  if (token is! String || token.trim().isEmpty) {
+    throw const ApiException('استجابة تسجيل الدخول غير مكتملة. حاول مجدداً.');
+  }
+  return token.trim();
+}
+
 class OperationsApi {
   OperationsApi()
     : _dio = Dio(
@@ -63,7 +71,7 @@ class OperationsApi {
         },
       ),
     );
-    _token = '${data['token']}';
+    _token = parseOperationsToken(data);
     await _storage.write(key: _tokenKey, value: _token);
   }
 

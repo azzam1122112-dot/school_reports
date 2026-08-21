@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 import '../api_client.dart';
+import '../design_system.dart';
 import '../models.dart';
 import '../state.dart';
 import '../widgets/status_widgets.dart';
+import 'accounts_screen.dart';
+import 'change_password_screen.dart';
 import 'project_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -14,18 +17,34 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboard = ref.watch(dashboardProvider);
+    final currentUser = dashboard.asData?.value.currentUser;
     return Scaffold(
       appBar: AppBar(
-        title: const Column(
+        toolbarHeight: 76,
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'مركز العمليات',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 21),
             ),
-            Text(
-              'school-reports-prod',
-              style: TextStyle(fontSize: 12, color: Color(0xFF677381)),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF58D68D),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  'بيئة الإنتاج · اتصال مباشر',
+                  style: TextStyle(fontSize: 11, color: Color(0xFFB9CAC2)),
+                ),
+              ],
             ),
           ],
         ),
@@ -33,17 +52,33 @@ class DashboardScreen extends ConsumerWidget {
           IconButton(
             tooltip: 'تحديث الحالة',
             onPressed: () => ref.read(dashboardProvider.notifier).refresh(),
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.sync_rounded),
           ),
           PopupMenuButton<String>(
             tooltip: 'خيارات الحساب',
-            onSelected: (value) {
-              if (value == 'logout') {
-                ref.read(sessionProvider.notifier).logout();
-              }
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(
+            icon: const Icon(Icons.account_circle_outlined),
+            onSelected: (value) =>
+                _handleMenu(context, ref, value, currentUser),
+            itemBuilder: (_) => [
+              if (currentUser?.can('manage_team') == true)
+                const PopupMenuItem(
+                  value: 'accounts',
+                  child: ListTile(
+                    leading: Icon(Icons.groups_2_outlined),
+                    title: Text('فريق العمليات'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              const PopupMenuItem(
+                value: 'password',
+                child: ListTile(
+                  leading: Icon(Icons.password_outlined),
+                  title: Text('تغيير كلمة المرور'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
                 value: 'logout',
                 child: ListTile(
                   leading: Icon(Icons.logout),
@@ -53,11 +88,8 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(width: 6),
         ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1),
-        ),
       ),
       body: dashboard.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -75,7 +107,9 @@ class DashboardScreen extends ConsumerWidget {
               final content = <Widget>[
                 _Overview(data: data),
                 const SizedBox(height: 16),
-                const _DeploymentPanel(),
+                _DeploymentPanel(
+                  canRunActions: data.currentUser.can('run_actions'),
+                ),
                 const SizedBox(height: 16),
                 if (data.servers.isEmpty)
                   const Card(
@@ -122,6 +156,28 @@ class DashboardScreen extends ConsumerWidget {
       ),
     );
   }
+
+  void _handleMenu(
+    BuildContext context,
+    WidgetRef ref,
+    String value,
+    OperationsAccount? currentUser,
+  ) {
+    if (value == 'accounts' && currentUser?.can('manage_team') == true) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              AccountsScreen(canManage: currentUser!.can('manage_team')),
+        ),
+      );
+    } else if (value == 'password') {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const ChangePasswordScreen()));
+    } else if (value == 'logout') {
+      ref.read(sessionProvider.notifier).logout();
+    }
+  }
 }
 
 class _Overview extends StatelessWidget {
@@ -136,32 +192,33 @@ class _Overview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: allHealthy
-                ? const Color(0xFFEAF7EF)
-                : const Color(0xFFFFF5E0),
-            border: Border.all(
-              color: allHealthy
-                  ? const Color(0xFFB8DFC6)
-                  : const Color(0xFFF0D18D),
-            ),
-            borderRadius: BorderRadius.circular(8),
+        PremiumPanel(
+          padding: const EdgeInsets.all(20),
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: allHealthy
+                ? const [OpsColors.ink, OpsColors.forest]
+                : const [Color(0xFF2B2A1B), Color(0xFF6A4B15)],
           ),
           child: Row(
             children: [
-              Icon(
-                allHealthy
-                    ? Icons.check_circle_outline
-                    : Icons.warning_amber_rounded,
-                color: allHealthy
-                    ? const Color(0xFF138A4B)
-                    : const Color(0xFFA66B00),
-                size: 32,
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  allHealthy
+                      ? Icons.check_circle_outline
+                      : Icons.warning_amber_rounded,
+                  color: allHealthy ? const Color(0xFF58D68D) : OpsColors.gold,
+                  size: 30,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,6 +228,7 @@ class _Overview extends StatelessWidget {
                           ? 'جميع المشاريع تعمل بصورة طبيعية'
                           : 'توجد حالة تحتاج إلى المتابعة',
                       style: const TextStyle(
+                        color: Colors.white,
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
                       ),
@@ -178,7 +236,7 @@ class _Overview extends StatelessWidget {
                     if (data.generatedAt != null)
                       Text(
                         'آخر مزامنة ${DateFormat('HH:mm:ss').format(data.generatedAt!)}',
-                        style: const TextStyle(color: Color(0xFF677381)),
+                        style: const TextStyle(color: Color(0xFFC7D8D0)),
                       ),
                   ],
                 ),
@@ -194,7 +252,7 @@ class _Overview extends StatelessWidget {
                 label: 'المشاريع',
                 value: '${data.projectCount}',
                 icon: Icons.apps_outlined,
-                color: const Color(0xFF356AA0),
+                color: OpsColors.info,
               ),
             ),
             const SizedBox(width: 10),
@@ -203,7 +261,7 @@ class _Overview extends StatelessWidget {
                 label: 'السليمة',
                 value: '${data.healthyProjectCount}',
                 icon: Icons.health_and_safety_outlined,
-                color: const Color(0xFF138A4B),
+                color: OpsColors.emerald,
               ),
             ),
             const SizedBox(width: 10),
@@ -213,8 +271,8 @@ class _Overview extends StatelessWidget {
                 value: '${data.openIncidentCount}',
                 icon: Icons.notification_important_outlined,
                 color: data.openIncidentCount > 0
-                    ? const Color(0xFFC5362F)
-                    : const Color(0xFF7C8793),
+                    ? OpsColors.danger
+                    : OpsColors.slate,
               ),
             ),
           ],
@@ -224,11 +282,20 @@ class _Overview extends StatelessWidget {
   }
 }
 
-class _DeploymentPanel extends ConsumerWidget {
-  const _DeploymentPanel();
+class _DeploymentPanel extends ConsumerStatefulWidget {
+  const _DeploymentPanel({required this.canRunActions});
+
+  final bool canRunActions;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DeploymentPanel> createState() => _DeploymentPanelState();
+}
+
+class _DeploymentPanelState extends ConsumerState<_DeploymentPanel> {
+  final Set<int> _deployingProjects = {};
+
+  @override
+  Widget build(BuildContext context) {
     final deployment = ref.watch(deploymentProvider);
     return deployment.when(
       loading: () => const Card(
@@ -256,119 +323,61 @@ class _DeploymentPanel extends ConsumerWidget {
               : 'تعذر قراءة حالة GitHub والخادم.',
         ),
       ),
-      data: (overview) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    overview.repositoryAheadCount > 0
-                        ? Icons.system_update_alt
-                        : Icons.verified_outlined,
-                    color: overview.repositoryAheadCount > 0
-                        ? const Color(0xFFA66B00)
-                        : const Color(0xFF138A4B),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      overview.repositoryAheadCount > 0
-                          ? 'يوجد ${overview.repositoryAheadCount} مشروع يحتاج مراجعة نشر'
-                          : 'المشاريع المطابقة محدثة',
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'تحديث حالة النشر',
-                    onPressed: () => ref.invalidate(deploymentProvider),
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ],
+      data: (overview) => PremiumPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SectionHeading(
+              icon: overview.repositoryAheadCount > 0
+                  ? Icons.rocket_launch_outlined
+                  : Icons.verified_outlined,
+              title: 'إدارة الإصدارات',
+              subtitle: overview.repositoryAheadCount > 0
+                  ? '${overview.repositoryAheadCount} مشروع جاهز للمراجعة والنشر'
+                  : 'جميع الإصدارات المنشورة متزامنة',
+              trailing: IconButton.filledTonal(
+                tooltip: 'تحديث حالة النشر',
+                onPressed: () => ref.invalidate(deploymentProvider),
+                icon: const Icon(Icons.sync_rounded),
               ),
-              const SizedBox(height: 14),
-              if (overview.deployments.isEmpty)
-                const EmptyState(
-                  icon: Icons.hub_outlined,
-                  title: 'لا توجد مستودعات مرتبطة',
-                  message: 'اربط كل مشروع بمستودعه من إعدادات العمليات.',
-                )
-              else
-                ...overview.deployments.map(
-                  (info) => _DeploymentRow(
-                    info: info,
-                    workflowLabel: _workflowLabel(info),
-                    onDeploy: info.canDeploy
-                        ? () => _confirmDeploy(context, ref, info)
-                        : null,
-                  ),
+            ),
+            const SizedBox(height: 16),
+            if (overview.deployments.isEmpty)
+              const EmptyState(
+                icon: Icons.hub_outlined,
+                title: 'لا توجد مستودعات مرتبطة',
+                message: 'اربط كل مشروع بمستودعه من إعدادات العمليات.',
+              )
+            else
+              ...overview.deployments.map(
+                (info) => _DeploymentRow(
+                  info: info,
+                  workflowLabel: _workflowLabel(info),
+                  isDeploying: _deployingProjects.contains(info.projectId),
+                  onDeploy:
+                      widget.canRunActions &&
+                          info.canDeploy &&
+                          !_deployingProjects.contains(info.projectId)
+                      ? () => _deployNow(info)
+                      : null,
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  static String _workflowLabel(DeploymentInfo info) {
+  String _workflowLabel(DeploymentInfo info) {
     if (info.workflowStatus == 'in_progress') return 'قيد التنفيذ';
     if (info.workflowConclusion == 'success') return 'نجح';
     if (info.workflowConclusion == 'failure') return 'فشل';
     return info.workflowStatus.isEmpty ? 'غير معروف' : info.workflowStatus;
   }
 
-  Future<void> _confirmDeploy(
-    BuildContext context,
-    WidgetRef ref,
-    DeploymentInfo info,
-  ) async {
-    final controller = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('تأكيد النشر'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('سيتم تشغيل GitHub Actions لنشر الإصدار التالي:'),
-            const SizedBox(height: 10),
-            SelectableText(
-              info.latestShortSha,
-              textDirection: TextDirection.ltr,
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: controller,
-              textDirection: TextDirection.ltr,
-              decoration: const InputDecoration(labelText: 'رقم الإصدار'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pop(
-              dialogContext,
-              controller.text.trim() == info.latestShortSha,
-            ),
-            icon: const Icon(Icons.rocket_launch_outlined),
-            label: const Text('تشغيل النشر'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (confirmed != true || !context.mounted) return;
+  Future<void> _deployNow(DeploymentInfo info) async {
+    if (_deployingProjects.contains(info.projectId)) return;
+    setState(() => _deployingProjects.add(info.projectId));
     try {
       await ref
           .read(apiProvider)
@@ -377,16 +386,30 @@ class _DeploymentPanel extends ConsumerWidget {
             confirmation: info.latestShortSha,
           );
       ref.invalidate(deploymentProvider);
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تشغيل النشر. تابع الحالة من البطاقة.')),
+          SnackBar(
+            content: Text(
+              'بدأ نشر ${info.projectName}. ستتحدث الحالة تلقائياً.',
+            ),
+            backgroundColor: OpsColors.forest,
+          ),
         );
       }
+      for (final delay in const [4, 12, 25]) {
+        Future<void>.delayed(Duration(seconds: delay), () {
+          if (mounted) ref.invalidate(deploymentProvider);
+        });
+      }
     } on ApiException catch (error) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _deployingProjects.remove(info.projectId));
       }
     }
   }
@@ -396,11 +419,13 @@ class _DeploymentRow extends StatelessWidget {
   const _DeploymentRow({
     required this.info,
     required this.workflowLabel,
+    required this.isDeploying,
     required this.onDeploy,
   });
 
   final DeploymentInfo info;
   final String workflowLabel;
+  final bool isDeploying;
   final VoidCallback? onDeploy;
 
   @override
@@ -412,11 +437,13 @@ class _DeploymentRow extends StatelessWidget {
         : const Color(0xFF596674);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(13),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFD6DEE6)),
-        borderRadius: BorderRadius.circular(8),
-        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: OpsColors.line),
+        borderRadius: BorderRadius.circular(18),
+        color: info.repositoryAhead
+            ? OpsColors.goldSoft
+            : const Color(0xFFF8FAF8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -508,9 +535,19 @@ class _DeploymentRow extends StatelessWidget {
                 ),
               ),
               ElevatedButton.icon(
+                key: ValueKey('deploy-${info.projectId}'),
                 onPressed: onDeploy,
-                icon: const Icon(Icons.rocket_launch_outlined),
-                label: const Text('نشر'),
+                icon: isDeploying
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.rocket_launch_outlined),
+                label: Text(isDeploying ? 'جاري التشغيل' : 'نشر الآن'),
               ),
             ],
           ),

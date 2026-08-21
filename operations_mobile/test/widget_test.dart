@@ -1,7 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tawtheeq_operations/src/api_client.dart';
 import 'package:tawtheeq_operations/src/models.dart';
 
 void main() {
+  test('accepts only a non-empty access token', () {
+    expect(parseOperationsToken({'token': '  secure-token  '}), 'secure-token');
+    expect(
+      () => parseOperationsToken({'token': null}),
+      throwsA(isA<ApiException>()),
+    );
+    expect(
+      () => parseOperationsToken({'token': ''}),
+      throwsA(isA<ApiException>()),
+    );
+  });
+
   test(
     'maps backend health states without treating unknown values as healthy',
     () {
