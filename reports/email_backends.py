@@ -8,6 +8,7 @@ from email.utils import parseaddr
 from django.conf import settings
 from django.core.mail.backends.base import BaseEmailBackend
 
+from .email_identity import format_system_from_email
 from .resend_email import ResendError, _api_request
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ class ResendEmailBackend(BaseEmailBackend):
         return sent_count
 
     def _send(self, message) -> None:
-        from_email = message.from_email or getattr(settings, "DEFAULT_FROM_EMAIL", "")
+        from_email = format_system_from_email(message.from_email or getattr(settings, "DEFAULT_FROM_EMAIL", ""))
         payload = {
             "from": from_email,
             "to": list(message.to or []),

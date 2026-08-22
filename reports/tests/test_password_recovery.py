@@ -62,6 +62,10 @@ class PasswordRecoveryTests(TestCase):
             mail.outbox[0].subject,
             "استعادة كلمة المرور | منصة توثيق",
         )
+        self.assertEqual(
+            mail.outbox[0].from_email,
+            "منصة توثيق <no-reply@tawtheeq-ksa.com>",
+        )
         self.assertIn(
             reverse(
                 "reports:password_reset_confirm",

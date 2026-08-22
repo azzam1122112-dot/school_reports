@@ -54,6 +54,19 @@ class ResendEmailBackendTests(TestCase):
             payload["tags"],
         )
 
+    @patch("reports.email_backends._api_request", return_value={"id": "email_456"})
+    def test_resend_backend_adds_platform_sender_name_to_bare_default_address(self, api_request):
+        sent = mail.send_mail(
+            "رسالة باسم المنصة",
+            "النص العادي",
+            None,
+            ["customer@example.com"],
+        )
+
+        self.assertEqual(sent, 1)
+        payload = api_request.call_args.kwargs["payload"]
+        self.assertEqual(payload["from"], "منصة توثيق <no-reply@tawtheeq-ksa.com>")
+
     @patch("reports.email_backends._api_request", return_value={"id": "email_reset"})
     def test_password_reset_email_is_sent_through_resend(self, api_request):
         response = self.client.post(
@@ -68,6 +81,7 @@ class ResendEmailBackendTests(TestCase):
         )
         payload = api_request.call_args.kwargs["payload"]
         self.assertEqual(payload["to"], ["resend-manager@example.com"])
+        self.assertEqual(payload["from"], "منصة توثيق <no-reply@tawtheeq-ksa.com>")
         self.assertEqual(payload["subject"], "استعادة كلمة المرور | منصة توثيق")
         self.assertIn("تعيين كلمة مرور جديدة", payload["html"])
         self.assertIn("password-reset/confirm", payload["text"])

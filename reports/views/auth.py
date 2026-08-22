@@ -42,6 +42,7 @@ from ..middleware import (
 from ..marketing_attribution import capture_marketing_attribution
 from ..models import WebAuthnCredential
 from ..forms import AccountPasswordResetForm, AccountSetPasswordForm
+from ..email_identity import format_system_from_email
 from ..staff_workspace import build_staff_workspaces
 from ..pricing import (
     DEFAULT_SERVICE_PRICING,
@@ -192,6 +193,10 @@ class AccountPasswordResetView(auth_views.PasswordResetView):
     success_url = reverse_lazy("reports:password_reset_done")
     # Drives the progress rail in password_reset_base.html.
     extra_context = {"recovery_step": 1}
+
+    @property
+    def from_email(self) -> str:
+        return format_system_from_email()
 
     @property
     def extra_email_context(self) -> dict[str, str]:
