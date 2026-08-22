@@ -49,6 +49,10 @@ class ResendEmailBackendTests(TestCase):
             payload["from"],
             "منصة توثيق <no-reply@tawtheeq-ksa.com>",
         )
+        self.assertIn(
+            {"name": "sender_domain", "value": "tawtheeq-ksa-com"},
+            payload["tags"],
+        )
 
     @patch("reports.email_backends._api_request", return_value={"id": "email_reset"})
     def test_password_reset_email_is_sent_through_resend(self, api_request):

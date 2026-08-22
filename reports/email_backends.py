@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
 from email.utils import parseaddr
 
 from django.conf import settings
@@ -10,6 +11,17 @@ from django.core.mail.backends.base import BaseEmailBackend
 from .resend_email import ResendError, _api_request
 
 logger = logging.getLogger(__name__)
+
+
+def _resend_tag_value(value: str) -> str:
+    """Return a Resend-compatible tag value.
+
+    Resend tags are useful in the dashboard, but their values are deliberately
+    restrictive: ASCII letters, numbers, underscores and dashes only. Domains
+    contain dots, so keep the meaning while making the value acceptable.
+    """
+    normalized = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value or "").strip())
+    return normalized.strip("-")[:256]
 
 
 class ResendEmailBackend(BaseEmailBackend):
@@ -80,7 +92,9 @@ class ResendEmailBackend(BaseEmailBackend):
         ]
         _, sender_address = parseaddr(str(from_email or ""))
         if sender_address:
-            tags.append({"name": "sender_domain", "value": sender_address.split("@", 1)[-1]})
+            sender_domain = _resend_tag_value(sender_address.split("@", 1)[-1])
+            if sender_domain:
+                tags.append({"name": "sender_domain", "value": sender_domain})
         payload["tags"] = tags
 
         response = _api_request("/emails", method="POST", payload=payload)
