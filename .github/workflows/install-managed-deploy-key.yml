@@ -8,6 +8,11 @@ on:
         required: false
         default: false
         type: boolean
+      diagnose_tanal_environment:
+        description: Locate TANAL environment sources without printing values
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -117,3 +122,21 @@ jobs:
              sudo -n docker compose -f compose.hetzner.yaml -f compose.caddy.yaml up -d"
           curl --fail --silent --show-error --retry 12 --retry-delay 5 \
             --retry-all-errors --max-time 15 https://tawtheeq-ksa.com/healthz/ >/dev/null
+
+      - name: Diagnose TANAL environment location
+        if: inputs.diagnose_tanal_environment
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" '
+            set -eu
+            sudo -n systemctl show tanal.service \
+              --property=ActiveState,MainPID,User,Group,WorkingDirectory,FragmentPath,EnvironmentFiles
+            sudo -n find /etc /opt /srv /home -xdev -maxdepth 6 -type f -size -2M -print0 2>/dev/null \
+            | while IFS= read -r -d "" candidate; do
+                sudo -n grep -q "^DATABASE_URL=." "$candidate" 2>/dev/null || continue
+                sudo -n grep -q "^SESSION_SECRET=." "$candidate" 2>/dev/null || continue
+                printf "TANAL_ENV_CANDIDATE=%s\n" "$candidate"
+              done
+          '
