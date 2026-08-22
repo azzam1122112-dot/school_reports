@@ -134,6 +134,24 @@ class PasswordRecoveryTests(TestCase):
         )
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_unusable_password_account_can_receive_recovery_link(self):
+        user = Teacher.objects.create_user(
+            phone="0558000003",
+            name="حساب أنشئ من الإدارة",
+            email="manager-created@example.com",
+        )
+        self.assertFalse(user.has_usable_password())
+
+        response = self._request_reset("manager-created@example.com")
+
+        self.assertRedirects(
+            response,
+            reverse("reports:password_reset_done"),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("حساب أنشئ من الإدارة", mail.outbox[0].body)
+
     def test_delivery_failure_does_not_reveal_registered_account(self):
         with patch(
             "django.core.mail.EmailMultiAlternatives.send",

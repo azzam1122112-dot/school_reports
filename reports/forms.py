@@ -368,7 +368,7 @@ class AccountPasswordResetForm(PasswordResetForm):
         return (self.cleaned_data.get("email") or "").strip().lower()
 
     def get_users(self, email):
-        users = list(super().get_users(email))
+        users = list(Teacher.objects.filter(email__iexact=email, is_active=True))
         if len(users) == 1:
             yield users[0]
         elif len(users) > 1:
