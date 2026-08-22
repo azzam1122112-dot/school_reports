@@ -101,6 +101,17 @@ fi
 log "pulling $APP_IMAGE"
 docker pull --quiet "$APP_IMAGE"
 
+# The app runtime now has a stable UID. Existing named volumes may still be
+# owned by the distro-assigned UID used by older images, which makes the
+# one-shot collectstatic step fail before migrations can complete. Restrict
+# the ownership repair to the generated static-assets volume; user media is in
+# private object storage and is deliberately not touched here.
+log "ensuring the static-assets volume belongs to the app runtime"
+docker volume create school-reports_static-data >/dev/null
+docker run --rm --user 0:0 --entrypoint chown \
+  -v school-reports_static-data:/app/staticfiles \
+  "$APP_IMAGE" -R 10001:10001 /app/staticfiles
+
 # --- release -----------------------------------------------------------------
 # `up -d` re-runs the one-shot `migrate` service (migrate --noinput +
 # collectstatic); web/worker/beat wait on service_completed_successfully, so a
@@ -108,7 +119,11 @@ docker pull --quiet "$APP_IMAGE"
 # No --remove-orphans: compose counts services from inactive profiles (pgbouncer)
 # as orphans and would tear them down on every deploy.
 log "starting release"
-docker compose "${COMPOSE_FILES[@]}" up -d
+if ! docker compose "${COMPOSE_FILES[@]}" up -d; then
+  log "release startup failed — last migrate log lines:"
+  docker compose "${COMPOSE_FILES[@]}" logs --tail 120 migrate || true
+  die "release startup failed."
+fi
 
 # A bind-mounted Caddyfile can change without changing the container spec, so
 # ``compose up`` correctly leaves the running proxy untouched. Reload it

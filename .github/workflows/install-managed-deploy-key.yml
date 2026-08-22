@@ -2,6 +2,12 @@ name: Install Managed Deploy Key
 
 on:
   workflow_dispatch:
+    inputs:
+      recover_current_release:
+        description: Repair static-volume ownership and restart the pinned release
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -72,3 +78,21 @@ jobs:
               printf "HOST_ED25519="
               sudo -n cat /etc/ssh/ssh_host_ed25519_key.pub
             '
+
+      - name: Recover the currently pinned release
+        if: inputs.recover_current_release
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+            "cd '$DEPLOY_PATH' && \
+             image=\$(sudo -n docker inspect --format '{{.Config.Image}}' school-reports-migrate-1) && \
+             sudo -n docker volume create school-reports_static-data >/dev/null && \
+             sudo -n docker run --rm --user 0:0 --entrypoint chown \
+               -v school-reports_static-data:/app/staticfiles \
+               \"\$image\" -R 10001:10001 /app/staticfiles && \
+             sudo -n docker compose -f compose.hetzner.yaml -f compose.caddy.yaml up -d"
+          curl --fail --silent --show-error --retry 12 --retry-delay 5 \
+            --retry-all-errors --max-time 15 https://tawtheeq-ksa.com/healthz/ >/dev/null
