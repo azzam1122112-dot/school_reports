@@ -423,7 +423,12 @@ def _write_fcm_service_account(path: Path, account: dict) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(tmp, target)
-        target.chmod(0o600)
+        # The production image runs as the fixed, unprivileged UID 10001.
+        # Keep the service-account private while allowing that runtime user to
+        # read the bind-mounted credential.  A root-owned 0600 file is not
+        # readable from inside the deliberately non-root container.
+        os.chown(target, 10001, -1)
+        target.chmod(0o400)
     finally:
         if tmp.exists():
             tmp.unlink(missing_ok=True)

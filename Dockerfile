@@ -58,7 +58,8 @@ RUN pip install --upgrade pip && \
 COPY . /app/
 
 # The application does not need root privileges at runtime.
-RUN addgroup --system app && adduser --system --ingroup app app \
+RUN groupadd --system --gid 10001 app \
+    && useradd --system --uid 10001 --gid app --home-dir /nonexistent --shell /usr/sbin/nologin app \
     && mkdir -p /app/staticfiles /app/media \
     && chown -R app:app /app
 

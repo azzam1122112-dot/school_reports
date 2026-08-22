@@ -14,6 +14,7 @@ from deploy.hetzner.apply_runtime_config import (
     _assert_web_push_can_boot,
     _collect,
     _rewrite,
+    _write_fcm_service_account,
 )
 
 
@@ -129,6 +130,20 @@ class WebPushRuntimeConfigTests(SimpleTestCase):
             "/run/secrets/firebase-service-account.json",
         )
         self.assertEqual(args._fcm_service_account["project_id"], "tawtheeq-operations")
+
+    def test_fcm_service_account_is_owned_by_runtime_user_and_owner_read_only(self):
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as directory:
+            env_path = Path(directory) / "env.production"
+            target = Path(directory) / "firebase-service-account.json"
+            with (
+                patch("deploy.hetzner.apply_runtime_config.os.chown", create=True) as chown,
+                patch.object(Path, "chmod") as chmod,
+            ):
+                _write_fcm_service_account(env_path, {"project_id": "tawtheeq-operations"})
+        chown.assert_called_once_with(target, 10001, -1)
+        chmod.assert_called_once_with(0o400)
 
     def test_resend_secrets_are_collected_from_exactly_two_lines(self):
         stdin = io.StringIO("re_platformKey_123456789\nwhsec_platformSecret_123456789\n")
