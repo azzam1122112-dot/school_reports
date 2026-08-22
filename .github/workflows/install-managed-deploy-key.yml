@@ -78,6 +78,7 @@ jobs:
               printf "REMOTE_USER_B64=%s\n" "$(id -un | base64 -w0)"
               sudo -n ssh-keygen -lf /root/.ssh/authorized_keys
               sudo -n sshd -T | grep -E "^(authorizedkeysfile|permitrootlogin|pubkeyauthentication|allowusers|allowgroups) " || true
+              sudo -n journalctl -u ssh --since "-10 minutes" --no-pager | tail -80 || true
               printf "HOST_ED25519="
               sudo -n cat /etc/ssh/ssh_host_ed25519_key.pub
             '
