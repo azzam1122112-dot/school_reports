@@ -11,6 +11,7 @@ from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
+from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -258,6 +259,30 @@ class MoyasarActivationTests(TestCase):
         self.assertTrue(subscription.is_active)
         self.assertFalse(subscription.is_expired)
         self.assertEqual(subscription.teacher_limit, 25)
+
+    def test_a_paid_invoice_emails_the_manager_after_activation(self):
+        self.manager.email = "principal@example.com"
+        self.manager.save(update_fields=["email"])
+        mail.outbox.clear()
+
+        with patch("reports.views.billing_gateways.fetch_moyasar_invoice", return_value=self._invoice()), self.captureOnCommitCallbacks(execute=True):
+            response = self._callback()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        sent = mail.outbox[0]
+        self.assertEqual(sent.to, ["principal@example.com"])
+        self.assertIn("تم تفعيل اشتراك", sent.subject)
+        self.assertIn(self.school.name, sent.subject)
+        self.assertIn(self.plan.name, sent.body)
+        self.assertIn("1290.00 SAR", sent.body)
+        self.assertIn(reverse("reports:my_subscription"), sent.body)
+        self.assertEqual(len(sent.alternatives), 1)
+        html, content_type = sent.alternatives[0]
+        self.assertEqual(content_type, "text/html")
+        self.assertIn("تم تفعيل الاشتراك", html)
+        self.assertIn("إدارة الاشتراك وعرض الفاتورة", html)
+        self.assertIn(reverse("reports:subscription_invoice", args=[self.payment.pk]), html)
 
     def test_an_underpaid_invoice_activates_nothing(self):
         """The gateway amount is re-checked server-side, so a tampered or partial

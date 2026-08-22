@@ -5,6 +5,7 @@ import json
 from datetime import timedelta
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
@@ -89,6 +90,18 @@ def _mailbox_stats() -> dict:
     return {key: int(value or 0) for key, value in aggregate.items()}
 
 
+def _system_email_configured() -> bool:
+    backend = (getattr(settings, "EMAIL_BACKEND", "") or "").strip()
+    from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "").strip()
+    if "@" not in from_email:
+        return False
+    if backend == "reports.email_backends.ResendEmailBackend":
+        return resend_is_configured()
+    if backend == "django.core.mail.backends.smtp.EmailBackend":
+        return bool(getattr(settings, "EMAIL_HOST", "") and getattr(settings, "EMAIL_PORT", None))
+    return False
+
+
 @_superuser_required
 @require_http_methods(["GET"])
 def platform_email_inbox(request: HttpRequest) -> HttpResponse:
@@ -138,6 +151,7 @@ def platform_email_inbox(request: HttpRequest) -> HttpResponse:
             "email_config": PlatformEmailConfiguration.load(),
             "api_configured": resend_is_configured(),
             "webhook_configured": webhook_is_configured(),
+            "system_email_configured": _system_email_configured(),
         },
     )
 
@@ -294,6 +308,7 @@ def platform_email_settings(request: HttpRequest) -> HttpResponse:
             "email_config": config,
             "api_configured": resend_is_configured(),
             "webhook_configured": webhook_is_configured(),
+            "system_email_configured": _system_email_configured(),
             "webhook_url": request.build_absolute_uri(reverse("reports:resend_webhook")),
         },
     )

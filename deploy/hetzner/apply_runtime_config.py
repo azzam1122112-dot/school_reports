@@ -194,6 +194,7 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
             raise SystemExit("RESEND_WEBHOOK_SECRET does not look like a webhook signing secret.")
         values.update(
             {
+                "EMAIL_BACKEND": "reports.email_backends.ResendEmailBackend",
                 "RESEND_API_KEY": api_key,
                 "RESEND_WEBHOOK_SECRET": webhook_secret,
             }

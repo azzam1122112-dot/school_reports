@@ -17,6 +17,7 @@ from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlparse
 import uuid
 
+from django.core import signing
 from django.core.exceptions import ImproperlyConfigured
 from django.views.decorators.csrf import csrf_exempt
 
@@ -97,6 +98,36 @@ from ..discount_codes import (
     release_dead_redemptions,
     reserve_redemption,
 )
+
+
+_TAMARA_RETURN_STATE_SALT = "reports.tamara.return"
+_TAMARA_RETURN_STATE_MAX_AGE_SECONDS = 48 * 60 * 60
+
+
+def _tamara_return_url(request, result: str, batch_ref: str) -> str:
+    """Build a tamper-resistant return URL for one local Tamara order.
+
+    Tamara's redirect does not add its order id to our URL. Carrying our random
+    batch reference in a signed value lets the return view pull the authoritative
+    order status from Tamara without trusting a browser-supplied payment result.
+    """
+    state = signing.dumps(batch_ref, salt=_TAMARA_RETURN_STATE_SALT, compress=True)
+    path = reverse("reports:tamara_return", args=[result])
+    return request.build_absolute_uri(f"{path}?{urlencode({'state': state})}")
+
+
+def _tamara_batch_from_return_state(state: str) -> str:
+    try:
+        batch_ref = signing.loads(
+            state,
+            salt=_TAMARA_RETURN_STATE_SALT,
+            max_age=_TAMARA_RETURN_STATE_MAX_AGE_SECONDS,
+        )
+    except signing.BadSignature as exc:
+        raise _ApprovalError("مرجع عودة تمارا غير صالح أو منتهي.") from exc
+    if not isinstance(batch_ref, str) or not batch_ref:
+        raise _ApprovalError("مرجع عودة تمارا غير صالح.")
+    return batch_ref
 
 
 def _complete_moyasar_invoice(batch_ref: str, invoice: dict) -> None:
@@ -510,15 +541,9 @@ def tamara_checkout_create(request):
             customer_email=request.user.email,
             city=city,
             address=address,
-            success_url=request.build_absolute_uri(
-                reverse("reports:tamara_return", args=["success"])
-            ),
-            failure_url=request.build_absolute_uri(
-                reverse("reports:tamara_return", args=["failure"])
-            ),
-            cancel_url=request.build_absolute_uri(
-                reverse("reports:tamara_return", args=["cancel"])
-            ),
+            success_url=_tamara_return_url(request, "success", batch_ref),
+            failure_url=_tamara_return_url(request, "failure", batch_ref),
+            cancel_url=_tamara_return_url(request, "cancel", batch_ref),
             risk_assessment=_tamara_risk_assessment(membership.school, items),
             is_mobile=any(
                 marker in user_agent
@@ -603,10 +628,37 @@ def tamara_checkout_create(request):
 
 @require_http_methods(["GET"])
 def tamara_return(request, result: str):
-    if result == "success":
+    gateway_status = ""
+    state = (request.GET.get("state") or "").strip()
+    if state:
+        try:
+            batch_ref = _tamara_batch_from_return_state(state)
+            payment = (
+                Payment.objects.filter(
+                    payment_method=Payment.Method.TAMARA,
+                    batch_ref=batch_ref,
+                    amount__gt=0,
+                )
+                .exclude(gateway_order_id="")
+                .first()
+            )
+            if payment is None:
+                raise _ApprovalError("طلب تمارا غير معروف.")
+            gateway_status = _sync_tamara_order(payment.gateway_order_id)
+        except (TamaraGatewayError, ImproperlyConfigured, _ApprovalError):
+            # A webhook or the periodic reconciliation pass can still complete
+            # the payment. Never turn a temporary verification failure into a
+            # false failure message or, more importantly, browser-trusted success.
+            logger.exception("Tamara return verification failed")
+
+    if gateway_status == "fully_captured":
+        messages.success(request, "تم تحصيل الدفعة عبر تمارا وتفعيل الاشتراك بنجاح.")
+    elif gateway_status in {"declined", "expired", "canceled", "cancelled"}:
+        messages.error(request, "لم تكتمل عملية الدفع عبر تمارا ولم يتم تفعيل أي خدمة.")
+    elif result == "success":
         messages.info(
             request,
-            "استلمت تمارا عملية الدفع. سيُفعّل الطلب تلقائيًا بعد تأكيد التحصيل.",
+            "اكتملت خطوات الدفع لدى تمارا، ويجري التحقق من التحصيل. سيُفعّل الاشتراك تلقائيًا فور التأكيد.",
         )
     elif result == "cancel":
         messages.warning(request, "أُلغيت عملية الدفع عبر تمارا ولم يتم تفعيل أي خدمة.")
@@ -680,6 +732,8 @@ def _complete_tamara_order(
     capture_id: str,
     captured_amount,
 ) -> None:
+    if gateway_status != "fully_captured":
+        raise _ApprovalError("طلب تمارا لم يصل إلى حالة التحصيل الكامل.")
     payments = list(
         Payment.objects.filter(
             payment_method=Payment.Method.TAMARA,
@@ -802,6 +856,9 @@ def _tamara_captured_amount(response, fallback):
     for key in ("captured_amount", "total_amount"):
         value = response.get(key)
         if isinstance(value, dict) and value.get("amount") is not None:
+            currency = str(value.get("currency") or "").strip().upper()
+            if currency and currency != "SAR":
+                raise _ApprovalError("عملة تحصيل تمارا لا تطابق عملة الطلب.")
             return value["amount"]
     return fallback
 
@@ -819,6 +876,15 @@ def _sync_tamara_order(order_id: str) -> str:
     status = str(response.get("status") or "").lower()
     capture_id = str(response.get("capture_id") or "")
 
+    returned_order_id = str(response.get("order_id") or "").strip()
+    if returned_order_id and returned_order_id != order_id:
+        raise _ApprovalError("رقم طلب تمارا لا يطابق الطلب المحلي.")
+    expected_reference = f"TWQ-{payments.first().batch_ref.upper()}"
+    returned_reference = str(response.get("order_reference_id") or "").strip()
+    if returned_reference and returned_reference != expected_reference:
+        raise _ApprovalError("مرجع طلب تمارا لا يطابق الطلب المحلي.")
+    _tamara_captured_amount(response, total)
+
     if status == "approved":
         response = authorise_tamara_order(order_id)
         status = str(response.get("status") or "authorised").lower()
@@ -826,6 +892,12 @@ def _sync_tamara_order(order_id: str) -> str:
         response = capture_tamara_order(order_id, total)
         status = str(response.get("status") or "").lower()
         capture_id = str(response.get("capture_id") or capture_id)
+        # Some successful command responses contain no order status. A pull
+        # after the command is the authority and also heals a lost webhook.
+        if not status:
+            response = get_tamara_order(order_id)
+            status = str(response.get("status") or "").lower()
+            capture_id = str(response.get("capture_id") or capture_id)
     if status == "fully_captured":
         _complete_tamara_order(
             order_id,

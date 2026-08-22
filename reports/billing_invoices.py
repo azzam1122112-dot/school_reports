@@ -92,7 +92,7 @@ def build_invoice_context(payment: Payment) -> dict:
         for row in payments
     ]
     issued_at = timezone.localtime(max(issued_candidates))
-    # المجموع قبل الخصم، ثم سطر الخصم، ثم الضريبة (صفر حالياً)، ثم المدفوع فعلاً.
+    # المجموع قبل الخصم، ثم سطر الخصم، ثم المدفوع فعلاً.
     subtotal = sum((row.amount + (row.discount_amount or 0) for row in payments), Decimal("0.00"))
     discount_total = sum(((row.discount_amount or 0) for row in payments), Decimal("0.00"))
     discount_codes_label = "، ".join(
@@ -137,7 +137,7 @@ def build_invoice_context(payment: Payment) -> dict:
         },
         "items": [
             {
-                # أعمدة الجدول قبل الخصم حتى يساوي مجموعها «المجموع قبل الضريبة»،
+                # أعمدة الجدول قبل الخصم حتى يطابق ملخص إجمالي البنود،
                 # ثم يظهر الخصم سطراً مستقلاً في الملخص.
                 "description": _item_description(row),
                 "quantity": 1,

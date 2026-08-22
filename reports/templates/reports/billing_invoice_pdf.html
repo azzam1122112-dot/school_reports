@@ -24,7 +24,8 @@
     .brand strong { display: block; color: #075c36; font-size: 15pt; }
     .brand small { color: #66736d; font-size: 8pt; }
     .title { text-align: left; }
-    .title h1 { margin: 0; color: #075c36; font-size: 23pt; }
+    .title h1 { margin: 0; color: #075c36; font-size: 21pt; }
+    .eyebrow { display: block; margin-bottom: 1mm; color: #b9975b; font-size: 8pt; font-weight: 700; }
     .title p { margin: 1mm 0; color: #66736d; direction: ltr; }
     .paid { display: inline-block; padding: 1.5mm 4mm; border: 1px solid #b8ddca; border-radius: 9mm; color: #075c36; background: #eaf7f0; font-weight: 700; }
     .meta { width: 100%; margin: 7mm 0; border-collapse: separate; border-spacing: 3mm; }
@@ -49,7 +50,7 @@
     .totals-row.total strong { color: #fff; }
     .payment { display: table; width: 100%; margin-top: 8mm; padding-top: 5mm; border-top: 1px solid #dce5e0; }
     .payment div { display: table-cell; width: 33.33%; }
-    .note { margin-top: 10mm; padding: 4mm; border: 1px solid #e3ebe7; border-radius: 2mm; color: #66736d; background: #f7faf8; font-size: 8pt; text-align: center; }
+    .note { margin-top: 10mm; padding: 4mm; border: 1px solid #d8c49a; border-radius: 2mm; color: #52605a; background: #fbfaf6; font-size: 8pt; text-align: center; }
     .ltr { direction: ltr; unicode-bidi: embed; }
   </style>
 </head>
@@ -60,7 +61,7 @@
       <img src="{{ logo_url }}" alt="">
       <div class="brand-copy"><strong>منصة توثيق</strong><small>إدارة مدرسية رقمية موثوقة</small></div>
     </div>
-    <div class="title"><h1>فاتورة دفع</h1><p>{{ invoice_number }}</p><span class="paid">{{ status_label }}</span></div>
+    <div class="title"><span class="eyebrow">مستند اشتراك رسمي</span><h1>فاتورة اشتراك رسمية</h1><p>{{ invoice_number }}</p><span class="paid">{{ status_label }}</span></div>
   </header>
 
   <table class="meta"><tr>
@@ -75,7 +76,6 @@
       <h2>مقدم الخدمة</h2><strong>{{ business.legal_name }}</strong>
       {% if business.commercial_registration %}<p>السجل التجاري: <span class="ltr">{{ business.commercial_registration }}</span></p>{% endif %}
       {% if not business.commercial_registration and business.freelance_document_number %}<p>وثيقة العمل الحر: <span class="ltr">{{ business.freelance_document_number }}</span></p>{% endif %}
-      {% if business.tax_number %}<p>الرقم الضريبي: <span class="ltr">{{ business.tax_number }}</span></p>{% endif %}
       {% if business.address %}<p>{{ business.address }}</p>{% endif %}
       {% if business.support_email %}<p class="ltr">{{ business.support_email }}</p>{% endif %}
     </div>
@@ -94,9 +94,8 @@
   </table>
 
   <section class="totals">
-    <div class="totals-row"><span>المجموع قبل الضريبة</span><strong>{{ subtotal|floatformat:2|intcomma }} SAR</strong></div>
+    <div class="totals-row"><span>إجمالي البنود</span><strong>{{ subtotal|floatformat:2|intcomma }} SAR</strong></div>
     {% if discount_total %}<div class="totals-row"><span>الخصم{% if discount_codes_label %} (كود {{ discount_codes_label }}){% endif %}</span><strong>-{{ discount_total|floatformat:2|intcomma }} SAR</strong></div>{% endif %}
-    <div class="totals-row"><span>ضريبة القيمة المضافة</span><strong>{{ tax_amount|floatformat:2|intcomma }} SAR</strong></div>
     <div class="totals-row total"><span>الإجمالي المدفوع</span><strong>{{ total|floatformat:2|intcomma }} SAR</strong></div>
   </section>
 
@@ -105,6 +104,6 @@
     <div><span class="label">تاريخ السداد</span><span class="value ltr">{{ paid_at|date:"Y-m-d H:i" }}</span></div>
     <div><span class="label">الدافع</span><span class="value">{{ payer_name }}</span></div>
   </section>
-  <div class="note">فاتورة إلكترونية صادرة آليًا من منصة توثيق ولا تتطلب توقيعًا. لا تُحتسب ضريبة قيمة مضافة على هذه العملية.</div>
+  <div class="note">فاتورة اشتراك إلكترونية صادرة آليًا من منصة توثيق ولا تتطلب توقيعًا. هذا المستند ليس فاتورة ضريبية.</div>
 </body>
 </html>

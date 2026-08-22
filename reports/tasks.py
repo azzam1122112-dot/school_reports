@@ -105,6 +105,10 @@ def _email_delivery_configured() -> bool:
     backend = (getattr(settings, "EMAIL_BACKEND", "") or "").lower()
     if "console" in backend or "locmem" in backend:
         return True
+    if backend == "reports.email_backends.resendemailbackend":
+        return bool(getattr(settings, "RESEND_API_KEY", "")) and (
+            "@" in str(getattr(settings, "DEFAULT_FROM_EMAIL", "") or "")
+        )
     if "smtp" not in backend:
         return True
 
@@ -1093,6 +1097,153 @@ def check_subscription_expiry_task() -> dict:
 
     logger.info("Subscription expiry reminder result: %s", summary)
     opmetrics.timing("celery.periodic.check_subscription_expiry", (_time.monotonic() - _t0) * 1000)
+    return summary
+
+
+@shared_task(bind=True, ignore_result=True)
+def send_subscription_activation_email_task(self, payment_id: int) -> dict:
+    """Email school managers after a paid subscription has actually activated."""
+    task_id, retries, trace_id = _task_ctx(self)
+    summary = {"sent": 0, "skipped": 0, "failed": 0}
+    logger.info(
+        "Task start name=send_subscription_activation_email_task task_id=%s trace_id=%s retries=%s payment_id=%s",
+        task_id,
+        trace_id,
+        retries,
+        payment_id,
+    )
+
+    if not bool(getattr(settings, "SUBSCRIPTION_ACTIVATION_EMAIL_ENABLED", True)):
+        summary["skipped"] = 1
+        return summary
+    if not _email_delivery_configured():
+        logger.warning("Subscription activation email skipped: production SMTP is not configured.")
+        summary["skipped"] = 1
+        return summary
+
+    Payment = apps.get_model("reports", "Payment")
+    SchoolMembership = apps.get_model("reports", "SchoolMembership")
+    Teacher = apps.get_model("reports", "Teacher")
+
+    payment = (
+        Payment.objects.select_related("school", "subscription__plan", "requested_plan")
+        .filter(
+            pk=payment_id,
+            purpose=Payment.Purpose.SUBSCRIPTION,
+            status=Payment.Status.APPROVED,
+            effects_applied_at__isnull=False,
+        )
+        .first()
+    )
+    if payment is None:
+        summary["skipped"] = 1
+        return summary
+
+    school = payment.school
+    subscription = payment.subscription
+    if subscription is None:
+        try:
+            subscription = school.subscription
+        except Exception:
+            subscription = None
+    plan = getattr(subscription, "plan", None) or payment.requested_plan
+    if subscription is None or plan is None:
+        summary["skipped"] = 1
+        return summary
+
+    manager_ids = list(
+        SchoolMembership.objects.filter(
+            school=school,
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True,
+            teacher__is_active=True,
+        ).values_list("teacher_id", flat=True)
+    )
+    managers = list(
+        Teacher.objects.filter(id__in=manager_ids, is_active=True)
+        .exclude(email="")
+        .only("id", "name", "email")
+    )
+    recipients = [manager for manager in managers if _is_valid_email(manager.email)]
+    if not recipients:
+        summary["skipped"] = 1
+        return summary
+
+    from django.urls import reverse
+
+    action_url = platform_url(reverse("reports:my_subscription"))
+    invoice_url = platform_url(reverse("reports:subscription_invoice", args=[payment.pk]))
+    from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
+    method_label = payment.get_payment_method_display()
+    teacher_limit = int(getattr(subscription, "teacher_limit", 0) or 0)
+    teacher_limit_label = "غير محدود" if teacher_limit <= 0 else f"{teacher_limit} مستخدم"
+    paid_amount = f"{payment.amount:.2f}"
+    currency = "SAR"
+    start_date = subscription.start_date.strftime("%Y-%m-%d") if subscription.start_date else ""
+    end_date = subscription.end_date.strftime("%Y-%m-%d") if subscription.end_date else ""
+    subject = f"تم تفعيل اشتراك {school.name} | منصة توثيق"
+
+    for manager in recipients:
+        context = email_brand_context(
+            recipient_name=(manager.name or "مدير المدرسة").strip(),
+            school_name=school.name,
+            plan_name=plan.name,
+            start_date=start_date,
+            end_date=end_date,
+            teacher_limit=teacher_limit_label,
+            paid_amount=paid_amount,
+            currency=currency,
+            action_url=action_url,
+        )
+        plain_message = render_to_string(
+            "reports/emails/subscription_activated.txt", context
+        ).strip()
+        html_message = render_branded_email(
+            "subscription_activated.html",
+            recipient_name=context["recipient_name"],
+            email_title="تم تفعيل الاشتراك",
+            email_eyebrow="اشتراك المدرسة",
+            email_preheader=f"تم تفعيل باقة {plan.name} لمدرسة {school.name}.",
+            email_tone="success",
+            action_url=action_url,
+            action_label="إدارة الاشتراك وعرض الفاتورة",
+            meta_items=[
+                {"label": "المدرسة", "value": school.name},
+                {"label": "الباقة", "value": plan.name},
+                {"label": "تاريخ البداية", "value": start_date},
+                {"label": "تاريخ الانتهاء", "value": end_date},
+                {"label": "سعة المستخدمين", "value": teacher_limit_label},
+                {"label": "المبلغ المعتمد", "value": f"{paid_amount} {currency}"},
+                {"label": "طريقة السداد", "value": method_label},
+            ],
+            notice_title="الفاتورة متاحة داخل حسابك",
+            notice_text=f"يمكنك فتح سجل المدفوعات أو عرض فاتورة الاشتراك من صفحة الاشتراك: {invoice_url}",
+        )
+        try:
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                from_email=from_email,
+                recipient_list=[manager.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            summary["sent"] += 1
+        except Exception:
+            summary["failed"] += 1
+            logger.exception(
+                "Subscription activation email failed teacher=%s payment=%s",
+                manager.id,
+                payment.pk,
+            )
+
+    logger.info(
+        "Task success name=send_subscription_activation_email_task task_id=%s trace_id=%s payment_id=%s summary=%s",
+        task_id,
+        trace_id,
+        payment_id,
+        summary,
+    )
     return summary
 
 

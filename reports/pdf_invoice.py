@@ -61,7 +61,7 @@ def _generate_invoice_pdf_fallback(context: dict) -> bytes:
     pdf.setFillColor(gold)
     pdf.rect(0, height - 27 * mm, width, 2 * mm, fill=1, stroke=0)
     draw_right("منصة توثيق", right, height - 13 * mm, 17, bold, HexColor("#ffffff"))
-    draw_right("فاتورة دفع إلكترونية", right, height - 20 * mm, 9, regular, HexColor("#d8eee4"))
+    draw_right("فاتورة اشتراك إلكترونية", right, height - 20 * mm, 9, regular, HexColor("#d8eee4"))
     logo_path = finders.find("img/logo1.png")
     if logo_path:
         try:
@@ -78,7 +78,7 @@ def _generate_invoice_pdf_fallback(context: dict) -> bytes:
             logger.debug("Could not draw the invoice logo", exc_info=True)
 
     y = height - 39 * mm
-    draw_right("فاتورة دفع", right, y, 19, bold, green)
+    draw_right("فاتورة اشتراك رسمية", right, y, 18, bold, green)
     pdf.setFillColor(HexColor("#e6f5ed"))
     pdf.roundRect(left, y - 3 * mm, 26 * mm, 9 * mm, 3 * mm, fill=1, stroke=0)
     draw_right(context["status_label"], left + 20 * mm, y, 9, bold, green)
@@ -140,7 +140,7 @@ def _generate_invoice_pdf_fallback(context: dict) -> bytes:
     y -= 4 * mm
 
     totals_x = right
-    draw_right("المجموع قبل الضريبة", totals_x, y, 8.5, regular, muted)
+    draw_right("إجمالي البنود", totals_x, y, 8.5, regular, muted)
     draw_right(f"{context['subtotal']:.2f} SAR", totals_x - 70 * mm, y, 9, bold)
     y -= 7 * mm
     discount_total = context.get("discount_total") or 0
@@ -150,9 +150,6 @@ def _generate_invoice_pdf_fallback(context: dict) -> bytes:
         draw_right(label, totals_x, y, 8.5, regular, muted)
         draw_right(f"-{discount_total:.2f} SAR", totals_x - 70 * mm, y, 9, bold)
         y -= 7 * mm
-    draw_right("ضريبة القيمة المضافة", totals_x, y, 8.5, regular, muted)
-    draw_right(f"{context['tax_amount']:.2f} SAR", totals_x - 70 * mm, y, 9, bold)
-    y -= 9 * mm
     pdf.setFillColor(green)
     pdf.roundRect(left, y - 5 * mm, right - left, 12 * mm, 2 * mm, fill=1, stroke=0)
     draw_right("الإجمالي المدفوع", right - 4 * mm, y, 10, bold, HexColor("#ffffff"))
@@ -161,7 +158,7 @@ def _generate_invoice_pdf_fallback(context: dict) -> bytes:
     pdf.setStrokeColor(line)
     pdf.line(left, 24 * mm, right, 24 * mm)
     draw_right(
-        "فاتورة إلكترونية صادرة من منصة توثيق ولا تتطلب توقيعاً.",
+        "فاتورة اشتراك إلكترونية صادرة من منصة توثيق ولا تتطلب توقيعاً. هذا المستند ليس فاتورة ضريبية.",
         right,
         17 * mm,
         8,

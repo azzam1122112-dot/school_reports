@@ -389,6 +389,14 @@ def _apply_payment_effects(payment, today, pricing):
                 )
         except Exception:
             logger.exception("Failed to notify school managers after payment approval")
+        if purpose == Payment.Purpose.SUBSCRIPTION:
+            try:
+                from ..tasks import send_subscription_activation_email_task
+                from ..utils import run_task_safe
+
+                run_task_safe(send_subscription_activation_email_task, payment.pk)
+            except Exception:
+                logger.exception("Failed to queue subscription activation email")
         return (level, message)
 
     purpose = getattr(payment, "purpose", Payment.Purpose.SUBSCRIPTION)

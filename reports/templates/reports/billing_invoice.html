@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load static humanize %}
 
-{% block title %}الفاتورة {{ invoice_number }}{% endblock %}
+{% block title %}فاتورة الاشتراك {{ invoice_number }}{% endblock %}
 {% block robots %}noindex,nofollow{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'css/billing-invoice.css' %}?v=20260813.1">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/billing-invoice.css' %}?v=20260822.1">{% endblock %}
 
 {% block content %}
 <main class="invoice-page">
@@ -35,7 +35,8 @@
         </div>
       </div>
       <div class="invoice-title">
-        <h1 id="invoiceTitle">فاتورة دفع</h1>
+        <span class="invoice-title__eyebrow">مستند اشتراك رسمي</span>
+        <h1 id="invoiceTitle">فاتورة اشتراك رسمية</h1>
         <p dir="ltr">{{ invoice_number }}</p>
         <span class="invoice-paid-badge"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> {{ status_label }}</span>
       </div>
@@ -55,7 +56,6 @@
           <strong>{{ business.legal_name }}</strong>
           {% if business.commercial_registration %}<p>السجل التجاري: <span dir="ltr">{{ business.commercial_registration }}</span></p>{% endif %}
           {% if not business.commercial_registration and business.freelance_document_number %}<p>وثيقة العمل الحر: <span dir="ltr">{{ business.freelance_document_number }}</span></p>{% endif %}
-          {% if business.tax_number %}<p>الرقم الضريبي: <span dir="ltr">{{ business.tax_number }}</span></p>{% endif %}
           {% if business.address %}<p>{{ business.address }}</p>{% endif %}
           {% if business.support_email %}<p dir="ltr">{{ business.support_email }}</p>{% endif %}
         </div>
@@ -87,11 +87,10 @@
       </div>
 
       <section class="invoice-summary" aria-label="إجمالي الفاتورة">
-        <div class="invoice-summary__row"><span>المجموع قبل الضريبة</span><strong dir="ltr">{{ subtotal|floatformat:2|intcomma }} SAR</strong></div>
+        <div class="invoice-summary__row"><span>إجمالي البنود</span><strong dir="ltr">{{ subtotal|floatformat:2|intcomma }} SAR</strong></div>
         {% if discount_total %}
         <div class="invoice-summary__row"><span>الخصم{% if discount_codes_label %} (كود {{ discount_codes_label }}){% endif %}</span><strong dir="ltr">-{{ discount_total|floatformat:2|intcomma }} SAR</strong></div>
         {% endif %}
-        <div class="invoice-summary__row"><span>ضريبة القيمة المضافة</span><strong dir="ltr">{{ tax_amount|floatformat:2|intcomma }} SAR</strong></div>
         <div class="invoice-summary__row invoice-summary__row--total"><span>الإجمالي المدفوع</span><strong dir="ltr">{{ total|floatformat:2|intcomma }} SAR</strong></div>
       </section>
 
@@ -103,7 +102,7 @@
     </div>
 
     <footer class="invoice-footer">
-      فاتورة إلكترونية صادرة آليًا من منصة توثيق ولا تتطلب توقيعًا. لا تُحتسب ضريبة قيمة مضافة على هذه العملية.
+      فاتورة اشتراك إلكترونية صادرة آليًا من منصة توثيق ولا تتطلب توقيعًا. هذا المستند ليس فاتورة ضريبية.
     </footer>
   </article>
 </main>

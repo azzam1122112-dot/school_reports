@@ -88,10 +88,15 @@ expr:   lower(http.user_agent) contains "python" or "curl" or "wget" or "headles
 
 ```
 POST /payments/moyasar/callback/<batch_ref>/  (python-requests) -> 403 Cf-Mitigated
+POST /payments/tamara/webhook/          (curl)            -> 403 Cf-Mitigated
+POST /payments/tamara/webhook/          (Chrome UA)       -> 401 من Django (توكن اختباري مرفوض)
 GET  /api/v1/                   (curl)            -> 403
-GET  /healthz/                  (curl)            -> 403
+GET  /healthz/                  (curl)            -> 200
 GET  /                          (Chrome UA)       -> 200
 ```
+
+وينطبق الخطر نفسه على `POST /payments/tamara/webhook/`: تمارا ترسل الإشعار
+من خادم إلى خادم، وأي تحدٍ يتطلب JavaScript يمنع تأكيد التحصيل وتفعيل الاشتراك.
 
 المعالج يعيد التحقق من الفاتورة لدى البوابة بنفسه، فالحماية قائمة في التطبيق —
 لكن الحافة تمنع الطلب من الوصول أصلاً، فتضيع إشعارات البوابة بصمت.
@@ -101,6 +106,7 @@ GET  /                          (Chrome UA)       -> 200
 ```
 (http.request.uri.path eq "/healthz/")
 or starts_with(http.request.uri.path, "/payments/moyasar/callback/")
+or (http.request.uri.path eq "/payments/tamara/webhook/")
 or starts_with(http.request.uri.path, "/api/v1/")
 ```
 

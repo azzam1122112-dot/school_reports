@@ -456,14 +456,19 @@ class Command(BaseCommand):
     def _check_email(self):
         section = "Email"
         backend = str(getattr(settings, "EMAIL_BACKEND", ""))
-        if "smtp" not in backend.lower():
-            self._record(section, Check.FAIL, f"EMAIL_BACKEND = {backend}")
-            return
-        host = str(getattr(settings, "EMAIL_HOST", "") or "").lower()
-        if not host or host in {"localhost", "127.0.0.1"}:
-            self._record(section, Check.FAIL, f"EMAIL_HOST = '{host}'")
+        if backend == "reports.email_backends.ResendEmailBackend":
+            if getattr(settings, "RESEND_API_KEY", ""):
+                self._record(section, Check.OK, "Resend API key configured")
+            else:
+                self._record(section, Check.FAIL, "RESEND_API_KEY is missing")
+        elif "smtp" in backend.lower():
+            host = str(getattr(settings, "EMAIL_HOST", "") or "").lower()
+            if not host or host in {"localhost", "127.0.0.1"}:
+                self._record(section, Check.FAIL, f"EMAIL_HOST = '{host}'")
+            else:
+                self._record(section, Check.OK, f"SMTP host = {host}")
         else:
-            self._record(section, Check.OK, f"SMTP host = {host}")
+            self._record(section, Check.FAIL, f"EMAIL_BACKEND = {backend}")
         if "@" in str(getattr(settings, "DEFAULT_FROM_EMAIL", "")):
             self._record(section, Check.OK, f"From address = {settings.DEFAULT_FROM_EMAIL}")
         else:

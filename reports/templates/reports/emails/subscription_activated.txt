@@ -1,0 +1,15 @@
+مرحبًا {{ recipient_name }}،
+
+تم تفعيل اشتراك {{ school_name }} في {{ platform_name }} بنجاح.
+الباقة: {{ plan_name }}
+تاريخ البداية: {{ start_date }}
+تاريخ الانتهاء: {{ end_date }}
+سعة المستخدمين: {{ teacher_limit }}
+المبلغ المعتمد: {{ paid_amount }} {{ currency }}
+
+يمكنك إدارة الاشتراك وعرض الفاتورة من الرابط التالي:
+{{ action_url }}
+
+للدعم: {{ support_email }}
+{{ platform_name }} — توثيق أدق، متابعة أوضح.
+

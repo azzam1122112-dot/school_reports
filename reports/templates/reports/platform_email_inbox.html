@@ -17,10 +17,10 @@
     </div>
   </header>
 
-  {% if not api_configured or not webhook_configured or not email_config.is_sending_enabled or not email_config.is_receiving_enabled %}
+  {% if not api_configured or not webhook_configured or not system_email_configured or not email_config.is_sending_enabled or not email_config.is_receiving_enabled %}
   <section class="mail-setup" aria-label="حالة الربط">
     <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-    <div><strong>إعداد البريد يحتاج إكمالًا</strong><span>أكمل مفاتيح Resend والتفعيل من الإعدادات قبل بدء التشغيل الفعلي.</span></div>
+    <div><strong>إعداد البريد يحتاج إكمالًا</strong><span>أكمل مفاتيح Resend وبريد النظام والتفعيل من الإعدادات قبل بدء التشغيل الفعلي.</span></div>
     <a href="{% url 'reports:platform_email_settings' %}">مراجعة الإعدادات</a>
   </section>
   {% endif %}
@@ -44,6 +44,7 @@
       <div class="mail-health">
         <strong>جاهزية الخدمة</strong>
         <span class="{% if api_configured %}is-ok{% endif %}"><i></i> مفتاح API</span>
+        <span class="{% if system_email_configured %}is-ok{% endif %}"><i></i> بريد النظام</span>
         <span class="{% if webhook_configured %}is-ok{% endif %}"><i></i> توقيع Webhook</span>
         <span class="{% if email_config.is_sending_enabled %}is-ok{% endif %}"><i></i> الإرسال</span>
         <span class="{% if email_config.is_receiving_enabled %}is-ok{% endif %}"><i></i> الاستقبال</span>

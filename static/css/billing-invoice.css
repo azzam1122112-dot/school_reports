@@ -75,11 +75,27 @@
 }
 
 .invoice-sheet {
+  position: relative;
   overflow: hidden;
   border: 1px solid var(--id-line, #dce5e0);
   border-radius: 8px;
-  background: var(--id-surface, #fff);
-  box-shadow: var(--id-e3, 0 16px 42px rgba(12, 52, 35, .11));
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .96), rgba(247, 250, 248, .98)),
+    var(--id-surface, #fff);
+  box-shadow: 0 22px 52px rgba(12, 52, 35, .13);
+}
+
+.invoice-sheet::before {
+  position: absolute;
+  inset: 84px auto auto 34px;
+  color: rgba(185, 151, 91, .08);
+  content: "Tawtheeq";
+  direction: ltr;
+  font-size: clamp(3.5rem, 11vw, 7.2rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  pointer-events: none;
+  transform: rotate(-14deg);
 }
 
 .invoice-sheet__stripe {
@@ -92,12 +108,16 @@
 .invoice-sheet__stripe span:last-child { background: #b9975b; }
 
 .invoice-header {
+  position: relative;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
   padding: clamp(20px, 4vw, 38px);
   border-bottom: 1px solid var(--id-line, #dce5e0);
+  background:
+    linear-gradient(90deg, rgba(7, 92, 54, .08), rgba(185, 151, 91, .11)),
+    #fff;
 }
 
 .invoice-brand {
@@ -127,7 +147,22 @@
 }
 
 .invoice-title { text-align: end; }
-.invoice-title h1 { margin: 0; font-size: clamp(1.55rem, 4vw, 2.3rem); font-weight: 950; }
+
+.invoice-title__eyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: #8d713d;
+  font-size: .74rem;
+  font-weight: 950;
+}
+
+.invoice-title h1 {
+  margin: 0;
+  color: var(--id-green-900, #06482d);
+  font-size: clamp(1.55rem, 4vw, 2.25rem);
+  font-weight: 950;
+}
+
 .invoice-title p { margin: 5px 0 0; color: var(--id-muted, #66736d); font-size: .82rem; font-weight: 800; }
 
 .invoice-paid-badge {
@@ -158,7 +193,8 @@
   padding: 12px;
   border: 1px solid var(--id-line-soft, #e8eeeb);
   border-radius: 7px;
-  background: var(--id-surface-2, #f7faf8);
+  background: rgba(255, 255, 255, .86);
+  box-shadow: inset 0 2px 0 rgba(185, 151, 91, .08);
 }
 
 .invoice-meta__item span,
@@ -184,11 +220,25 @@
   margin-bottom: 28px;
 }
 
-.invoice-party { border-inline-start: 3px solid #b9975b; padding-inline-start: 13px; }
+.invoice-party {
+  padding: 16px;
+  border: 1px solid rgba(220, 229, 224, .9);
+  border-inline-start: 4px solid #b9975b;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .76);
+}
+
 .invoice-party strong { display: block; color: var(--id-green-800, #075c36); font-size: 1rem; font-weight: 950; }
 .invoice-party p { margin: 5px 0 0; color: var(--id-muted, #66736d); font-size: .82rem; font-weight: 750; line-height: 1.75; }
 
-.invoice-table-wrap { overflow-x: auto; border: 1px solid var(--id-line, #dce5e0); border-radius: 7px; }
+.invoice-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--id-line, #dce5e0);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 26px rgba(12, 52, 35, .06);
+}
+
 .invoice-table { width: 100%; min-width: 620px; border-collapse: collapse; }
 .invoice-table th { padding: 12px 14px; color: #fff; background: #075c36; font-size: .78rem; font-weight: 900; text-align: right; }
 .invoice-table td { padding: 14px; border-bottom: 1px solid var(--id-line-soft, #e8eeeb); font-size: .86rem; font-weight: 800; text-align: right; }
@@ -215,9 +265,10 @@
   padding: 14px;
   border-radius: 7px;
   color: #fff;
-  background: #075c36;
+  background: linear-gradient(90deg, #075c36, #087443);
   font-size: 1rem;
   font-weight: 950;
+  box-shadow: 0 12px 24px rgba(7, 92, 54, .2);
 }
 
 .invoice-payment-note {
@@ -234,8 +285,8 @@
 
 .invoice-footer {
   padding: 16px clamp(20px, 4vw, 38px);
-  color: var(--id-muted, #66736d);
-  background: var(--id-surface-2, #f7faf8);
+  color: #52605a;
+  background: #fbfaf6;
   font-size: .75rem;
   font-weight: 750;
   line-height: 1.8;
@@ -249,6 +300,7 @@
   .invoice-toolbar__button { width: 100%; }
   .invoice-header { align-items: stretch; flex-direction: column; }
   .invoice-title { text-align: start; }
+  .invoice-sheet::before { inset: 132px auto auto 12px; }
   .invoice-meta { grid-template-columns: 1fr 1fr; }
   .invoice-parties { grid-template-columns: 1fr; gap: 20px; }
   .invoice-payment-note { grid-template-columns: 1fr; }

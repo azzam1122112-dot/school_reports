@@ -1038,6 +1038,7 @@ CELERY_TASK_ROUTES = {
     "reports.tasks.send_telegram_alert_task": {"queue": "notifications"},
     "reports.tasks.send_notification_task": {"queue": "notifications"},
     "reports.tasks.send_password_change_email_task": {"queue": "notifications"},
+    "reports.tasks.send_subscription_activation_email_task": {"queue": "notifications"},
     "reports.tasks.process_report_images": {"queue": "images"},
     "reports.tasks.process_ticket_image": {"queue": "images"},
     # توليد PDF: أثقل عملية في المنصة، ومكانها عامل الوسائط لا عامل الويب.
@@ -1212,6 +1213,10 @@ except Exception:
 PASSWORD_CHANGE_EMAIL_ENABLED = _env_bool("PASSWORD_CHANGE_EMAIL_ENABLED", True)
 
 
+# ----------------- Subscription Activation Email -----------------
+SUBSCRIPTION_ACTIVATION_EMAIL_ENABLED = _env_bool("SUBSCRIPTION_ACTIVATION_EMAIL_ENABLED", True)
+
+
 # ----------------- Email -----------------
 EMAIL_BACKEND = (
     os.getenv("EMAIL_BACKEND")
@@ -1257,12 +1262,16 @@ except (TypeError, ValueError):
     PASSWORD_RESET_TIMEOUT = 3600
 
 if ENV == "production" and PRODUCTION_STRICT_MODE:
-    if EMAIL_BACKEND != "django.core.mail.backends.smtp.EmailBackend":
-        raise ImproperlyConfigured("The SMTP email backend is required in production.")
-    if not EMAIL_HOST or EMAIL_HOST.lower() in {"localhost", "127.0.0.1"}:
-        raise ImproperlyConfigured("EMAIL_HOST must point to the production SMTP provider.")
-    if EMAIL_USE_TLS and EMAIL_USE_SSL:
-        raise ImproperlyConfigured("EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled.")
+    if EMAIL_BACKEND == "reports.email_backends.ResendEmailBackend":
+        if not RESEND_API_KEY:
+            raise ImproperlyConfigured("RESEND_API_KEY is required for the Resend email backend.")
+    elif EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend":
+        if not EMAIL_HOST or EMAIL_HOST.lower() in {"localhost", "127.0.0.1"}:
+            raise ImproperlyConfigured("EMAIL_HOST must point to the production SMTP provider.")
+        if EMAIL_USE_TLS and EMAIL_USE_SSL:
+            raise ImproperlyConfigured("EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled.")
+    else:
+        raise ImproperlyConfigured("Use SMTP or reports.email_backends.ResendEmailBackend in production.")
     if "@" not in DEFAULT_FROM_EMAIL:
         raise ImproperlyConfigured("DEFAULT_FROM_EMAIL must be a valid sender address.")
 

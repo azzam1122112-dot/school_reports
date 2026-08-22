@@ -7,6 +7,7 @@
   <header class="mail-page-head"><div><a href="{% url 'reports:platform_email_inbox' %}"><i class="fa-solid fa-arrow-right"></i> البريد</a><h1>إعدادات بريد المنصة</h1><p>هوية موحدة للإرسال، عنوان واضح للاستقبال، وربط محمي مع Resend.</p></div><span class="mail-page-head__icon"><i class="fa-solid fa-shield-halved"></i></span></header>
   <section class="mail-connection-grid" aria-label="حالة الاتصال">
     <article class="{% if api_configured %}is-ok{% endif %}"><i class="fa-solid fa-key"></i><div><strong>Resend API</strong><span>{% if api_configured %}المفتاح موجود في بيئة الخادم{% else %}المفتاح غير مضاف{% endif %}</span></div><b>{% if api_configured %}جاهز{% else %}ناقص{% endif %}</b></article>
+    <article class="{% if system_email_configured %}is-ok{% endif %}"><i class="fa-solid fa-envelope-circle-check"></i><div><strong>بريد النظام</strong><span>{% if system_email_configured %}استعادة كلمة المرور وتنبيهات الاشتراك تستخدم مزود بريد فعلي{% else %}رسائل النظام لا تستخدم مزود بريد جاهز{% endif %}</span></div><b>{% if system_email_configured %}جاهز{% else %}ناقص{% endif %}</b></article>
     <article class="{% if webhook_configured %}is-ok{% endif %}"><i class="fa-solid fa-fingerprint"></i><div><strong>توقيع Webhook</strong><span>{% if webhook_configured %}التحقق الأمني جاهز{% else %}سر التوقيع غير مضاف{% endif %}</span></div><b>{% if webhook_configured %}جاهز{% else %}ناقص{% endif %}</b></article>
   </section>
   <form class="mail-settings-form" method="post" novalidate>{% csrf_token %}

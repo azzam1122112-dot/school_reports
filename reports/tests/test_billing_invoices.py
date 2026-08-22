@@ -129,6 +129,22 @@ class BillingInvoiceTests(TestCase):
         self.assertIn("private", response["Cache-Control"])
         self.assertIn("no-store", response["Cache-Control"])
 
+    @override_settings(BUSINESS_TAX_NUMBER="300000000000003")
+    def test_customer_invoice_is_not_presented_as_a_tax_invoice(self):
+        response = self.client.get(
+            reverse("reports:subscription_invoice", args=[self.subscription_payment.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "فاتورة اشتراك رسمية")
+        self.assertContains(response, "مستند اشتراك رسمي")
+        self.assertContains(response, "هذا المستند ليس فاتورة ضريبية")
+        self.assertContains(response, "إجمالي البنود")
+        self.assertNotContains(response, "الرقم الضريبي")
+        self.assertNotContains(response, "300000000000003")
+        self.assertNotContains(response, "ضريبة القيمة المضافة")
+        self.assertNotContains(response, "المجموع قبل الضريبة")
+
     def test_pending_payment_has_no_final_invoice(self):
         response = self.client.get(
             reverse("reports:subscription_invoice", args=[self.pending_payment.pk])

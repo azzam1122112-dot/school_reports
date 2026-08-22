@@ -4,6 +4,7 @@ import hmac
 import json
 import time
 from decimal import Decimal
+from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
 
 from django.test import TestCase, override_settings
@@ -126,6 +127,7 @@ class TamaraPaymentTests(TestCase):
         self.assertEqual(sent["total_amount"]["amount"], 1200.0)
         self.assertEqual(sent["billing_address"]["city"], "الرياض")
         self.assertNotIn("shipping_address", sent)
+        self.assertTrue(parse_qs(urlparse(sent["merchant_url"]["success"]).query)["state"][0])
         eligibility_mock.assert_called_once_with(
             amount=Decimal("1200.00"),
             phone=self.manager.phone,
@@ -178,6 +180,98 @@ class TamaraPaymentTests(TestCase):
             batch_ref="tamara-paid",
             created_by=self.manager,
         )
+
+    @override_settings(TAMARA_ENABLED=True, TAMARA_API_TOKEN="sandbox-api-token")
+    @patch("reports.views.billing_gateways.capture_tamara_order")
+    @patch("reports.views.billing_gateways.authorise_tamara_order")
+    @patch("reports.views.billing_gateways.get_tamara_order")
+    @patch("reports.views.billing_gateways.is_tamara_customer_eligible", return_value=True)
+    @patch("reports.views.billing_gateways.create_tamara_checkout")
+    def test_success_return_verifies_capture_and_activates_immediately(
+        self,
+        create_checkout_mock,
+        _eligibility_mock,
+        get_order_mock,
+        authorise_mock,
+        capture_mock,
+    ):
+        order_id = "44444444-4444-4444-4444-444444444444"
+        create_checkout_mock.return_value = {
+            "order_id": order_id,
+            "checkout_id": "55555555-5555-5555-5555-555555555555",
+            "status": "new",
+            "checkout_url": "https://checkout.tamara.co/checkout/return-test",
+        }
+        checkout_response = self.client.post(
+            reverse("reports:tamara_checkout_create"), self._checkout_payload()
+        )
+        self.assertEqual(checkout_response.status_code, 302)
+        success_url = create_checkout_mock.call_args.args[0]["merchant_url"]["success"]
+        payment = Payment.objects.get(gateway_order_id=order_id)
+        expected_reference = f"TWQ-{payment.batch_ref.upper()}"
+        get_order_mock.return_value = {
+            "order_id": order_id,
+            "order_reference_id": expected_reference,
+            "status": "approved",
+            "total_amount": {"amount": 1200, "currency": "SAR"},
+        }
+        authorise_mock.return_value = {"status": "authorised"}
+        capture_mock.return_value = {
+            "status": "fully_captured",
+            "capture_id": "capture-return",
+            "captured_amount": {"amount": 1200, "currency": "SAR"},
+        }
+
+        response = self.client.get(success_url, follow=True)
+
+        self.assertContains(response, "تم تحصيل الدفعة عبر تمارا وتفعيل الاشتراك بنجاح")
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.APPROVED)
+        self.assertEqual(payment.gateway_capture_id, "capture-return")
+        self.assertIsNotNone(payment.effects_applied_at)
+
+    @override_settings(TAMARA_ENABLED=True)
+    @patch("reports.views.billing_gateways.get_tamara_order")
+    def test_success_return_does_not_activate_an_unpaid_order(self, get_order_mock):
+        payment = self._pending_payment(order_id="66666666-6666-6666-6666-666666666666")
+        from reports.views.billing_gateways import _tamara_return_url
+
+        request = type("Request", (), {"build_absolute_uri": lambda _self, path: f"http://testserver{path}"})()
+        success_url = _tamara_return_url(request, "success", payment.batch_ref)
+        get_order_mock.return_value = {
+            "order_id": payment.gateway_order_id,
+            "order_reference_id": "TWQ-TAMARA-PAID",
+            "status": "new",
+            "total_amount": {"amount": 1200, "currency": "SAR"},
+        }
+
+        response = self.client.get(success_url, follow=True)
+
+        self.assertContains(response, "يجري التحقق من التحصيل")
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+        self.assertIsNone(payment.effects_applied_at)
+
+    @override_settings(TAMARA_ENABLED=True)
+    @patch("reports.views.billing_gateways.get_tamara_order")
+    def test_return_rejects_gateway_order_reference_mismatch(self, get_order_mock):
+        payment = self._pending_payment(order_id="77777777-7777-7777-7777-777777777777")
+        from reports.views.billing_gateways import _tamara_return_url
+
+        request = type("Request", (), {"build_absolute_uri": lambda _self, path: f"http://testserver{path}"})()
+        success_url = _tamara_return_url(request, "success", payment.batch_ref)
+        get_order_mock.return_value = {
+            "order_id": payment.gateway_order_id,
+            "order_reference_id": "TWQ-SOMEONE-ELSES-ORDER",
+            "status": "fully_captured",
+            "total_amount": {"amount": 1200, "currency": "SAR"},
+        }
+
+        self.client.get(success_url)
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+        self.assertIsNone(payment.effects_applied_at)
 
     @override_settings(
         TAMARA_ENABLED=True,
