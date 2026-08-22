@@ -152,6 +152,21 @@ if [ "$status" != "healthy" ]; then
   die "deploy did not reach a healthy state."
 fi
 
+# Record the release immediately after it is proven healthy.  The periodic
+# synchronizer remains a safety net, but waiting for its five-minute interval
+# makes the operations app briefly advertise the just-deployed commit as a new
+# release and can invite a duplicate deployment.
+case "$RELEASE_SHA" in
+  [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
+    if [ "${#RELEASE_SHA}" -eq 40 ]; then
+      log "stamping the verified Tawtheeq release"
+      docker compose "${COMPOSE_FILES[@]}" exec -T web \
+        python manage.py stamp_managed_project_release \
+        tawtheeq "$RELEASE_SHA" --image "$APP_IMAGE"
+    fi
+    ;;
+esac
+
 docker image prune --force --filter "until=168h" >/dev/null 2>&1 || true
 
 log "deployed $APP_IMAGE successfully"
