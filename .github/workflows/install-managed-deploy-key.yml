@@ -50,6 +50,13 @@ jobs:
               if ! id manageddeploy >/dev/null 2>&1; then
                 sudo -n useradd --create-home --shell /bin/bash manageddeploy
               fi
+              # useradd leaves the password field locked, and OpenSSH rejects a
+              # locked account before checking authorized_keys on this host.
+              # Set an unknown random hash so public-key login can proceed;
+              # no reusable password is retained or printed.
+              random_hash="$(openssl passwd -6 "$(openssl rand -hex 32)")"
+              sudo -n usermod --password "$random_hash" manageddeploy
+              unset random_hash
               sudo -n install -d -m 700 -o manageddeploy -g manageddeploy /home/manageddeploy/.ssh
               sudo -n touch /home/manageddeploy/.ssh/authorized_keys
               if ! sudo -n grep -qxF "$public_key" /home/manageddeploy/.ssh/authorized_keys; then
