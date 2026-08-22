@@ -9,6 +9,7 @@ from unittest.mock import patch
 from django.test import SimpleTestCase
 
 from deploy.hetzner.apply_runtime_config import (
+    _assert_resend_can_boot,
     _assert_tamara_can_boot,
     _assert_web_push_can_boot,
     _collect,
@@ -35,6 +36,7 @@ class WebPushRuntimeConfigTests(SimpleTestCase):
             "web_push_enabled": "True",
             "web_push_config_from_stdin": True,
             "resend_config_from_stdin": False,
+            "resend_system_backend": False,
         }
         values.update(overrides)
         return SimpleNamespace(**values)
@@ -127,4 +129,26 @@ class WebPushRuntimeConfigTests(SimpleTestCase):
                         web_push_config_from_stdin=False,
                         resend_config_from_stdin=True,
                     )
+                )
+
+    def test_resend_system_backend_uses_existing_key_without_reading_secret(self):
+        values = _collect(
+            self._args(
+                web_push_enabled=None,
+                web_push_config_from_stdin=False,
+                resend_system_backend=True,
+            )
+        )
+        self.assertEqual(values["EMAIL_BACKEND"], "reports.email_backends.ResendEmailBackend")
+
+    def test_resend_system_backend_refuses_missing_server_key(self):
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "env.production"
+            path.write_text("EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend\n", encoding="utf-8")
+            with self.assertRaisesMessage(SystemExit, "RESEND_API_KEY"):
+                _assert_resend_can_boot(
+                    path,
+                    {"EMAIL_BACKEND": "reports.email_backends.ResendEmailBackend"},
                 )

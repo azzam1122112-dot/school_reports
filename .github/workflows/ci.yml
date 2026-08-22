@@ -259,6 +259,20 @@ jobs:
                '$DEPLOY_PATH/deploy/hetzner/apply_runtime_config.py' \
                --web-push-enabled True --web-push-config-from-stdin"
 
+      - name: Configure Resend system email backend
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+        run: |
+          # The server already holds RESEND_API_KEY; this only switches Django
+          # password resets and subscription notices from SMTP to the Resend API
+          # backend. No secret is printed or sent through argv.
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+              "DEPLOY_PATH='$DEPLOY_PATH' python3 \
+               '$DEPLOY_PATH/deploy/hetzner/apply_runtime_config.py' \
+               --resend-system-backend"
+
       - name: Release and run migrations
         env:
           SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}

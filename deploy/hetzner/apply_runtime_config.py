@@ -84,6 +84,11 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Read RESEND_API_KEY and RESEND_WEBHOOK_SECRET from two stdin lines.",
     )
+    parser.add_argument(
+        "--resend-system-backend",
+        action="store_true",
+        help="Use the existing RESEND_API_KEY for Django system emails.",
+    )
     return parser.parse_args()
 
 
@@ -200,6 +205,9 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
             }
         )
 
+    if getattr(args, "resend_system_backend", False):
+        values["EMAIL_BACKEND"] = "reports.email_backends.ResendEmailBackend"
+
     if not values:
         raise SystemExit("Nothing to apply — pass at least one option.")
     return values
@@ -294,6 +302,20 @@ def _assert_web_push_can_boot(path: Path, values: dict[str, str]) -> None:
         )
 
 
+def _assert_resend_can_boot(path: Path, values: dict[str, str]) -> None:
+    if values.get("EMAIL_BACKEND") != "reports.email_backends.ResendEmailBackend":
+        return
+    existing: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = re.match(r"^([A-Z0-9_]+)=(.*)$", line)
+        if match:
+            existing[match.group(1)] = match.group(2).strip()
+    if not existing.get("RESEND_API_KEY") and not values.get("RESEND_API_KEY"):
+        raise SystemExit(
+            "Refusing to enable ResendEmailBackend without an existing RESEND_API_KEY."
+        )
+
+
 def _prune_backups(path: Path, keep: int = BACKUPS_TO_KEEP) -> list[str]:
     """Keep the most recent backups and shred the rest.
 
@@ -370,6 +392,7 @@ def main() -> None:
     _assert_gateway_can_boot(path, values)
     _assert_tamara_can_boot(path, values)
     _assert_web_push_can_boot(path, values)
+    _assert_resend_can_boot(path, values)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     backup = path.with_name(f"{path.name}.bak.{timestamp}")
