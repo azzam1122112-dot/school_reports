@@ -3,4 +3,8 @@ class AppConfig {
     'OPS_API_BASE_URL',
     defaultValue: 'https://tawtheeq-ksa.com/api/operations/v1',
   );
+
+  static const provisionedAccessToken = String.fromEnvironment(
+    'OPS_ACCESS_TOKEN',
+  );
 }

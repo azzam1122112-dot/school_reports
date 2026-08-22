@@ -57,8 +57,7 @@ class DashboardScreen extends ConsumerWidget {
           PopupMenuButton<String>(
             tooltip: 'خيارات الحساب',
             icon: const Icon(Icons.account_circle_outlined),
-            onSelected: (value) =>
-                _handleMenu(context, ref, value, currentUser),
+            onSelected: (value) => _handleMenu(context, value, currentUser),
             itemBuilder: (_) => [
               if (currentUser?.can('manage_team') == true)
                 const PopupMenuItem(
@@ -74,15 +73,6 @@ class DashboardScreen extends ConsumerWidget {
                 child: ListTile(
                   leading: Icon(Icons.password_outlined),
                   title: Text('تغيير كلمة المرور'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'logout',
-                child: ListTile(
-                  leading: Icon(Icons.logout),
-                  title: Text('تسجيل الخروج'),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -159,7 +149,6 @@ class DashboardScreen extends ConsumerWidget {
 
   void _handleMenu(
     BuildContext context,
-    WidgetRef ref,
     String value,
     OperationsAccount? currentUser,
   ) {
@@ -174,8 +163,6 @@ class DashboardScreen extends ConsumerWidget {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const ChangePasswordScreen()));
-    } else if (value == 'logout') {
-      ref.read(sessionProvider.notifier).logout();
     }
   }
 }

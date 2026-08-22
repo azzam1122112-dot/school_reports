@@ -15,6 +15,24 @@ void main() {
     );
   });
 
+  test('prefers a provisioned device token over stale local storage', () {
+    expect(
+      resolveOperationsToken(
+        storedToken: 'old-token',
+        provisionedToken: '  device-token  ',
+      ),
+      'device-token',
+    );
+    expect(
+      resolveOperationsToken(storedToken: ' stored ', provisionedToken: ''),
+      'stored',
+    );
+    expect(
+      resolveOperationsToken(storedToken: null, provisionedToken: ''),
+      isNull,
+    );
+  });
+
   test(
     'maps backend health states without treating unknown values as healthy',
     () {

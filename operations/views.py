@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
@@ -33,12 +32,10 @@ ROLE_CAPABILITIES = {
 
 
 def _operations_profile(user) -> tuple[str, str, tuple[str, ...]]:
-    if user.is_superuser:
-        return "owner", "مالك مركز العمليات", ROLE_CAPABILITIES["owner"]
     membership = OperationsMembership.objects.filter(user=user, is_active=True).first()
-    if membership is None:
-        return "", "غير مخول", ()
-    return membership.role, membership.get_role_display(), ROLE_CAPABILITIES[membership.role]
+    if membership is not None:
+        return membership.role, membership.get_role_display(), ROLE_CAPABILITIES[membership.role]
+    return "", "غير مخول", ()
 
 
 def _has_capability(user, capability: str) -> bool:
@@ -131,7 +128,7 @@ def accounts(request):
         return Response({"detail": "لا تملك صلاحية إدارة فريق العمليات."}, status=status.HTTP_403_FORBIDDEN)
     User = get_user_model()
     if request.method == "GET":
-        users = User.objects.filter(Q(is_superuser=True) | Q(operations_membership__isnull=False)).distinct().order_by("name", "phone")
+        users = User.objects.filter(operations_membership__isnull=False).distinct().order_by("name", "phone")
         return Response({
             "accounts": [_account_payload(user) for user in users],
             "roles": [
@@ -163,7 +160,7 @@ def account_detail(request, user_id: int):
     if not _has_capability(request.user, "manage_team"):
         return Response({"detail": "لا تملك صلاحية إدارة فريق العمليات."}, status=status.HTTP_403_FORBIDDEN)
     User = get_user_model()
-    user = User.objects.filter(pk=user_id).filter(Q(is_superuser=True) | Q(operations_membership__isnull=False)).distinct().first()
+    user = User.objects.filter(pk=user_id, operations_membership__isnull=False).first()
     if user is None:
         return Response({"detail": "الحساب غير موجود."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -178,15 +175,12 @@ def account_detail(request, user_id: int):
         is_active = bool(request.data.get("is_active"))
         if not is_active and user.pk == request.user.pk:
             return Response({"detail": "لا يمكنك تعطيل حسابك الحالي."}, status=status.HTTP_400_BAD_REQUEST)
-        if not is_active and User.objects.filter(is_superuser=True, is_active=True).exclude(pk=user.pk).count() == 0:
+        if not is_active and OperationsMembership.objects.filter(is_active=True, user__is_active=True).exclude(user=user).count() == 0:
             return Response({"detail": "يجب بقاء حساب عمليات نشط واحد على الأقل."}, status=status.HTTP_400_BAD_REQUEST)
         user.is_active = is_active
         updates.append("is_active")
-        if not user.is_superuser:
-            OperationsMembership.objects.filter(user=user).update(is_active=is_active)
+        OperationsMembership.objects.filter(user=user).update(is_active=is_active)
     if "role" in request.data:
-        if user.is_superuser:
-            return Response({"detail": "لا يمكن تغيير دور مالك مركز العمليات."}, status=status.HTTP_400_BAD_REQUEST)
         role = str(request.data.get("role") or "")
         if role not in OperationsMembership.Role.values:
             return Response({"detail": "دور فريق العمليات غير صالح."}, status=status.HTTP_400_BAD_REQUEST)
@@ -211,7 +205,6 @@ def account_detail(request, user_id: int):
 @api_view(["GET"])
 @authentication_classes([OperationsTokenAuthentication])
 def dashboard(request):
-    User = get_user_model()
     servers = ManagedServer.objects.filter(is_active=True).prefetch_related("projects__services")
     incidents = Incident.objects.filter(status__in=(Incident.Status.OPEN, Incident.Status.ACKNOWLEDGED)).select_related("project")[:20]
     return Response({
@@ -221,8 +214,7 @@ def dashboard(request):
             "projects": ManagedProject.objects.filter(is_active=True).count(),
             "healthy_projects": ManagedProject.objects.filter(is_active=True, status=ManagedProject.Status.HEALTHY).count(),
             "open_incidents": Incident.objects.filter(status__in=(Incident.Status.OPEN, Incident.Status.ACKNOWLEDGED)).count(),
-            "team_members": OperationsMembership.objects.filter(is_active=True, user__is_active=True).count()
-            + User.objects.filter(is_superuser=True, is_active=True).exclude(operations_membership__isnull=False).count(),
+            "team_members": OperationsMembership.objects.filter(is_active=True, user__is_active=True).count(),
         },
         "current_user": _account_payload(request.user),
         "agent": {

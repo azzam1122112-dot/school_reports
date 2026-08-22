@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'design_system.dart';
 import 'screens/dashboard_screen.dart';
-import 'screens/login_screen.dart';
 import 'state.dart';
 
 class OperationsApp extends ConsumerWidget {
@@ -27,7 +26,10 @@ class OperationsApp extends ConsumerWidget {
       theme: _theme(),
       home: switch (session.status) {
         SessionStatus.loading => const _StartupScreen(),
-        SessionStatus.signedOut => const LoginScreen(),
+        SessionStatus.signedOut => _ProvisioningErrorScreen(
+          message: session.error,
+          onRetry: () => ref.read(sessionProvider.notifier).retry(),
+        ),
         SessionStatus.signedIn => const DashboardScreen(),
       },
     );
@@ -111,6 +113,55 @@ class OperationsApp extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _ProvisioningErrorScreen extends StatelessWidget {
+  const _ProvisioningErrorScreen({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String? message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: PremiumPanel(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.phonelink_lock_outlined,
+                size: 54,
+                color: OpsColors.danger,
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'تعذر فتح مركز العمليات',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message ?? 'تحقق من اتصال الخادم ثم أعد المحاولة.',
+                style: const TextStyle(color: OpsColors.slate),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
+              ElevatedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _StartupScreen extends StatelessWidget {

@@ -11,14 +11,9 @@ final apiProvider = Provider<OperationsApi>((ref) => OperationsApi());
 enum SessionStatus { loading, signedOut, signedIn }
 
 class SessionState {
-  const SessionState({
-    required this.status,
-    this.error,
-    this.otpRequired = false,
-  });
+  const SessionState({required this.status, this.error});
   final SessionStatus status;
   final String? error;
-  final bool otpRequired;
 }
 
 class SessionController extends StateNotifier<SessionState> {
@@ -30,7 +25,10 @@ class SessionController extends StateNotifier<SessionState> {
 
   Future<void> _restore() async {
     if (!await _api.restoreSession()) {
-      state = const SessionState(status: SessionStatus.signedOut);
+      state = const SessionState(
+        status: SessionStatus.signedOut,
+        error: 'هذه النسخة غير مهيأة برمز الجهاز.',
+      );
       return;
     }
     try {
@@ -41,47 +39,25 @@ class SessionController extends StateNotifier<SessionState> {
           (error.statusCode == 401 || error.statusCode == 403)) {
         await _api.clearSession();
       }
-      state = const SessionState(status: SessionStatus.signedOut);
-    }
-  }
-
-  Future<bool> login({
-    required String phone,
-    required String password,
-    required String deviceName,
-    String otp = '',
-  }) async {
-    state = const SessionState(status: SessionStatus.loading);
-    try {
-      await _api.login(
-        phone: phone,
-        password: password,
-        deviceName: deviceName,
-        otp: otp,
-      );
-      state = const SessionState(status: SessionStatus.signedIn);
-      return true;
-    } on ApiException catch (error) {
       state = SessionState(
         status: SessionStatus.signedOut,
-        error: error.message,
-        otpRequired: error.data?['otp_required'] == true,
+        error: error is ApiException
+            ? error.message
+            : 'تعذر الاتصال بمركز العمليات.',
       );
-      return false;
     }
   }
 
-  Future<void> logout() async {
+  Future<void> retry() async {
     state = const SessionState(status: SessionStatus.loading);
-    await _api.logout();
-    state = const SessionState(status: SessionStatus.signedOut);
+    await _restore();
   }
 
   Future<void> expired() async {
     await _api.clearSession();
     state = const SessionState(
       status: SessionStatus.signedOut,
-      error: 'انتهت جلسة الدخول.',
+      error: 'انتهت صلاحية رمز الجهاز. أعد تثبيت النسخة الشخصية.',
     );
   }
 }

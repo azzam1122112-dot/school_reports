@@ -97,7 +97,7 @@ class AccountsScreen extends ConsumerWidget {
     final email = TextEditingController(text: account?.email ?? '');
     final password = TextEditingController();
     final formKey = GlobalKey<FormState>();
-    var role = account?.role == 'owner' ? 'admin' : account?.role ?? 'viewer';
+    var role = account?.role ?? 'viewer';
     var submitting = false;
     final created = account == null;
     final saved = await showDialog<bool>(
@@ -119,7 +119,7 @@ class AccountsScreen extends ConsumerWidget {
                         : null,
                   ),
                   const SizedBox(height: 10),
-                  if (account?.isSuperuser != true)
+                  if (account?.role != 'owner')
                     DropdownButtonFormField<String>(
                       initialValue: role,
                       decoration: const InputDecoration(labelText: 'الدور'),
@@ -217,7 +217,7 @@ class AccountsScreen extends ConsumerWidget {
                             password: password.text.isEmpty
                                 ? null
                                 : password.text,
-                            role: account.isSuperuser ? null : role,
+                            role: account.role == 'owner' ? null : role,
                           );
                         }
                         if (dialogContext.mounted) {
@@ -285,7 +285,7 @@ class _AccountTile extends ConsumerWidget {
           if (account.activeDevices > 0) '${account.activeDevices} جهاز',
         ].join(' · '),
       ),
-      trailing: account.isSuperuser
+      trailing: account.role == 'owner'
           ? const Icon(
               Icons.workspace_premium_outlined,
               color: Color(0xFF9A7410),

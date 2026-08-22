@@ -43,6 +43,7 @@ class OperationsApiTests(TestCase):
     def setUp(self):
         self.admin = Teacher.objects.create_superuser(phone="0500000001", name="Ops Admin", password="strong-test-password")
         self.regular = Teacher.objects.create_user(phone="0500000002", name="Regular", password="strong-test-password")
+        OperationsMembership.objects.create(user=self.admin, role=OperationsMembership.Role.ADMIN)
         self.server = ManagedServer.objects.create(name="main", slug="main", public_ip="127.0.0.1")
         self.project = ManagedProject.objects.create(
             server=self.server,
@@ -61,7 +62,7 @@ class OperationsApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         return response.json()["token"]
 
-    def test_login_is_restricted_to_superusers(self):
+    def test_login_is_restricted_to_operations_members(self):
         response = self.client.post(
             reverse("operations:login"),
             {"phone": self.regular.phone, "password": "strong-test-password"},
@@ -69,6 +70,22 @@ class OperationsApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 401)
         self.assertFalse(MobileAccessToken.objects.filter(user=self.regular).exists())
+
+    def test_unrelated_superuser_cannot_access_operations(self):
+        unrelated = Teacher.objects.create_superuser(
+            phone="0500000003",
+            name="Platform Admin",
+            password="strong-test-password",
+        )
+
+        response = self.client.post(
+            reverse("operations:login"),
+            {"phone": unrelated.phone, "password": "strong-test-password"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(MobileAccessToken.objects.filter(user=unrelated).exists())
 
     def test_dashboard_requires_ops_token_and_returns_inventory(self):
         self.assertEqual(self.client.get(reverse("operations:dashboard")).status_code, 401)

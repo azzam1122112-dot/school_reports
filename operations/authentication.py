@@ -12,8 +12,6 @@ from .models import MobileAccessToken, OperationsMembership
 def has_operations_access(user) -> bool:
     if not user or not user.is_active:
         return False
-    if user.is_superuser:
-        return True
     return OperationsMembership.objects.filter(user=user, is_active=True).exists()
 
 

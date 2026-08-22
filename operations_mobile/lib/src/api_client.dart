@@ -21,6 +21,16 @@ String parseOperationsToken(Map<String, dynamic> data) {
   return token.trim();
 }
 
+String? resolveOperationsToken({
+  required String? storedToken,
+  required String provisionedToken,
+}) {
+  final provisioned = provisionedToken.trim();
+  if (provisioned.isNotEmpty) return provisioned;
+  final stored = storedToken?.trim() ?? '';
+  return stored.isEmpty ? null : stored;
+}
+
 class OperationsApi {
   OperationsApi()
     : _dio = Dio(
@@ -49,7 +59,14 @@ class OperationsApi {
   String? _token;
 
   Future<bool> restoreSession() async {
-    _token = await _storage.read(key: _tokenKey);
+    final stored = await _storage.read(key: _tokenKey);
+    _token = resolveOperationsToken(
+      storedToken: stored,
+      provisionedToken: AppConfig.provisionedAccessToken,
+    );
+    if (_token != null && _token != stored) {
+      await _storage.write(key: _tokenKey, value: _token);
+    }
     return _token != null;
   }
 
