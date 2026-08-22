@@ -86,6 +86,11 @@ jobs:
                 | sudo -n tee /etc/sudoers.d/manageddeploy >/dev/null
               sudo -n chmod 440 /etc/sudoers.d/manageddeploy
               sudo -n visudo -cf /etc/sudoers.d/manageddeploy
+              printf "AllowUsers manageddeploy\n" \
+                | sudo -n tee /etc/ssh/sshd_config.d/60-managed-deploy.conf >/dev/null
+              sudo -n chmod 644 /etc/ssh/sshd_config.d/60-managed-deploy.conf
+              sudo -n sshd -t
+              sudo -n systemctl reload ssh
               printf "REMOTE_USER=%s\n" "$(id -un)"
               printf "REMOTE_USER_B64=%s\n" "$(id -un | base64 -w0)"
               sudo -n ssh-keygen -lf /root/.ssh/authorized_keys
