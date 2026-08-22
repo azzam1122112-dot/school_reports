@@ -119,6 +119,7 @@ creds.md
 *credentials*.txt
 *.pem
 *.key
+firebase-service-account.json
 id_rsa*
 id_ed25519*
 

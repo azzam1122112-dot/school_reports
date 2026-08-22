@@ -30,6 +30,8 @@ x-app: &app
   environment:
     RELEASE_SHA: ${RELEASE_SHA:-unknown}
     RELEASE_IMAGE: ${APP_IMAGE}
+  volumes:
+    - ./deploy/hetzner/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
   logging: *default-logging
   depends_on:
     postgres:
@@ -218,6 +220,7 @@ services:
       - "127.0.0.1:${LOCAL_HTTP_PORT:-18000}:8000"
     volumes:
       - static-data:/app/staticfiles:ro
+      - ./deploy/hetzner/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
     healthcheck:
       test:
         - CMD

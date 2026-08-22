@@ -37,6 +37,7 @@ class WebPushRuntimeConfigTests(SimpleTestCase):
             "web_push_config_from_stdin": True,
             "resend_config_from_stdin": False,
             "resend_system_backend": False,
+            "fcm_service_account_from_stdin": False,
         }
         values.update(overrides)
         return SimpleNamespace(**values)
@@ -105,6 +106,29 @@ class WebPushRuntimeConfigTests(SimpleTestCase):
         self.assertIn("SECRET_KEY=untouched", content)
         self.assertIn("WEB_PUSH_ENABLED=True", content)
         self.assertEqual(set(changed), {"WEB_PUSH_ENABLED", "WEB_PUSH_SUBJECT"})
+
+    def test_fcm_service_account_is_validated_and_collected(self):
+        import json
+
+        account = {
+            "type": "service_account",
+            "project_id": "tawtheeq-operations",
+            "client_email": "firebase-adminsdk-fbsvc@tawtheeq-operations.iam.gserviceaccount.com",
+            "private_key": "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----\n",
+        }
+        with patch("sys.stdin", io.StringIO(json.dumps(account))):
+            args = self._args(
+                web_push_enabled=None,
+                web_push_config_from_stdin=False,
+                fcm_service_account_from_stdin=True,
+            )
+            values = _collect(args)
+        self.assertEqual(values["FCM_PROJECT_ID"], "tawtheeq-operations")
+        self.assertEqual(
+            values["GOOGLE_APPLICATION_CREDENTIALS"],
+            "/run/secrets/firebase-service-account.json",
+        )
+        self.assertEqual(args._fcm_service_account["project_id"], "tawtheeq-operations")
 
     def test_resend_secrets_are_collected_from_exactly_two_lines(self):
         stdin = io.StringIO("re_platformKey_123456789\nwhsec_platformSecret_123456789\n")

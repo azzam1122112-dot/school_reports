@@ -26,6 +26,7 @@ class DeploymentState:
     workflow: str
     configured: bool
     deployment_enabled: bool
+    source_ready: bool
     latest_sha: str
     latest_message: str
     deployed_sha: str
@@ -49,6 +50,7 @@ class DeploymentState:
             "workflow": self.workflow,
             "configured": self.configured,
             "deployment_enabled": self.deployment_enabled,
+            "source_ready": self.source_ready,
             "latest_sha": self.latest_sha,
             "latest_short_sha": self.latest_sha[:12],
             "latest_message": self.latest_message,
@@ -66,8 +68,9 @@ class DeploymentState:
             "can_deploy": (
                 self.configured
                 and self.deployment_enabled
+                and self.source_ready
                 and self.repository_ahead
-                and self.workflow_status != "in_progress"
+                and self.workflow_status not in {"queued", "in_progress", "waiting", "requested", "pending"}
             ),
         }
 
@@ -79,12 +82,21 @@ class GitHubDeploymentClient:
         self.project = project
         self.repository = str(project.repository or "").strip()
         self.branch = str(project.deploy_branch or "main").strip()
+        self.ci_workflow = str(project.ci_workflow or project.deploy_workflow or "").strip()
+        self.deploy_repository = str(project.deploy_repository or project.repository or "").strip()
         self.workflow = str(project.deploy_workflow or "").strip()
         self.token = str(getattr(settings, "OPERATIONS_GITHUB_TOKEN", "") or "").strip()
 
     @property
     def configured(self) -> bool:
-        return bool(self.repository and self.branch and self.workflow and self.token)
+        return bool(
+            self.repository
+            and self.branch
+            and self.ci_workflow
+            and self.deploy_repository
+            and self.workflow
+            and self.token
+        )
 
     def headers(self, *, require_token: bool = False) -> dict[str, str]:
         if require_token and not self.token:
@@ -129,11 +141,14 @@ class GitHubDeploymentClient:
         message = str(((data.get("commit") or {}).get("message") or "")).splitlines()[0][:160]
         return sha, message
 
-    def latest_workflow_run(self) -> dict[str, Any]:
+    def latest_workflow_run(self, *, repository: str, workflow: str, branch: str = "") -> dict[str, Any]:
+        params: dict[str, Any] = {"per_page": 1}
+        if branch:
+            params["branch"] = branch
         response = self._request(
             "GET",
-            f"/repos/{self.repository}/actions/workflows/{self.workflow}/runs",
-            params={"branch": self.branch, "per_page": 1},
+            f"/repos/{repository}/actions/workflows/{workflow}/runs",
+            params=params,
         )
         runs = response.json().get("workflow_runs") or []
         return dict(runs[0]) if runs else {}
@@ -141,12 +156,24 @@ class GitHubDeploymentClient:
     def deployment_state(self) -> DeploymentState:
         latest_sha = ""
         latest_message = ""
-        workflow_run: dict[str, Any] = {}
+        source_run: dict[str, Any] = {}
+        deployment_run: dict[str, Any] = {}
         note = ""
-        if self.repository and self.workflow:
+        if self.repository and self.ci_workflow:
             try:
                 latest_sha, latest_message = self.latest_commit()
-                workflow_run = self.latest_workflow_run()
+                source_run = self.latest_workflow_run(
+                    repository=self.repository,
+                    workflow=self.ci_workflow,
+                    branch=self.branch,
+                )
+                if self.deploy_repository == self.repository and self.workflow == self.ci_workflow:
+                    deployment_run = source_run
+                elif self.deploy_repository and self.workflow:
+                    deployment_run = self.latest_workflow_run(
+                        repository=self.deploy_repository,
+                        workflow=self.workflow,
+                    )
             except DeploymentIntegrationError as exc:
                 note = str(exc)
 
@@ -155,6 +182,12 @@ class GitHubDeploymentClient:
         deployed_known = bool(deployed_sha and deployed_sha != "unknown")
         up_to_date = bool(latest_sha and deployed_known and latest_sha == deployed_sha)
         repository_ahead = bool(latest_sha and deployed_known and latest_sha != deployed_sha)
+        source_ready = bool(
+            latest_sha
+            and str(source_run.get("head_sha") or "") == latest_sha
+            and str(source_run.get("status") or "") == "completed"
+            and str(source_run.get("conclusion") or "") == "success"
+        )
         action_required = "لا يلزم إجراء."
         if not self.repository or not self.workflow:
             action_required = "أضف مستودع وWorkflow لهذا المشروع قبل مراقبة النشر."
@@ -162,11 +195,13 @@ class GitHubDeploymentClient:
             action_required = "اضبط OPERATIONS_GITHUB_TOKEN بصلاحية Actions قبل النشر من التطبيق."
         elif not deployed_known:
             action_required = "فعّل تثبيت رقم الإصدار المنشور لهذا المشروع قبل المقارنة الدقيقة."
+        elif repository_ahead and not source_ready:
+            action_required = "انتظر نجاح فحوصات CI للإصدار الأحدث قبل نشره."
         elif repository_ahead and not self.project.deployment_enabled:
             action_required = "يوجد إصدار أحدث، لكن زر النشر غير مفعل لهذا المشروع حتى يعتمد مسار نشر آمن."
         elif repository_ahead:
             action_required = "اضغط زر النشر لتشغيل GitHub Actions ومتابعة التنفيذ."
-        elif (workflow_run.get("conclusion") or "") == "failure":
+        elif (deployment_run.get("conclusion") or "") == "failure":
             action_required = "راجع آخر فشل في GitHub Actions قبل إعادة النشر."
 
         return DeploymentState(
@@ -178,28 +213,33 @@ class GitHubDeploymentClient:
             workflow=self.workflow,
             configured=self.configured,
             deployment_enabled=self.project.deployment_enabled,
+            source_ready=source_ready,
             latest_sha=latest_sha,
             latest_message=latest_message,
             deployed_sha=deployed_sha,
             deployed_image=deployed_image,
             up_to_date=up_to_date,
             repository_ahead=repository_ahead,
-            workflow_status=str(workflow_run.get("status") or "unknown"),
-            workflow_conclusion=str(workflow_run.get("conclusion") or ""),
-            workflow_url=str(workflow_run.get("html_url") or ""),
-            workflow_run_id=workflow_run.get("id"),
+            workflow_status=str(deployment_run.get("status") or "unknown"),
+            workflow_conclusion=str(deployment_run.get("conclusion") or ""),
+            workflow_url=str(deployment_run.get("html_url") or ""),
+            workflow_run_id=deployment_run.get("id"),
             action_required=action_required,
             generated_note=note,
         )
 
-    def trigger_deploy(self) -> None:
+    def trigger_deploy(self, *, source_sha: str) -> None:
         if not self.project.deployment_enabled:
             raise DeploymentIntegrationError("النشر من التطبيق غير مفعّل لهذا المشروع بعد.")
         self._request(
             "POST",
-            f"/repos/{self.repository}/actions/workflows/{self.workflow}/dispatches",
+            f"/repos/{self.deploy_repository}/actions/workflows/{self.workflow}/dispatches",
             require_token=True,
-            json={"ref": self.branch},
+            json=(
+                {"ref": self.branch}
+                if self.deploy_repository == self.repository and self.workflow == self.ci_workflow
+                else {"ref": "main", "inputs": {"source_sha": source_sha}}
+            ),
         )
 
 

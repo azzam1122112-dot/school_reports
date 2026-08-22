@@ -254,7 +254,7 @@ def trigger_deployment(request):
     confirmation = str(request.data.get("confirmation") or "").strip()
     if not state.repository_ahead:
         return Response({"detail": "الخادم مطابق للمستودع ولا يوجد إصدار أحدث للنشر."}, status=409)
-    if state.workflow_status == "in_progress":
+    if state.workflow_status in {"queued", "in_progress", "waiting", "requested", "pending"}:
         return Response({"detail": "يوجد نشر قيد التنفيذ بالفعل. تابع حالته بدل تشغيل نشر جديد."}, status=409)
     if confirmation != state.latest_sha[:12]:
         return Response(
@@ -265,7 +265,7 @@ def trigger_deployment(request):
             status=409,
         )
     try:
-        client.trigger_deploy()
+        client.trigger_deploy(source_sha=state.latest_sha)
     except DeploymentIntegrationError as exc:
         return Response({"detail": str(exc)}, status=502)
     return Response({

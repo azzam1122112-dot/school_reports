@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import json
 import os
 import re
 import shutil
@@ -88,6 +89,11 @@ def _parse_args() -> argparse.Namespace:
         "--resend-system-backend",
         action="store_true",
         help="Use the existing RESEND_API_KEY for Django system emails.",
+    )
+    parser.add_argument(
+        "--fcm-service-account-from-stdin",
+        action="store_true",
+        help="Read and install a Firebase service-account JSON document from stdin.",
     )
     return parser.parse_args()
 
@@ -207,6 +213,30 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
 
     if getattr(args, "resend_system_backend", False):
         values["EMAIL_BACKEND"] = "reports.email_backends.ResendEmailBackend"
+
+    if getattr(args, "fcm_service_account_from_stdin", False):
+        try:
+            account = json.loads(sys.stdin.read())
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise SystemExit("FCM service account is not valid JSON.") from exc
+        if not isinstance(account, dict) or account.get("type") != "service_account":
+            raise SystemExit("FCM credential must be a service-account JSON document.")
+        project_id = str(account.get("project_id") or "").strip()
+        client_email = str(account.get("client_email") or "").strip()
+        private_key = str(account.get("private_key") or "").strip()
+        if project_id != "tawtheeq-operations":
+            raise SystemExit("FCM credential belongs to an unexpected Firebase project.")
+        if not client_email.endswith("@tawtheeq-operations.iam.gserviceaccount.com"):
+            raise SystemExit("FCM service-account email is unexpected.")
+        if not private_key.startswith("-----BEGIN PRIVATE KEY-----"):
+            raise SystemExit("FCM service-account private key is missing or malformed.")
+        args._fcm_service_account = account
+        values.update(
+            {
+                "FCM_PROJECT_ID": project_id,
+                "GOOGLE_APPLICATION_CREDENTIALS": "/run/secrets/firebase-service-account.json",
+            }
+        )
 
     if not values:
         raise SystemExit("Nothing to apply — pass at least one option.")
@@ -382,6 +412,23 @@ def _rewrite(path: Path, values: dict[str, str]) -> list[str]:
     return changed
 
 
+def _write_fcm_service_account(path: Path, account: dict) -> None:
+    target = path.parent / "firebase-service-account.json"
+    tmp = target.with_name(f"{target.name}.tmp.{os.getpid()}")
+    try:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(account, handle, ensure_ascii=True, separators=(",", ":"))
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, target)
+        target.chmod(0o600)
+    finally:
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
+
+
 def main() -> None:
     args = _parse_args()
     path: Path = args.env_path
@@ -398,6 +445,9 @@ def main() -> None:
     backup = path.with_name(f"{path.name}.bak.{timestamp}")
     shutil.copy2(path, backup)
 
+    account = getattr(args, "_fcm_service_account", None)
+    if account is not None:
+        _write_fcm_service_account(path, account)
     changed = _rewrite(path, values)
 
     # Names only. Printing a value here would put a live payment key into the
@@ -407,6 +457,8 @@ def main() -> None:
     print(f"[config] backup: {backup.name}")
     if pruned:
         print(f"[config] pruned {len(pruned)} older backup(s)")
+    if account is not None:
+        print("[config] installed Firebase service account")
     print(f"[config] updated: {', '.join(sorted(changed)) or 'nothing (already current)'}")
 
 

@@ -21,6 +21,7 @@ def deployment_state(**overrides):
         "workflow": "ci.yml",
         "configured": True,
         "deployment_enabled": True,
+        "source_ready": True,
         "latest_sha": "b" * 40,
         "latest_message": "new release",
         "deployed_sha": "a" * 40,
@@ -221,7 +222,7 @@ class OperationsApiTests(TestCase):
             HTTP_AUTHORIZATION=f"Ops-Token {token}",
         )
         self.assertEqual(accepted.status_code, 202)
-        client.trigger_deploy.assert_called_once()
+        client.trigger_deploy.assert_called_once_with(source_sha="b" * 40)
 
     @patch("operations.views.GitHubDeploymentClient")
     def test_trigger_deployment_requires_run_actions_capability(self, client_cls):

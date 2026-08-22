@@ -691,6 +691,43 @@ class Command(BaseCommand):
         except Exception as exc:
             self._record(section, Check.FAIL, "Web Push migration is not applied", str(exc)[:160])
 
+    def _check_mobile_push(self):
+        import json
+        import os
+        from pathlib import Path
+
+        section = "Operations mobile push"
+        project_id = str(getattr(settings, "FCM_PROJECT_ID", "") or "").strip()
+        credential_path = Path(str(os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or ""))
+        if project_id != "tawtheeq-operations":
+            self._record(section, Check.FAIL, "FCM project is not configured")
+            return
+        if not credential_path.is_file():
+            self._record(section, Check.FAIL, "FCM service-account file is unavailable")
+            return
+        try:
+            account = json.loads(credential_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            self._record(section, Check.FAIL, "FCM service-account file is invalid", str(exc)[:160])
+            return
+        if account.get("project_id") == project_id and account.get("type") == "service_account":
+            self._record(section, Check.OK, "FCM service account is installed")
+        else:
+            self._record(section, Check.FAIL, "FCM credential does not match the configured project")
+        try:
+            device_model = apps.get_model("operations", "MobileDevice")
+            device_count = device_model.objects.filter(
+                is_active=True,
+                alerts_enabled=True,
+            ).exclude(fcm_token="").count()
+        except Exception as exc:
+            self._record(section, Check.FAIL, "Operations device registry is unavailable", str(exc)[:160])
+        else:
+            if device_count:
+                self._record(section, Check.OK, f"{device_count} mobile alert device(s) registered")
+            else:
+                self._record(section, Check.FAIL, "No mobile device is registered for alerts")
+
     # ── entry point ─────────────────────────────────────────────────
     def handle(self, *args, **options):
         self.results: list[tuple[str, str, str, str]] = []
@@ -710,6 +747,7 @@ class Command(BaseCommand):
             self._check_pricing,
             self._check_business_identity,
             self._check_observability,
+            self._check_mobile_push,
             self._check_web_push,
         ):
             try:

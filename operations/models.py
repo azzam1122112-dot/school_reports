@@ -63,6 +63,8 @@ class ManagedProject(models.Model):
     expected_status = models.PositiveSmallIntegerField(default=200)
     repository = models.CharField(max_length=160, blank=True, default="")
     deploy_branch = models.CharField(max_length=80, blank=True, default="main")
+    ci_workflow = models.CharField(max_length=120, blank=True, default="")
+    deploy_repository = models.CharField(max_length=160, blank=True, default="")
     deploy_workflow = models.CharField(max_length=120, blank=True, default="")
     deploy_container = models.CharField(max_length=120, blank=True, default="")
     deployed_sha = models.CharField(max_length=64, blank=True, default="")

@@ -259,6 +259,23 @@ jobs:
                '$DEPLOY_PATH/deploy/hetzner/apply_runtime_config.py' \
                --web-push-enabled True --web-push-config-from-stdin"
 
+      - name: Configure Firebase mobile notifications
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+          FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}
+        run: |
+          test -n "$FCM_SERVICE_ACCOUNT_JSON" || {
+            echo "::error::FCM_SERVICE_ACCOUNT_JSON is not configured"
+            exit 1
+          }
+          printf '%s' "$FCM_SERVICE_ACCOUNT_JSON" \
+          | ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+              "DEPLOY_PATH='$DEPLOY_PATH' python3 \
+               '$DEPLOY_PATH/deploy/hetzner/apply_runtime_config.py' \
+               --fcm-service-account-from-stdin"
+
       - name: Configure Resend system email backend
         env:
           SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
@@ -288,6 +305,24 @@ jobs:
               "DEPLOY_PATH='$DEPLOY_PATH' APP_IMAGE='$APP_IMAGE' \
                GHCR_USER='${{ github.actor }}' GHCR_TOKEN_FROM_STDIN=1 \
                bash '$DEPLOY_PATH/deploy/hetzner/remote_deploy.sh'"
+
+      - name: Import managed project release stamps
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+            "set -eu; \
+             tanal_sha=\$(sudo -n cat /srv/tanal/app/.release-sha); \
+             display_sha=\$(sudo -n cat /opt/school-display/app/.release-commit); \
+             echo \"\$tanal_sha\" | grep -Eq '^[0-9a-f]{40}\$'; \
+             echo \"\$display_sha\" | grep -Eq '^[0-9a-f]{40}\$'; \
+             cd '$DEPLOY_PATH'; \
+             docker compose -f compose.hetzner.yaml exec -T web \
+               python manage.py stamp_managed_project_release xmansx \"\$tanal_sha\"; \
+             docker compose -f compose.hetzner.yaml exec -T web \
+               python manage.py stamp_managed_project_release school-display \"\$display_sha\""
 
       # The image is what CI tests; the *configuration* is what the server holds,
       # and nothing compared the two. A release once shipped advertising a
