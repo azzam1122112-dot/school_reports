@@ -104,6 +104,35 @@ class PlatformEmailTests(TestCase):
         self.assertContains(sent, "تأكيد الاشتراك")
         self.assertNotContains(sent, inbound.subject)
 
+    def test_sent_folder_hides_other_project_outbound_messages(self):
+        PlatformEmail.objects.create(
+            provider_id="tawtheeq_sent_001",
+            direction=PlatformEmail.Direction.OUTBOUND,
+            status=PlatformEmail.Status.DELIVERED,
+            from_email=self.config.sender_email,
+            to_emails=["customer@example.com"],
+            subject="رسالة توثيق رسمية",
+            snippet="رسالة من توثيق.",
+            is_read=True,
+        )
+        PlatformEmail.objects.create(
+            provider_id="foreign_sent_001",
+            direction=PlatformEmail.Direction.OUTBOUND,
+            status=PlatformEmail.Status.DELIVERED,
+            from_email="no-reply@school-display.com",
+            to_emails=["xmansx1122@gmail.com"],
+            subject="اختبار Resend الإنتاج - School Display",
+            snippet="رسالة من مشروع آخر.",
+            is_read=True,
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse("reports:platform_email_inbox"), {"folder": "sent"})
+
+        self.assertContains(response, "رسالة توثيق رسمية")
+        self.assertNotContains(response, "School Display")
+        self.assertEqual(response.context["mail_stats"]["sent"], 1)
+
     @patch("reports.resend_email._api_request")
     def test_compose_sends_through_resend_and_writes_audit(self, api_request):
         api_request.return_value = {"id": "resend_sent_001"}
@@ -335,6 +364,58 @@ class PlatformEmailTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(email.status, PlatformEmail.Status.DELIVERED)
         self.assertIsNotNone(email.delivered_at)
+
+    def test_webhook_ignores_unknown_outbound_events_from_other_projects(self):
+        event = {
+            "type": "email.delivered",
+            "created_at": "2026-08-13T12:00:00Z",
+            "data": {
+                "email_id": "foreign_resend_sent_001",
+                "from": "School Display <no-reply@school-display.com>",
+                "to": ["xmansx1122@gmail.com"],
+                "subject": "اختبار Resend الإنتاج - School Display",
+            },
+        }
+        payload = json.dumps(event).encode()
+
+        response = self.client.post(
+            reverse("reports:resend_webhook"),
+            data=payload,
+            content_type="application/json",
+            **_signed_headers(payload, "evt_foreign_outbound_001"),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(PlatformEmail.objects.filter(provider_id="foreign_resend_sent_001").exists())
+        event_record = PlatformEmailEvent.objects.get(provider_event_id="evt_foreign_outbound_001")
+        self.assertIsNone(event_record.email)
+
+    @patch("reports.resend_email._api_request")
+    def test_webhook_ignores_inbound_events_for_other_project_addresses(self, api_request):
+        event = {
+            "type": "email.received",
+            "created_at": "2026-08-13T12:30:00Z",
+            "data": {
+                "email_id": "foreign_inbound_001",
+                "from": "visitor@example.com",
+                "to": ["support@xmansx.com"],
+                "subject": "رسالة لمشروع آخر",
+            },
+        }
+        payload = json.dumps(event).encode()
+
+        response = self.client.post(
+            reverse("reports:resend_webhook"),
+            data=payload,
+            content_type="application/json",
+            **_signed_headers(payload, "evt_foreign_inbound_001"),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        api_request.assert_not_called()
+        self.assertFalse(PlatformEmail.objects.filter(provider_id="foreign_inbound_001").exists())
+        event_record = PlatformEmailEvent.objects.get(provider_event_id="evt_foreign_inbound_001")
+        self.assertIsNone(event_record.email)
 
     @patch("reports.resend_email._api_request")
     def test_inbound_refresh_preserves_read_state(self, api_request):

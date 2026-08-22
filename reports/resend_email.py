@@ -139,6 +139,60 @@ def _addresses(value) -> list[str]:
     return output
 
 
+def _platform_email_domains() -> set[str]:
+    configured = getattr(settings, "PLATFORM_EMAIL_ALLOWED_DOMAINS", None)
+    if configured:
+        raw_domains = configured
+        if isinstance(raw_domains, str):
+            raw_domains = raw_domains.split(",")
+        return {
+            str(domain or "").strip().lower()
+            for domain in raw_domains
+            if str(domain or "").strip()
+        }
+
+    config = PlatformEmailConfiguration.load()
+    addresses = {
+        config.sender_email,
+        config.inbound_email,
+        config.reply_to_email,
+        getattr(settings, "DEFAULT_FROM_EMAIL", ""),
+    }
+    domains = {"tawtheeq-ksa.com", "mail.tawtheeq-ksa.com"}
+    for address in addresses:
+        _name, parsed = parseaddr(str(address or ""))
+        if "@" in parsed:
+            domains.add(parsed.rsplit("@", 1)[-1].strip().lower())
+    return {domain for domain in domains if domain}
+
+
+def platform_email_domains() -> set[str]:
+    """Return email domains that belong to this Tawtheeq installation."""
+
+    return _platform_email_domains()
+
+
+def _address_is_platform_owned(address: str) -> bool:
+    _name, parsed = parseaddr(str(address or ""))
+    if "@" not in parsed:
+        return False
+    domain = parsed.rsplit("@", 1)[-1].strip().lower()
+    return domain in _platform_email_domains()
+
+
+def _event_is_for_platform_mail(event_type: str, data: dict) -> bool:
+    if event_type == "email.received":
+        recipients = [
+            *_addresses(data.get("to")),
+            *_addresses(data.get("cc")),
+            *_addresses(data.get("bcc")),
+        ]
+        return any(_address_is_platform_owned(address) for address in recipients)
+
+    _name, sender_email = parseaddr(str(data.get("from") or ""))
+    return _address_is_platform_owned(sender_email)
+
+
 def _snippet(text: str, html: str = "") -> str:
     source = text or strip_tags(html or "")
     return re.sub(r"\s+", " ", source).strip()[:320]
@@ -340,27 +394,41 @@ def process_webhook_event(event: dict, provider_event_id: str) -> PlatformEmailE
     email = None
     provider_id = str(data.get("email_id") or data.get("id") or "").strip()
     if event_type == "email.received" and provider_id:
-        email = ingest_received_email(provider_id, data)
+        if _event_is_for_platform_mail(event_type, data):
+            email = ingest_received_email(provider_id, data)
+        else:
+            logger.info(
+                "Ignored Resend inbound webhook outside Tawtheeq mail scope event_type=%s provider_id=%s",
+                event_type,
+                provider_id,
+            )
     elif provider_id:
         email = PlatformEmail.objects.filter(provider_id=provider_id).first()
         if email is None:
-            sender_name, sender_email = parseaddr(str(data.get("from") or ""))
-            email = PlatformEmail.objects.create(
-                provider_id=provider_id,
-                direction=PlatformEmail.Direction.OUTBOUND,
-                status=EVENT_STATUS_MAP.get(event_type, PlatformEmail.Status.SENT),
-                from_email=sender_email or "unknown@example.invalid",
-                from_name=sender_name,
-                to_emails=_addresses(data.get("to")),
-                cc_emails=_addresses(data.get("cc")),
-                bcc_emails=_addresses(data.get("bcc")),
-                subject=str(data.get("subject") or "(رسالة مرسلة من المنصة)")[:500],
-                snippet="سُجلت الرسالة من أحداث مزود البريد.",
-                is_read=True,
-                sent_at=occurred_at,
-                last_event_at=occurred_at,
-                provider_payload=data,
-            )
+            if not _event_is_for_platform_mail(event_type, data):
+                logger.info(
+                    "Ignored Resend outbound webhook outside Tawtheeq mail scope event_type=%s provider_id=%s",
+                    event_type,
+                    provider_id,
+                )
+            else:
+                sender_name, sender_email = parseaddr(str(data.get("from") or ""))
+                email = PlatformEmail.objects.create(
+                    provider_id=provider_id,
+                    direction=PlatformEmail.Direction.OUTBOUND,
+                    status=EVENT_STATUS_MAP.get(event_type, PlatformEmail.Status.SENT),
+                    from_email=sender_email or "unknown@example.invalid",
+                    from_name=sender_name,
+                    to_emails=_addresses(data.get("to")),
+                    cc_emails=_addresses(data.get("cc")),
+                    bcc_emails=_addresses(data.get("bcc")),
+                    subject=str(data.get("subject") or "(رسالة مرسلة من المنصة)")[:500],
+                    snippet="سُجلت الرسالة من أحداث مزود البريد.",
+                    is_read=True,
+                    sent_at=occurred_at,
+                    last_event_at=occurred_at,
+                    provider_payload=data,
+                )
 
     if email is not None:
         update_fields = ["last_event_at", "updated_at"]

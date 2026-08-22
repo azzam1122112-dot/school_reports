@@ -23,6 +23,7 @@ from ..platform_email_forms import PlatformEmailComposeForm, PlatformEmailConfig
 from ..resend_email import (
     ResendError,
     attachment_download_url,
+    platform_email_domains,
     process_webhook_event,
     resend_is_configured,
     send_platform_email,
@@ -59,9 +60,26 @@ def _audit(request: HttpRequest, action: str, email: PlatformEmail, changes: dic
     )
 
 
+def _platform_outbound_scope_q() -> Q:
+    query = Q(pk__in=[])
+    for domain in platform_email_domains():
+        query |= Q(from_email__iendswith=f"@{domain}")
+    return query
+
+
+def _visible_mail_scope_q() -> Q:
+    return Q(direction=PlatformEmail.Direction.INBOUND) | (
+        Q(direction=PlatformEmail.Direction.OUTBOUND) & _platform_outbound_scope_q()
+    )
+
+
+def _visible_mail_queryset():
+    return PlatformEmail.objects.filter(_visible_mail_scope_q())
+
+
 def _mailbox_stats() -> dict:
     now = timezone.now()
-    aggregate = PlatformEmail.objects.aggregate(
+    aggregate = _visible_mail_queryset().aggregate(
         unread=Count(
             "id",
             filter=Q(direction=PlatformEmail.Direction.INBOUND, is_read=False, is_archived=False),
@@ -114,7 +132,7 @@ def platform_email_inbox(request: HttpRequest) -> HttpResponse:
     if status not in valid_statuses:
         status = ""
 
-    emails = PlatformEmail.objects.prefetch_related("attachments")
+    emails = _visible_mail_queryset().prefetch_related("attachments")
     if folder == "inbox":
         emails = emails.filter(direction=PlatformEmail.Direction.INBOUND, is_archived=False)
     elif folder == "sent":
@@ -229,7 +247,7 @@ def platform_email_compose(request: HttpRequest) -> HttpResponse:
 @_superuser_required
 @require_http_methods(["GET", "POST"])
 def platform_email_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    email = get_object_or_404(PlatformEmail.objects.prefetch_related("attachments", "events"), pk=pk)
+    email = get_object_or_404(_visible_mail_queryset().prefetch_related("attachments", "events"), pk=pk)
     if not email.is_read:
         email.is_read = True
         email.save(update_fields=("is_read", "updated_at"))
@@ -257,7 +275,12 @@ def platform_email_detail(request: HttpRequest, pk: int) -> HttpResponse:
             return redirect("reports:platform_email_detail", pk=reply.pk)
         except ResendError as exc:
             messages.error(request, str(exc))
-    thread = PlatformEmail.objects.filter(thread_key=email.thread_key).select_related("created_by").order_by("created_at", "id")
+    thread = (
+        _visible_mail_queryset()
+        .filter(thread_key=email.thread_key)
+        .select_related("created_by")
+        .order_by("created_at", "id")
+    )
     return render(
         request,
         "reports/platform_email_detail.html",
@@ -268,7 +291,7 @@ def platform_email_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @_superuser_required
 @require_POST
 def platform_email_action(request: HttpRequest, pk: int) -> HttpResponse:
-    email = get_object_or_404(PlatformEmail, pk=pk)
+    email = get_object_or_404(_visible_mail_queryset(), pk=pk)
     action = (request.POST.get("action") or "").strip()
     changes = {}
     if action == "star":
@@ -331,7 +354,7 @@ def platform_email_sync(request: HttpRequest) -> HttpResponse:
 @_superuser_required
 @require_http_methods(["GET"])
 def platform_email_attachment_download(request: HttpRequest, pk: int, attachment_pk: int) -> HttpResponse:
-    email = get_object_or_404(PlatformEmail, pk=pk)
+    email = get_object_or_404(_visible_mail_queryset(), pk=pk)
     attachment = get_object_or_404(PlatformEmailAttachment, pk=attachment_pk, email=email)
     try:
         return HttpResponseRedirect(attachment_download_url(email, attachment))
