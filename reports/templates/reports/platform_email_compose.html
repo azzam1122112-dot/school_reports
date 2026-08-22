@@ -11,7 +11,19 @@
   <form class="mail-compose" method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="mail-form-error">{{ form.non_field_errors }}</div>{% endif %}
-    <div class="mail-field"><label for="{{ form.to.id_for_label }}">إلى</label>{{ form.to }}{% for error in form.to.errors %}<small class="mail-error">{{ error }}</small>{% endfor %}<small>يمكن فصل عدة عناوين بفاصلة.</small></div>
+    <div class="mail-field">
+      <label for="{{ form.selected_schools.id_for_label }}">اختيار مدارس</label>
+      <input class="mail-school-search" type="search" placeholder="بحث باسم المدرسة أو الكود..." autocomplete="off" aria-label="بحث في المدارس">
+      {{ form.selected_schools }}
+      {% for error in form.selected_schools.errors %}<small class="mail-error">{{ error }}</small>{% endfor %}
+      <small>اختر مدرسة أو عدة مدارس لإرسال الرسالة إلى بريد المدرسة الرسمي. اضغط Ctrl للاختيار المتعدد.</small>
+    </div>
+    <div class="mail-field">
+      <label for="{{ form.to.id_for_label }}">إيميلات إضافية</label>
+      {{ form.to }}
+      {% for error in form.to.errors %}<small class="mail-error">{{ error }}</small>{% endfor %}
+      <small>اختياري. يمكن فصل عدة عناوين بفاصلة، ويُدمج النظام هذه العناوين مع المدارس المختارة دون تكرار.</small>
+    </div>
     <details class="mail-extra-recipients"><summary>نسخة ونسخة مخفية</summary><div class="mail-two-fields"><div class="mail-field"><label for="{{ form.cc.id_for_label }}">نسخة</label>{{ form.cc }}{{ form.cc.errors }}</div><div class="mail-field"><label for="{{ form.bcc.id_for_label }}">نسخة مخفية</label>{{ form.bcc }}{{ form.bcc.errors }}</div></div></details>
     <div class="mail-field"><label for="{{ form.subject.id_for_label }}">الموضوع</label>{{ form.subject }}{% for error in form.subject.errors %}<small class="mail-error">{{ error }}</small>{% endfor %}</div>
     <div class="mail-field mail-field--body"><label for="{{ form.body.id_for_label }}">نص الرسالة</label>{{ form.body }}{% for error in form.body.errors %}<small class="mail-error">{{ error }}</small>{% endfor %}</div>
@@ -19,4 +31,18 @@
     <footer class="mail-compose__footer"><a class="mail-button" href="{% url 'reports:platform_email_inbox' %}">إلغاء</a><button class="mail-button is-primary" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال الرسالة</button></footer>
   </form>
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  const search = document.querySelector(".mail-school-search");
+  const select = document.querySelector(".mail-school-select");
+  if(!search || !select) return;
+  search.addEventListener("input", function(){
+    const term = search.value.trim().toLowerCase();
+    Array.from(select.options).forEach(function(option){
+      const text = option.textContent.toLowerCase();
+      option.hidden = term && !text.includes(term);
+    });
+  });
+});
+</script>
 {% endblock %}

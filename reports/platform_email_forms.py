@@ -6,7 +6,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 
-from .models import PlatformEmailConfiguration
+from .models import PlatformEmailConfiguration, School
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -38,7 +38,13 @@ def _email_list(value: str, *, required: bool = False) -> list[str]:
 
 
 class PlatformEmailComposeForm(forms.Form):
-    to = forms.CharField(label="إلى", max_length=4000)
+    selected_schools = forms.ModelMultipleChoiceField(
+        label="اختيار مدارس",
+        queryset=School.objects.none(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={"size": 8, "class": "mail-school-select"}),
+    )
+    to = forms.CharField(label="إلى", max_length=4000, required=False)
     cc = forms.CharField(label="نسخة", max_length=4000, required=False)
     bcc = forms.CharField(label="نسخة مخفية", max_length=4000, required=False)
     subject = forms.CharField(label="الموضوع", max_length=500)
@@ -48,8 +54,19 @@ class PlatformEmailComposeForm(forms.Form):
         required=False,
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["selected_schools"].queryset = (
+            School.objects.filter(is_active=True)
+            .exclude(email="")
+            .order_by("name", "id")
+        )
+        self.fields["selected_schools"].label_from_instance = (
+            lambda school: f"{school.name} — {school.code} — {school.email}"
+        )
+
     def clean_to(self):
-        return _email_list(self.cleaned_data.get("to", ""), required=True)
+        return _email_list(self.cleaned_data.get("to", ""))
 
     def clean_cc(self):
         return _email_list(self.cleaned_data.get("cc", ""))
@@ -62,6 +79,29 @@ class PlatformEmailComposeForm(forms.Form):
         if not value:
             raise ValidationError("اكتب نص الرسالة.")
         return value
+
+    def clean(self):
+        cleaned_data = super().clean()
+        manual_recipients = cleaned_data.get("to") or []
+        selected_schools = cleaned_data.get("selected_schools") or []
+        school_recipients = []
+        for school in selected_schools:
+            address = (school.email or "").strip().lower()
+            if address:
+                validate_email(address)
+                school_recipients.append(address)
+
+        recipients = []
+        for address in [*school_recipients, *manual_recipients]:
+            if address not in recipients:
+                recipients.append(address)
+
+        if not recipients:
+            raise ValidationError("اختر مدرسة لديها بريد إلكتروني أو اكتب بريد مستلم واحدًا على الأقل.")
+        if len(recipients) > 50:
+            raise ValidationError("الحد الأعلى 50 عنوانًا في الرسالة الواحدة.")
+        cleaned_data["to"] = recipients
+        return cleaned_data
 
 
 class PlatformEmailReplyForm(forms.Form):

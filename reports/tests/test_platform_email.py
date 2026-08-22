@@ -17,6 +17,7 @@ from reports.models import (
     PlatformEmailAttachment,
     PlatformEmailConfiguration,
     PlatformEmailEvent,
+    School,
     Teacher,
 )
 
@@ -162,6 +163,71 @@ class PlatformEmailTests(TestCase):
         self.assertIn("مركز الاتصال الرسمي", sent_payload["html"])
         self.assertIn(self.config.reply_to_email, sent_payload["html"])
         self.assertNotIn("<script", sent_payload["html"])
+
+    @patch("reports.resend_email._api_request")
+    def test_compose_can_send_to_selected_schools_and_manual_recipients(self, api_request):
+        api_request.return_value = {"id": "resend_school_recipients_001"}
+        first_school = School.objects.create(
+            name="مدرسة الندى",
+            code="nada-school",
+            email="nada@example.com",
+        )
+        second_school = School.objects.create(
+            name="مدرسة البيان",
+            code="bayan-school",
+            email="bayan@example.com",
+        )
+        School.objects.create(
+            name="مدرسة بلا بريد",
+            code="no-email-school",
+            email="",
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse("reports:platform_email_compose"),
+            {
+                "selected_schools": [str(first_school.pk), str(second_school.pk)],
+                "to": "extra@example.com, nada@example.com",
+                "cc": "",
+                "bcc": "",
+                "subject": "تحديث للمدارس",
+                "body": "مرحبًا، هذه رسالة موحدة للمدارس المختارة.",
+            },
+        )
+
+        email = PlatformEmail.objects.get(provider_id="resend_school_recipients_001")
+        self.assertRedirects(response, reverse("reports:platform_email_detail", args=[email.pk]))
+        self.assertEqual(email.to_emails, ["bayan@example.com", "nada@example.com", "extra@example.com"])
+        self.assertEqual(
+            api_request.call_args.kwargs["payload"]["to"],
+            ["bayan@example.com", "nada@example.com", "extra@example.com"],
+        )
+
+        get_response = self.client.get(reverse("reports:platform_email_compose"))
+        school_choices = get_response.context["form"].fields["selected_schools"].queryset
+        self.assertIn(first_school, school_choices)
+        self.assertNotIn(School.objects.get(code="no-email-school"), school_choices)
+
+    @patch("reports.resend_email._api_request")
+    def test_compose_requires_school_or_manual_recipient(self, api_request):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse("reports:platform_email_compose"),
+            {
+                "selected_schools": [],
+                "to": "",
+                "cc": "",
+                "bcc": "",
+                "subject": "رسالة بدون مستلم",
+                "body": "لن ترسل هذه الرسالة دون مستلم.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "اختر مدرسة لديها بريد إلكتروني أو اكتب بريد مستلم واحدًا على الأقل.")
+        api_request.assert_not_called()
 
     @patch("reports.resend_email._api_request")
     def test_compose_escapes_untrusted_body_inside_branded_template(self, api_request):
