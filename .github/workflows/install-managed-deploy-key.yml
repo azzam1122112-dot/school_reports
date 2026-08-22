@@ -47,6 +47,20 @@ jobs:
               fi
               sudo -n chown root:root /root/.ssh/authorized_keys
               sudo -n chmod 600 /root/.ssh/authorized_keys
+              if ! id manageddeploy >/dev/null 2>&1; then
+                sudo -n useradd --create-home --shell /bin/bash manageddeploy
+              fi
+              sudo -n install -d -m 700 -o manageddeploy -g manageddeploy /home/manageddeploy/.ssh
+              sudo -n touch /home/manageddeploy/.ssh/authorized_keys
+              if ! sudo -n grep -qxF "$public_key" /home/manageddeploy/.ssh/authorized_keys; then
+                printf "%s\n" "$public_key" | sudo -n tee -a /home/manageddeploy/.ssh/authorized_keys >/dev/null
+              fi
+              sudo -n chown manageddeploy:manageddeploy /home/manageddeploy/.ssh/authorized_keys
+              sudo -n chmod 600 /home/manageddeploy/.ssh/authorized_keys
+              printf "manageddeploy ALL=(root) NOPASSWD: ALL\n" \
+                | sudo -n tee /etc/sudoers.d/manageddeploy >/dev/null
+              sudo -n chmod 440 /etc/sudoers.d/manageddeploy
+              sudo -n visudo -cf /etc/sudoers.d/manageddeploy
               printf "REMOTE_USER=%s\n" "$(id -un)"
               printf "HOST_ED25519="
               sudo -n cat /etc/ssh/ssh_host_ed25519_key.pub
