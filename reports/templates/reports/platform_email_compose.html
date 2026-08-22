@@ -31,7 +31,7 @@
     <footer class="mail-compose__footer"><a class="mail-button" href="{% url 'reports:platform_email_inbox' %}">إلغاء</a><button class="mail-button is-primary" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال الرسالة</button></footer>
   </form>
 </div>
-<script>
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 document.addEventListener("DOMContentLoaded", function(){
   const search = document.querySelector(".mail-school-search");
   const select = document.querySelector(".mail-school-select");
