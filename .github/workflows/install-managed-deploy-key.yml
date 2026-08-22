@@ -138,6 +138,11 @@ jobs:
             sudo -n sed -n "1,280p" /opt/tanal/compose.yaml
             sudo -n docker inspect tanal-web-1 \
               --format "IMAGE={{.Config.Image}} MOUNTS={{json .Mounts}} LABELS={{json .Config.Labels}}"
+            printf '%s\n' '--- TANAL app deployment files ---'
+            sudo -n find /opt/tanal/app -xdev -maxdepth 2 -type f \
+              \( -name Dockerfile -o -name .dockerignore -o -name .release-sha -o -name package.json \) \
+              -printf '%p %m %u:%g\n' | sort
+            sudo -n sed -n '1,240p' /opt/tanal/app/Dockerfile
             sudo -n find /opt/tanal/env -xdev -maxdepth 1 -type f -size -2M -print0 2>/dev/null \
             | while IFS= read -r -d "" candidate; do
                 sudo -n grep -q "^DATABASE_URL=." "$candidate" 2>/dev/null || continue
