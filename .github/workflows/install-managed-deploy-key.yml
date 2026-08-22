@@ -8,11 +8,6 @@ on:
         required: false
         default: false
         type: boolean
-      diagnose_tanal_environment:
-        description: Locate TANAL environment sources without printing values
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -43,33 +38,7 @@ jobs:
           printf '%s\n' "$MANAGED_DEPLOY_PUBLIC_KEY" \
           | ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" '
               set -eu
-              umask 077
-              mkdir -p "$HOME/.ssh"
-              touch "$HOME/.ssh/authorized_keys"
               read -r public_key
-              grep -qxF "$public_key" "$HOME/.ssh/authorized_keys" \
-                || printf "%s\n" "$public_key" >> "$HOME/.ssh/authorized_keys"
-              chmod 700 "$HOME/.ssh"
-              chmod 600 "$HOME/.ssh/authorized_keys"
-              sudo -n install -d -m 700 -o root -g root /root/.ssh
-              sudo -n touch /root/.ssh/authorized_keys
-              if ! sudo -n grep -qxF "$public_key" /root/.ssh/authorized_keys; then
-                printf "%s\n" "$public_key" | sudo -n tee -a /root/.ssh/authorized_keys >/dev/null
-              fi
-              sudo -n chown root:root /root/.ssh/authorized_keys
-              sudo -n chmod 600 /root/.ssh/authorized_keys
-              sudo -n install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
-              sudo -n touch /home/deploy/.ssh/authorized_keys
-              if ! sudo -n grep -qxF "$public_key" /home/deploy/.ssh/authorized_keys; then
-                printf "%s\n" "$public_key" | sudo -n tee -a /home/deploy/.ssh/authorized_keys >/dev/null
-              fi
-              sudo -n chown deploy:deploy /home/deploy/.ssh/authorized_keys
-              sudo -n chmod 600 /home/deploy/.ssh/authorized_keys
-              if [ "$(sudo -n passwd -S deploy | awk '{print $2}')" = "L" ]; then
-                deploy_hash="$(openssl passwd -6 "$(openssl rand -hex 32)")"
-                sudo -n usermod --password "$deploy_hash" deploy
-                unset deploy_hash
-              fi
               if ! id manageddeploy >/dev/null 2>&1; then
                 sudo -n useradd --create-home --shell /bin/bash manageddeploy
               fi
@@ -77,9 +46,11 @@ jobs:
               # locked account before checking authorized_keys on this host.
               # Set an unknown random hash so public-key login can proceed;
               # no reusable password is retained or printed.
-              random_hash="$(openssl passwd -6 "$(openssl rand -hex 32)")"
-              sudo -n usermod --password "$random_hash" manageddeploy
-              unset random_hash
+              if [ "$(sudo -n passwd -S manageddeploy | awk '{print $2}')" = "L" ]; then
+                random_hash="$(openssl passwd -6 "$(openssl rand -hex 32)")"
+                sudo -n usermod --password "$random_hash" manageddeploy
+                unset random_hash
+              fi
               sudo -n install -d -m 700 -o manageddeploy -g manageddeploy /home/manageddeploy/.ssh
               sudo -n touch /home/manageddeploy/.ssh/authorized_keys
               if ! sudo -n grep -qxF "$public_key" /home/manageddeploy/.ssh/authorized_keys; then
@@ -96,13 +67,6 @@ jobs:
               sudo -n chmod 644 /etc/ssh/sshd_config.d/60-managed-deploy.conf
               sudo -n sshd -t
               sudo -n systemctl reload ssh
-              printf "REMOTE_USER=%s\n" "$(id -un)"
-              printf "REMOTE_USER_B64=%s\n" "$(id -un | base64 -w0)"
-              sudo -n ssh-keygen -lf /root/.ssh/authorized_keys
-              sudo -n sshd -T | grep -E "^(authorizedkeysfile|permitrootlogin|pubkeyauthentication|allowusers|allowgroups) " || true
-              sudo -n journalctl -u ssh --since "-10 minutes" --no-pager | tail -80 || true
-              printf "HOST_ED25519="
-              sudo -n cat /etc/ssh/ssh_host_ed25519_key.pub
             '
 
       - name: Recover the currently pinned release
@@ -122,31 +86,3 @@ jobs:
              sudo -n docker compose -f compose.hetzner.yaml -f compose.caddy.yaml up -d"
           curl --fail --silent --show-error --retry 12 --retry-delay 5 \
             --retry-all-errors --max-time 15 https://tawtheeq-ksa.com/healthz/ >/dev/null
-
-      - name: Diagnose TANAL environment location
-        if: inputs.diagnose_tanal_environment
-        env:
-          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
-          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
-        run: |
-          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" '
-            set -eu
-            sudo -n systemctl list-units --type=service --all --plain --no-legend \
-              | awk "tolower(\$1) ~ /(tanal|xmansx)/ { print \$1, \$3, \$4 }"
-            sudo -n docker ps --format "{{.Names}} {{.Image}}" \
-              | grep -Ei "tanal|xmansx" || true
-            sudo -n sed -n "1,280p" /opt/tanal/compose.yaml
-            sudo -n docker inspect tanal-web-1 \
-              --format "IMAGE={{.Config.Image}} MOUNTS={{json .Mounts}} LABELS={{json .Config.Labels}}"
-            printf '%s\n' '--- TANAL app deployment files ---'
-            sudo -n find /opt/tanal/app -xdev -maxdepth 2 -type f \
-              \( -name Dockerfile -o -name .dockerignore -o -name .release-sha -o -name package.json \) \
-              -printf '%p %m %u:%g\n' | sort
-            sudo -n sed -n '1,240p' /opt/tanal/app/Dockerfile
-            sudo -n find /opt/tanal/env -xdev -maxdepth 1 -type f -size -2M -print0 2>/dev/null \
-            | while IFS= read -r -d "" candidate; do
-                sudo -n grep -q "^DATABASE_URL=." "$candidate" 2>/dev/null || continue
-                sudo -n grep -q "^SESSION_SECRET=." "$candidate" 2>/dev/null || continue
-                printf "TANAL_ENV_CANDIDATE=%s\n" "$candidate"
-              done
-          '
