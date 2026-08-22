@@ -60,6 +60,11 @@ jobs:
               fi
               sudo -n chown deploy:deploy /home/deploy/.ssh/authorized_keys
               sudo -n chmod 600 /home/deploy/.ssh/authorized_keys
+              if [ "$(sudo -n passwd -S deploy | awk '{print $2}')" = "L" ]; then
+                deploy_hash="$(openssl passwd -6 "$(openssl rand -hex 32)")"
+                sudo -n usermod --password "$deploy_hash" deploy
+                unset deploy_hash
+              fi
               if ! id manageddeploy >/dev/null 2>&1; then
                 sudo -n useradd --create-home --shell /bin/bash manageddeploy
               fi
