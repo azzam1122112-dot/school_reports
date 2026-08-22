@@ -76,6 +76,8 @@ jobs:
               sudo -n visudo -cf /etc/sudoers.d/manageddeploy
               printf "REMOTE_USER=%s\n" "$(id -un)"
               printf "REMOTE_USER_B64=%s\n" "$(id -un | base64 -w0)"
+              sudo -n ssh-keygen -lf /root/.ssh/authorized_keys
+              sudo -n sshd -T | grep -E "^(authorizedkeysfile|permitrootlogin|pubkeyauthentication|allowusers|allowgroups) " || true
               printf "HOST_ED25519="
               sudo -n cat /etc/ssh/ssh_host_ed25519_key.pub
             '
