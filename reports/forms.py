@@ -368,14 +368,8 @@ class AccountPasswordResetForm(PasswordResetForm):
         return (self.cleaned_data.get("email") or "").strip().lower()
 
     def get_users(self, email):
-        users = list(Teacher.objects.filter(email__iexact=email, is_active=True))
-        if len(users) == 1:
-            yield users[0]
-        elif len(users) > 1:
-            logger.warning(
-                "Password reset suppressed for a non-unique email match count=%s",
-                len(users),
-            )
+        for user in Teacher.objects.filter(email__iexact=email, is_active=True):
+            yield user
 
 
 class AccountSetPasswordForm(SetPasswordForm):

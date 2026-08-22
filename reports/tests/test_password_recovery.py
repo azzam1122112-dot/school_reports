@@ -116,7 +116,7 @@ class PasswordRecoveryTests(TestCase):
         self.assertContains(done_response, "إذا كان البريد مرتبطًا بحساب نشط")
         self.assertNotContains(done_response, "unknown@example.com")
 
-    def test_duplicate_email_is_not_used_for_self_service_recovery(self):
+    def test_duplicate_active_email_receives_reset_for_each_account(self):
         Teacher.objects.create_user(
             phone="0558000002",
             name="حساب قديم ببريد مكرر",
@@ -124,15 +124,16 @@ class PasswordRecoveryTests(TestCase):
             email=self.user.email,
         )
 
-        with self.assertLogs("reports.forms", level="WARNING"):
-            response = self._request_reset(self.user.email)
+        response = self._request_reset(self.user.email)
 
         self.assertRedirects(
             response,
             reverse("reports:password_reset_done"),
             fetch_redirect_response=False,
         )
-        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertIn("مستخدم الاستعادة", mail.outbox[0].body)
+        self.assertIn("حساب قديم ببريد مكرر", mail.outbox[1].body)
 
     def test_unusable_password_account_can_receive_recovery_link(self):
         user = Teacher.objects.create_user(
