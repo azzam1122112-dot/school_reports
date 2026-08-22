@@ -314,15 +314,23 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
             "set -eu; \
-             tanal_sha=\$(sudo -n cat /srv/tanal/app/.release-sha); \
-             display_sha=\$(sudo -n cat /opt/school-display/app/.release-commit); \
-             echo \"\$tanal_sha\" | grep -Eq '^[0-9a-f]{40}\$'; \
-             echo \"\$display_sha\" | grep -Eq '^[0-9a-f]{40}\$'; \
              cd '$DEPLOY_PATH'; \
-             docker compose -f compose.hetzner.yaml exec -T web \
-               python manage.py stamp_managed_project_release xmansx \"\$tanal_sha\"; \
-             docker compose -f compose.hetzner.yaml exec -T web \
-               python manage.py stamp_managed_project_release school-display \"\$display_sha\""
+             if sudo -n test -s /srv/tanal/app/.release-sha; then \
+               tanal_sha=\$(sudo -n cat /srv/tanal/app/.release-sha); \
+               echo \"\$tanal_sha\" | grep -Eq '^[0-9a-f]{40}\$'; \
+               docker compose -f compose.hetzner.yaml exec -T web \
+                 python manage.py stamp_managed_project_release xmansx \"\$tanal_sha\"; \
+             else \
+               echo 'TANAL release stamp is not present yet; first managed deploy will create it.'; \
+             fi; \
+             if sudo -n test -s /opt/school-display/app/.release-commit; then \
+               display_sha=\$(sudo -n cat /opt/school-display/app/.release-commit); \
+               echo \"\$display_sha\" | grep -Eq '^[0-9a-f]{40}\$'; \
+               docker compose -f compose.hetzner.yaml exec -T web \
+                 python manage.py stamp_managed_project_release school-display \"\$display_sha\"; \
+             else \
+               echo 'School Display release stamp is not present yet; first managed deploy will create it.'; \
+             fi"
 
       # The image is what CI tests; the *configuration* is what the server holds,
       # and nothing compared the two. A release once shipped advertising a

@@ -1,0 +1,46 @@
+name: Install Managed Deploy Key
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - name: Configure existing trusted SSH connection
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Install dedicated managed-project key
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          MANAGED_DEPLOY_PUBLIC_KEY: ${{ secrets.MANAGED_DEPLOY_PUBLIC_KEY }}
+        run: |
+          test -n "$MANAGED_DEPLOY_PUBLIC_KEY"
+          printf '%s\n' "$MANAGED_DEPLOY_PUBLIC_KEY" \
+          | ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" '
+              set -eu
+              umask 077
+              mkdir -p "$HOME/.ssh"
+              touch "$HOME/.ssh/authorized_keys"
+              read -r public_key
+              grep -qxF "$public_key" "$HOME/.ssh/authorized_keys" \
+                || printf "%s\n" "$public_key" >> "$HOME/.ssh/authorized_keys"
+              chmod 700 "$HOME/.ssh"
+              chmod 600 "$HOME/.ssh/authorized_keys"
+              printf "REMOTE_USER=%s\n" "$(id -un)"
+              printf "HOST_ED25519="
+              sudo -n cat /etc/ssh/ssh_host_ed25519_key.pub
+            '
