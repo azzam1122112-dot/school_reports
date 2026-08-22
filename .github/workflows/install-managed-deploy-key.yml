@@ -131,9 +131,13 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" '
             set -eu
-            sudo -n systemctl show tanal.service \
-              --property=ActiveState,MainPID,User,Group,WorkingDirectory,FragmentPath,EnvironmentFiles
-            sudo -n find /etc /opt /srv /home -xdev -maxdepth 6 -type f -size -2M -print0 2>/dev/null \
+            sudo -n systemctl list-units --type=service --all --plain --no-legend \
+              | awk "tolower(\$1) ~ /(tanal|xmansx)/ { print \$1, \$3, \$4 }"
+            sudo -n docker ps --format "{{.Names}} {{.Image}}" \
+              | grep -Ei "tanal|xmansx" || true
+            sudo -n find /opt/tanal /srv/tanal -xdev -maxdepth 4 -type f -size -2M -print 2>/dev/null \
+              | sort
+            sudo -n find /opt/tanal /srv/tanal -xdev -maxdepth 4 -type f -size -2M -print0 2>/dev/null \
             | while IFS= read -r -d "" candidate; do
                 sudo -n grep -q "^DATABASE_URL=." "$candidate" 2>/dev/null || continue
                 sudo -n grep -q "^SESSION_SECRET=." "$candidate" 2>/dev/null || continue
