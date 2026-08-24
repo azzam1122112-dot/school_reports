@@ -474,6 +474,29 @@ class Command(BaseCommand):
         else:
             self._record(section, Check.FAIL, "DEFAULT_FROM_EMAIL is not an address")
 
+        required_channels = (
+            (
+                "PASSWORD_CHANGE_EMAIL_ENABLED",
+                "Password-change security notices are enabled",
+                "Password-change security notices are disabled",
+            ),
+            (
+                "SUBSCRIPTION_ACTIVATION_EMAIL_ENABLED",
+                "Subscription activation emails are enabled",
+                "Subscription activation emails are disabled",
+            ),
+            (
+                "SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED",
+                "Subscription expiry emails are enabled",
+                "Subscription expiry emails are disabled",
+            ),
+        )
+        for setting_name, enabled_message, disabled_message in required_channels:
+            if bool(getattr(settings, setting_name, False)):
+                self._record(section, Check.OK, enabled_message)
+            else:
+                self._record(section, Check.FAIL, disabled_message)
+
     def _check_payments(self):
         section = "Payments"
         if getattr(settings, "MOYASAR_ENABLED", False):

@@ -90,6 +90,9 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Use the existing RESEND_API_KEY for Django system emails.",
     )
+    parser.add_argument("--password-change-email-enabled", choices=BOOL_CHOICES)
+    parser.add_argument("--subscription-activation-email-enabled", choices=BOOL_CHOICES)
+    parser.add_argument("--subscription-expiry-reminder-email-enabled", choices=BOOL_CHOICES)
     parser.add_argument(
         "--fcm-service-account-from-stdin",
         action="store_true",
@@ -213,6 +216,18 @@ def _collect(args: argparse.Namespace) -> dict[str, str]:
 
     if getattr(args, "resend_system_backend", False):
         values["EMAIL_BACKEND"] = "reports.email_backends.ResendEmailBackend"
+
+    for arg_name, env_name in (
+        ("password_change_email_enabled", "PASSWORD_CHANGE_EMAIL_ENABLED"),
+        ("subscription_activation_email_enabled", "SUBSCRIPTION_ACTIVATION_EMAIL_ENABLED"),
+        (
+            "subscription_expiry_reminder_email_enabled",
+            "SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED",
+        ),
+    ):
+        value = getattr(args, arg_name, None)
+        if value:
+            values[env_name] = value
 
     if getattr(args, "fcm_service_account_from_stdin", False):
         try:

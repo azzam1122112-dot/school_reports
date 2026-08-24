@@ -6,7 +6,21 @@
 
 - إنشاء ملف `deploy/hetzner/env.production` بصلاحية `0600` وتعبئة القيم الحقيقية؛ يمنع وضع الأسرار في Git.
 - ضبط R2 خاص للوسائط (`MEDIA_PUBLIC_ACCESS_ENABLED=False` و`AWS_QUERYSTRING_AUTH=True`). التطبيق يرفض الإقلاع الإنتاجي من دون تخزين دائم خاص.
-- ضبط SMTP حقيقي واختبار استعادة كلمة المرور. التطبيق يرفض `localhost` وأي backend غير SMTP في الإنتاج الصارم.
+- ضبط Resend عبر `reports.email_backends.ResendEmailBackend` ومفتاح
+  `RESEND_API_KEY` وعنوان إرسال موثّق، أو SMTP إنتاجي حقيقي. التطبيق يرفض
+  `localhost` وواجهات console/locmem في الإنتاج الصارم.
+- تفعيل `PASSWORD_CHANGE_EMAIL_ENABLED=True` و
+  `SUBSCRIPTION_ACTIVATION_EMAIL_ENABLED=True` و
+  `SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED=True`، ثم تشغيل فحص الجاهزية
+  ورسالة تحقق حقيقية إلى صندوق يراقبه فريق التشغيل:
+
+  ```bash
+  python manage.py production_preflight
+  python manage.py send_system_email_probe operator@example.com
+  ```
+
+  قبول المزود للرسالة يثبت سلامة مسار الإرسال، ثم يجب تأكيد وصولها من الصندوق
+  أو من حدث `email.delivered` في Resend.
 - ضبط `SENTRY_DSN` وإعداد تنبيه للأخطاء الجديدة، مع إبقاء `send_default_pii=False`.
 - تفعيل مراقب خارجي لـ `/healthz/` وتنبيه عند HTTP 503؛ المسار لا يعرض اسم الخادم أو تفاصيل الاستثناءات.
 - ضبط `TRUSTED_PROXY_CIDRS` على شبكة Caddy الداخلية فقط.

@@ -180,6 +180,21 @@ class WebPushRuntimeConfigTests(SimpleTestCase):
         )
         self.assertEqual(values["EMAIL_BACKEND"], "reports.email_backends.ResendEmailBackend")
 
+    def test_system_email_channels_can_be_enabled_together(self):
+        values = _collect(
+            self._args(
+                web_push_enabled=None,
+                web_push_config_from_stdin=False,
+                password_change_email_enabled="True",
+                subscription_activation_email_enabled="True",
+                subscription_expiry_reminder_email_enabled="True",
+            )
+        )
+
+        self.assertEqual(values["PASSWORD_CHANGE_EMAIL_ENABLED"], "True")
+        self.assertEqual(values["SUBSCRIPTION_ACTIVATION_EMAIL_ENABLED"], "True")
+        self.assertEqual(values["SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED"], "True")
+
     def test_resend_system_backend_refuses_missing_server_key(self):
         from tempfile import TemporaryDirectory
 

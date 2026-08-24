@@ -288,7 +288,10 @@ jobs:
           ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
               "DEPLOY_PATH='$DEPLOY_PATH' python3 \
                '$DEPLOY_PATH/deploy/hetzner/apply_runtime_config.py' \
-               --resend-system-backend"
+               --resend-system-backend \
+               --password-change-email-enabled True \
+               --subscription-activation-email-enabled True \
+               --subscription-expiry-reminder-email-enabled True"
 
       - name: Release and run migrations
         env:

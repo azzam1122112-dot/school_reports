@@ -108,6 +108,24 @@ class PreflightDetectsMisconfigurationTests(TestCase):
 
         self.assertIn("Incomplete public disclosure", output)
 
+    @override_settings(SUBSCRIPTION_ACTIVATION_EMAIL_ENABLED=False)
+    def test_disabled_subscription_activation_email_is_a_failure(self):
+        _, output = run_preflight()
+
+        self.assertIn("Subscription activation emails are disabled", output)
+
+    @override_settings(PASSWORD_CHANGE_EMAIL_ENABLED=False)
+    def test_disabled_password_change_email_is_a_failure(self):
+        _, output = run_preflight()
+
+        self.assertIn("Password-change security notices are disabled", output)
+
+    @override_settings(SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED=False)
+    def test_disabled_subscription_expiry_email_is_a_failure(self):
+        _, output = run_preflight()
+
+        self.assertIn("Subscription expiry emails are disabled", output)
+
 
 class PreflightPricingChecksTests(TestCase):
     def setUp(self):
