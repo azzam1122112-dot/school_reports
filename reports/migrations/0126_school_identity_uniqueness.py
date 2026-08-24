@@ -42,7 +42,6 @@ def normalize_sa_mobile_identity(value: str) -> str:
 
 def backfill_identity_fields(apps, schema_editor):
     School = apps.get_model("reports", "School")
-    Teacher = apps.get_model("reports", "Teacher")
 
     for school in School.objects.all().only("pk", "name", "phone", "email").iterator(chunk_size=500):
         School.objects.filter(pk=school.pk).update(
@@ -50,9 +49,6 @@ def backfill_identity_fields(apps, schema_editor):
             phone=normalize_sa_mobile_identity(school.phone) if school.phone else school.phone,
             email=(school.email or "").strip().lower(),
         )
-
-    for teacher in Teacher.objects.exclude(email="").only("pk", "email").iterator(chunk_size=500):
-        Teacher.objects.filter(pk=teacher.pk).update(email=(teacher.email or "").strip().lower())
 
 
 class Migration(migrations.Migration):
@@ -97,14 +93,6 @@ class Migration(migrations.Migration):
                 Lower("email"),
                 condition=~models.Q(email=""),
                 name="uniq_school_email_ci",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="teacher",
-            constraint=models.UniqueConstraint(
-                Lower("email"),
-                condition=~models.Q(email=""),
-                name="uniq_teacher_email_ci",
             ),
         ),
     ]
