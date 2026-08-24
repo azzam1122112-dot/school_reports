@@ -402,13 +402,6 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = "مستخدم (معلم)"
         verbose_name_plural = "المستخدمون"
-        constraints = [
-            models.UniqueConstraint(
-                Lower("email"),
-                condition=~models.Q(email=""),
-                name="uniq_teacher_email_ci",
-            ),
-        ]
 
     @property
     def display_role_label(self) -> str:
