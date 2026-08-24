@@ -40,6 +40,7 @@ from ..models import (
     SubscriptionPlan,
     Teacher,
 )
+from ..model_parts.schools import normalize_sa_mobile_identity, normalize_school_name_identity
 from ..pricing import FREE_TRIAL_DAYS
 
 
@@ -151,20 +152,36 @@ class SchoolRegistrationForm(forms.Form):
         error_messages={"required": "يلزم الاطلاع على السياسات والموافقة عليها قبل إنشاء الحساب."},
     )
 
+    def clean_school_name(self):
+        name = " ".join((self.cleaned_data.get("school_name") or "").split())
+        if len(name) < 3:
+            raise forms.ValidationError("أدخل اسم المدرسة الرسمي.")
+
+        normalized_name = normalize_school_name_identity(name)
+        if School.objects.filter(normalized_name=normalized_name).exists():
+            raise forms.ValidationError(
+                "اسم المدرسة مسجّل مسبقاً. استخدم صفحة الدخول أو اطلب الانضمام للحساب الحالي."
+            )
+        return name
+
     def clean_manager_phone(self):
-        raw_phone = (self.cleaned_data.get("manager_phone") or "").strip()
-        phone = raw_phone.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
-        phone = "".join(character for character in phone if character.isdigit())
-        if phone.startswith("9665") and len(phone) == 12:
-            phone = f"0{phone[3:]}"
-        elif phone.startswith("5") and len(phone) == 9:
-            phone = f"0{phone}"
+        phone = normalize_sa_mobile_identity(self.cleaned_data.get("manager_phone") or "")
 
         if len(phone) != 10 or not phone.startswith("05"):
             raise forms.ValidationError("أدخل رقم جوال سعودي صحيحًا يبدأ بـ 05 ويتكون من 10 أرقام.")
         if Teacher.objects.filter(phone=phone).exists():
             raise forms.ValidationError("رقم الجوال مسجّل مسبقاً. استخدم صفحة الدخول.")
+        if School.objects.filter(phone=phone).exists():
+            raise forms.ValidationError("رقم الجوال مستخدم في مدرسة مسجّلة مسبقاً.")
         return phone
+
+    def clean_manager_email(self):
+        email = (self.cleaned_data.get("manager_email") or "").strip().lower()
+        if Teacher.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("البريد الإلكتروني مسجّل مسبقاً. استخدم صفحة الدخول.")
+        if School.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("البريد الإلكتروني مستخدم في مدرسة مسجّلة مسبقاً.")
+        return email
 
     def clean(self):
         cleaned = super().clean()
@@ -236,6 +253,8 @@ def register_school(request):
                                     stage=form.cleaned_data["stage"],
                                     gender=form.cleaned_data["gender"],
                                     city=form.cleaned_data.get("city") or "",
+                                    phone=form.cleaned_data["manager_phone"],
+                                    email=form.cleaned_data["manager_email"],
                                     is_active=True,
                                     **school_marketing_fields(request),
                                 )

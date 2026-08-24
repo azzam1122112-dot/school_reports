@@ -1,6 +1,46 @@
 from __future__ import annotations
 
+import re
+
+from django.db.models.functions import Lower
+
 from .base import *
+
+
+_ARABIC_DIACRITICS_RE = re.compile(r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]")
+_SCHOOL_NAME_TRANSLATION = str.maketrans(
+    {
+        "أ": "ا",
+        "إ": "ا",
+        "آ": "ا",
+        "ٱ": "ا",
+        "ى": "ي",
+        "ئ": "ي",
+        "ؤ": "و",
+        "ة": "ه",
+        "ـ": "",
+    }
+)
+
+
+def normalize_school_name_identity(value: str) -> str:
+    """Return a stable comparison key for school names."""
+    text = (value or "").strip().casefold()
+    text = text.translate(_SCHOOL_NAME_TRANSLATION)
+    text = _ARABIC_DIACRITICS_RE.sub("", text)
+    text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)
+    return re.sub(r"\s+", " ", text, flags=re.UNICODE).strip()
+
+
+def normalize_sa_mobile_identity(value: str) -> str:
+    """Normalize common Saudi mobile formats to 05XXXXXXXX when possible."""
+    phone = (value or "").strip().translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
+    phone = "".join(character for character in phone if character.isdigit())
+    if phone.startswith("9665") and len(phone) == 12:
+        return f"0{phone[3:]}"
+    if phone.startswith("5") and len(phone) == 9:
+        return f"0{phone}"
+    return phone
 
 
 class SchoolGroup(models.Model):
@@ -66,6 +106,15 @@ class SchoolGroup(models.Model):
 
 class School(models.Model):
     name = models.CharField("اسم المدرسة", max_length=200)
+    normalized_name = models.CharField(
+        "اسم المدرسة للتقييد",
+        max_length=220,
+        blank=True,
+        default="",
+        editable=False,
+        db_index=True,
+        help_text="نسخة مطبّعة من الاسم لمنع تسجيل المدرسة أكثر من مرة.",
+    )
     class Stage(models.TextChoices):
         KG = "kg", "رياض أطفال"
         PRIMARY = "primary", "ابتدائي"
@@ -210,13 +259,37 @@ class School(models.Model):
         ordering = ("name",)
         verbose_name = "مدرسة"
         verbose_name_plural = "المدارس"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["normalized_name"],
+                condition=~models.Q(normalized_name=""),
+                name="uniq_school_normalized_name",
+            ),
+            models.UniqueConstraint(
+                fields=["phone"],
+                condition=models.Q(phone__isnull=False) & ~models.Q(phone=""),
+                name="uniq_school_phone",
+            ),
+            models.UniqueConstraint(
+                Lower("email"),
+                condition=~models.Q(email=""),
+                name="uniq_school_email_ci",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.name or self.code
 
     def save(self, *args, **kwargs):
+        if self.name:
+            self.name = " ".join(self.name.split())
+        self.normalized_name = normalize_school_name_identity(self.name)
         if self.code:
             self.code = self.code.strip().lower()
+        if self.phone:
+            self.phone = normalize_sa_mobile_identity(self.phone)
+        if self.email:
+            self.email = self.email.strip().lower()
         persisted_storage_key = ""
         if self.pk and not self._state.adding:
             persisted_storage_key = (
@@ -329,6 +402,13 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = "مستخدم (معلم)"
         verbose_name_plural = "المستخدمون"
+        constraints = [
+            models.UniqueConstraint(
+                Lower("email"),
+                condition=~models.Q(email=""),
+                name="uniq_teacher_email_ci",
+            ),
+        ]
 
     @property
     def display_role_label(self) -> str:

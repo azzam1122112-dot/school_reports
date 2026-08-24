@@ -209,6 +209,38 @@ class PlatformEmailTests(TestCase):
         self.assertIn(first_school, school_choices)
         self.assertNotIn(School.objects.get(code="no-email-school"), school_choices)
 
+    def test_registration_manager_email_becomes_school_email_for_mail_center(self):
+        response = self.client.post(
+            reverse("reports:register_school"),
+            {
+                "school_name": "مدرسة مركز البريد",
+                "stage": School.Stage.PRIMARY,
+                "gender": School.Gender.BOYS,
+                "city": "الرياض",
+                "manager_name": "مدير مركز البريد",
+                "manager_phone": "0557778888",
+                "manager_email": "mail-center-manager@example.edu.sa",
+                "password": "MailCenter#2026",
+                "password_confirm": "MailCenter#2026",
+                "accept_policies": "on",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("reports:registration_success"),
+            fetch_redirect_response=False,
+        )
+        school = School.objects.get(name="مدرسة مركز البريد")
+        self.assertEqual(school.email, "mail-center-manager@example.edu.sa")
+
+        self.client.force_login(self.admin)
+        compose = self.client.get(reverse("reports:platform_email_compose"))
+        school_choices = compose.context["form"].fields["selected_schools"].queryset
+        self.assertIn(school, school_choices)
+        self.assertContains(compose, "مدرسة مركز البريد")
+        self.assertContains(compose, "mail-center-manager@example.edu.sa")
+
     @patch("reports.resend_email._api_request")
     def test_compose_requires_school_or_manual_recipient(self, api_request):
         self.client.force_login(self.admin)

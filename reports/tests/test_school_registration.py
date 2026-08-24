@@ -43,6 +43,7 @@ class SchoolRegistrationFlowTests(TestCase):
         self.assertContains(response, "تجربة كاملة")
         self.assertContains(response, "أرشيف تجريبي")
         self.assertContains(response, "بيانات الدخول بوضوح")
+        self.assertContains(response, "سيُحفظ هذا البريد كبريد المدرسة الرسمي")
         self.assertContains(response, 'autocomplete="tel"')
         self.assertContains(response, 'autocomplete="new-password"', count=2)
 
@@ -68,6 +69,9 @@ class SchoolRegistrationFlowTests(TestCase):
         self.assertTrue(membership.is_active)
         self.assertTrue(manager.check_password("FreeTrial#2026"))
         self.assertEqual(manager.email, "manager@example.edu.sa")
+        self.assertEqual(school.phone, "0551234567")
+        self.assertEqual(school.email, "manager@example.edu.sa")
+        self.assertEqual(school.normalized_name, "مدرسه التجربه المتكامله")
         self.assertNotIn("FreeTrial#2026", manager.password)
         self.assertEqual(subscription.plan.price, 0)
         self.assertTrue(subscription.plan.is_active)
@@ -110,6 +114,81 @@ class SchoolRegistrationFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "أدخل رقم جوال سعودي صحيحًا")
         self.assertFalse(School.objects.exists())
+        self.assertFalse(Teacher.objects.exists())
+
+    def test_duplicate_school_name_rejects_registration(self):
+        School.objects.create(
+            name="مدرسة التَّجربة المتكامله",
+            code="existing-school",
+            stage=School.Stage.PRIMARY,
+            gender=School.Gender.BOYS,
+            city="الرياض",
+        )
+
+        response = self.client.post(
+            reverse("reports:register_school"),
+            self.registration_payload(),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "اسم المدرسة مسجّل مسبقاً")
+        self.assertEqual(School.objects.count(), 1)
+        self.assertFalse(Teacher.objects.exists())
+
+    def test_duplicate_manager_email_rejects_registration(self):
+        Teacher.objects.create_user(
+            phone="0550000000",
+            name="مدير قائم",
+            email="MANAGER@example.edu.sa",
+            password="Existing#2026",
+        )
+
+        response = self.client.post(
+            reverse("reports:register_school"),
+            self.registration_payload(),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "البريد الإلكتروني مسجّل مسبقاً")
+        self.assertFalse(School.objects.exists())
+        self.assertEqual(Teacher.objects.count(), 1)
+
+    def test_duplicate_school_phone_rejects_registration(self):
+        School.objects.create(
+            name="مدرسة قائمة",
+            code="existing-school",
+            phone="+966 55 123 4567",
+            stage=School.Stage.PRIMARY,
+            gender=School.Gender.BOYS,
+        )
+
+        response = self.client.post(
+            reverse("reports:register_school"),
+            self.registration_payload(),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "رقم الجوال مستخدم في مدرسة")
+        self.assertEqual(School.objects.count(), 1)
+        self.assertFalse(Teacher.objects.exists())
+
+    def test_duplicate_school_email_rejects_registration(self):
+        School.objects.create(
+            name="مدرسة قائمة",
+            code="existing-school",
+            email="manager@example.edu.sa",
+            stage=School.Stage.PRIMARY,
+            gender=School.Gender.BOYS,
+        )
+
+        response = self.client.post(
+            reverse("reports:register_school"),
+            self.registration_payload(manager_phone="0551239999"),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "البريد الإلكتروني مستخدم في مدرسة")
+        self.assertEqual(School.objects.count(), 1)
         self.assertFalse(Teacher.objects.exists())
         self.assertFalse(SubscriptionPlan.objects.exists())
 
