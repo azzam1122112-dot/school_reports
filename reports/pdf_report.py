@@ -129,11 +129,11 @@ def build_report_evidence_context(report, *, for_pdf: bool = False) -> dict:
                 )
 
     count = len(items)
-    mode = getattr(report, "evidence_page_mode", "auto") or "auto"
-    separate = mode == "separate" or (
-        mode == "auto"
-        and (count >= 3 or any(item["display_size"] == "large" for item in items))
-    )
+    # Evidence is always part of the report sheet.  Older rows may still carry
+    # ``evidence_page_mode=separate`` from the retired layout option; ignoring
+    # that legacy value here guarantees the new one-page contract for existing
+    # reports as well as new ones.
+    separate = False
     return {
         "EVIDENCE_ITEMS": items,
         "EVIDENCE_COUNT": count,
@@ -600,6 +600,12 @@ def _generate_report_pdf_fallback(report, *, context: dict | None = None) -> byt
         y -= 5
 
     ensure_space(105)
+    # Keep approvals in the document's closing zone when the fallback renderer
+    # is used.  ``y`` decreases as content is drawn, so taking the smaller value
+    # moves a short report's signatures down without ever overlapping longer
+    # content.
+    signature_anchor_y = bottom_margin + 112
+    y = min(y, signature_anchor_y)
     pdf.setStrokeColor(line_color)
     pdf.line(margin, y, page_width - margin, y)
     draw_right("الاعتمادات والتوقيعات", page_width - margin, y - 16, 10.5, bold=True, color=green_dark)

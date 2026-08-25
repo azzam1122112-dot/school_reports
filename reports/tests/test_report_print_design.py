@@ -112,6 +112,7 @@ class OfficialReportPrintDesignTests(TestCase):
         self.assertIn("break-inside: avoid", styles)
         self.assertIn(".page--dense-evidence .img-box img", styles)
         self.assertIn("object-fit: contain", styles)
+        self.assertIn("signature_anchor_y = bottom_margin + 112", fallback_pdf_source)
 
     def test_pdf_context_uses_gendered_labels_and_counts_evidence(self):
         for index in range(1, 5):

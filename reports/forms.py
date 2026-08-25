@@ -802,9 +802,14 @@ class ReportForm(forms.ModelForm):
         # تطبيقات أو تبويبات فُتحت قبل إضافة الخيار لا ترسله في POST؛ الوضع
         # التلقائي هو التوافق الآمن ولا ينبغي أن يمنع حفظ تقرير مكتمل.
         self.fields["evidence_page_mode"].required = False
+        self.fields["evidence_page_mode"].widget = forms.HiddenInput()
+        self.fields["evidence_page_mode"].initial = Report.EvidencePageMode.INLINE
 
     def clean_evidence_page_mode(self):
-        return self.cleaned_data.get("evidence_page_mode") or Report.EvidencePageMode.AUTO
+        # صفحة التقرير الرسمية موحّدة: التفاصيل والشواهد والتواقيع في ورقة
+        # واحدة.  نحول أيضاً القيم القديمة ``auto`` و``separate`` إلى inline
+        # عند أول حفظ تالٍ للتقرير.
+        return Report.EvidencePageMode.INLINE
 
     def clean_beneficiaries_count(self):
         val = self.cleaned_data.get("beneficiaries_count")
