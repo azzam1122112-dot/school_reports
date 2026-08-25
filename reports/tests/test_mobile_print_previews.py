@@ -43,6 +43,21 @@ class MobilePrintPreviewRegressionTests(SimpleTestCase):
         self.assertIn("@media screen and (max-width: 520px)", responsive_styles)
         self.assertIn("@media print", responsive_styles)
 
+    def test_report_preview_keeps_private_comments_outside_the_official_page(self):
+        template = self._source("reports/templates/reports/report_print.html")
+        styles = self._source(
+            "reports/templates/reports/partials/report_print_official_styles.html"
+        )
+        screen_styles = styles.split("@media print {", 1)[0]
+
+        self.assertRegex(
+            template,
+            r'</div>\s*\n\s*{% if show_comments %}\s*\n\s*<section class="section report-comments no-print">',
+        )
+        self.assertIn("display: flex;", screen_styles)
+        self.assertIn("flex-direction: column;", screen_styles)
+        self.assertIn(".signature-spacer { flex: 1 1 auto;", screen_styles)
+
     def test_ticket_preview_stacks_document_content_without_affecting_print(self):
         source = self._source("reports/templates/reports/ticket_print.html")
 

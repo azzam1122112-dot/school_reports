@@ -572,75 +572,6 @@
       {% endif %}
     </section>
 
-    {% if show_comments %}
-      <section class="section report-comments no-print">
-        <div class="section-h"><span>ملاحظات وتعليقات خاصة</span></div>
-
-        <div class="xs-report-print-1">
-          لا تظهر في الطباعة أو المشاركة.
-        </div>
-
-        {% if private_comments %}
-          <div class="u-flex u-col u-gap-3">
-            {% for c in private_comments %}
-              <div class="xs-report-print-2">
-                <div class="u-fw-900 u-mb-6px">
-                  {{ c.created_by.name|default:"" }}{% if c.created_by_role_label %} ({{ c.created_by_role_label }}){% endif %}
-                  <span class="u-fw-700 u-text-muted-alt">— {{ c.created_at|date:"Y/m/d H:i" }}</span>
-                </div>
-                <div class="xs-report-print-3">{{ c.body }}</div>
-
-                {% if can_add_private_comment and current_user_id %}
-                  <div class="u-mt-3 u-flex u-gap-2 u-wrap u-items-start">
-                    {% if c.created_by_id == current_user_id %}
-                      <details>
-                        <summary class="btn xs-report-print-4">تعديل</summary>
-                        <form method="post" class="xs-report-print-5">
-                          {% csrf_token %}
-                          <input type="hidden" name="action" value="private_comment_update" />
-                          <input type="hidden" name="comment_id" value="{{ c.id }}" />
-                          <textarea name="body" rows="3" class="xs-report-print-6">{{ c.body }}</textarea>
-                          <div class="u-mt-2">
-                            <button type="submit" class="btn btn-print">حفظ</button>
-                          </div>
-                        </form>
-                      </details>
-                    {% endif %}
-
-                    {% if c.created_by_id == current_user_id or is_superuser %}
-                      <form method="post" class="js-confirm-delete u-inline" data-confirm="حذف التعليق نهائيًا؟">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="private_comment_delete" />
-                        <input type="hidden" name="comment_id" value="{{ c.id }}" />
-                        <button type="submit" class="btn xs-report-print-7">حذف</button>
-                      </form>
-                    {% endif %}
-                  </div>
-                {% endif %}
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="u-text-muted-alt u-fw-800">لا توجد ملاحظات خاصة على هذا التقرير.</div>
-        {% endif %}
-
-        {% if can_add_private_comment and comment_form %}
-          <form method="post" class="u-mt-4">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="private_comment_create" />
-            <div class="u-fw-900 u-mb-6px">إضافة تعليق خاص {{ SCHOOL_TEACHER_DATIVE_LABEL|default:"للمعلم" }}</div>
-            <div>{{ comment_form.body }}</div>
-            {% if comment_form.body.errors %}
-              <div class="xs-report-print-8">{{ comment_form.body.errors.0 }}</div>
-            {% endif %}
-            <div class="u-mt-3">
-              <button type="submit" class="btn btn-print">حفظ التعليق</button>
-            </div>
-          </form>
-        {% endif %}
-      </section>
-    {% endif %}
-
     <div class="report-footer">
       <div>تم الإصدار إلكترونيًا: {% now "Y/m/d H:i" %}</div>
       <div class="footer-brand">منصة توثيق</div>
@@ -651,6 +582,75 @@
     {% endif %}
 
   </div>
+
+  {% if show_comments %}
+    <section class="section report-comments no-print">
+      <div class="section-h"><span>ملاحظات وتعليقات خاصة</span></div>
+
+      <div class="xs-report-print-1">
+        لا تظهر في الطباعة أو المشاركة.
+      </div>
+
+      {% if private_comments %}
+        <div class="u-flex u-col u-gap-3">
+          {% for c in private_comments %}
+            <div class="xs-report-print-2">
+              <div class="u-fw-900 u-mb-6px">
+                {{ c.created_by.name|default:"" }}{% if c.created_by_role_label %} ({{ c.created_by_role_label }}){% endif %}
+                <span class="u-fw-700 u-text-muted-alt">— {{ c.created_at|date:"Y/m/d H:i" }}</span>
+              </div>
+              <div class="xs-report-print-3">{{ c.body }}</div>
+
+              {% if can_add_private_comment and current_user_id %}
+                <div class="u-mt-3 u-flex u-gap-2 u-wrap u-items-start">
+                  {% if c.created_by_id == current_user_id %}
+                    <details>
+                      <summary class="btn xs-report-print-4">تعديل</summary>
+                      <form method="post" class="xs-report-print-5">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="private_comment_update" />
+                        <input type="hidden" name="comment_id" value="{{ c.id }}" />
+                        <textarea name="body" rows="3" class="xs-report-print-6">{{ c.body }}</textarea>
+                        <div class="u-mt-2">
+                          <button type="submit" class="btn btn-print">حفظ</button>
+                        </div>
+                      </form>
+                    </details>
+                  {% endif %}
+
+                  {% if c.created_by_id == current_user_id or is_superuser %}
+                    <form method="post" class="js-confirm-delete u-inline" data-confirm="حذف التعليق نهائيًا؟">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="private_comment_delete" />
+                      <input type="hidden" name="comment_id" value="{{ c.id }}" />
+                      <button type="submit" class="btn xs-report-print-7">حذف</button>
+                    </form>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="u-text-muted-alt u-fw-800">لا توجد ملاحظات خاصة على هذا التقرير.</div>
+      {% endif %}
+
+      {% if can_add_private_comment and comment_form %}
+        <form method="post" class="u-mt-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="private_comment_create" />
+          <div class="u-fw-900 u-mb-6px">إضافة تعليق خاص {{ SCHOOL_TEACHER_DATIVE_LABEL|default:"للمعلم" }}</div>
+          <div>{{ comment_form.body }}</div>
+          {% if comment_form.body.errors %}
+            <div class="xs-report-print-8">{{ comment_form.body.errors.0 }}</div>
+          {% endif %}
+          <div class="u-mt-3">
+            <button type="submit" class="btn btn-print">حفظ التعليق</button>
+          </div>
+        </form>
+      {% endif %}
+    </section>
+  {% endif %}
 
   <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     function goBack() {
