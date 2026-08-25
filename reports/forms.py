@@ -31,6 +31,11 @@ from core.observability import report_degraded as _degraded, soft_fail
 
 from .validators import validate_circular_attachment_file
 from .gender_labels import school_gender_labels
+from .report_limits import (
+    REPORT_DETAILS_MAX_LENGTH,
+    REPORT_DETAILS_RECOMMENDED_LENGTH,
+    report_details_length_error,
+)
 from .staff_assignments import assignment_cards, assignment_choices, get_assignment
 
 # ==============================
@@ -724,7 +729,17 @@ class ReportForm(forms.ModelForm):
             "day_name": forms.TextInput(attrs={"class": "input", "readonly": "readonly"}),
             "beneficiaries_count": forms.NumberInput(attrs={"class": "input", "min": "0", "inputmode": "numeric"}),
             "goal": forms.Textarea(attrs={"class": "textarea", "rows": 3, "placeholder": "ما الهدف الذي يسعى النشاط أو البرنامج إلى تحقيقه؟"}),
-            "idea": forms.Textarea(attrs={"class": "textarea", "rows": 5, "placeholder": "اكتب ملخصًا واضحًا لما تم تنفيذه وأبرز تفاصيله"}),
+            "idea": forms.Textarea(
+                attrs={
+                    "class": "textarea",
+                    "rows": 5,
+                    "placeholder": "اكتب ملخصًا واضحًا لما تم تنفيذه وأبرز تفاصيله",
+                    "maxlength": str(REPORT_DETAILS_MAX_LENGTH),
+                    "data-recommended-length": str(REPORT_DETAILS_RECOMMENDED_LENGTH),
+                    "data-max-length": str(REPORT_DETAILS_MAX_LENGTH),
+                    "aria-describedby": "report-details-guidance report-details-status",
+                }
+            ),
             "implementation_method": forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "وضح الخطوات والإجراءات وطريقة تنفيذ النشاط"}),
             "results": forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "اذكر النتائج والمخرجات التي تحققت"}),
             "recommendations": forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "أضف التوصيات أو فرص التحسين المستقبلية"}),
@@ -798,6 +813,12 @@ class ReportForm(forms.ModelForm):
         if val < 0:
             raise ValidationError(f"عدد {self.gender_labels['beneficiaries_object']} لا يمكن أن يكون سالبًا.")
         return val
+
+    def clean_idea(self):
+        value = self.cleaned_data.get("idea")
+        if value and len(value) > REPORT_DETAILS_MAX_LENGTH:
+            raise ValidationError(report_details_length_error())
+        return value
 
     def clean(self):
         cleaned = super().clean()

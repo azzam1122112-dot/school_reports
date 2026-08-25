@@ -4,6 +4,8 @@
   data-endpoint="{% if assistant_endpoint %}{{ assistant_endpoint }}{% else %}{% url 'reports:improve_report_text' %}{% endif %}"
   data-target-id="{{ target_id|default:'id_idea' }}"
   data-document-name="{% if meeting_minutes_mode %}المحضر{% else %}التقرير{% endif %}"
+  data-recommended-length="{% if meeting_minutes_mode %}0{% else %}{{ report_details_recommended_length|default:450 }}{% endif %}"
+  data-max-length="{% if meeting_minutes_mode %}6000{% else %}{{ report_details_max_length|default:600 }}{% endif %}"
   data-daily-limit="{{ report_ai_daily_limit|default:3 }}"
   data-remaining="{{ report_ai_daily_remaining|default:3 }}"
 >
@@ -43,7 +45,10 @@
   <section class="report-ai-preview" data-report-ai-preview hidden aria-label="معاينة النص المحسن">
     <div class="report-ai-preview-head">
       <strong><i class="fa-solid fa-sparkles" aria-hidden="true"></i> النص المقترح</strong>
-      <span>لن يتغير {% if meeting_minutes_mode %}المحضر{% else %}التقرير{% endif %} حتى تعتمد النص</span>
+      <span>
+        لن يتغير {% if meeting_minutes_mode %}المحضر{% else %}التقرير{% endif %} حتى تعتمد النص
+        {% if not meeting_minutes_mode %}— <b data-report-ai-preview-count>0</b> حرف{% endif %}
+      </span>
     </div>
     <div class="report-ai-preview-text" data-report-ai-output></div>
     <div class="report-ai-preview-actions">

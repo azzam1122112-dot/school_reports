@@ -26,6 +26,10 @@ from ..report_ai import (
     reserve_report_ai_daily_slot,
     validate_report_text,
 )
+from ..report_limits import (
+    REPORT_DETAILS_MAX_LENGTH,
+    REPORT_DETAILS_RECOMMENDED_LENGTH,
+)
 from ..voice_report import (
     VoiceReportError,
     VoiceReportUnavailable,
@@ -124,6 +128,8 @@ def _report_ai_template_context(user) -> dict[str, int | bool]:
         ),
         "report_ai_daily_limit": REPORT_AI_DAILY_LIMIT,
         "report_ai_daily_remaining": report_ai_daily_remaining(user.pk),
+        "report_details_recommended_length": REPORT_DETAILS_RECOMMENDED_LENGTH,
+        "report_details_max_length": REPORT_DETAILS_MAX_LENGTH,
         **_voice_report_template_context(user),
     }
 
@@ -469,6 +475,8 @@ def improve_report_text(request: HttpRequest) -> JsonResponse:
                 "improved_text": improved_text,
                 "remaining": remaining,
                 "daily_limit": REPORT_AI_DAILY_LIMIT,
+                "recommended_length": REPORT_DETAILS_RECOMMENDED_LENGTH,
+                "max_length": REPORT_DETAILS_MAX_LENGTH,
             },
             json_dumps_params={"ensure_ascii": False},
         )

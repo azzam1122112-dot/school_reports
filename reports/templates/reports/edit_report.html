@@ -4,6 +4,7 @@
 {% block title %}✏️ تعديل التقرير #{{ report.id }}{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{% static 'css/report-details-limit.css' %}?v=20260825.1">
 {% if report_ai_enabled %}
 <link rel="stylesheet" href="{% static 'css/report-ai-improver.css' %}?v=20260813.2">
 {% endif %}
@@ -582,6 +583,7 @@
             <div class="row" data-section-field="details">
               <label for="{{ form.idea.id_for_label }}">تفاصيل التقرير</label>
               {{ form.idea }}
+              {% include "reports/partials/report_details_limit.html" with target_id=form.idea.id_for_label %}
               {% if form.idea.errors %}
                 <div class="msg err">{% for e in form.idea.errors %}• {{ e }}<br>{% endfor %}</div>
               {% endif %}
@@ -673,8 +675,9 @@
 
 {% block scripts %}
 {{ block.super }}
+<script src="{% static 'js/report-details-limit.js' %}?v=20260825.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
 {% if report_ai_enabled %}
-<script src="{% static 'js/report-ai-improver.js' %}?v=20260801.2" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
+<script src="{% static 'js/report-ai-improver.js' %}?v=20260825.1" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
 {% endif %}
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   // إضافة class control لمدخلات Django

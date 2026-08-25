@@ -27,6 +27,9 @@
       var remainingNode = root.querySelector("[data-report-ai-remaining]");
       var quotaDots = root.querySelectorAll("[data-quota-dot]");
       var dailyLimit = parseInt(root.getAttribute("data-daily-limit"), 10) || 3;
+      var recommendedLength = parseInt(root.getAttribute("data-recommended-length"), 10) || 0;
+      var maxLength = parseInt(root.getAttribute("data-max-length"), 10) || 6000;
+      var previewCount = root.querySelector("[data-report-ai-preview-count]");
       var remaining = parseInt(root.getAttribute("data-remaining"), 10);
       var suggestedText = "";
       var previousText = "";
@@ -74,6 +77,7 @@
         preview.hidden = true;
         suggestedText = "";
         output.textContent = "";
+        if (previewCount) previewCount.textContent = "0";
       }
 
       trigger.addEventListener("click", function () {
@@ -84,8 +88,8 @@
           target.focus();
           return;
         }
-        if (text.length > 6000) {
-          setStatus("اختصر النص إلى 6000 حرف أو أقل ثم حاول مرة أخرى.", "error");
+        if (Array.from(text).length > maxLength) {
+          setStatus("اختصر النص إلى " + maxLength + " حرفًا أو أقل ثم حاول مرة أخرى.", "error");
           target.focus();
           return;
         }
@@ -126,10 +130,19 @@
           .then(function (data) {
             suggestedText = String(data.improved_text || "").trim();
             if (!suggestedText) throw new Error("لم تصل صياغة محسنة. حاول مرة أخرى.");
+            var suggestionLength = Array.from(suggestedText).length;
+            if (suggestionLength > maxLength) {
+              throw new Error("الصياغة المقترحة أطول من الحد النهائي. أعد المحاولة للحصول على نص أكثر اختصارًا.");
+            }
             output.textContent = suggestedText;
+            if (previewCount) previewCount.textContent = String(suggestionLength);
             preview.hidden = false;
             updateQuota(data.remaining);
-            setStatus("راجع النص المقترح، ثم اعتمده إذا كان مناسبًا.", "success");
+            if (recommendedLength && suggestionLength > recommendedLength) {
+              setStatus("النص المقترح مسموح، لكنه أطول من النطاق المثالي للطباعة. راجعه أو أعد التحسين لاختصاره.", "");
+            } else {
+              setStatus("صياغة موجزة ومناسبة للطباعة. راجعها ثم اعتمدها إذا كانت مناسبة.", "success");
+            }
             preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
           })
           .catch(function (error) {
