@@ -7,8 +7,9 @@ import time
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from .cache_utils import redis_cache_lock
 from .models import GeneratedExportJob
@@ -95,3 +96,100 @@ def wait_for_job_visibility(job_id: int, *, seconds: float = 0.5):
             return job
         time.sleep(0.05)
     return None
+
+
+def recover_stale_generated_exports(*, limit: int = 10) -> int:
+    """Move exports abandoned by the media queue to the core worker once.
+
+    The primary route remains the isolated ``images`` queue.  If that worker is
+    unavailable, a durable job used to remain ``queued`` forever even though the
+    web and core workers were healthy.  Beat calls this recovery from the core
+    queue; the build lock keeps the original and fallback deliveries idempotent.
+    """
+    queued_after = max(
+        30,
+        int(getattr(settings, "GENERATED_EXPORT_QUEUE_STALE_SECONDS", 120) or 120),
+    )
+    running_after = max(
+        300,
+        int(
+            getattr(settings, "GENERATED_EXPORT_RUNNING_STALE_SECONDS", 35 * 60)
+            or 35 * 60
+        ),
+    )
+    retry_after = max(
+        60,
+        int(getattr(settings, "GENERATED_EXPORT_RECOVERY_RETRY_SECONDS", 600) or 600),
+    )
+    max_attempts = max(
+        1,
+        int(getattr(settings, "GENERATED_EXPORT_RECOVERY_MAX_ATTEMPTS", 3) or 3),
+    )
+    now = timezone.now()
+    candidates = list(
+        GeneratedExportJob.objects.filter(
+            status__in=[GeneratedExportJob.Status.QUEUED, GeneratedExportJob.Status.RUNNING]
+        )
+        .filter(
+            models.Q(
+                status=GeneratedExportJob.Status.QUEUED,
+                created_at__lte=now - timedelta(seconds=queued_after),
+            )
+            | models.Q(
+                status=GeneratedExportJob.Status.RUNNING,
+                started_at__lte=now - timedelta(seconds=running_after),
+            )
+        )
+        .order_by("created_at", "id")[: max(1, int(limit or 1))]
+    )
+
+    recovered = 0
+    for candidate in candidates:
+        with transaction.atomic():
+            job = GeneratedExportJob.objects.select_for_update().get(pk=candidate.pk)
+            parameters = dict(job.parameters or {})
+            attempts = int(parameters.get("core_recovery_attempts") or 0)
+            last_recovery = parse_datetime(
+                str(parameters.get("core_recovery_enqueued_at") or "")
+            )
+            if last_recovery and (now - last_recovery).total_seconds() < retry_after:
+                continue
+            if attempts >= max_attempts:
+                job.status = GeneratedExportJob.Status.FAILED
+                job.error_message = (
+                    "تعذر تشغيل عاملَي إنشاء الأرشيف بعد محاولات الاسترداد التلقائي."
+                )
+                job.completed_at = now
+                job.save(update_fields=["status", "error_message", "completed_at"])
+                logger.error("Generated export recovery exhausted job=%s", job.pk)
+                continue
+            parameters["core_recovery_enqueued_at"] = now.isoformat()
+            parameters["core_recovery_from_status"] = job.status
+            parameters["core_recovery_attempts"] = attempts + 1
+            job.parameters = parameters
+            job.status = GeneratedExportJob.Status.QUEUED
+            job.started_at = None
+            job.error_message = ""
+            job.save(
+                update_fields=["parameters", "status", "started_at", "error_message"]
+            )
+
+        try:
+            from .tasks import build_generated_export_task
+
+            build_generated_export_task.apply_async(args=[job.pk], queue="default")
+        except Exception as exc:
+            logger.exception("Unable to recover generated export job=%s", job.pk)
+            GeneratedExportJob.objects.filter(pk=job.pk).update(
+                status=GeneratedExportJob.Status.FAILED,
+                error_message=str(exc)[:500],
+                completed_at=timezone.now(),
+            )
+        else:
+            recovered += 1
+            logger.warning(
+                "Recovered stale generated export on core queue job=%s previous_status=%s",
+                job.pk,
+                parameters["core_recovery_from_status"],
+            )
+    return recovered

@@ -45,7 +45,7 @@ from ..models import GeneratedExportJob
 from core.observability import report_degraded as _degraded, soft_call, soft_fail
 
 from ._helpers import *
-from .export_jobs import generated_export_job_response
+from .export_jobs import export_creation_is_limited, generated_export_job_response
 # Star imports skip underscore names; the size formatter is needed by name.
 from ..services_archive import _human_size
 from ._helpers import (
@@ -1205,7 +1205,7 @@ def school_archive_delete(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @login_required(login_url="reports:login")
-@ratelimit(key="user", rate="20/h", method="GET", block=True)
+@ratelimit(key="user", rate="720/h", method="GET", block=True)
 @require_http_methods(["GET"])
 def school_archive_export(request: HttpRequest) -> HttpResponse:
     """Compatibility one-time export; managers should use persisted snapshots."""
@@ -1219,6 +1219,12 @@ def school_archive_export(request: HttpRequest) -> HttpResponse:
             job_id=job_id,
             fallback_url=reverse("reports:school_archive"),
         )
+    if export_creation_is_limited(
+        request, group="school-archive-export-create", rate="20/h"
+    ):
+        response = HttpResponse("تجاوزت حد إنشاء ملفات الأرشيف. حاول لاحقًا.", status=429)
+        response["Retry-After"] = "3600"
+        return response
 
     active_school = _get_active_school(request)
     if active_school is None:

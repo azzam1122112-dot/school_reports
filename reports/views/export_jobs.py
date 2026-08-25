@@ -2,15 +2,31 @@ from __future__ import annotations
 
 import logging
 
+from django.conf import settings
 from django.contrib import messages
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django_ratelimit.core import is_ratelimited
 
 from ..models import GeneratedExportJob
 
 logger = logging.getLogger(__name__)
+
+
+def export_creation_is_limited(request, *, group: str, rate: str) -> bool:
+    """Rate-limit new builds while allowing lightweight status polling."""
+    return bool(
+        is_ratelimited(
+            request,
+            group=group,
+            key="user",
+            rate=rate,
+            method="GET",
+            increment=True,
+        )
+    )
 
 
 def generated_export_job_response(request, *, job_id, fallback_url: str) -> HttpResponse:
@@ -67,6 +83,16 @@ def generated_export_job_response(request, *, job_id, fallback_url: str) -> Http
         messages.error(request, message)
         return redirect(fallback_url)
 
+    now = timezone.now()
+    waiting_seconds = max(0, int((now - job.created_at).total_seconds()))
+    stale_after = max(
+        30,
+        int(getattr(settings, "GENERATED_EXPORT_QUEUE_STALE_SECONDS", 120) or 120),
+    )
+    recovery_enqueued = bool(
+        (job.parameters or {}).get("core_recovery_enqueued_at")
+    )
+
     return render(
         request,
         "reports/generated_export_status.html",
@@ -74,6 +100,12 @@ def generated_export_job_response(request, *, job_id, fallback_url: str) -> Http
             "job": job,
             "refresh_url": request.get_full_path(),
             "fallback_url": fallback_url,
+            "waiting_seconds": waiting_seconds,
+            "is_delayed": (
+                job.status == GeneratedExportJob.Status.QUEUED
+                and waiting_seconds >= stale_after
+            ),
+            "recovery_enqueued": recovery_enqueued,
         },
         status=202,
     )

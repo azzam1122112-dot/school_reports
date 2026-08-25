@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import timedelta
 from unittest.mock import patch
 
 from pathlib import Path
@@ -26,8 +27,10 @@ from pathlib import Path
 from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from reports.models import (
+    Assignment,
     Document,
     Notification,
     NotificationRecipient,
@@ -144,6 +147,29 @@ class UnifiedSearchIsolationTests(TestCase):
 
         self.assertIn("زيارة ميدانية للمتحف", titles)
         self.assertIn("زيارة ميدانية للمصنع", titles)
+
+    def test_assignment_result_opens_the_assignment_not_an_unrelated_target(self):
+        """The parent id and target id can collide; search must never mix them."""
+        assignment = Assignment.objects.create(
+            school=self.mine,
+            issuer=self.manager,
+            title="تكليف متابعة الزيارة",
+            description="متابعة التنفيذ",
+            due_at=timezone.now() + timedelta(days=2),
+        )
+
+        hits = [
+            hit
+            for hit in search(self.manager, self.mine, "تكليف متابعة الزيارة")
+            if hit.kind == "assignment"
+        ]
+
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(
+            hits[0].url,
+            reverse("reports:assignment_view", args=[assignment.pk]),
+        )
+        self.assertNotIn("/assignments/target/", hits[0].url)
 
     def test_the_staff_directory_is_closed_to_teachers(self):
         """أسماء الزملاء وأرقامهم بيانات شخصية، وشاشتها للمدير."""

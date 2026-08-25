@@ -292,7 +292,10 @@ def _search_assignments(user, school, query: str, limit: int) -> list[SearchHit]
             subtitle=_clip(
                 getattr(assignment.issuer, "name", "") or assignment.issuer_name or ""
             ),
-            url=reverse("reports:assignment_detail", args=[assignment.pk]),
+            # Search returns the parent Assignment, not one recipient target.
+            # Using ``assignment_detail`` here treated the parent primary key as
+            # an AssignmentTarget id and could open a completely different task.
+            url=reverse("reports:assignment_view", args=[assignment.pk]),
         )
         for assignment in qs[:limit]
     ]

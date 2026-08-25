@@ -399,3 +399,28 @@ class LabExperiment(ApprovalMixin):
         from ..permissions import capability_source
 
         return capability_source(user, MANAGE_LAB, school) is not None
+
+    def can_finalize_approval(self, user, school):
+        """Break the manager-owned experiment deadlock without self-approval.
+
+        A manager may legitimately record an experiment on behalf of the school,
+        but the shared approval engine correctly prevents them from approving
+        their own record.  In that one case, a *different* lab reviewer who
+        has both laboratory management and approval authority may make the final
+        decision.  For every other experiment ``None`` keeps the normal rule:
+        final approval belongs to the school manager.
+        """
+        from ..capabilities import MANAGE_LAB, RECOMMEND_APPROVAL
+        from ..permissions import capability_source, is_school_manager
+
+        recorder_id = getattr(self, "recorder_id", None)
+        if not recorder_id or not is_school_manager(
+            self.recorder, active_school=school
+        ):
+            return None
+        if recorder_id == getattr(user, "pk", None):
+            return False
+        return bool(
+            capability_source(user, MANAGE_LAB, school) is not None
+            and capability_source(user, RECOMMEND_APPROVAL, school) is not None
+        )

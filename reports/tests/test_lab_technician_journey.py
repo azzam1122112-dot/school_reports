@@ -605,6 +605,30 @@ class LabExperimentTests(LabTestCase):
         experiment.refresh_from_db()
         self.assertNotEqual(experiment.approval_state, ApprovalState.APPROVED)
 
+    def test_lab_reviewer_can_finalize_a_manager_owned_experiment(self):
+        """عمل المدير لا يعلق: يقرره مسؤول مختبر آخر، لا صاحبه."""
+        scope = self._grant_lab_watch()
+        scope.capabilities = [caps.MANAGE_LAB, caps.RECOMMEND_APPROVAL]
+        scope.save(update_fields=["capabilities"])
+        cache.clear()
+        experiment = self._experiment(
+            recorder=self.manager,
+            approval_state=ApprovalState.RECOMMENDED,
+            reviewed_by=self.deputy,
+        )
+
+        self._enter(self.deputy)
+        response = self.client.post(
+            reverse("reports:lab_experiment_action", args=[experiment.pk]),
+            {"approval_action": "approve", "note": "اعتماد مستقل عن صاحب السجل."},
+            follow=True,
+        )
+
+        experiment.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(experiment.approval_state, ApprovalState.APPROVED)
+        self.assertEqual(experiment.decided_by_id, self.deputy.pk)
+
     def test_an_approved_experiment_is_no_longer_editable(self):
         experiment = self._experiment(approval_state=ApprovalState.APPROVED)
         self._enter(self.tech)

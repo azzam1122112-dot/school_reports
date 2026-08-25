@@ -1064,6 +1064,8 @@ CELERY_TASK_ROUTES = {
     "operations.tasks.send_incident_push_task": {"queue": "notifications"},
     "operations.tasks.cleanup_operations_history_task": {"queue": "periodic"},
     "reports.tasks.cleanup_generated_exports_task": {"queue": "periodic"},
+    # Core is deliberately independent from the media worker it may need to rescue.
+    "reports.tasks.recover_stale_generated_exports_task": {"queue": "default"},
     "reports.tasks.cleanup_platform_email_task": {"queue": "periodic"},
 }
 
@@ -1076,6 +1078,19 @@ PDF_OFFLOAD_ENABLED = _env_bool("PDF_OFFLOAD_ENABLED", True)
 PDF_OFFLOAD_TIMEOUT_SECONDS = float(os.getenv("PDF_OFFLOAD_TIMEOUT_SECONDS", "45") or "45")
 GENERATED_EXPORT_RETENTION_HOURS = max(
     1, int(os.getenv("GENERATED_EXPORT_RETENTION_HOURS", "6") or "6")
+)
+GENERATED_EXPORT_QUEUE_STALE_SECONDS = max(
+    30, int(os.getenv("GENERATED_EXPORT_QUEUE_STALE_SECONDS", "120") or "120")
+)
+GENERATED_EXPORT_RUNNING_STALE_SECONDS = max(
+    300,
+    int(os.getenv("GENERATED_EXPORT_RUNNING_STALE_SECONDS", "2100") or "2100"),
+)
+GENERATED_EXPORT_RECOVERY_RETRY_SECONDS = max(
+    60, int(os.getenv("GENERATED_EXPORT_RECOVERY_RETRY_SECONDS", "600") or "600")
+)
+GENERATED_EXPORT_RECOVERY_MAX_ATTEMPTS = max(
+    1, int(os.getenv("GENERATED_EXPORT_RECOVERY_MAX_ATTEMPTS", "3") or "3")
 )
 
 
@@ -1320,6 +1335,11 @@ if crontab is not None:
     CELERY_BEAT_SCHEDULE["cleanup-generated-exports-hourly"] = {
         "task": "reports.tasks.cleanup_generated_exports_task",
         "schedule": crontab(minute=20),
+    }
+    CELERY_BEAT_SCHEDULE["recover-stale-generated-exports"] = {
+        "task": "reports.tasks.recover_stale_generated_exports_task",
+        "schedule": 60,
+        "options": {"queue": "default"},
     }
 
     CELERY_BEAT_SCHEDULE["cleanup-platform-email-daily"] = {

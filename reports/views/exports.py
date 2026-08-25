@@ -18,7 +18,7 @@ from ..services_export import (
 from ..services_archive import school_archive_enabled
 from ..generated_exports import async_exports_enabled, enqueue_generated_export
 from ..models import GeneratedExportJob
-from .export_jobs import generated_export_job_response
+from .export_jobs import export_creation_is_limited, generated_export_job_response
 
 _XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -90,7 +90,7 @@ def school_data_export_download(request: HttpRequest) -> HttpResponse:
 
 @login_required(login_url="reports:login")
 @role_required({"manager"})
-@ratelimit(key="user", rate="6/h", method="GET", block=True)
+@ratelimit(key="user", rate="720/h", method="GET", block=True)
 @require_http_methods(["GET"])
 def school_data_export_zip(request: HttpRequest) -> HttpResponse:
     """تنزيل أرشيف ZIP يحوي ملفات المدرسة الفعلية + ملف Excel فهرس."""
@@ -101,6 +101,12 @@ def school_data_export_zip(request: HttpRequest) -> HttpResponse:
             job_id=job_id,
             fallback_url=reverse("reports:school_data_export"),
         )
+    if export_creation_is_limited(
+        request, group="school-data-export-create", rate="6/h"
+    ):
+        response = HttpResponse("تجاوزت حد إنشاء ملفات التصدير. حاول لاحقًا.", status=429)
+        response["Retry-After"] = "3600"
+        return response
 
     active_school, redirect_resp = _require_manager_school(request)
     if redirect_resp is not None:

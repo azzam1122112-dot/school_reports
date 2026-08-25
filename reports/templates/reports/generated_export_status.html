@@ -2,7 +2,7 @@
 {% block title %}تجهيز ملف التصدير{% endblock %}
 {% block extra_head %}
   {{ block.super }}
-  <meta http-equiv="refresh" content="3;url={{ refresh_url|escape }}">
+  <meta http-equiv="refresh" content="5;url={{ refresh_url|escape }}">
 {% endblock %}
 {% block content %}
 <main dir="rtl" class="xs-generated-export-status-1">
@@ -14,6 +14,15 @@
       لن تتأثر بقية المنصة أثناء إنشاء ملفات PDF وضغط الأرشيف.
     </p>
     <p class="xs-generated-export-status-6">الحالة: {{ job.get_status_display }}</p>
+    {% if is_delayed %}
+      <p role="status" class="xs-generated-export-status-6">
+        {% if recovery_enqueued %}
+          تأخر عامل الوسائط، فحوّلت المنصة المهمة تلقائيًا إلى عامل احتياطي. لا حاجة لإنشاء طلب جديد.
+        {% else %}
+          تأخر بدء المهمة، وستعيد المنصة توجيهها تلقائيًا خلال دقيقة مع الاحتفاظ بنفس الطلب.
+        {% endif %}
+      </p>
+    {% endif %}
     <a href="{{ fallback_url }}" class="xs-generated-export-status-7">العودة ومتابعة العمل</a>
   </section>
 </main>

@@ -211,3 +211,64 @@ class GeneratedExportJobTests(TestCase):
         self.assertTrue(job.artifact_file.name.endswith(".zip"))
         self.assertGreater(job.size_bytes, 0)
         self.assertIsNotNone(job.expires_at)
+
+    @override_settings(GENERATED_EXPORT_QUEUE_STALE_SECONDS=30)
+    @patch("reports.tasks.build_generated_export_task.apply_async")
+    def test_stale_media_export_is_recovered_on_core_queue_once(self, enqueue):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from reports.generated_exports import recover_stale_generated_exports
+        from reports.models import GeneratedExportJob
+
+        job = GeneratedExportJob.objects.create(
+            school=self.school,
+            requested_by=self.user,
+            kind=GeneratedExportJob.Kind.SCHOOL_ZIP,
+        )
+        GeneratedExportJob.objects.filter(pk=job.pk).update(
+            created_at=timezone.now() - timedelta(minutes=2)
+        )
+
+        self.assertEqual(recover_stale_generated_exports(), 1)
+        self.assertEqual(recover_stale_generated_exports(), 0)
+        job.refresh_from_db()
+
+        enqueue.assert_called_once_with(args=[job.pk], queue="default")
+        self.assertEqual(job.status, GeneratedExportJob.Status.QUEUED)
+        self.assertTrue(job.parameters.get("core_recovery_enqueued_at"))
+        self.assertEqual(job.parameters.get("core_recovery_attempts"), 1)
+
+    @override_settings(
+        GENERATED_EXPORT_QUEUE_STALE_SECONDS=30,
+        GENERATED_EXPORT_RECOVERY_RETRY_SECONDS=60,
+        GENERATED_EXPORT_RECOVERY_MAX_ATTEMPTS=1,
+    )
+    @patch("reports.tasks.build_generated_export_task.apply_async")
+    def test_exhausted_export_recovery_becomes_a_clear_failure(self, enqueue):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from reports.generated_exports import recover_stale_generated_exports
+        from reports.models import GeneratedExportJob
+
+        old = timezone.now() - timedelta(minutes=3)
+        job = GeneratedExportJob.objects.create(
+            school=self.school,
+            requested_by=self.user,
+            kind=GeneratedExportJob.Kind.SCHOOL_ZIP,
+            parameters={
+                "core_recovery_attempts": 1,
+                "core_recovery_enqueued_at": old.isoformat(),
+            },
+        )
+        GeneratedExportJob.objects.filter(pk=job.pk).update(created_at=old)
+
+        self.assertEqual(recover_stale_generated_exports(), 0)
+        job.refresh_from_db()
+
+        enqueue.assert_not_called()
+        self.assertEqual(job.status, GeneratedExportJob.Status.FAILED)
+        self.assertIn("محاولات الاسترداد", job.error_message)

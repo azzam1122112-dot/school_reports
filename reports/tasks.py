@@ -2104,3 +2104,13 @@ def cleanup_generated_exports_task() -> int:
             logger.exception("Unable to clean generated export job=%s", job.pk)
     opmetrics.increment("generated_export.cleaned", cleaned)
     return cleaned
+
+
+@shared_task(ignore_result=True, soft_time_limit=60, time_limit=90)
+def recover_stale_generated_exports_task() -> int:
+    """Recover media-queue export jobs from the independently-run core worker."""
+    from .generated_exports import recover_stale_generated_exports
+
+    recovered = recover_stale_generated_exports(limit=10)
+    opmetrics.increment("generated_export.recovered", recovered)
+    return recovered

@@ -709,18 +709,10 @@
       }
 
       if(rateEl){
-        let current = 0;
-        const duration = 900;
-        const steps = 45;
-        const inc = safeRate / steps;
-        const t = setInterval(function(){
-          current += inc;
-          if(current >= safeRate){
-            current = safeRate;
-            clearInterval(t);
-          }
-          rateEl.textContent = Math.round(current) + '%';
-        }, duration / steps);
+        // Keep the numeric KPI consistent with its fraction and progressbar.
+        // Animating the number made a fully-read 2/2 notification briefly say
+        // 58%, which looks like corrupt data and is misleading to screen readers.
+        rateEl.textContent = safeRate + '%';
       }
     });
 
