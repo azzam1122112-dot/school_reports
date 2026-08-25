@@ -160,6 +160,10 @@ class Notification(models.Model):
 
 
 class NotificationRecipient(models.Model):
+    class DeliverySource(models.TextChoices):
+        ORIGINAL = "original", "ضمن قائمة الإصدار الأصلية"
+        MANUAL_ADDITION = "manual_addition", "أُضيف لاحقًا بواسطة الإدارة"
+
     notification = models.ForeignKey(Notification, on_delete=models.CASCADE, related_name="recipients")
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name="notifications")
     is_read = models.BooleanField(default=False)
@@ -170,6 +174,22 @@ class NotificationRecipient(models.Model):
     signed_at = models.DateTimeField(null=True, blank=True)
     signature_attempt_count = models.PositiveSmallIntegerField(default=0)
     signature_last_attempt_at = models.DateTimeField(null=True, blank=True)
+    delivery_source = models.CharField(
+        "مصدر الإضافة",
+        max_length=20,
+        choices=DeliverySource.choices,
+        default=DeliverySource.ORIGINAL,
+        help_text="يميّز قائمة الإصدار الأصلية عن المستلمين الذين أُلحقوا لاحقًا.",
+    )
+    added_by = models.ForeignKey(
+        Teacher,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notification_recipient_additions",
+        verbose_name="أضافه",
+        help_text="يُملأ فقط عند إلحاق مستلم بعد إصدار التعميم.",
+    )
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:

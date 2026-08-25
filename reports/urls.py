@@ -423,6 +423,11 @@ urlpatterns = [
     path("push/subscribe/", views.web_push_subscribe, name="web_push_subscribe"),
     path("push/unsubscribe/", views.web_push_unsubscribe, name="web_push_unsubscribe"),
     path("notifications/<int:pk>/", views.notification_detail, name="notification_detail"),
+    path(
+        "notifications/<int:pk>/recipients/add/",
+        views.circular_recipients_add,
+        name="circular_recipients_add",
+    ),
     path("notifications/<int:pk>/delete/", views.notification_delete, name="notification_delete"),
     path("notifications/send/", views.send_notification, name="send_notification"),  # تحويل للإنشاء (توافق قديم)
     # إشعارات (تنبيه/رسالة)

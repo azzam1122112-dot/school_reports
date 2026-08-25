@@ -326,6 +326,28 @@ html[data-theme="dark"] .cir-empty__icon { background: #332a18; color: #efd396; 
 .cir-person strong { font-size: .83rem; }
 .cir-person span { color: var(--cir-muted); font-size: .7rem; }
 .cir-table-foot { padding: .7rem 1rem; text-align: center; color: var(--cir-muted); background: var(--cir-soft); border-top: 1px solid var(--cir-line); font-size: .74rem; font-weight: 800; }
+.cir-audience-note { display: flex; gap: .7rem; align-items: flex-start; margin-bottom: .9rem; padding: .8rem; color: var(--cir-muted); background: var(--cir-soft); border: 1px solid var(--cir-line); border-radius: 12px; }
+.cir-audience-note > i { margin-top: .25rem; color: var(--cir-gold-600); }
+.cir-audience-note p { margin: 0; font-size: .76rem; line-height: 1.75; }
+.cir-audience-note strong { color: var(--cir-ink); }
+.cir-audience-form { display: grid; gap: .8rem; }
+.cir-recipient-picker { display: grid; gap: .5rem; max-height: 235px; padding: 2px; overflow: auto; }
+.cir-recipient-choice { display: grid; grid-template-columns: 20px 28px minmax(0, 1fr); align-items: center; gap: .55rem; padding: .65rem; color: var(--cir-ink); background: var(--cir-paper); border: 1px solid var(--cir-line); border-radius: 10px; cursor: pointer; }
+.cir-recipient-choice:hover { border-color: color-mix(in srgb, var(--cir-gold-500) 60%, var(--cir-line)); }
+.cir-recipient-choice input { width: 18px; height: 18px; accent-color: var(--cir-forest-700); }
+.cir-recipient-choice__mark { width: 26px; height: 26px; display: grid; place-items: center; color: var(--cir-muted); background: var(--cir-soft); border-radius: 8px; font-size: .72rem; }
+.cir-recipient-choice:has(input:checked) { background: var(--cir-success-soft); border-color: color-mix(in srgb, var(--cir-success) 42%, var(--cir-line)); }
+.cir-recipient-choice:has(input:checked) .cir-recipient-choice__mark { color: #fff; background: var(--cir-success); }
+.cir-recipient-choice strong, .cir-recipient-choice small { display: block; }
+.cir-recipient-choice strong { font-size: .82rem; }
+.cir-recipient-choice small { margin-top: .08rem; color: var(--cir-muted); font-size: .68rem; font-weight: 700; }
+.cir-audience-submit { width: 100%; }
+.cir-audience-complete { display: flex; gap: .7rem; align-items: center; color: var(--cir-success); }
+.cir-audience-complete > i { font-size: 1.25rem; }
+.cir-audience-complete strong, .cir-audience-complete small { display: block; }
+.cir-audience-complete strong { font-size: .84rem; }
+.cir-audience-complete small { margin-top: .14rem; color: var(--cir-muted); font-size: .72rem; }
+.cir-added-later { width: max-content; margin-top: .22rem; padding: .18rem .42rem; color: var(--cir-warning) !important; background: var(--cir-warning-soft); border: 1px solid color-mix(in srgb, var(--cir-warning) 22%, transparent); border-radius: 999px; font-size: .62rem !important; font-weight: 900; }
 
 /* Standalone signatures report */
 .cir-print-body { margin: 0; color: #162018; background: #e9eeeb; font-family: "Cairo", Tahoma, Arial, sans-serif; }

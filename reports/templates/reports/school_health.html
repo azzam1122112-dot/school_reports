@@ -35,6 +35,22 @@
   .health-impact { color: #a16207 !important; font-weight: 800; margin-top: 4px !important; }
   .health-row.is-ok .health-impact { display: none; }
   .health-action { color: var(--brand, #006c35); text-decoration: none; font-weight: 900; white-space: nowrap; }
+  .health-gaps {
+    margin-top: 16px; padding: 18px; border: 1px solid rgba(180, 83, 9, .22);
+    border-radius: 12px; background: linear-gradient(135deg, rgba(255, 251, 235, .92), rgba(255, 255, 255, .96));
+  }
+  .health-gaps__head { display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-bottom: 12px; }
+  .health-gaps__head h3 { margin: 0; color: var(--ink); font-size: 1rem; }
+  .health-gaps__head span { padding: 4px 10px; color: #92400e; background: #fef3c7; border-radius: 999px; font-size: .76rem; font-weight: 900; }
+  .health-gap-list { display: grid; gap: 8px; }
+  .health-gap {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px;
+    padding: 12px 14px; border: 1px solid rgba(180, 83, 9, .15); border-radius: 9px; background: var(--card);
+  }
+  .health-gap strong { display: block; color: var(--ink); font-size: .92rem; }
+  .health-gap small { color: var(--muted); font-weight: 700; }
+  .health-gap a { color: #fff; background: var(--brand, #006c35); padding: 8px 12px; border-radius: 8px; text-decoration: none; font-size: .8rem; font-weight: 900; }
+  html[data-theme="dark"] .health-gaps { background: linear-gradient(135deg, rgba(70, 45, 8, .4), rgba(20, 30, 25, .85)); }
   @media (max-width: 800px) {
     .health-summary { grid-template-columns: 1fr; }
     .health-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -66,7 +82,7 @@
       <div class="health-count"><strong>{{ health.counts.team }}</strong><span>أعضاء الفريق</span></div>
       <div class="health-count"><strong>{{ health.counts.departments }}</strong><span>الأقسام النشطة</span></div>
       <div class="health-count"><strong>{{ health.counts.report_types }}</strong><span>أنواع التقارير</span></div>
-      <div class="health-count"><strong>{{ health.counts.department_owners }}/{{ health.counts.department_owners_required }}</strong><span>أقسام تحتاج مسؤولًا</span></div>
+      <div class="health-count"><strong>{{ health.counts.department_owners }}/{{ health.counts.department_owners_required }}</strong><span>أقسام لها مسؤول</span></div>
     </div>
   </section>
 
@@ -86,6 +102,22 @@
         </div>
       {% endfor %}
     </div>
+    {% if health.scope_gaps %}
+      <div class="health-gaps" aria-labelledby="scopeGapsTitle">
+        <div class="health-gaps__head">
+          <h3 id="scopeGapsTitle">حسابات تحتاج ضبط النطاق</h3>
+          <span>{{ health.scope_gaps|length }} غير مكتمل</span>
+        </div>
+        <div class="health-gap-list">
+          {% for gap in health.scope_gaps %}
+            <div class="health-gap">
+              <div><strong>{{ gap.name }}</strong><small>{{ gap.role }} — لا يملك نطاق صلاحيات معتمدًا بعد</small></div>
+              <a href="{{ gap.url }}"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> ضبط النطاق</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
   </section>
 </div>
 {% endblock %}

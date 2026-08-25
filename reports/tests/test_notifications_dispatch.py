@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from reports.forms import NotificationCreateForm
 from reports.models import (
+    AuditLog,
     Department,
     DepartmentMembership,
     Notification,
@@ -300,6 +301,155 @@ class NotificationDispatchTests(TransactionTestCase):
         response = self.client.get(reverse("reports:my_circulars"))
 
         self.assertContains(response, "View Circular")
+
+    def test_manager_can_append_new_school_recipient_with_auditable_provenance(self):
+        notification = Notification.objects.create(
+            title="Circular recipient snapshot",
+            message="Original audience remains immutable.",
+            school=self.school,
+            created_by=self.manager,
+            requires_signature=True,
+        )
+        original = NotificationRecipient.objects.create(
+            notification=notification,
+            teacher=self.teachers[0],
+        )
+        self.client.force_login(self.manager)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+        response = self.client.post(
+            reverse("reports:circular_recipients_add", args=[notification.pk]),
+            {"teacher_ids": [str(self.teachers[1].pk)]},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("reports:notification_detail", args=[notification.pk]),
+            fetch_redirect_response=False,
+        )
+        original.refresh_from_db()
+        self.assertEqual(
+            original.delivery_source,
+            NotificationRecipient.DeliverySource.ORIGINAL,
+        )
+        self.assertIsNone(original.added_by_id)
+        appended = NotificationRecipient.objects.get(
+            notification=notification,
+            teacher=self.teachers[1],
+        )
+        self.assertEqual(
+            appended.delivery_source,
+            NotificationRecipient.DeliverySource.MANUAL_ADDITION,
+        )
+        self.assertEqual(appended.added_by, self.manager)
+        audit = AuditLog.objects.get(
+            model_name="Notification",
+            object_id=notification.pk,
+            changes__action="append_circular_recipients",
+        )
+        self.assertEqual(audit.teacher, self.manager)
+        self.assertEqual(audit.changes["teacher_ids"], [self.teachers[1].pk])
+
+        repeated = self.client.post(
+            reverse("reports:circular_recipients_add", args=[notification.pk]),
+            {"teacher_ids": [str(self.teachers[1].pk)]},
+        )
+        self.assertEqual(repeated.status_code, 302)
+        self.assertEqual(
+            NotificationRecipient.objects.filter(
+                notification=notification,
+                teacher=self.teachers[1],
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            AuditLog.objects.filter(
+                model_name="Notification",
+                object_id=notification.pk,
+                changes__action="append_circular_recipients",
+            ).count(),
+            1,
+        )
+
+        detail = self.client.get(reverse("reports:notification_detail", args=[notification.pk]))
+        self.assertContains(detail, "أضيف لاحقًا")
+        self.assertContains(detail, "سجل الإصدار الأصلي محفوظ")
+        self.assertNotContains(detail, f'value="{self.teachers[1].pk}"')
+
+    def test_append_recipients_rejects_an_account_outside_active_school(self):
+        other_school = School.objects.create(name="Other School", code="other-school")
+        SchoolSubscription.objects.create(
+            school=other_school,
+            plan=SubscriptionPlan.objects.first(),
+        )
+        outsider = Teacher.objects.create_user(
+            phone="500000299",
+            name="Outside Teacher",
+            password="pass",
+        )
+        SchoolMembership.objects.create(
+            school=other_school,
+            teacher=outsider,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        notification = Notification.objects.create(
+            title="School-isolated circular",
+            message="Only this school.",
+            school=self.school,
+            created_by=self.manager,
+            requires_signature=True,
+        )
+        self.client.force_login(self.manager)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+        response = self.client.post(
+            reverse("reports:circular_recipients_add", args=[notification.pk]),
+            {"teacher_ids": [str(outsider.pk)]},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            NotificationRecipient.objects.filter(
+                notification=notification,
+                teacher=outsider,
+            ).exists()
+        )
+        self.assertFalse(
+            AuditLog.objects.filter(
+                object_id=notification.pk,
+                changes__action="append_circular_recipients",
+            ).exists()
+        )
+
+    def test_non_manager_cannot_append_circular_recipients(self):
+        notification = Notification.objects.create(
+            title="Protected circular",
+            message="Managers only.",
+            school=self.school,
+            created_by=self.manager,
+            requires_signature=True,
+        )
+        self.client.force_login(self.teachers[0])
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+        response = self.client.post(
+            reverse("reports:circular_recipients_add", args=[notification.pk]),
+            {"teacher_ids": [str(self.teachers[1].pk)]},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            NotificationRecipient.objects.filter(
+                notification=notification,
+                teacher=self.teachers[1],
+            ).exists()
+        )
 
     @override_settings(CELERY_BROKER_URL="memory://")
     def test_circular_selected_teacher_creates_recipient_even_when_queued_without_worker(self):

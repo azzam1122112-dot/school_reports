@@ -284,7 +284,7 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
         if notif_fk:
             qs = NotificationRecipient.objects.filter(**{f"{notif_fk}": n})
             if user_fk:
-                qs = qs.select_related(f"{user_fk}")
+                qs = qs.select_related(f"{user_fk}", "added_by")
             qs = qs.order_by("id")
 
             # Batch-prefetch SchoolMembership to avoid N+1 in effective_user_role_label
@@ -325,7 +325,44 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
                     "read_at": read_at_str,
                     "signed": signed,
                     "signed_at": signed_at_str,
+                    "added_later": (
+                        getattr(r, "delivery_source", "")
+                        == NotificationRecipient.DeliverySource.MANUAL_ADDITION
+                    ),
+                    "added_at": getattr(r, "created_at", None),
+                    "added_by": getattr(getattr(r, "added_by", None), "name", ""),
                 })
+
+    eligible_new_recipients = []
+    can_add_recipients = bool(
+        getattr(n, "requires_signature", False)
+        and active_school is not None
+        and getattr(n, "school_id", None) == getattr(active_school, "pk", None)
+        and _is_manager_in_school(request.user, active_school)
+    )
+    if can_add_recipients:
+        existing_teacher_ids = NotificationRecipient.objects.filter(
+            notification=n
+        ).values_list("teacher_id", flat=True)
+        eligible_new_recipients = list(
+            Teacher.objects.filter(
+                is_active=True,
+                school_memberships__school=active_school,
+                school_memberships__is_active=True,
+                school_memberships__role_type__in=SchoolMembership.STAFF_ROLES,
+            )
+            .exclude(pk__in=existing_teacher_ids)
+            .distinct()
+            .order_by("name", "pk")
+        )
+        if eligible_new_recipients:
+            from ..permissions import prefetch_memberships_for_school
+
+            prefetch_memberships_for_school(eligible_new_recipients, active_school)
+            for teacher in eligible_new_recipients:
+                teacher.recipient_role_label = effective_user_role_label(
+                    teacher, active_school=active_school
+                )
 
     # اسم اليوم بالعربية لتاريخ الإرسال (بتوقيت محلي)
     created_day_name = ""
@@ -351,9 +388,120 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "signed_percentage": int(round((sig_signed / sig_total) * 100)) if sig_total else 0,
             "read_percentage": int(round((sig_read / sig_total) * 100)) if sig_total else 0,
         },
+        "can_add_recipients": can_add_recipients,
+        "eligible_new_recipients": eligible_new_recipients,
     }
     template_name = "reports/circular_detail.html" if bool(getattr(n, "requires_signature", False)) else "reports/notification_detail.html"
     return render(request, template_name, ctx)
+
+
+@login_required(login_url="reports:login")
+@role_required({"manager"})
+@ratelimit(key="user", rate="20/h", method="POST", block=True)
+@require_http_methods(["POST"])
+def circular_recipients_add(request: HttpRequest, pk: int) -> HttpResponse:
+    """Append active school staff to a circular without rewriting its original audience."""
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "اختر المدرسة أولاً.")
+        return redirect("reports:select_school")
+
+    circular = get_object_or_404(
+        Notification.objects.select_related("school"),
+        pk=pk,
+        school=active_school,
+        requires_signature=True,
+    )
+    submitted_values = request.POST.getlist("teacher_ids")
+    try:
+        submitted_ids = {int(value) for value in submitted_values if str(value).strip()}
+    except (TypeError, ValueError):
+        submitted_ids = set()
+
+    if not submitted_ids:
+        messages.error(request, "اختر مستلمًا واحدًا على الأقل لإلحاقه بالتعميم.")
+        return redirect("reports:notification_detail", pk=circular.pk)
+    if len(submitted_ids) > 200:
+        messages.error(request, "يمكن إلحاق 200 مستلم كحد أقصى في العملية الواحدة.")
+        return redirect("reports:notification_detail", pk=circular.pk)
+
+    eligible_ids = set(
+        Teacher.objects.filter(
+            pk__in=submitted_ids,
+            is_active=True,
+            school_memberships__school=active_school,
+            school_memberships__is_active=True,
+            school_memberships__role_type__in=SchoolMembership.STAFF_ROLES,
+        )
+        .distinct()
+        .values_list("pk", flat=True)
+    )
+    if eligible_ids != submitted_ids:
+        messages.error(request, "تعذر الإلحاق: تتضمن القائمة حسابًا غير نشط أو خارج المدرسة.")
+        return redirect("reports:notification_detail", pk=circular.pk)
+
+    with transaction.atomic():
+        # Serialise append operations for the same document.  Without this
+        # lock, two manager tabs can both report the same recipient as newly
+        # added even though the uniqueness constraint persists only one row.
+        circular = Notification.objects.select_for_update().get(pk=circular.pk)
+        existing_ids = set(
+            NotificationRecipient.objects.filter(
+                notification=circular,
+                teacher_id__in=submitted_ids,
+            ).values_list("teacher_id", flat=True)
+        )
+        new_ids = sorted(submitted_ids - existing_ids)
+        if new_ids:
+            NotificationRecipient.objects.bulk_create(
+                [
+                    NotificationRecipient(
+                        notification=circular,
+                        teacher_id=teacher_id,
+                        delivery_source=NotificationRecipient.DeliverySource.MANUAL_ADDITION,
+                        added_by=request.user,
+                    )
+                    for teacher_id in new_ids
+                ]
+            )
+            AuditLog.objects.create(
+                school=active_school,
+                teacher=request.user,
+                actor_name=(request.user.name or "")[:150],
+                actor_role=effective_user_role_label(request.user, active_school)[:64],
+                action=AuditLog.Action.UPDATE,
+                model_name="Notification",
+                object_id=circular.pk,
+                object_repr=str(circular)[:255],
+                changes={
+                    "action": "append_circular_recipients",
+                    "teacher_ids": new_ids,
+                    "added_count": len(new_ids),
+                },
+                ip_address=request.META.get("REMOTE_ADDR"),
+                user_agent=request.META.get("HTTP_USER_AGENT", "")[:500],
+            )
+
+    if not new_ids:
+        messages.info(request, "المستلمون المحددون موجودون في سجل التعميم بالفعل.")
+        return redirect("reports:notification_detail", pk=circular.pk)
+
+    with soft_fail("circulars.append_recipients.delivery", notification_id=circular.pk):
+        from ..cache_utils import invalidate_user_notifications
+        from ..realtime_notifications import push_new_notification_to_teachers
+
+        for teacher_id in new_ids:
+            invalidate_user_notifications(teacher_id)
+        push_new_notification_to_teachers(
+            notification=circular,
+            teacher_ids=new_ids,
+        )
+
+    messages.success(
+        request,
+        f"تم إلحاق {len(new_ids)} من المستلمين بالتعميم وتوثيق العملية في سجل المدرسة.",
+    )
+    return redirect("reports:notification_detail", pk=circular.pk)
 
 
 @login_required(login_url="reports:login")

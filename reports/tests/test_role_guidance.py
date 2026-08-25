@@ -121,6 +121,34 @@ class RoleGuidanceTests(TestCase):
         self.assertEqual(response.context["health"]["percent"], 100)
         self.assertContains(response, "7 من 7 عناصر جاهزة")
 
+    def test_school_health_names_each_missing_scope_and_links_to_its_fix(self):
+        deputy = _user("وكيل بلا نطاق", "0509000006")
+        membership = SchoolMembership.objects.create(
+            school=self.school,
+            teacher=deputy,
+            role_type=SchoolMembership.RoleType.DEPUTY,
+        )
+        self._enter(self.manager, self.school)
+
+        response = self.client.get(reverse("reports:school_health"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["health"]["counts"]["scope_gaps"], 1)
+        self.assertEqual(
+            response.context["health"]["scope_gaps"],
+            [
+                {
+                    "membership_id": membership.pk,
+                    "name": deputy.name,
+                    "role": "وكيل مدرسة",
+                    "url": reverse("reports:staff_role_scope", args=[membership.pk]),
+                }
+            ],
+        )
+        self.assertContains(response, "وكيل بلا نطاق")
+        self.assertContains(response, "ضبط النطاق")
+        self.assertContains(response, reverse("reports:staff_role_scope", args=[membership.pk]))
+
     def test_teacher_sees_their_journey_and_cannot_open_school_health(self):
         teacher = _user("معلم", "0509000003")
         SchoolMembership.objects.create(

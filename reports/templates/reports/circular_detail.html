@@ -81,6 +81,35 @@
         </section>
         {% endif %}
 
+        {% if can_add_recipients %}
+        <section class="cir-panel cir-audience-panel">
+          <h2 class="cir-panel__head"><i class="fa-solid fa-user-plus"></i> إلحاق مستلمين جدد</h2>
+          <div class="cir-panel__body">
+            <div class="cir-audience-note">
+              <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+              <p><strong>سجل الإصدار الأصلي محفوظ.</strong> الإلحاق لا يحذف أي مستلم سابق، ويُوثّق اسم المنفّذ ووقت الإضافة في سجل المدرسة.</p>
+            </div>
+            {% if eligible_new_recipients %}
+              <form method="post" action="{% url 'reports:circular_recipients_add' n.pk %}" class="cir-audience-form">
+                {% csrf_token %}
+                <div class="cir-recipient-picker" role="group" aria-label="المستلمون المتاحون للإلحاق">
+                  {% for teacher in eligible_new_recipients %}
+                    <label class="cir-recipient-choice">
+                      <input type="checkbox" name="teacher_ids" value="{{ teacher.pk }}">
+                      <span class="cir-recipient-choice__mark"><i class="fa-solid fa-check"></i></span>
+                      <span><strong>{{ teacher.name|default:teacher.phone }}</strong><small>{{ teacher.recipient_role_label }}</small></span>
+                    </label>
+                  {% endfor %}
+                </div>
+                <button type="submit" class="cir-btn cir-btn--primary cir-audience-submit"><i class="fa-solid fa-user-plus"></i> إلحاق المحددين وتوثيق العملية</button>
+              </form>
+            {% else %}
+              <div class="cir-audience-complete"><i class="fa-solid fa-circle-check"></i><span><strong>كل منسوبي المدرسة مشمولون</strong><small>لا توجد حسابات نشطة خارج سجل هذا التعميم.</small></span></div>
+            {% endif %}
+          </div>
+        </section>
+        {% endif %}
+
         <section class="cir-panel">
           <h2 class="cir-panel__head"><i class="fa-solid fa-users"></i> سجل المستلمين <span class="cir-status cir-status--signed" id="recipientCount">{{ recipients|length }}</span></h2>
           <div class="cir-search">
@@ -95,7 +124,7 @@
               <tbody id="recipientRows">
                 {% for recipient in recipients %}
                 <tr data-name="{{ recipient.name|default:'' }}" data-role="{{ recipient.role|default:'' }}" data-signed="{% if recipient.signed %}1{% else %}0{% endif %}">
-                  <td><div class="cir-person"><strong>{{ recipient.name }}</strong><span>{{ recipient.role }}</span></div></td>
+                  <td><div class="cir-person"><strong>{{ recipient.name }}</strong><span>{{ recipient.role }}</span>{% if recipient.added_later %}<span class="cir-added-later" title="أضيف بواسطة {{ recipient.added_by|default:'إدارة المدرسة' }} في {{ recipient.added_at|date:'Y/m/d — H:i' }}"><i class="fa-solid fa-clock-rotate-left"></i> أضيف لاحقًا</span>{% endif %}</div></td>
                   <td>{% if recipient.read %}<span class="cir-status cir-status--signed" title="{{ recipient.read_at }}">تم</span>{% else %}<span class="cir-status cir-status--closed">لم يفتح</span>{% endif %}</td>
                   <td>{% if recipient.signed %}<span class="cir-status cir-status--signed" title="{{ recipient.signed_at }}">موقّع</span>{% else %}<span class="cir-status cir-status--pending">معلّق</span>{% endif %}</td>
                 </tr>

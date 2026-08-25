@@ -112,9 +112,24 @@ def school_readiness(school: School) -> dict:
             SchoolMembership.RoleType.DEPUTY,
             SchoolMembership.RoleType.ADMIN_STAFF,
         ),
-    )
+    ).select_related("teacher")
     scoped_role_count = scoped_roles.count()
-    configured_scope_count = StaffScope.objects.filter(membership__in=scoped_roles).count()
+    configured_membership_ids = set(
+        StaffScope.objects.filter(membership__in=scoped_roles).values_list(
+            "membership_id", flat=True
+        )
+    )
+    configured_scope_count = len(configured_membership_ids)
+    scope_gaps = [
+        {
+            "membership_id": membership.pk,
+            "name": membership.teacher.name or membership.teacher.phone,
+            "role": membership.get_role_type_display(),
+            "url": reverse("reports:staff_role_scope", args=[membership.pk]),
+        }
+        for membership in scoped_roles
+        if membership.pk not in configured_membership_ids
+    ]
 
     steps = (
         GuidanceStep(
@@ -191,7 +206,9 @@ def school_readiness(school: School) -> dict:
                 "department_owners_required": officer_department_required_count,
                 "scoped_roles": scoped_role_count,
                 "configured_scopes": configured_scope_count,
+                "scope_gaps": len(scope_gaps),
             },
+            "scope_gaps": scope_gaps,
         }
     )
     return summary
