@@ -29,6 +29,12 @@ logger = logging.getLogger(__name__)
 from core import opmetrics
 
 
+def _locked_generated_export_job(job_id: int):
+    """Lock only the job row; nullable joins make PostgreSQL reject FOR UPDATE."""
+    GeneratedExportJob = apps.get_model("reports", "GeneratedExportJob")
+    return GeneratedExportJob.objects.select_for_update().filter(pk=job_id).first()
+
+
 @shared_task(
     bind=True,
     ignore_result=True,
@@ -1916,12 +1922,7 @@ def build_generated_export_task(self, job_id: int) -> bool:
             return True
 
         with transaction.atomic():
-            job = (
-                GeneratedExportJob.objects.select_for_update()
-                .select_related("school", "requested_by", "archive")
-                .filter(pk=job_id)
-                .first()
-            )
+            job = _locked_generated_export_job(job_id)
             if job is None:
                 return False
             if job.status == GeneratedExportJob.Status.READY:

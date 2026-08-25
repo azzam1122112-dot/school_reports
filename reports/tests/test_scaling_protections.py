@@ -212,6 +212,26 @@ class GeneratedExportJobTests(TestCase):
         self.assertGreater(job.size_bytes, 0)
         self.assertIsNotNone(job.expires_at)
 
+    def test_export_row_lock_does_not_join_nullable_relations(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        from reports.models import GeneratedExportJob
+        from reports.tasks import _locked_generated_export_job
+
+        job = GeneratedExportJob.objects.create(
+            school=self.school,
+            requested_by=self.user,
+            kind=GeneratedExportJob.Kind.SCHOOL_ZIP,
+        )
+
+        with CaptureQueriesContext(connection) as captured:
+            locked = _locked_generated_export_job(job.pk)
+
+        self.assertEqual(locked.pk, job.pk)
+        sql = " ".join(query["sql"] for query in captured.captured_queries).upper()
+        self.assertNotIn(" JOIN ", sql)
+
     @override_settings(GENERATED_EXPORT_QUEUE_STALE_SECONDS=30)
     @patch("reports.tasks.build_generated_export_task.run")
     def test_stale_media_export_is_built_in_core_worker_once(self, build):
