@@ -98,13 +98,14 @@ def wait_for_job_visibility(job_id: int, *, seconds: float = 0.5):
     return None
 
 
-def recover_stale_generated_exports(*, limit: int = 10) -> int:
-    """Move exports abandoned by the media queue to the core worker once.
+def recover_stale_generated_exports(*, limit: int = 1) -> int:
+    """Build exports abandoned by the media queue in the core worker once.
 
     The primary route remains the isolated ``images`` queue.  If that worker is
-    unavailable, a durable job used to remain ``queued`` forever even though the
-    web and core workers were healthy.  Beat calls this recovery from the core
-    queue; the build lock keeps the original and fallback deliveries idempotent.
+    unavailable, a durable job used to remain ``queued`` forever.  Beat runs this
+    recovery *inside* the core worker, so execute one fallback build there instead
+    of publishing another message that can itself remain stranded.  The build
+    lock keeps a late media delivery and this fallback idempotent.
     """
     queued_after = max(
         30,
@@ -177,9 +178,9 @@ def recover_stale_generated_exports(*, limit: int = 10) -> int:
         try:
             from .tasks import build_generated_export_task
 
-            build_generated_export_task.apply_async(args=[job.pk], queue="default")
+            build_generated_export_task.run(job.pk)
         except Exception as exc:
-            logger.exception("Unable to recover generated export job=%s", job.pk)
+            logger.exception("Unable to build recovered generated export job=%s", job.pk)
             GeneratedExportJob.objects.filter(pk=job.pk).update(
                 status=GeneratedExportJob.Status.FAILED,
                 error_message=str(exc)[:500],
@@ -188,7 +189,7 @@ def recover_stale_generated_exports(*, limit: int = 10) -> int:
         else:
             recovered += 1
             logger.warning(
-                "Recovered stale generated export on core queue job=%s previous_status=%s",
+                "Built stale generated export in core worker job=%s previous_status=%s",
                 job.pk,
                 parameters["core_recovery_from_status"],
             )

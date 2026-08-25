@@ -2106,11 +2106,11 @@ def cleanup_generated_exports_task() -> int:
     return cleaned
 
 
-@shared_task(ignore_result=True, soft_time_limit=60, time_limit=90)
+@shared_task(ignore_result=True, soft_time_limit=25 * 60, time_limit=30 * 60)
 def recover_stale_generated_exports_task() -> int:
-    """Recover media-queue export jobs from the independently-run core worker."""
+    """Build one abandoned media export in the independently-run core worker."""
     from .generated_exports import recover_stale_generated_exports
 
-    recovered = recover_stale_generated_exports(limit=10)
+    recovered = recover_stale_generated_exports(limit=1)
     opmetrics.increment("generated_export.recovered", recovered)
     return recovered

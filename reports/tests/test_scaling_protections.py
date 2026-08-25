@@ -213,8 +213,8 @@ class GeneratedExportJobTests(TestCase):
         self.assertIsNotNone(job.expires_at)
 
     @override_settings(GENERATED_EXPORT_QUEUE_STALE_SECONDS=30)
-    @patch("reports.tasks.build_generated_export_task.apply_async")
-    def test_stale_media_export_is_recovered_on_core_queue_once(self, enqueue):
+    @patch("reports.tasks.build_generated_export_task.run")
+    def test_stale_media_export_is_built_in_core_worker_once(self, build):
         from datetime import timedelta
 
         from django.utils import timezone
@@ -235,7 +235,7 @@ class GeneratedExportJobTests(TestCase):
         self.assertEqual(recover_stale_generated_exports(), 0)
         job.refresh_from_db()
 
-        enqueue.assert_called_once_with(args=[job.pk], queue="default")
+        build.assert_called_once_with(job.pk)
         self.assertEqual(job.status, GeneratedExportJob.Status.QUEUED)
         self.assertTrue(job.parameters.get("core_recovery_enqueued_at"))
         self.assertEqual(job.parameters.get("core_recovery_attempts"), 1)
@@ -245,8 +245,8 @@ class GeneratedExportJobTests(TestCase):
         GENERATED_EXPORT_RECOVERY_RETRY_SECONDS=60,
         GENERATED_EXPORT_RECOVERY_MAX_ATTEMPTS=1,
     )
-    @patch("reports.tasks.build_generated_export_task.apply_async")
-    def test_exhausted_export_recovery_becomes_a_clear_failure(self, enqueue):
+    @patch("reports.tasks.build_generated_export_task.run")
+    def test_exhausted_export_recovery_becomes_a_clear_failure(self, build):
         from datetime import timedelta
 
         from django.utils import timezone
@@ -269,6 +269,6 @@ class GeneratedExportJobTests(TestCase):
         self.assertEqual(recover_stale_generated_exports(), 0)
         job.refresh_from_db()
 
-        enqueue.assert_not_called()
+        build.assert_not_called()
         self.assertEqual(job.status, GeneratedExportJob.Status.FAILED)
         self.assertIn("محاولات الاسترداد", job.error_message)
