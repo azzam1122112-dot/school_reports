@@ -409,7 +409,11 @@ def staff_role_scope(request, pk: int):
                     initial={
                         "capabilities": list(template.capabilities),
                         "template_code": template.code,
-                        "domain": scope.domain,
+                        # القالب قرار تنظيمي متكامل: اختيار «شؤون الطلاب» ثم
+                        # مطالبة المدير باختيار المجال نفسه ثانيةً احتكاكٌ بلا
+                        # معنى، وقد يترك القالب والمجال متعارضين. الأقسام تبقى
+                        # قراراً مستقلاً لأنها تختلف من مدرسة لأخرى.
+                        "domain": template.domain or scope.domain,
                         "departments": scope.departments.all() if scope.pk else [],
                     },
                 )

@@ -64,6 +64,18 @@ class CapabilityCatalogTests(TestCase):
                 f"القالب {template.code} يمنح ما لا يجوز لدوره",
             )
 
+    def test_each_deputy_template_declares_its_matching_domain(self):
+        expected = {
+            "deputy_academic": StaffScope.Domain.ACADEMIC,
+            "deputy_operations": StaffScope.Domain.OPERATIONS,
+            "deputy_students": StaffScope.Domain.STUDENTS,
+            "deputy_shared": StaffScope.Domain.SHARED,
+        }
+        self.assertEqual(
+            {template.code: template.domain for template in caps.TEMPLATES if template.role == "deputy"},
+            expected,
+        )
+
     def test_sanitize_drops_unknown_codes(self):
         self.assertEqual(caps.sanitize(["not_a_capability"]), [])
 
@@ -588,6 +600,8 @@ class StaffRolesScreenTests(TestCase):
             StaffScope.objects.filter(membership=membership).exists(),
             "تطبيق القالب لا يجوز أن يحفظ",
         )
+        self.assertEqual(response.context["form"]["domain"].value(), StaffScope.Domain.ACADEMIC)
+        self.assertEqual(response.context["form"]["template_code"].value(), "deputy_academic")
 
     def test_saving_a_scope_persists_capabilities_and_departments(self):
         deputy = _user("وكيل الحفظ", "0500013011")

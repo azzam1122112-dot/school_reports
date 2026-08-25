@@ -147,6 +147,7 @@ class Template:
     label: str
     description: str
     role: str
+    domain: str = ""
     capabilities: tuple[str, ...] = field(default_factory=tuple)
 
 
@@ -156,6 +157,7 @@ TEMPLATES: tuple[Template, ...] = (
         "وكيل الشؤون التعليمية",
         "متابعة تقارير المعلمين وملفات إنجازهم والبرامج التعليمية، ومراجعتها والتوصية باعتمادها.",
         role="deputy",
+        domain="academic",
         capabilities=(
             VIEW_SCHOOL_DASHBOARD,
             VIEW_ACHIEVEMENTS,
@@ -175,6 +177,7 @@ TEMPLATES: tuple[Template, ...] = (
         "وكيل الشؤون المدرسية",
         "الإشراف على الأعمال الإدارية والخدمات المساندة والأرشفة، ومتابعة الموظفين ضمن نطاقه.",
         role="deputy",
+        domain="operations",
         capabilities=(
             VIEW_SCHOOL_DASHBOARD,
             VIEW_AUDIT_LOG,
@@ -192,6 +195,7 @@ TEMPLATES: tuple[Template, ...] = (
         "وكيل شؤون الطلاب",
         "الخصائص العامة في المنصة دون أي شاشة تخص الطلاب — فالمنصة لا تدير بيانات الطلاب.",
         role="deputy",
+        domain="students",
         capabilities=(
             VIEW_SCHOOL_DASHBOARD,
             VIEW_AUDIT_LOG,
@@ -207,6 +211,7 @@ TEMPLATES: tuple[Template, ...] = (
         "وكيل بصلاحيات مشتركة",
         "كل ما يجوز منحه لوكيل. يُستعمل في المدارس الصغيرة التي لا تفصل الوكالات.",
         role="deputy",
+        domain="shared",
         capabilities=tuple(
             item.code for item in ALL if "deputy" in item.roles
         ),
