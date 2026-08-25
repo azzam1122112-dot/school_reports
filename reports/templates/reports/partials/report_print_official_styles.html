@@ -426,14 +426,36 @@ body {
   .images-grid { gap: 2mm; }
   .img-box { padding: 1.2mm; }
   .img-box img { object-fit: contain; }
-  .images-grid--1 .img-box img { height: 116mm; }
-  .images-grid--2 .img-box img { height: 72mm; }
-  .images-grid--3 .img-box:first-child img { height: 108mm; }
-  .images-grid--3 .img-box:not(:first-child) img { height: 50mm; }
-  .images-grid--4 .img-box img { height: 57mm; }
-  .page--dense-evidence .img-box img { max-height: 108mm; }
-  .page--dense-evidence .img-box--small img { height: 36mm; }
+  /* The evidence gallery is sized as part of the first A4 sheet.  These
+     bounds leave a dependable closing zone for approvals and the footer while
+     keeping all four evidence images large enough to inspect. */
+  .images-grid--1 .img-box img { height: 92mm; }
+  .images-grid--2 .img-box img { height: 58mm; }
+  .images-grid--3 .img-box:first-child img { height: 82mm; }
+  .images-grid--3 .img-box:not(:first-child) img { height: 38mm; }
+  .images-grid--4 .img-box img { height: 43mm; }
+  .page--dense-evidence .img-box img { max-height: 82mm; }
+  .page--dense-evidence .img-box--small img { height: 32mm; }
   .img-cap { margin-top: .7mm; font-size: 7.2pt; }
+
+  /* Three and four evidence items need a denser document rhythm.  Only
+     spacing is reduced; the report type scale remains comfortably printable. */
+  .page--dense-evidence .header { padding-block: .6mm 1.6mm; }
+  .page--dense-evidence .logo { height: 16mm; }
+  .page--dense-evidence .report-identity {
+    margin-block: 1.7mm;
+    padding-block: 2mm;
+  }
+  .page--dense-evidence .report-identity h1 { font-size: 14pt; }
+  .page--dense-evidence .meta-table { margin-bottom: 1.7mm; }
+  .page--dense-evidence .section { margin-bottom: 1.8mm; }
+  .page--dense-evidence .section-h { margin-bottom: .8mm; }
+  .page--dense-evidence .section-body {
+    min-height: 0;
+    padding: 1.7mm 2.5mm;
+    font-size: 8.8pt;
+    line-height: 1.48;
+  }
 
   /* ── التواقيع في نهاية الصفحة، لا في نهاية النص ──────────────────────
      التقرير القصير كان ينتهي في منتصف الورقة والتواقيع ملتصقة بآخر سطر،
@@ -452,7 +474,7 @@ body {
     flex-direction: column;
     min-height: calc(297mm - 8mm - 12mm - 2mm);
   }
-  .signature-spacer { flex: 1 1 auto; min-height: 0; height: auto; }
+  .signature-spacer { flex: 1 1 auto; min-height: 2mm; height: auto; }
   .approval-block { flex: 0 0 auto; }
   .approval-heading {
     margin: .5mm 0 1.5mm;
@@ -468,6 +490,10 @@ body {
   .sig .sig-line { padding-top: 1.2mm; font-size: 8pt; }
   .sig-label { font-size: 7.5pt; }
   .report-footer { margin-top: 2mm; padding-top: 1.5mm; }
+  .page--dense-evidence .approval-heading { margin-top: 0; }
+  .page--dense-evidence .sig { min-height: 17mm; }
+  .page--dense-evidence .sig .sig-space { min-height: 6mm; }
+  .page--dense-evidence .report-footer { margin-top: 1.2mm; }
   .report-identity,
   .meta-table,
   .section-h,

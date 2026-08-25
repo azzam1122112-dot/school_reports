@@ -100,6 +100,7 @@ class ReportSignaturesAtPageBottomTests(SimpleTestCase):
     def test_the_spacer_can_still_grow(self):
         self.assertIn(".signature-spacer { flex: 1 1 auto;", self.print_block)
         self.assertNotIn(".signature-spacer { min-height: 0; height: 0; }", self.print_block)
+        self.assertIn("min-height: 2mm;", self.print_block)
 
     def test_the_page_height_matches_the_declared_page_margins(self):
         """ارتفاع الصفحة مشتق من ``@page``؛ فإن تغيّر الهامش ولم يتبعه الارتفاع

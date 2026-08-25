@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 from io import BytesIO
+import re
 import tempfile
 from pathlib import Path
 
@@ -109,10 +110,14 @@ class ReportEvidenceImageTests(TestCase):
         context = build_report_print_context(self.report)
         self.assertEqual(context["EVIDENCE_COUNT"], 4)
         self.assertEqual(context["EVIDENCE_LAYOUT"], 4)
-        self.assertTrue(context["EVIDENCE_SEPARATE_PAGE"])
+        self.assertFalse(context["EVIDENCE_SEPARATE_PAGE"])
         html = render_to_string("reports/report_print.html", context)
         self.assertIn("images-grid--4", html)
         self.assertIn("نموذج من أعمال الطلاب 1", html)
+        self.assertLess(
+            html.index("المرفقات والشواهد"),
+            html.index('<div class="signature-spacer">'),
+        )
 
         try:
             pdf = _generate_report_pdf_weasy(html=html, base_url=None)
@@ -120,6 +125,16 @@ class ReportEvidenceImageTests(TestCase):
             self.skipTest(f"WeasyPrint unavailable: {exc}")
         self.assertTrue(pdf.startswith(b"%PDF-"))
         self.assertGreater(len(pdf), 20_000)
+        self.assertEqual(len(re.findall(rb"/Type\s*/Page\b", pdf)), 1)
+
+    def test_legacy_separate_choice_is_folded_into_the_report_page(self):
+        self._save_form(image_upload("legacy-separate-page.jpg", (1600, 900)))
+        self.report.evidence_page_mode = Report.EvidencePageMode.SEPARATE
+        self.report.save(update_fields=["evidence_page_mode"])
+
+        context = build_report_print_context(self.report)
+
+        self.assertFalse(context["EVIDENCE_SEPARATE_PAGE"])
 
     def test_mobile_report_lists_use_evidence_records_not_only_legacy_slots(self):
         source = (Path(settings.BASE_DIR) / "reports/templates/reports/my_reports.html").read_text(encoding="utf-8")
@@ -134,6 +149,7 @@ class ReportEvidenceImageTests(TestCase):
         for field_name in ("image1", "image2", "image3", "image4"):
             self.assertNotIn(field_name, form.fields)
         self.assertIn("client_submission_id", form.fields)
+        self.assertTrue(form.fields["evidence_page_mode"].widget.is_hidden)
 
     def test_submission_key_prevents_duplicate_report_rows(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
