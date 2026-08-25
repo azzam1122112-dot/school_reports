@@ -238,6 +238,7 @@ class GeneratedExportJobTests(TestCase):
         build.assert_called_once_with(job.pk)
         self.assertEqual(job.status, GeneratedExportJob.Status.QUEUED)
         self.assertTrue(job.parameters.get("core_recovery_enqueued_at"))
+        self.assertEqual(job.parameters.get("core_recovery_mode"), "inline-v1")
         self.assertEqual(job.parameters.get("core_recovery_attempts"), 1)
 
     @override_settings(

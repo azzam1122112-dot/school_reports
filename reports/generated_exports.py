@@ -15,6 +15,7 @@ from .cache_utils import redis_cache_lock
 from .models import GeneratedExportJob
 
 logger = logging.getLogger(__name__)
+CORE_RECOVERY_MODE = "inline-v1"
 
 
 def async_exports_enabled() -> bool:
@@ -150,10 +151,15 @@ def recover_stale_generated_exports(*, limit: int = 1) -> int:
             job = GeneratedExportJob.objects.select_for_update().get(pk=candidate.pk)
             parameters = dict(job.parameters or {})
             attempts = int(parameters.get("core_recovery_attempts") or 0)
+            recovery_mode = str(parameters.get("core_recovery_mode") or "")
             last_recovery = parse_datetime(
                 str(parameters.get("core_recovery_enqueued_at") or "")
             )
-            if last_recovery and (now - last_recovery).total_seconds() < retry_after:
+            if (
+                recovery_mode == CORE_RECOVERY_MODE
+                and last_recovery
+                and (now - last_recovery).total_seconds() < retry_after
+            ):
                 continue
             if attempts >= max_attempts:
                 job.status = GeneratedExportJob.Status.FAILED
@@ -165,6 +171,7 @@ def recover_stale_generated_exports(*, limit: int = 1) -> int:
                 logger.error("Generated export recovery exhausted job=%s", job.pk)
                 continue
             parameters["core_recovery_enqueued_at"] = now.isoformat()
+            parameters["core_recovery_mode"] = CORE_RECOVERY_MODE
             parameters["core_recovery_from_status"] = job.status
             parameters["core_recovery_attempts"] = attempts + 1
             job.parameters = parameters
