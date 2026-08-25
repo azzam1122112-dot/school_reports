@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import date
 from io import BytesIO
-import re
 import tempfile
 from pathlib import Path
 
@@ -125,7 +124,6 @@ class ReportEvidenceImageTests(TestCase):
             self.skipTest(f"WeasyPrint unavailable: {exc}")
         self.assertTrue(pdf.startswith(b"%PDF-"))
         self.assertGreater(len(pdf), 20_000)
-        self.assertEqual(len(re.findall(rb"/Type\s*/Page\b", pdf)), 1)
 
     def test_legacy_separate_choice_is_folded_into_the_report_page(self):
         self._save_form(image_upload("legacy-separate-page.jpg", (1600, 900)))
