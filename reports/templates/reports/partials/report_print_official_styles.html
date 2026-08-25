@@ -43,7 +43,8 @@ body {
   margin: 20px auto 32px;
   padding: 12mm 13mm 10mm;
   overflow: hidden;
-  display: block;
+  display: flex;
+  flex-direction: column;
   border: 1px solid rgba(7, 61, 43, .12);
   border-radius: 3px;
   background: var(--report-paper);
@@ -290,7 +291,7 @@ body {
   margin-top: 0;
 }
 
-.signature-spacer { min-height: 6mm; }
+.signature-spacer { flex: 1 1 auto; min-height: 6mm; }
 .approval-block {
   break-inside: avoid;
   page-break-inside: avoid;
@@ -336,11 +337,14 @@ body {
 .sig-label { color: var(--report-muted); font-size: 8pt; }
 
 .report-comments {
-  margin-top: 8mm;
+  width: 210mm;
+  max-width: calc(100% - 24px);
+  margin: -12px auto 32px;
   padding: 4mm;
   border: 1px dashed #9bad9f;
   border-radius: 2mm;
   background: #f8fbf9;
+  box-shadow: 0 12px 35px rgba(7, 29, 21, .08);
 }
 .report-footer {
   display: grid;
@@ -506,6 +510,7 @@ body {
 
 @media screen and (max-width: 820px) {
   .page { max-width: calc(100% - 16px); padding: 22px 18px; border-radius: 10px; }
+  .report-comments { max-width: calc(100% - 16px); margin-top: -4px; }
   .header { grid-template-columns: 1fr; gap: 8px; text-align: center; }
   .hdr-right, .hdr-left { direction: rtl; text-align: center; }
   .report-identity h1 { font-size: 1.45rem; }
