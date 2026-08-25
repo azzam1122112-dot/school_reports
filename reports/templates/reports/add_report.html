@@ -4,6 +4,7 @@
 {% block title %}إضافة تقرير جديد{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{% static 'css/report-details-limit.css' %}?v=20260825.1">
 {% if report_ai_enabled %}
 <link rel="stylesheet" href="{% static 'css/report-ai-improver.css' %}?v=20260813.2">
 {% endif %}
@@ -1126,6 +1127,7 @@
                   <div class="ar-field ar-editor-wrap" data-group="idea">
                     <label class="ar-section-field-head" for="{{ form.idea.id_for_label }}"><i class="fa-solid fa-align-right"></i> تفاصيل التقرير <span class="ar-required-mark">مطلوب عند الاختيار</span></label>
                     {{ form.idea }}
+                    {% include "reports/partials/report_details_limit.html" with target_id=form.idea.id_for_label %}
                     {% if form.idea.errors %}<div class="ar-error-msg">{{ form.idea.errors.0 }}</div>{% endif %}
                     {% if voice_report_enabled %}{% include "reports/partials/report_voice_input.html" with target_id=form.idea.id_for_label %}{% endif %}
                     {% if report_ai_enabled %}{% include "reports/partials/report_ai_improver.html" with target_id=form.idea.id_for_label %}{% endif %}
@@ -1212,8 +1214,9 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'js/report-details-limit.js' %}?v=20260825.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
 {% if report_ai_enabled %}
-<script src="{% static 'js/report-ai-improver.js' %}?v=20260801.2" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
+<script src="{% static 'js/report-ai-improver.js' %}?v=20260825.1" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
 {% endif %}
 {% if voice_report_enabled %}
 <script src="{% static 'js/report-voice.js' %}?v=20260812.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>

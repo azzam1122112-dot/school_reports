@@ -1,0 +1,29 @@
+<div
+  class="report-details-meter"
+  data-report-details-meter
+  data-target-id="{{ target_id|default:'id_idea' }}"
+  data-recommended-length="{{ report_details_recommended_length|default:450 }}"
+  data-max-length="{{ report_details_max_length|default:600 }}"
+>
+  <div class="report-details-meter__top">
+    <div class="report-details-meter__guidance" id="report-details-guidance">
+      <span class="report-details-meter__icon" aria-hidden="true">
+        <i class="fa-solid fa-feather-pointed"></i>
+      </span>
+      <span>
+        <strong>ملخص واضح ومناسب للطباعة</strong>
+        <small>الطول المثالي حتى {{ report_details_recommended_length|default:450 }} حرفًا، والحد النهائي {{ report_details_max_length|default:600 }}.</small>
+      </span>
+    </div>
+    <output class="report-details-meter__count" data-report-details-count aria-live="polite">
+      <b>0</b><span>/ {{ report_details_max_length|default:600 }}</span>
+    </output>
+  </div>
+  <div class="report-details-meter__track" aria-hidden="true">
+    <span class="report-details-meter__fill" data-report-details-fill></span>
+    <i class="report-details-meter__ideal-marker" data-report-details-marker></i>
+  </div>
+  <p class="report-details-meter__status" id="report-details-status" data-report-details-status role="status" aria-live="polite">
+    لديك مساحة مريحة لكتابة ما تم تنفيذه وأبرز نتائجه.
+  </p>
+</div>

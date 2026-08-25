@@ -160,6 +160,10 @@ class ReportAIImprovementTests(TestCase):
                 self.assertContains(response, reverse("reports:improve_report_text"))
                 self.assertContains(response, "css/report-ai-improver.css")
                 self.assertContains(response, "js/report-ai-improver.js")
+                self.assertContains(response, "css/report-details-limit.css")
+                self.assertContains(response, "js/report-details-limit.js")
+                self.assertContains(response, 'maxlength="600"')
+                self.assertContains(response, "الطول المثالي حتى 450 حرفًا")
 
     @override_settings(REPORT_AI_ENABLED=False)
     def test_report_forms_hide_ai_controls_when_service_is_disabled(self):
@@ -184,6 +188,26 @@ class ReportAIImprovementTests(TestCase):
                 self.assertNotContains(response, "تحسين الصياغة بالذكاء الاصطناعي")
                 self.assertNotContains(response, "css/report-ai-improver.css")
                 self.assertNotContains(response, "js/report-ai-improver.js")
+                self.assertContains(response, "css/report-details-limit.css")
+                self.assertContains(response, "js/report-details-limit.js")
+
+    def test_report_form_rejects_details_over_the_final_limit(self):
+        from reports.forms import ReportForm
+
+        form = ReportForm(
+            data={
+                "title": "برنامج توعوي",
+                "report_date": "2026-08-01",
+                "category": self.category.code,
+                "section_selection_enabled": "1",
+                "show_details": "on",
+                "idea": "أ" * 601,
+            },
+            active_school=self.school,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("600 حرفًا", form.errors["idea"][0])
 
     @patch("reports.report_ai.urlopen")
     def test_platform_switch_hides_and_blocks_report_improvement(self, mocked_urlopen):
@@ -249,6 +273,8 @@ class ReportAIImprovementTests(TestCase):
         self.assertTrue(response.json()["ok"])
         self.assertEqual(response.json()["remaining"], 2)
         self.assertEqual(response.json()["daily_limit"], REPORT_AI_DAILY_LIMIT)
+        self.assertEqual(response.json()["recommended_length"], 450)
+        self.assertEqual(response.json()["max_length"], 600)
         self.assertIn("35 طالبًا", response.json()["improved_text"])
         self.assertIn("no-store", response.headers["Cache-Control"])
         self.assertEqual(Report.objects.count(), 0)
@@ -259,6 +285,8 @@ class ReportAIImprovementTests(TestCase):
         self.assertEqual(request_body["input"], original)
         self.assertFalse(request_body["store"])
         self.assertIn("لا تخترع", request_body["instructions"])
+        self.assertIn("بين 350 و450 حرفًا", request_body["instructions"])
+        self.assertIn("لا تتجاوز 600 حرف", request_body["instructions"])
         self.assertNotIn("يجب ألا يُرسل", api_request.data.decode("utf-8"))
         self.assertNotIn("test-report-ai-key", api_request.data.decode("utf-8"))
 
@@ -276,6 +304,36 @@ class ReportAIImprovementTests(TestCase):
         self.assertFalse(response.json()["ok"])
         self.assertIn("20 حرفًا", response.json()["message"])
         mocked_urlopen.assert_not_called()
+
+    @patch("reports.report_ai.urlopen")
+    def test_report_text_over_600_characters_is_rejected_without_api_call(self, mocked_urlopen):
+        self._login()
+
+        response = self.client.post(
+            reverse("reports:improve_report_text"),
+            data=json.dumps({"text": "أ" * 601}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("600 حرفًا", response.json()["message"])
+        self.assertEqual(report_ai_daily_remaining(self.teacher.pk), REPORT_AI_DAILY_LIMIT)
+        mocked_urlopen.assert_not_called()
+
+    @patch("reports.report_ai.urlopen")
+    def test_ai_rewrite_over_600_characters_is_rejected_and_refunded(self, mocked_urlopen):
+        self._login()
+        mocked_urlopen.return_value = _FakeTextOpenAIResponse("ب" * 601)
+
+        response = self.client.post(
+            reverse("reports:improve_report_text"),
+            data=json.dumps({"text": "أ" * 320}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("أطول من المساحة", response.json()["message"])
+        self.assertEqual(report_ai_daily_remaining(self.teacher.pk), REPORT_AI_DAILY_LIMIT)
 
     @patch(
         "reports.report_ai.urlopen",

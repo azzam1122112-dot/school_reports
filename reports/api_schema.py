@@ -16,6 +16,11 @@ from __future__ import annotations
 
 from django.conf import settings
 
+from .report_limits import (
+    REPORT_DETAILS_MAX_LENGTH,
+    REPORT_DETAILS_RECOMMENDED_LENGTH,
+)
+
 API_VERSION = "1.0.0"
 
 
@@ -286,7 +291,14 @@ def build_openapi_schema() -> dict:
                             "nullable": True,
                             "description": "من أنواع هذه المدرسة وحدها.",
                         },
-                        "idea": {"type": "string"},
+                        "idea": {
+                            "type": "string",
+                            "maxLength": REPORT_DETAILS_MAX_LENGTH,
+                            "description": (
+                                "ملخص تفاصيل التقرير؛ الطول المفضل حتى "
+                                f"{REPORT_DETAILS_RECOMMENDED_LENGTH} حرفًا."
+                            ),
+                        },
                         "goal": {"type": "string"},
                         "implementation_method": {"type": "string"},
                         "results": {"type": "string"},

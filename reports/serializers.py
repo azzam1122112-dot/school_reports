@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
+from .report_limits import REPORT_DETAILS_MAX_LENGTH
+
 from .models import (
     Department,
     Notification,
@@ -85,6 +87,13 @@ class ReportCreateSerializer(serializers.ModelSerializer):
 
     ``category`` يُقيَّد بأنواع هذه المدرسة وحدها للسبب نفسه.
     """
+
+    idea = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=REPORT_DETAILS_MAX_LENGTH,
+    )
 
     class Meta:
         model = Report
