@@ -154,6 +154,10 @@
         "landing-page-has-scrolled",
         window.scrollY > 320
       );
+      // حالةٌ ثانية بعتبةٍ مختلفة عن قصد: الشريط العلوي يكتسب حدَّه وظلَّه بمجرد
+      // أن يبدأ المحتوى بالمرور تحته، بينما عتبة 320 أعلاه تخصّ ظهور مُشغّل
+      // المساعد — ربطُهما بعتبةٍ واحدة يجعل أحدهما يتأخّر أو الآخر يتعجّل.
+      document.body.classList.toggle("landing-page-is-lifted", window.scrollY > 8);
     };
     syncLandingScrollState();
     window.addEventListener("scroll", syncLandingScrollState, { passive: true });

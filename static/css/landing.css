@@ -39,6 +39,33 @@
   --shadow: 0 26px 70px rgba(13, 74, 53, .1);
   --shadow-soft: 0 12px 34px rgba(13, 74, 53, .06);
   --radius: 20px;
+
+  /* ── طبقة الفخامة ─────────────────────────────────────────────────────
+     ظلٌّ واحدٌ عريض يجعل البطاقة تبدو ملصوقة على الخلفية. الارتفاع الحقيقي
+     ثلاث طبقات: خطُّ تماسٍ داكن يرسم الحافّة، ظلٌّ قريب يثبّت البطاقة،
+     وظلٌّ بعيد ناعم يعطيها الهواء. ومعها «اللمعة» — خطٌّ أبيض داخلي عند
+     الحافة العليا — وهي ما يجعل السطح يبدو مادةً لا مستطيلاً ملوّناً. */
+  --elev-1:
+    0 1px 2px rgba(10, 47, 35, .05),
+    0 4px 12px rgba(13, 74, 53, .05);
+  --elev-2:
+    0 1px 2px rgba(10, 47, 35, .05),
+    0 8px 20px rgba(13, 74, 53, .06),
+    0 22px 48px rgba(13, 74, 53, .05);
+  --elev-3:
+    0 2px 4px rgba(10, 47, 35, .06),
+    0 14px 32px rgba(13, 74, 53, .09),
+    0 38px 80px rgba(13, 74, 53, .08);
+  --sheen: inset 0 1px 0 rgba(255, 255, 255, .85);
+  --brand-sweep: linear-gradient(135deg, var(--brand-700), var(--brand-800) 58%, var(--brand-900));
+
+  /* منحنى واحد لكل الحركات: بداية سريعة ونهاية هادئة. الخطيّة تبدو آليّة،
+     و``ease`` الافتراضية تتباطأ في أولها فتبدو ثقيلة. */
+  --ease: cubic-bezier(.22, .8, .28, 1);
+
+  /* إيقاع الصفحة سائل: ١١٠px ثابتة تترك فراغاً ميتاً على الشاشات الكبيرة
+     وتخنق المحتوى على الصغيرة. */
+  --section-y: clamp(72px, 6.6vw, 116px);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -53,6 +80,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 body.menu-open { overflow: hidden; }
+/* ── انضباط الطباعة العربية ───────────────────────────────────────────────
+   ثلاثة أشياء ترفع الصفحة من «مقروءة» إلى «متقنة»:
+
+   ١. ``text-wrap: balance`` — العنوان العربي الطويل كان ينكسر فيترك كلمةً
+      وحيدة في سطرٍ أخير («…في ثلاث خطوات»، «…واحدة للمدير»). الموازنة توزّع
+      الكلمات على الأسطر بالتساوي فيصير العنوان كتلةً مقصودة لا بقيّةً.
+   ٢. ``text-wrap: pretty`` للفقرات — يمنع اليتيمة في آخر الفقرة.
+   ٣. إلغاء التتبّع السالب — العربية خطٌّ متّصل، وتضييق المسافات فيه يقرّب
+      الحروف من بعضها ويشوّش الوصلات. الإحكام يأتي من ``line-height`` لا من
+      ``letter-spacing``. */
+h1, h2, h3, .hero h1, .compare-head strong, .role-tab strong { text-wrap: balance; letter-spacing: 0; }
+.hero-lead, .section-heading p, .voice-copy > p, .leadership-copy > p, .faq-intro > p, .security-intro p { text-wrap: pretty; }
+/* الأرقام في العربية تُعرض لاتينية عبر الصفحة كلها؛ ``tabular-nums`` يجعل
+   خاناتها متساوية العرض فلا يهتزّ المبلغ وهو يتغيّر داخل الحاسبة. */
+.trust-bar strong, .price-value strong, .start-step-number, .showcase-copy > span { font-variant-numeric: tabular-nums; }
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -74,7 +116,7 @@ button { font: inherit; }
 .brand-mark { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; box-shadow: 0 10px 24px rgba(13,74,53,.12); overflow: hidden; }
 .brand-mark img { width: 100%; height: 100%; object-fit: cover; }
 .brand-text { display: grid; line-height: 1.2; }
-.brand-text strong { color: var(--brand-900); font-size: 1.15rem; font-weight: 900; letter-spacing: -.02em; }
+.brand-text strong { color: var(--brand-900); font-size: 1.15rem; font-weight: 900; letter-spacing: 0; }
 .brand-text small { margin-top: 3px; color: var(--muted); font-size: .64rem; }
 .nav-links { display: flex; align-items: center; gap: 28px; margin-inline: auto; }
 .nav-links a { position: relative; font-size: .84rem; font-weight: 700; color: var(--ink-soft); }
@@ -83,19 +125,43 @@ button { font: inherit; }
 .nav-actions { display: flex; align-items: center; gap: 18px; }
 .text-link { color: var(--brand-800); font-weight: 800; }
 .button {
+  position: relative; isolation: isolate; overflow: hidden;
   min-height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 9px;
   padding: 10px 20px; border: 1px solid transparent; border-radius: 13px; font-weight: 800;
-  line-height: 1.4; cursor: pointer; transition: transform .2s, box-shadow .2s, background .2s;
+  line-height: 1.4; cursor: pointer;
+  transition: transform .28s var(--ease), box-shadow .28s var(--ease), background .28s var(--ease), border-color .28s var(--ease);
 }
 .button:hover { transform: translateY(-2px); }
-.button-primary { color: var(--white); background: var(--brand-800); box-shadow: 0 10px 24px rgba(15,122,86,.22); }
-.button-primary:hover { background: var(--brand-900); box-shadow: 0 14px 30px rgba(15,122,86,.28); }
-.button-quiet { color: var(--brand-900); border-color: var(--line); background: var(--white); }
-.button-quiet:hover { border-color: var(--brand-400); box-shadow: var(--shadow-soft); }
+/* الضغط يعيد الزرّ إلى مستواه: بلا ذلك يبقى مرفوعاً فيبدو معطّلاً لا مضغوطاً. */
+.button:active { transform: translateY(0); transition-duration: .08s; }
+/* لمعةٌ تعبر الزرّ الأساسي عند التمرير. تفصيلٌ صغير، لكنه ما يفرّق بين سطحٍ
+   مطليّ وسطحٍ له مادة. ``::after`` وحده يتحرّك فلا يمسّ النص ولا الأيقونة. */
+.button-primary::after, .button-gold::after {
+  content: ""; position: absolute; z-index: -1; inset-block: 0; inset-inline-start: -60%;
+  width: 55%; background: linear-gradient(105deg, transparent, rgba(255,255,255,.22), transparent);
+  transform: translateX(0); transition: transform .7s var(--ease);
+}
+.button-primary:hover::after, .button-gold:hover::after { transform: translateX(-320%); }
+[dir="rtl"] .button-primary:hover::after, [dir="rtl"] .button-gold:hover::after { transform: translateX(320%); }
+.button-primary {
+  color: var(--white); background: var(--brand-sweep);
+  box-shadow: 0 1px 2px rgba(10,47,35,.18), 0 10px 24px rgba(15,122,86,.24), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.button-primary:hover { background: linear-gradient(135deg, var(--brand-800), var(--brand-900)); box-shadow: 0 2px 4px rgba(10,47,35,.2), 0 16px 34px rgba(15,122,86,.3), inset 0 1px 0 rgba(255,255,255,.2); }
+.button-quiet { color: var(--brand-900); border-color: var(--line); background: var(--white); box-shadow: var(--elev-1), var(--sheen); }
+.button-quiet:hover { border-color: var(--brand-400); box-shadow: var(--elev-2), var(--sheen); }
 /* Kept as a distinct token so the two "loudest" CTAs stay visually separable
    now that the gold treatment is gone. */
-.button-gold { color: var(--white); background: linear-gradient(135deg, var(--brand-700), var(--brand-800)); box-shadow: 0 12px 28px rgba(15,122,86,.24); }
-.button-gold:hover { background: linear-gradient(135deg, var(--brand-800), var(--brand-900)); }
+.button-gold {
+  color: var(--white); background: linear-gradient(135deg, var(--brand-600), var(--brand-800) 62%, var(--brand-900));
+  box-shadow: 0 1px 2px rgba(10,47,35,.18), 0 12px 30px rgba(15,122,86,.26), inset 0 1px 0 rgba(255,255,255,.22);
+}
+.button-gold:hover { background: linear-gradient(135deg, var(--brand-700), var(--brand-900)); box-shadow: 0 2px 4px rgba(10,47,35,.22), 0 18px 40px rgba(15,122,86,.32), inset 0 1px 0 rgba(255,255,255,.24); }
+/* السهم يتقدّم خطوةً في اتجاه القراءة عند التمرير — إشارةٌ إلى أن الزرّ يمضي
+   بك إلى مكان، لا مجرّد تلوين عند المرور. */
+.button i, .text-link i, .leadership-link i, .role-secondary-link i { transition: transform .28s var(--ease); }
+.button:hover i.fa-arrow-left, .text-link:hover i.fa-arrow-left, .leadership-link:hover i.fa-arrow-left { transform: translateX(-4px); }
+.button:hover i.fa-arrow-down, .text-link:hover i.fa-arrow-down, .leadership-link:hover i.fa-arrow-down { transform: translateY(3px); }
 .button-dark-quiet { color: var(--brand-900); border-color: var(--brand-300); background: rgba(255,255,255,.7); }
 .button-dark-quiet:hover { background: var(--white); }
 .button-large { min-height: 54px; padding-inline: 25px; }
@@ -126,18 +192,49 @@ button { font: inherit; }
 .hero-orb-two { width: 1080px; height: 1080px; inset-block-start: -500px; border: 1px solid rgba(15,122,86,.13); }
 .hero-stage { position: relative; z-index: 1; }
 .hero-intro { max-width: 1080px; margin-inline: auto; }
-.overline { display: inline-flex; align-items: center; gap: 9px; padding: 8px 17px; border: 1px solid var(--brand-300); border-radius: 999px; color: var(--brand-800); background: rgba(255,255,255,.78); box-shadow: 0 6px 18px rgba(13,74,53,.06); backdrop-filter: blur(10px); font-size: .78rem; font-weight: 900; letter-spacing: .02em; }
+.overline { display: inline-flex; align-items: center; gap: 9px; padding: 9px 18px; border: 1px solid var(--brand-300); border-radius: 999px; color: var(--brand-800); background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(255,255,255,.7)); box-shadow: 0 1px 2px rgba(10,47,35,.04), 0 8px 22px rgba(13,74,53,.07), var(--sheen); backdrop-filter: blur(10px); font-size: .78rem; font-weight: 900; letter-spacing: .02em; }
 .overline span { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: var(--brand-600); box-shadow: 0 0 0 4px rgba(43,182,132,.18); }
-.hero h1 { max-width: 1080px; margin: 26px auto 22px; font-size: clamp(2.3rem, 4.5vw, 3.6rem); line-height: 1.22; letter-spacing: 0; font-weight: 900; color: var(--brand-950); }
-.hero h1 span { display: block; color: var(--brand-800); }
-.hero h1 em { display: block; margin-top: 14px; color: var(--ink-soft); font-size: .34em; font-style: normal; font-weight: 700; letter-spacing: 0; }
-.hero-lead { max-width: 780px; margin: 0 auto; color: var(--muted); font-size: 1.05rem; }
+/* النقطة تنبض ببطء: علامةُ «حيّ» على صفحةٍ ساكنة، بلا حركةٍ تسرق النظر. */
+.overline span { animation: overline-pulse 3.2s var(--ease) infinite; }
+@keyframes overline-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(43,182,132,.18); }
+  50% { box-shadow: 0 0 0 7px rgba(43,182,132,.08); }
+}
+/* ١.٢٢ كانت تُلصق الشدّة والفتحة في «موثّق» بذيل السطر الذي فوقها. العربية
+   المشكولة تحتاج مدىً رأسياً أوسع من اللاتينية عند الأحجام الكبيرة. */
+.hero h1 { max-width: 1080px; margin: 26px auto 22px; font-size: clamp(2.3rem, 4.5vw, 3.6rem); line-height: 1.32; letter-spacing: 0; font-weight: 900; color: var(--brand-950); }
+.hero h1 span {
+  display: block;
+  color: var(--brand-800);
+  background: linear-gradient(105deg, var(--brand-800) 8%, var(--brand-700) 46%, var(--accent-teal) 92%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+/* بلا هذا يسقط السطر الملوّن كاملاً على أي متصفّح لا يقصّ الخلفية عند النص. */
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .hero h1 span { color: var(--brand-800); -webkit-text-fill-color: currentColor; background: none; }
+}
+.hero h1 em { display: block; margin-top: 16px; color: var(--ink-soft); font-size: .32em; font-style: normal; font-weight: 700; line-height: 1.6; letter-spacing: 0; }
+.hero-lead { max-width: 760px; margin: 0 auto; color: var(--muted); font-size: 1.05rem; }
 .hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 32px; }
 .assurance { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 20px; margin-top: 20px; color: var(--muted); font-size: .76rem; font-weight: 700; }
 .assurance i { margin-inline-end: 5px; color: var(--brand-700); }
 .hero-personas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 54px 0 0; padding: 0; list-style: none; }
-.hero-persona { height: 100%; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 24px 18px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.82); box-shadow: 0 12px 30px rgba(13,74,53,.06); backdrop-filter: blur(10px); transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
-.hero-persona:hover { transform: translateY(-5px); border-color: var(--brand-300); box-shadow: 0 20px 44px rgba(13,74,53,.12); }
+.hero-persona { position: relative; overflow: hidden; height: 100%; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 26px 18px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(255,255,255,.76)); box-shadow: var(--elev-1), var(--sheen); backdrop-filter: blur(10px); transition: transform .32s var(--ease), box-shadow .32s var(--ease), border-color .32s var(--ease); }
+.hero-persona:hover { transform: translateY(-6px); border-color: var(--brand-300); box-shadow: var(--elev-3), var(--sheen); }
+/* خطٌّ بلون الدور يضيء عند حافّة البطاقة العليا. البطاقات الأربع متطابقة
+   الشكل، وهذا الخيط وحده يجعل كلاً منها تعرِف نفسها قبل قراءة عنوانها. */
+.hero-persona::before {
+  content: ""; position: absolute; inset-block-start: 0; inset-inline: 22%;
+  height: 2px; border-radius: 0 0 3px 3px; background: var(--brand-600);
+  opacity: 0; transform: translateY(-2px); transition: opacity .32s var(--ease), transform .32s var(--ease);
+}
+.hero-persona:hover::before { opacity: 1; transform: none; }
+.hero-personas li:nth-child(2) .hero-persona::before { background: var(--accent-teal); }
+.hero-personas li:nth-child(3) .hero-persona::before { background: var(--accent-sky); }
+.hero-personas li:nth-child(4) .hero-persona::before { background: var(--accent-slate); }
+.hero-persona-icon { transition: transform .32s var(--ease); }
+.hero-persona:hover .hero-persona-icon { transform: translateY(-2px) scale(1.06); }
 .hero-persona-icon { width: 48px; height: 48px; display: grid; place-items: center; margin-bottom: 10px; border-radius: 15px; color: var(--brand-800); background: var(--brand-100); font-size: 1.05rem; }
 .hero-personas li:nth-child(2) .hero-persona-icon { color: var(--accent-teal); background: var(--accent-teal-tint); }
 .hero-personas li:nth-child(3) .hero-persona-icon { color: var(--accent-sky); background: var(--accent-sky-tint); }
@@ -147,22 +244,29 @@ button { font: inherit; }
 .hero-note { display: flex; align-items: center; justify-content: center; gap: 11px; max-width: 740px; margin: 30px auto 0; padding: 14px 22px; border: 1px dashed var(--brand-300); border-radius: 16px; color: var(--muted); background: rgba(255,255,255,.6); font-size: .8rem; line-height: 1.7; }
 .hero-note i { flex: 0 0 auto; color: var(--brand-700); }
 .hero-note b { color: var(--brand-900); font-weight: 900; }
-.trust-bar { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 46px; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.72); box-shadow: var(--shadow-soft); }
+.trust-bar { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 46px; overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.66)); backdrop-filter: blur(14px); box-shadow: var(--elev-2), var(--sheen); }
 .trust-bar > div, .trust-bar > .trust-bar-link { min-height: 84px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; border-inline-end: 1px solid var(--line-soft); text-align: center; }
 .trust-bar > :last-child { border-inline-end: 0; }
-.trust-bar-link { transition: background .2s ease; }
+.trust-bar-link { transition: background .28s var(--ease); }
 .trust-bar-link:hover { background: rgba(43,182,132,.09); }
 .trust-bar-link:hover span { color: var(--brand-800); }
-.trust-bar strong { color: var(--brand-800); font-size: 1.55rem; }
+.trust-bar-link i { transition: transform .28s var(--ease); }
+.trust-bar-link:hover i { transform: translateY(-2px); }
+.trust-bar strong { color: var(--brand-800); font-size: 1.65rem; font-weight: 900; line-height: 1.1; }
 .trust-bar i { color: var(--brand-700); font-size: 1.1rem; }
 .trust-bar span { color: var(--ink-soft); font-size: .75rem; font-weight: 800; }
 
 /* ── Sections ─────────────────────────────────────────────────────────── */
-.section { padding: 110px 0; }
-.section-heading { max-width: 750px; margin: 0 auto 50px; text-align: center; }
+.section { padding: var(--section-y) 0; }
+/* ٧٥٠px كانت تكسر العناوين الطويلة كسراً رديئاً؛ الموازنة أعلاه تحتاج مدىً
+   أوسع قليلاً لتعمل، والفقرة تحتها تبقى في عرضٍ مريح للقراءة. */
+.section-heading { max-width: 820px; margin: 0 auto clamp(36px, 3.4vw, 54px); text-align: center; }
 .section-kicker { color: var(--brand-800); font-size: .74rem; font-weight: 900; letter-spacing: .04em; }
-.section-heading h2, .roles-copy h2, .security-intro h2, .faq-intro h2 { margin: 10px 0 14px; font-size: clamp(1.8rem, 3.4vw, 2.8rem); line-height: 1.3; letter-spacing: -.035em; color: var(--brand-950); }
+.section-heading h2, .roles-copy h2, .security-intro h2, .faq-intro h2 { margin: 10px 0 14px; font-size: clamp(1.8rem, 3.4vw, 2.8rem); line-height: 1.3; letter-spacing: 0; color: var(--brand-950); }
 .section-heading p, .roles-copy > p, .security-intro p, .faq-intro > p { margin: 0; color: var(--muted); }
+/* العنوان يتنفّس على ٨٢٠px، أما الفقرة فسطرٌ طويل يتعب العين — تُردّ إلى مدى
+   قراءة مريح وتبقى في المنتصف. */
+.section-heading p { max-width: 680px; margin-inline: auto; }
 .start-section { padding-bottom: 42px; background: var(--white); }
 .start-steps { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .start-steps::before { content: ""; position: absolute; z-index: 0; inset-block-start: 35px; inset-inline: 16.5%; border-block-start: 1px dashed var(--brand-300); }
@@ -185,7 +289,7 @@ button { font: inherit; }
 .voice-section { background: var(--paper); }
 .voice-stage { display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 54px; padding: 46px; border: 1px solid var(--line); border-radius: 26px; background: linear-gradient(155deg, #e9f9f1, #f8fdfb 58%, #fff); box-shadow: var(--shadow-soft); }
 .voice-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-800); font-size: .74rem; font-weight: 900; letter-spacing: .03em; }
-.voice-copy h2 { margin: 13px 0 16px; font-size: clamp(1.8rem, 3.2vw, 2.6rem); line-height: 1.32; letter-spacing: -.03em; color: var(--brand-950); }
+.voice-copy h2 { margin: 13px 0 16px; font-size: clamp(1.8rem, 3.2vw, 2.6rem); line-height: 1.32; letter-spacing: 0; color: var(--brand-950); }
 .voice-copy > p { margin: 0; color: var(--muted); font-size: .93rem; }
 .voice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; margin-top: 28px; }
 .voice-flow { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; counter-reset: voice; }
@@ -276,7 +380,7 @@ button { font: inherit; }
 .leadership-stage::before { content: ""; position: absolute; inset: 0; opacity: .5; background-image: linear-gradient(rgba(15,122,86,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(15,122,86,.05) 1px, transparent 1px); background-size: 48px 48px; mask-image: linear-gradient(90deg, #000, transparent 86%); }
 .leadership-copy, .executive-board { position: relative; z-index: 1; }
 .leadership-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-800); font-size: .75rem; font-weight: 900; }
-.leadership-copy h2 { margin: 15px 0 18px; font-size: clamp(2rem, 4vw, 3.3rem); line-height: 1.28; letter-spacing: -.045em; color: var(--brand-950); }
+.leadership-copy h2 { margin: 15px 0 18px; font-size: clamp(2rem, 4vw, 3.3rem); line-height: 1.28; letter-spacing: 0; color: var(--brand-950); }
 .leadership-copy h2 span { color: var(--brand-800); }
 .leadership-copy > p { margin: 0; color: var(--muted); font-size: .91rem; }
 .leadership-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 17px; margin-top: 29px; }
@@ -412,7 +516,7 @@ button { font: inherit; }
 #rolePanelAdmin { background: radial-gradient(circle at 10% 0%, rgba(158,227,198,.2), transparent 38%), linear-gradient(135deg, #263e38, #3d5a52); }
 .role-panel-copy, .role-outcomes { position: relative; z-index: 1; }
 .role-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: rgba(255,255,255,.76); font-size: .72rem; font-weight: 900; }
-.role-panel h3 { max-width: 570px; margin: 14px 0 15px; color: var(--white); font-size: clamp(1.75rem, 3.2vw, 2.65rem); line-height: 1.32; letter-spacing: -.035em; }
+.role-panel h3 { max-width: 570px; margin: 14px 0 15px; color: var(--white); font-size: clamp(1.75rem, 3.2vw, 2.65rem); line-height: 1.32; letter-spacing: 0; }
 .role-panel-copy > p { max-width: 600px; margin: 0; color: rgba(255,255,255,.72); font-size: .88rem; }
 .role-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 17px; margin-top: 28px; }
 .role-panel .button-primary { color: var(--brand-950); background: var(--white); box-shadow: 0 14px 30px rgba(0,0,0,.16); }
@@ -618,7 +722,152 @@ button { font: inherit; }
 .sbc-verify-seal[data-sbc-mounted] .sbc-seal-fallback { display: none; }
 .mobile-sticky { display: none; }
 
-.reveal { opacity: 0; transform: translateY(22px); transition: opacity .65s ease, transform .65s ease; }
+/* ══ طبقة الإتقان ═════════════════════════════════════════════════════════
+   ما تحت هذا الخط لا يضيف قسماً ولا يغيّر كلمة: يرفع الأسطح إلى مادةٍ لها
+   ارتفاع، ويوحّد منحنى الحركة، ويصلح تفاصيل الحواف التي تفرّق — مجتمعةً —
+   بين صفحةٍ مرتّبة وصفحةٍ يثق بها من يقرأ سعرها. تأتي بعد القواعد الأساسية
+   وقبل استعلامات الوسائط، فتغلب على الظلال المفردة دون أن تكسر التجاوب.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── ١. الأسطح ────────────────────────────────────────────────────────── */
+.feature-card,
+.verify-card,
+.group-card,
+.start-step,
+.quote-card,
+.voice-flow li,
+.executive-card,
+.faq-list details,
+.faq-links a,
+.service-catalog article,
+.security-points > div,
+.pricing-guide > div,
+.feature-extras,
+.product-proof,
+.price-card {
+  box-shadow: var(--elev-1), var(--sheen);
+  transition: transform .32s var(--ease), box-shadow .32s var(--ease), border-color .32s var(--ease), background .32s var(--ease);
+}
+.feature-card:hover,
+.verify-card:hover,
+.group-card:hover,
+.executive-card:hover { transform: translateY(-5px); border-color: var(--brand-300); box-shadow: var(--elev-3), var(--sheen); }
+.showcase-card,
+.trust-bar,
+.compare-panel,
+.feature-extras { box-shadow: var(--elev-2), var(--sheen); }
+.role-experience,
+.leadership-stage,
+.security-panel,
+.final-panel,
+.voice-stage { box-shadow: var(--elev-3), inset 0 1px 0 rgba(255,255,255,.6); }
+
+/* الأيقونة داخل البطاقة تتقدّم قليلاً مع البطاقة: بلا ذلك تبدو البطاقة كأنها
+   ترتفع وتترك محتواها خلفها. */
+.feature-icon, .group-card-icon, .verify-card-icon, .executive-card-icon, .start-step-icon { transition: transform .32s var(--ease), box-shadow .32s var(--ease); }
+.feature-card:hover .feature-icon,
+.group-card:hover .group-card-icon,
+.verify-card:hover .verify-card-icon,
+.executive-card:hover .executive-card-icon { transform: translateY(-2px) scale(1.05); }
+
+/* ── ٢. الرأس ─────────────────────────────────────────────────────────── */
+/* الشريط العلوي بلا حدٍّ سفلي عند القمة: الخطّ الرمادي فوق هيرو فاتح يقطع
+   الصفحة بلا سبب. يظهر — مع ظلٍّ خفيف — بعد أن يبدأ المحتوى بالمرور تحته. */
+.site-header { border-bottom-color: transparent; transition: border-color .3s var(--ease), box-shadow .3s var(--ease), background .3s var(--ease); }
+body.landing-page-is-lifted .site-header {
+  border-bottom-color: rgba(220, 237, 228, .9);
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 1px 0 rgba(13,74,53,.03), 0 10px 30px rgba(13,74,53,.06);
+}
+.nav-links a::after { transition: width .28s var(--ease); }
+.brand-mark { transition: transform .32s var(--ease), box-shadow .32s var(--ease); }
+.brand:hover .brand-mark { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(13,74,53,.18); }
+
+/* ── ٣. الحواف بين الأقسام ────────────────────────────────────────────── */
+/* أقسامٌ بيضاء متتالية تفصل بينها مسافةٌ فارغة فقط، فيقرأ الفراغ نقصاً لا
+   تنفّساً. خطٌّ شعريّ متلاشي الطرفين عند رأس كل قسمٍ منها يجعل الفصل مقصوداً.
+   ``background-image`` لا ``border-top``: التلاشي لا يُرسم بحدٍّ صلب. */
+.start-section,
+.compare-section,
+.product-section,
+.security-section,
+.verify-section,
+.final-cta {
+  background-image: linear-gradient(90deg, transparent 38%, var(--line) 50%, transparent 62%);
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
+  background-position: top center;
+}
+/* قسم الأدوار ينتهي بلوحةٍ داكنة عريضة، فالمسافة تحته لا تحتاج طولها كاملاً. */
+.roles-section { padding-bottom: calc(var(--section-y) * .62); }
+/* الأقسام تتناوب بين الأبيض و``--paper``، والانتقال بينهما كان حدّاً حادّاً
+   يقطع الصفحة. تدرّجٌ رفيع في أعلى كل قسمٍ ورقيّ يجعل الانتقال طيّاً في
+   الورقة لا قصّاً فيها. */
+.voice-section, .features-section, .leadership-section, .site-footer { position: relative; }
+.voice-section::after,
+.features-section::after,
+.leadership-section::after,
+.site-footer::after {
+  content: ""; position: absolute; inset: 0 0 auto; height: 90px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.85), transparent);
+}
+.site-footer::after { height: 60px; }
+.features-section .shell, .voice-section .shell, .leadership-section .shell, .site-footer .shell { position: relative; z-index: 1; }
+
+/* ── ٤. لوحة الأدوار ──────────────────────────────────────────────────── */
+.role-panel { box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+.role-tab { transition: color .28s var(--ease), background .28s var(--ease), box-shadow .28s var(--ease), transform .28s var(--ease); }
+.role-tab.is-active { box-shadow: 0 2px 4px rgba(10,47,35,.14), 0 14px 30px rgba(13,74,53,.22), inset 0 1px 0 rgba(255,255,255,.14); }
+
+/* ── ٥. لقطات المنتج ──────────────────────────────────────────────────── */
+/* اللقطة كانت مستطيلاً عائماً على البطاقة: صورةٌ لواجهةٍ بلا ما يقول إنها
+   واجهة. إطارُ نافذةٍ حوله — شريطٌ علويّ بثلاث نقاط — يجعل الزائر يقرأها
+   كشاشةٍ من داخل النظام قبل أن يقرأ العنوان فوقها. والنقاط محايدة اللون بلا
+   شريط عنوان: نافذةٌ لا تدّعي متصفّحاً بعينه ولا عنواناً لم يُزَر. */
+.showcase-frame {
+  position: relative; display: block; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 15px; background: var(--white);
+  box-shadow: 0 1px 2px rgba(10,47,35,.06), 0 12px 26px rgba(13,74,53,.08);
+  transition: transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s var(--ease);
+}
+.showcase-frame-bar {
+  display: block; height: 28px;
+  border-block-end: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, #fbfefd, #f2faf6);
+}
+.showcase-frame-bar::before {
+  content: ""; position: absolute; inset-block-start: 11px; inset-inline-start: 14px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #cfdfd8;
+  box-shadow: 12px 0 0 #cfdfd8, 24px 0 0 #cfdfd8;
+}
+/* الصورة تفقد حدَّها وزواياها: الإطار صار يحملهما عنها. */
+.showcase-image img,
+.showcase-image:hover img,
+.showcase-image:focus-visible img { display: block; width: 100%; border: 0; border-radius: 0; box-shadow: none; transform: none; }
+.showcase-image:hover .showcase-frame, .showcase-image:focus-visible .showcase-frame { transform: translateY(-4px); border-color: var(--brand-300); box-shadow: var(--elev-3); }
+.image-zoom { opacity: .92; transition: opacity .28s var(--ease), transform .28s var(--ease); }
+.showcase-image:hover .image-zoom { opacity: 1; transform: translateY(-2px); }
+
+/* ── ٦. البؤرة ────────────────────────────────────────────────────────── */
+/* حلقةٌ مزدوجة: بيضاء تفصل، وخضراء تُرى. الحلقة المفردة تختفي فوق الأسطح
+   الخضراء الداكنة (تبويب الدور النشط، الأزرار الأساسية). */
+:focus-visible {
+  outline: 2px solid var(--brand-700); outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(43,182,132,.22);
+}
+.button:focus-visible { box-shadow: 0 0 0 3px #fff, 0 0 0 6px rgba(15,122,86,.55); outline: none; }
+
+/* ── ٧. تفاصيل صغيرة ──────────────────────────────────────────────────── */
+.faq-list summary { transition: color .28s var(--ease), background .28s var(--ease); }
+.faq-list details[open] { box-shadow: var(--elev-2), var(--sheen); }
+.compare-after { transition: background .28s var(--ease); }
+.compare-panel:hover .compare-after { background: linear-gradient(90deg, rgba(238,250,244,.5), var(--white)); }
+.payment-mark { transition: transform .28s var(--ease), box-shadow .28s var(--ease); }
+.payment-mark:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(13,74,53,.12); }
+.mobile-sticky .button { box-shadow: 0 2px 6px rgba(10,47,35,.16), 0 12px 28px rgba(15,122,86,.28); }
+
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
 .reveal.is-visible { opacity: 1; transform: none; }
 
 @media (max-width: 1180px) {
@@ -795,6 +1044,8 @@ body.landing-page.landing-assistant-delayed:not(.landing-page-has-scrolled) .man
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  /* ``animation-duration`` وحدها لا تكفي مع رسمٍ لا نهائي التكرار كنبضة النقطة
+     في الهيرو: تصير دورةً كل جزءٍ من ألف من الثانية بدل أن تتوقّف. */
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   .reveal { opacity: 1; transform: none; }
 }
