@@ -828,6 +828,74 @@ html[data-theme="dark"] .footer-verification__label i { color: #6fd3ac; }
 html[data-theme="dark"] .button-dark-quiet { color: #dcece4; background: rgba(205, 225, 216, .07); border-color: rgba(205, 225, 216, .2); }
 html[data-theme="dark"] .showcase-image img { border-color: rgba(205, 225, 216, .2); }
 
+/* ── مقابل «طبقة الإتقان» في صفحة الهبوط ──────────────────────────────────
+   الرموز نفسها بقيمٍ داكنة. اللمعة البيضاء بقوّة ٨٥٪ فوق سطحٍ فحميّ تصير
+   خطاً أبيض صارخاً، والظلال المبنية على أسودٍ شفاف تختفي تماماً على خلفية
+   داكنة — فالارتفاع في الظلام يأتي من حدٍّ أفتح لا من ظلٍّ أعمق. */
+html[data-theme="dark"] {
+  --sheen: inset 0 1px 0 rgba(205, 225, 216, .06);
+  --elev-1: 0 1px 2px rgba(0, 0, 0, .3);
+  --elev-2: 0 2px 6px rgba(0, 0, 0, .34), 0 12px 28px rgba(0, 0, 0, .28);
+  --elev-3: 0 4px 10px rgba(0, 0, 0, .38), 0 24px 56px rgba(0, 0, 0, .34);
+}
+/* تدرّج الحافة بين الأقسام أبيضُ في النهار؛ في الليل يجب أن يكون من لون
+   خلفية الصفحة نفسها وإلا صار ضبابةً بيضاء فوق قسمٍ داكن. */
+html[data-theme="dark"] .voice-section::after,
+html[data-theme="dark"] .features-section::after,
+html[data-theme="dark"] .leadership-section::after,
+html[data-theme="dark"] .site-footer::after {
+  background: linear-gradient(180deg, rgba(6, 21, 18, .55), transparent);
+}
+/* التدرّج على النص يبتلع لون الوضع الداكن (‎text-fill-color‎ شفّاف)، فيُعاد
+   رسمه بدرجات النعناع بدل تعطيله وترك السطر بلا تمييز. */
+html[data-theme="dark"] .hero h1 span {
+  background: linear-gradient(105deg, #6fd3ac 6%, #8fe0c2 48%, #7bd0d8 94%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+/* ── ما فات القائمة أعلاه ─────────────────────────────────────────────────
+   القائمة السابقة تعدّ المحدِّدات واحداً واحداً، ورموز ‎--brand-950/900/800‎
+   لا تُبدَّل في الوضع الداكن، فأي عنصرٍ يلوّن نصَّه بها ولم يُذكَر هناك يبقى
+   حبراً داكناً على سطحٍ داكن. هذه بقيّةُ ما رصده فحصُ التباين على الصفحة:
+   ثلاثةٌ منها كانت غير مقروءة عملياً (نسبة تباين ١٫١). */
+html[data-theme="dark"] .pricing-guide strong,
+html[data-theme="dark"] .service-catalog strong,
+html[data-theme="dark"] .role-entry-note p strong { color: #f0f8f4; }
+html[data-theme="dark"] .pricing-note-emphasis { color: #dcece4; }
+html[data-theme="dark"] .service-catalog article > span,
+html[data-theme="dark"] .compare-head-after small,
+html[data-theme="dark"] .flex-pricing-eyebrow,
+html[data-theme="dark"] .role-entry-note > i,
+html[data-theme="dark"] .role-entry-note a,
+html[data-theme="dark"] .business-disclosure--footer a { color: #6fd3ac; }
+/* لوحة «مساران واضحان للدخول» كانت تحتفظ بخلفيتها النعناعية الفاتحة، فيصير
+   نصّها الرمادي عليها بلا تباين — والقسم كلّه داكن حولها. */
+html[data-theme="dark"] .role-entry-note {
+  background: #102920;
+  border-color: rgba(111, 211, 172, .34);
+}
+html[data-theme="dark"] .role-entry-note > i { background: rgba(205, 225, 216, .07); }
+html[data-theme="dark"] .role-entry-note p { color: #b6cdc3; }
+
+/* إطار نافذة اللقطة: الحدّ والشريط العلوي بلون السطح الداكن لا الأبيض. */
+html[data-theme="dark"] .showcase-frame {
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .2);
+  box-shadow: var(--elev-2);
+}
+html[data-theme="dark"] .showcase-frame-bar {
+  border-block-end-color: rgba(205, 225, 216, .14);
+  background: linear-gradient(180deg, #123026, #0d241d);
+}
+html[data-theme="dark"] .showcase-frame-bar::before {
+  background: rgba(205, 225, 216, .28);
+  box-shadow: 12px 0 0 rgba(205, 225, 216, .28), 24px 0 0 rgba(205, 225, 216, .28);
+}
+html[data-theme="dark"] .button-quiet { box-shadow: var(--elev-1) !important; }
+html[data-theme="dark"] .role-tab.is-active { box-shadow: var(--elev-2) !important; }
+html[data-theme="dark"] :focus-visible { box-shadow: 0 0 0 5px rgba(111, 211, 172, .28); }
+html[data-theme="dark"] .button:focus-visible { box-shadow: 0 0 0 3px #061512, 0 0 0 6px rgba(111, 211, 172, .8); }
+
 /* Authentication, registration, success, recovery and maintenance pages. */
 html[data-theme="dark"] .auth-wrapper,
 html[data-theme="dark"] .registration-shell,

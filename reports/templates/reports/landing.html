@@ -38,12 +38,12 @@
   <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
-  <link rel="stylesheet" href="{% static 'css/landing.css' %}?v=20260813.2">
+  <link rel="stylesheet" href="{% static 'css/landing.css' %}?v=20260826.1">
   <link rel="stylesheet" href="{% static 'css/flexible-pricing.css' %}?v=20260813.2">
   {% if AI_MANSOUR_PUBLIC_ENABLED %}
     <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260801.2">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260813.1">
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260826.1">
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
   <noscript><style nonce="{{ CSP_NONCE }}">.reveal{opacity:1!important;transform:none!important}</style></noscript>
   <script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
@@ -782,7 +782,10 @@
               <p>الإجراءات الأكثر استخدامًا أمامك، والفترة الزمنية قابلة للتغيير، وكل مسار على بُعد خطوة.</p>
             </div>
             <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/dashboard-system.png' %}" data-product-caption="لوحة مدير المدرسة: الأولويات، المؤشرات، والإجراءات السريعة في شاشة واحدة." aria-label="عرض لوحة مدير المدرسة بالحجم الكامل">
-              <img src="{% static 'img/landing/dashboard-system.png' %}" alt="لقطة حقيقية من لوحة مدير المدرسة" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="showcase-frame">
+                <span class="showcase-frame-bar" aria-hidden="true"></span>
+                <img src="{% static 'img/landing/dashboard-system.png' %}" alt="لقطة حقيقية من لوحة مدير المدرسة" width="1920" height="799" loading="lazy" decoding="async">
+              </span>
               <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
             </button>
           </article>
@@ -794,7 +797,10 @@
               <p>بحث وتصفية وإسناد ومتابعة، مع تاريخ يحفظ ما حدث دون رسائل متفرقة.</p>
             </div>
             <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/tickets-system.png' %}" data-product-caption="قائمة الطلبات والتذاكر: بحث، تصفية، مسؤول، أولوية، وحالة متابعة واضحة." aria-label="عرض شاشة طلبات المدرسة بالحجم الكامل">
-              <img src="{% static 'img/landing/tickets-system.png' %}" alt="لقطة حقيقية من إدارة طلبات المدرسة" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="showcase-frame">
+                <span class="showcase-frame-bar" aria-hidden="true"></span>
+                <img src="{% static 'img/landing/tickets-system.png' %}" alt="لقطة حقيقية من إدارة طلبات المدرسة" width="1920" height="799" loading="lazy" decoding="async">
+              </span>
               <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
             </button>
           </article>
@@ -806,7 +812,10 @@
               <p>هوية المدرسة ومعلومات التقرير والصور في PDF مرتب وجاهز للحفظ والطباعة.</p>
             </div>
             <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/report-system.png' %}" data-product-caption="معاينة التقرير الرسمي: هوية المدرسة وبيانات النشاط في مخرج منظم للطباعة والحفظ." aria-label="عرض التقرير المدرسي بالحجم الكامل">
-              <img src="{% static 'img/landing/report-system.png' %}" alt="لقطة حقيقية من تقرير مدرسي رسمي بصيغة PDF" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="showcase-frame">
+                <span class="showcase-frame-bar" aria-hidden="true"></span>
+                <img src="{% static 'img/landing/report-system.png' %}" alt="لقطة حقيقية من تقرير مدرسي رسمي بصيغة PDF" width="1920" height="799" loading="lazy" decoding="async">
+              </span>
               <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
             </button>
           </article>
@@ -821,7 +830,10 @@
               <p>استهلاك التخزين، سنوات الأرشيف، وحالة كل نسخة ثابتة في شاشة واحدة سهلة الرجوع.</p>
             </div>
             <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/archive-system.png' %}" data-product-caption="الأرشيف المدرسي: مساحة التخزين، التصفية حسب السنة، والنسخ السنوية الثابتة." aria-label="عرض شاشة الأرشيف بالحجم الكامل">
-              <img src="{% static 'img/landing/archive-system.png' %}" alt="لقطة حقيقية من أرشيف المدرسة ومساحة التخزين" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="showcase-frame">
+                <span class="showcase-frame-bar" aria-hidden="true"></span>
+                <img src="{% static 'img/landing/archive-system.png' %}" alt="لقطة حقيقية من أرشيف المدرسة ومساحة التخزين" width="1920" height="799" loading="lazy" decoding="async">
+              </span>
               <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
             </button>
           </article>
@@ -1273,7 +1285,7 @@
    data-cfasync="false"></script>
   {% include "reports/partials/pwa_install.html" %}
   <script src="{% static 'js/flexible-pricing.js' %}?v=20260804.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
-  <script src="{% static 'js/landing.js' %}?v=20260813.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+  <script src="{% static 'js/landing.js' %}?v=20260826.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
   {% if AI_MANSOUR_PUBLIC_ENABLED %}
     <script src="{% static 'js/mansour-assistant.js' %}?v=20260801.2" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
   {% endif %}
