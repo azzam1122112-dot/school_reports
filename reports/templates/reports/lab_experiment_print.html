@@ -69,7 +69,7 @@
   <table class="facts">
     <tr>
       <th>المختبر</th>
-      <td colspan="3">{% firstof experiment.department.name "غير مصنّف" %}</td>
+      <td colspan="3">{% firstof experiment.get_lab_kind_display "غير مصنّف" %}</td>
     </tr>
     <tr>
       <th>تاريخ التنفيذ</th>

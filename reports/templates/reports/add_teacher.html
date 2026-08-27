@@ -433,16 +433,16 @@
           </section>
         {% endif %}
 
-        {% if form.department %}
+        {% if form.lab_kind %}
           <div class="tgrid" id="labDepartmentPanel" hidden aria-hidden="true">
             <div class="group">
-              <label class="label" for="{{ form.department.id_for_label }}">
-                <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
-                {{ form.department.label }}
+              <label class="label" for="{{ form.lab_kind.id_for_label }}">
+                <i class="fa-solid fa-flask-vial" aria-hidden="true"></i>
+                {{ form.lab_kind.label }}
               </label>
-              {{ form.department }}
-              {% for e in form.department.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-              <div class="hint">{{ form.department.help_text }}</div>
+              {{ form.lab_kind }}
+              {% for e in form.lab_kind.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+              <div class="hint">{{ form.lab_kind.help_text }}</div>
             </div>
           </div>
         {% endif %}

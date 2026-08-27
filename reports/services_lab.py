@@ -21,7 +21,9 @@ from .models import (
     LabAsset,
     LabAssetHandover,
     LabExperiment,
+    SchoolMembership,
 )
+from .lab_kinds import LAB_KIND_VALUES, infer_lab_kind
 from .permissions import (
     capability_source,
     is_lab_technician,
@@ -33,7 +35,7 @@ __all__ = [
     "assets_for_school",
     "experiments_for_school",
     "handovers_for_school",
-    "lab_departments_for_user",
+    "lab_kinds_for_user",
     "lab_summary",
     "record_handover",
     "set_asset_condition",
@@ -44,26 +46,28 @@ __all__ = [
 # ─────────────────────────────────────────────────────────────────────────────
 # استعلامات العرض
 # ─────────────────────────────────────────────────────────────────────────────
-def lab_departments_for_user(user, school):
-    """الأقسام التي تمثل مختبرات المستخدم داخل المدرسة.
-
-    المدير يرى كل الأقسام. محضّر المختبر يُحصر في عضوياته المباشرة ونطاقه
-    الإداري، وحامل التفويض المؤقت يرى المدرسة كلها لأن التفويض صادر من المدير.
-    وللتوافق مع المدارس القديمة ذات القسم الوحيد يُسند ذلك القسم تلقائياً؛ أما
-    وجود أكثر من قسم بلا إسناد فيُغلق النطاق بدلاً من فتح المختبرين معاً.
-    """
-    departments = Department.objects.filter(school=school, is_active=True).order_by(
-        "name", "id"
-    )
-    if user is None:
-        return departments
-    if getattr(user, "is_superuser", False) or is_school_manager(user, school):
-        return departments
+def lab_kinds_for_user(user, school) -> tuple[str, ...]:
+    """Return laboratory kinds visible to the user, independently of departments."""
+    if user is None or getattr(user, "is_superuser", False) or is_school_manager(user, school):
+        return LAB_KIND_VALUES
 
     source = capability_source(user, MANAGE_LAB, school)
     if source == "delegation":
-        return departments
+        return LAB_KIND_VALUES
 
+    kinds = set(
+        value
+        for value in SchoolMembership.objects.filter(
+            school=school,
+            teacher=user,
+            is_active=True,
+            job_title=SchoolMembership.JobTitle.LAB_TECH,
+        ).values_list("lab_kind", flat=True)
+        if value in LAB_KIND_VALUES
+    )
+
+    # Backward compatibility: infer old technician/scope assignments once from
+    # the former department link. New writes use ``SchoolMembership.lab_kind``.
     department_ids: set[int] = set()
     if is_lab_technician(user, school):
         department_ids.update(
@@ -78,10 +82,23 @@ def lab_departments_for_user(user, school):
         department_ids.update(supervised_department_ids(user, school))
 
     if department_ids:
-        return departments.filter(pk__in=department_ids)
-    if is_lab_technician(user, school) and departments.count() == 1:
-        return departments
-    return departments.none()
+        for name, slug in Department.objects.filter(
+            school=school, is_active=True, pk__in=department_ids
+        ).values_list("name", "slug"):
+            inferred = infer_lab_kind(name=name, slug=slug)
+            if inferred:
+                kinds.add(inferred)
+    if not kinds and is_lab_technician(user, school):
+        legacy_kinds = {
+            infer_lab_kind(name=name, slug=slug)
+            for name, slug in Department.objects.filter(
+                school=school, is_active=True
+            ).values_list("name", "slug")
+        }
+        legacy_kinds.discard("")
+        if len(legacy_kinds) == 1:
+            kinds.update(legacy_kinds)
+    return tuple(value for value in LAB_KIND_VALUES if value in kinds)
 
 
 def _assets_in_user_scope(school, user):
@@ -89,27 +106,29 @@ def _assets_in_user_scope(school, user):
     if user is None or getattr(user, "is_superuser", False) or is_school_manager(user, school):
         return qs
 
-    departments = lab_departments_for_user(user, school)
-    department_ids = list(departments.values_list("id", flat=True))
+    lab_kinds = lab_kinds_for_user(user, school)
     if is_lab_technician(user, school):
-        if department_ids:
+        if lab_kinds:
             # السجلات القديمة غير المصنفة لا تُعرض إلا لصاحبها؛ فتظل قابلة
             # للتصنيف من غير أن تصبح ممراً بين مختبري العلوم والحاسب.
             return qs.filter(
-                Q(department_id__in=department_ids)
-                | Q(department__isnull=True, recorded_by=user)
-                | Q(department__isnull=True, custodian=user)
+                Q(lab_kind__in=lab_kinds)
+                | Q(lab_kind="", recorded_by=user)
+                | Q(lab_kind="", custodian=user)
             ).distinct()
-        if not Department.objects.filter(school=school, is_active=True).exists():
-            return qs.filter(department__isnull=True)
-        return qs.none()
+        return qs.filter(
+            Q(lab_kind="", recorded_by=user) | Q(lab_kind="", custodian=user)
+        ).distinct()
 
     source = capability_source(user, MANAGE_LAB, school)
     if source == "delegation":
         return qs
-    if source == "scope" and department_ids:
+    if source == "scope" and lab_kinds:
+        legacy_department_ids = supervised_department_ids(user, school)
         return qs.filter(
-            Q(department_id__in=department_ids) | Q(department__isnull=True)
+            Q(lab_kind__in=lab_kinds)
+            | Q(lab_kind="", department_id__in=legacy_department_ids)
+            | Q(lab_kind="", department__isnull=True)
         )
     return qs.none()
 
@@ -119,24 +138,24 @@ def _experiments_in_user_scope(school, user):
     if user is None or getattr(user, "is_superuser", False) or is_school_manager(user, school):
         return qs
 
-    departments = lab_departments_for_user(user, school)
-    department_ids = list(departments.values_list("id", flat=True))
+    lab_kinds = lab_kinds_for_user(user, school)
     if is_lab_technician(user, school):
-        if department_ids:
+        if lab_kinds:
             return qs.filter(
-                Q(department_id__in=department_ids)
-                | Q(department__isnull=True, recorder=user)
+                Q(lab_kind__in=lab_kinds)
+                | Q(lab_kind="", recorder=user)
             )
-        if not Department.objects.filter(school=school, is_active=True).exists():
-            return qs.filter(department__isnull=True)
-        return qs.none()
+        return qs.filter(lab_kind="", recorder=user)
 
     source = capability_source(user, MANAGE_LAB, school)
     if source == "delegation":
         return qs
-    if source == "scope" and department_ids:
+    if source == "scope" and lab_kinds:
+        legacy_department_ids = supervised_department_ids(user, school)
         return qs.filter(
-            Q(department_id__in=department_ids) | Q(department__isnull=True)
+            Q(lab_kind__in=lab_kinds)
+            | Q(lab_kind="", department_id__in=legacy_department_ids)
+            | Q(lab_kind="", department__isnull=True)
         )
     return qs.none()
 

@@ -241,6 +241,7 @@ class TeacherOnboardingTests(TestCase):
                 "phone": "0552223377",
                 "national_id": "",
                 "job_title": SchoolMembership.JobTitle.LAB_TECH,
+                "lab_kind": "science",
                 "is_active": "on",
             },
         )
@@ -270,6 +271,7 @@ class TeacherOnboardingTests(TestCase):
                 "phone": "0552223399",
                 "national_id": "",
                 "job_title": SchoolMembership.JobTitle.LAB_TECH,
+                "lab_kind": "science",
                 "is_active": "on",
             },
         )

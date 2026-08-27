@@ -122,7 +122,7 @@
           <tbody>
             {% for asset in page_obj.object_list %}
               <tr>
-                <td data-label="المختبر">{% firstof asset.department.name "غير مصنّف" %}</td>
+                <td data-label="المختبر">{% firstof asset.get_lab_kind_display "غير مصنّف" %}</td>
                 <td data-label="الصنف"><a href="{% url 'reports:lab_asset_detail' asset.pk %}">{{ asset.name }}</a></td>
                 <td data-label="الرقم">{{ asset.code|default:"—" }}</td>
                 <td data-label="النوع">{{ asset.get_category_display }}</td>

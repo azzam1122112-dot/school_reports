@@ -69,6 +69,7 @@ from .models import (
     LeadershipPortfolioSection,
 )
 from .model_parts.approvals import ApprovalRoute
+from .lab_kinds import LabKind
 
 logger = logging.getLogger(__name__)
 
@@ -1073,27 +1074,18 @@ class TeacherCreateForm(forms.ModelForm):
         required=False,
         help_text="ينشئ له مساحة المعلّم وملف الإنجاز بجانب دوره الأساسي.",
     )
-    department = forms.ModelChoiceField(
-        label="القسم الأول",
-        queryset=Department.objects.none(),
+    lab_kind = forms.ChoiceField(
+        label="المختبر",
+        choices=(("", "— اختر المختبر —"),) + tuple(LabKind.choices),
         required=False,
-        empty_label="— اختر القسم —",
         widget=forms.Select(attrs={"class": "form-select"}),
-        help_text="مطلوب لمحضر المختبر حتى تنفصل عهدة العلوم عن عهدة الحاسب الآلي.",
+        help_text="مطلوب لمحضر المختبر، ومستقل عن الأقسام المرتبطة بالتقارير.",
     )
 
     def __init__(self, *args, **kwargs):
         self._active_school = kwargs.pop("active_school", None)
         super().__init__(*args, **kwargs)
         self.fields["job_title"].choices = assignment_choices(self._active_school)
-        self.fields["department"].queryset = (
-            Department.objects.filter(
-                school=self._active_school,
-                is_active=True,
-            ).order_by("name", "id")
-            if self._active_school is not None
-            else Department.objects.none()
-        )
         self.assignment_cards = assignment_cards(self._active_school)
         self.initial.setdefault("job_title", SchoolMembership.RoleType.TEACHER)
 
@@ -1106,15 +1098,13 @@ class TeacherCreateForm(forms.ModelForm):
         if not assignment.supports_teaching_load:
             cleaned["keep_teaching_role"] = False
         if code == SchoolMembership.JobTitle.LAB_TECH:
-            department = cleaned.get("department")
-            available = self.fields["department"].queryset
-            if department is None and available.count() == 1:
-                cleaned["department"] = available.first()
-            elif department is None:
+            if not cleaned.get("lab_kind"):
                 self.add_error(
-                    "department",
-                    "حدّد قسم مختبر العلوم أو مختبر الحاسب الآلي قبل إنشاء المحضّر.",
+                    "lab_kind",
+                    "حدّد مختبر العلوم أو مختبر الحاسب الآلي قبل إنشاء المحضّر.",
                 )
+        else:
+            cleaned["lab_kind"] = ""
         return cleaned
 
     def clean_national_id(self):

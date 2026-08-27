@@ -13,13 +13,8 @@ from django.contrib.auth.hashers import make_password
 from django.db import transaction
 
 from .gender_labels import school_gender_labels
-from .models import (
-    Department,
-    DepartmentMembership,
-    School,
-    SchoolMembership,
-    Teacher,
-)
+from .models import Department, DepartmentMembership, School, SchoolMembership, Teacher
+from .lab_kinds import LabKind
 from .staff_assignments import get_assignment
 
 
@@ -81,6 +76,18 @@ def job_title_label(value: str, school: School) -> str:
         return str(gender_labels["teacher_indefinite"])
 
 
+def normalize_lab_kind(value: Any) -> str:
+    raw = normalize_text(value).lower()
+    if raw in LabKind.values:
+        return raw
+    compact = re.sub(r"\s+", "", raw)
+    if "حاسب" in compact or "computer" in compact:
+        return LabKind.COMPUTER
+    if "علوم" in compact or "science" in compact:
+        return LabKind.SCIENCE
+    return ""
+
+
 def available_departments(school: School):
     return Department.objects.filter(school=school, is_active=True).order_by("name", "id")
 
@@ -103,12 +110,14 @@ def rows_from_quick_post(post) -> list[dict[str, Any]]:
     national_ids = post.getlist("national_id")
     job_titles = post.getlist("job_title")
     department_ids = post.getlist("department")
+    lab_kinds = post.getlist("lab_kind")
     row_count = max(
         len(names),
         len(phones),
         len(national_ids),
         len(job_titles),
         len(department_ids),
+        len(lab_kinds),
         0,
     )
     rows: list[dict[str, Any]] = []
@@ -119,12 +128,13 @@ def rows_from_quick_post(post) -> list[dict[str, Any]]:
             "national_id": national_ids[index] if index < len(national_ids) else "",
             "job_title": job_titles[index] if index < len(job_titles) else "",
             "department": department_ids[index] if index < len(department_ids) else "",
+            "lab_kind": lab_kinds[index] if index < len(lab_kinds) else "",
         }
         # لا نعدّ المسمى الافتراضي وحده صفًا مدخلًا؛ الجدول يعرض عدة
         # صفوف فارغة جاهزة، وكلها تحمل افتراضيًا قيمة "معلم".
         has_user_data = any(
             normalize_text(values[field])
-            for field in ("name", "phone", "national_id", "department")
+            for field in ("name", "phone", "national_id", "department", "lab_kind")
         )
         if has_user_data:
             rows.append({"row_number": index + 1, **values})
@@ -138,7 +148,7 @@ def rows_from_quick_post(post) -> list[dict[str, Any]]:
             if not line.strip():
                 continue
             columns = next(csv.reader([line], delimiter="\t"))
-            columns += [""] * (5 - len(columns))
+            columns += [""] * (6 - len(columns))
             rows.append(
                 {
                     "row_number": start + offset,
@@ -147,6 +157,7 @@ def rows_from_quick_post(post) -> list[dict[str, Any]]:
                     "national_id": columns[2],
                     "job_title": columns[3],
                     "department": columns[4],
+                    "lab_kind": columns[5],
                 }
             )
             if len(rows) > MAX_IMPORT_ROWS:
@@ -180,6 +191,7 @@ def rows_from_uploaded_file(uploaded_file) -> list[dict[str, Any]]:
         "national_id": ("رقمالهوية", "الهوية", "السجلالمدني", "nationalid"),
         "job_title": ("المسمىالوظيفي", "المسمى", "الدور", "jobtitle", "role"),
         "department": ("القسم", "اسم القسم", "department"),
+        "lab_kind": ("المختبر", "نوع المختبر", "lab"),
     }
 
     indices: dict[str, int | None] = {}
@@ -213,6 +225,7 @@ def rows_from_uploaded_file(uploaded_file) -> list[dict[str, Any]]:
             "national_id": cell("national_id"),
             "job_title": cell("job_title"),
             "department": cell("department"),
+            "lab_kind": cell("lab_kind"),
         }
         if any(normalize_text(value) for key, value in row.items() if key != "row_number"):
             rows.append(row)
@@ -236,8 +249,6 @@ def _membership_capacity(school: School) -> dict[str, int]:
 def build_preview(raw_rows: Iterable[dict[str, Any]], school: School) -> dict[str, Any]:
     raw_rows = list(raw_rows)
     by_department_text, by_department_id = _department_maps(school)
-    school_departments = tuple(by_department_id.values())
-
     normalized_phones = {normalize_phone(row.get("phone")) for row in raw_rows}
     normalized_phones.discard("")
     normalized_national_ids = {
@@ -294,6 +305,11 @@ def build_preview(raw_rows: Iterable[dict[str, Any]], school: School) -> dict[st
             if source.get("department") not in (None, "")
             else source.get("department_id")
         )
+        lab_kind_raw = normalize_text(
+            source.get("lab_kind")
+            if source.get("lab_kind") not in (None, "")
+            else ""
+        )
         errors: list[str] = []
         warnings: list[str] = []
 
@@ -325,17 +341,14 @@ def build_preview(raw_rows: Iterable[dict[str, Any]], school: School) -> dict[st
                 department = by_department_text.get(normalize_header(department_raw))
             if department is None:
                 errors.append("القسم غير موجود في المدرسة الحالية.")
-        if job_title == SchoolMembership.JobTitle.LAB_TECH and department is None:
-            if len(school_departments) == 1:
-                department = school_departments[0]
-            elif not school_departments:
-                errors.append(
-                    "أنشئ قسم مختبر العلوم أو الحاسب ثم اربط محضّر المختبر به."
-                )
-            else:
-                errors.append(
-                    "محضّر المختبر يجب ربطه بقسم العلوم أو قسم الحاسب الآلي."
-                )
+
+        lab_kind = normalize_lab_kind(lab_kind_raw)
+        if lab_kind_raw and not lab_kind:
+            errors.append("المختبر غير معروف؛ اختر مختبر العلوم أو مختبر الحاسب الآلي.")
+        if job_title == SchoolMembership.JobTitle.LAB_TECH and not lab_kind:
+            errors.append("محضّر المختبر يجب ربطه بمختبر العلوم أو مختبر الحاسب الآلي.")
+        if job_title != SchoolMembership.JobTitle.LAB_TECH:
+            lab_kind = ""
 
         teacher = teachers_by_phone.get(phone)
         membership = memberships.get(teacher.id) if teacher else None
@@ -376,6 +389,8 @@ def build_preview(raw_rows: Iterable[dict[str, Any]], school: School) -> dict[st
             "job_title_label": job_title_label(job_title, school),
             "department_id": int(department.pk) if department else None,
             "department_name": department.name if department else "",
+            "lab_kind": lab_kind,
+            "lab_kind_label": dict(LabKind.choices).get(lab_kind, ""),
             "state": state,
             "state_label": state_label,
             "errors": errors,
@@ -485,7 +500,8 @@ def confirm_preview(request, school: School, token: str) -> dict[str, Any]:
             )
             if assignment.job_title and membership_created:
                 membership.job_title = assignment.job_title
-                membership.save(update_fields=["job_title"])
+                membership.lab_kind = row.get("lab_kind") or ""
+                membership.save(update_fields=["job_title", "lab_kind"])
             if membership_created:
                 if row["state"] == "link":
                     linked_count += 1
@@ -500,12 +516,18 @@ def confirm_preview(request, school: School, token: str) -> dict[str, Any]:
                 if assignment.job_title and membership.job_title != assignment.job_title:
                     membership.job_title = assignment.job_title
                     changed_fields.append("job_title")
+                wanted_lab_kind = row.get("lab_kind") or ""
+                if membership.lab_kind != wanted_lab_kind:
+                    membership.lab_kind = wanted_lab_kind
+                    changed_fields.append("lab_kind")
                 if changed_fields:
                     membership.save(update_fields=changed_fields)
 
             department_id = row.get("department_id")
             if department_id:
-                department = Department.objects.get(pk=department_id, school=school, is_active=True)
+                department = Department.objects.get(
+                    pk=department_id, school=school, is_active=True
+                )
                 DepartmentMembership.objects.get_or_create(
                     department=department,
                     teacher=teacher,

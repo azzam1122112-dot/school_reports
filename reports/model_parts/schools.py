@@ -5,6 +5,7 @@ import re
 from django.db.models.functions import Lower
 
 from .base import *
+from ..lab_kinds import LabKind
 
 
 _ARABIC_DIACRITICS_RE = re.compile(r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]")
@@ -769,6 +770,14 @@ class SchoolMembership(models.Model):
         choices=JobTitle.choices,
         default=JobTitle.TEACHER,
         help_text="للعرض فقط داخل المدرسة (بنفس الصلاحيات).",
+    )
+    lab_kind = models.CharField(
+        "المختبر",
+        max_length=16,
+        choices=LabKind.choices,
+        blank=True,
+        default="",
+        help_text="يُستخدم لمحضر المختبر فقط، وهو مستقل عن أقسام التقارير.",
     )
     is_active = models.BooleanField("نشط؟", default=True)
     created_at = models.DateTimeField("أُنشئ في", auto_now_add=True)

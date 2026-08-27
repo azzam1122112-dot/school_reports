@@ -3,8 +3,9 @@ from __future__ import annotations
 from .approvals import ApprovalMixin
 from .base import *
 from .schools import Department, School, Teacher
+from ..lab_kinds import LabKind
 
-__all__ = ["LabAsset", "LabAssetHandover", "LabExperiment"]
+__all__ = ["LabKind", "LabAsset", "LabAssetHandover", "LabExperiment"]
 
 
 class LabAsset(models.Model):
@@ -68,6 +69,15 @@ class LabAsset(models.Model):
         verbose_name="المختبر / القسم",
         help_text="يفصل عهدة مختبر العلوم عن عهدة مختبر الحاسب الآلي.",
     )
+    lab_kind = models.CharField(
+        "المختبر",
+        max_length=16,
+        choices=LabKind.choices,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="مختبر العلوم أو مختبر الحاسب الآلي، مستقل عن أقسام التقارير.",
+    )
     name = models.CharField("اسم الصنف", max_length=200)
     code = models.CharField(
         "رقم العهدة / الرقم التسلسلي",
@@ -119,6 +129,8 @@ class LabAsset(models.Model):
         verbose_name = "صنف في عهدة المختبر"
         verbose_name_plural = "عهدة المختبر"
         indexes = [
+            models.Index(fields=["school", "lab_kind", "condition"]),
+            models.Index(fields=["school", "lab_kind", "category"]),
             models.Index(fields=["school", "department", "condition"]),
             models.Index(fields=["school", "department", "category"]),
         ]
@@ -327,6 +339,15 @@ class LabExperiment(ApprovalMixin):
         verbose_name="المختبر / القسم",
         help_text="يفصل تجارب مختبر العلوم عن تجارب مختبر الحاسب الآلي.",
     )
+    lab_kind = models.CharField(
+        "المختبر",
+        max_length=16,
+        choices=LabKind.choices,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="مختبر العلوم أو مختبر الحاسب الآلي، مستقل عن أقسام التقارير.",
+    )
     recorder = models.ForeignKey(
         Teacher,
         on_delete=models.SET_NULL,
@@ -391,6 +412,8 @@ class LabExperiment(ApprovalMixin):
         verbose_name = "تجربة مختبر"
         verbose_name_plural = "تجارب المختبر"
         indexes = [
+            models.Index(fields=["school", "lab_kind", "-experiment_date"]),
+            models.Index(fields=["school", "lab_kind", "approval_state"]),
             models.Index(fields=["school", "department", "-experiment_date"]),
             models.Index(fields=["school", "department", "approval_state"]),
         ]
@@ -433,14 +456,15 @@ class LabExperiment(ApprovalMixin):
         المسندة حتى لا يراجع مسؤول مختبر العلوم عملاً يخص مختبر الحاسب.
         """
         from ..capabilities import MANAGE_LAB
-        from ..permissions import capability_source, supervised_department_ids
+        from ..permissions import capability_source
+        from ..services_lab import lab_kinds_for_user
 
         source = capability_source(user, MANAGE_LAB, school)
         if source is None:
             return False
-        if source == "delegation" or self.department_id is None:
+        if source == "delegation" or not self.lab_kind:
             return True
-        return self.department_id in supervised_department_ids(user, school)
+        return self.lab_kind in lab_kinds_for_user(user, school)
 
     def can_finalize_approval(self, user, school):
         """Break the manager-owned experiment deadlock without self-approval.
@@ -456,8 +480,8 @@ class LabExperiment(ApprovalMixin):
         from ..permissions import (
             capability_source,
             is_school_manager,
-            supervised_department_ids,
         )
+        from ..services_lab import lab_kinds_for_user
 
         recorder_id = getattr(self, "recorder_id", None)
         if not recorder_id or not is_school_manager(
@@ -470,6 +494,6 @@ class LabExperiment(ApprovalMixin):
         approval_source = capability_source(user, RECOMMEND_APPROVAL, school)
         if manage_source is None or approval_source is None:
             return False
-        if manage_source == "delegation" or self.department_id is None:
+        if manage_source == "delegation" or not self.lab_kind:
             return True
-        return self.department_id in supervised_department_ids(user, school)
+        return self.lab_kind in lab_kinds_for_user(user, school)
