@@ -143,9 +143,9 @@ def _lab_panel(user, school) -> dict:
         from ..services_lab import assets_for_school, lab_summary
 
         return {
-            "lab_summary": lab_summary(school),
+            "lab_summary": lab_summary(school, user=user),
             "lab_attention": list(
-                assets_for_school(school).filter(
+                assets_for_school(school, user=user).filter(
                     condition__in=LabAsset.ATTENTION_CONDITIONS
                 )[:3]
             ),
@@ -423,7 +423,7 @@ def _report_approval(my_reports_qs, school) -> dict:
 
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff, login_url="reports:login")
+@access_required(_is_staff)
 @require_http_methods(["GET", "POST"])
 def select_school(request: HttpRequest) -> HttpResponse:
     """شاشة اختيار المدرسة للآدمن ومديري المدارس.

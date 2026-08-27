@@ -107,7 +107,7 @@
           <tbody>
             {% for asset in attention_assets %}
               <tr>
-                <td data-label="الصنف"><a href="{% url 'reports:lab_asset_detail' asset.pk %}">{{ asset.name }}</a></td>
+                <td data-label="الصنف"><a href="{% url 'reports:lab_asset_detail' asset.pk %}">{{ asset.name }}</a>{% if asset.department %}<small> · {{ asset.department.name }}</small>{% endif %}</td>
                 <td data-label="النوع">{{ asset.get_category_display }}</td>
                 <td data-label="الكمية">{{ asset.quantity }} {{ asset.unit }}</td>
                 <td data-label="الحالة">
@@ -176,7 +176,7 @@
           <tbody>
             {% for experiment in recent_experiments %}
               <tr>
-                <td data-label="التجربة"><a href="{% url 'reports:lab_experiment_detail' experiment.pk %}">{{ experiment.title|default:"مسودة بلا عنوان" }}</a></td>
+                <td data-label="التجربة"><a href="{% url 'reports:lab_experiment_detail' experiment.pk %}">{{ experiment.title|default:"مسودة بلا عنوان" }}</a>{% if experiment.department %}<small> · {{ experiment.department.name }}</small>{% endif %}</td>
                 <td data-label="التاريخ" dir="rtl">{% if experiment.experiment_date %}{{ experiment.experiment_date|hijri }}{% else %}—{% endif %}</td>
                 <td data-label="الصف">{{ experiment.class_name|default:"—" }}</td>
                 <td data-label="الحالة"><span class="lab-chip">{{ experiment.get_approval_state_display }}</span></td>

@@ -304,6 +304,38 @@ html[data-theme="dark"] .mr-iconbtn{
   background: rgba(15,30,23,.85);
 }
 
+/* «إرسال للاعتماد» فعلٌ لا خياراً من قائمة: التقرير الذي لم يُرسل لم يبلغ
+   أحداً، فزرّه يُميَّز عن أخواته الرمادية وإلا ضاع بينها ولم يُنقر.
+
+   حبرُه رمزٌ مقصورٌ على الزرّ ومشتقٌّ من نغمة «بانتظار» العامة لا نسخةٌ
+   منها: النغمة نفسها على أرضيتها الفاتحة تعطي 4.0 — تكفي عنصرَ واجهةٍ
+   ولا تكفي أيقونةً صغيرة — فتُغمَّق للنهار وتعود إلى أصلها لليل حيث
+   الأرضية داكنة والنغمة فاتحة أصلاً. */
+.mr-iconbtn.mr-send{
+  --mr-send-ink: color-mix(in srgb, var(--id-tone-pending) 76%, #000);
+  color: var(--mr-send-ink);
+  border-color: color-mix(in srgb, var(--mr-send-ink) 42%, transparent);
+  background: var(--id-tone-pending-wash);
+}
+.mr-iconbtn.mr-send:hover{
+  color: var(--mr-send-ink);
+  border-color: var(--mr-send-ink);
+}
+html[data-theme="dark"] .mr-iconbtn.mr-send{
+  --mr-send-ink: var(--id-tone-pending);
+  border-color: color-mix(in srgb, var(--id-tone-pending) 46%, transparent);
+}
+
+/* وسم الحالة داخل خلية العنوان: سطرٌ ثالث تحت النوع، لا يزاحمه.
+   و``width: fit-content`` يلزمه لأن ``.mr-rpt`` عمودٌ مرن يمطّ أبناءه إلى
+   عرض الخليّة — فيصير الوسم شريطاً بعرض العمود لا شارةً تحضن كلمتها،
+   وهي العلّة نفسها التي عالجها ``.mr-chip`` فوقه. */
+.mr-state{
+  width: fit-content;
+  text-decoration: none;
+}
+.mr-state:hover{ filter: brightness(.94); }
+
 /* ===== Empty ===== */
 .mr-empty{
   padding: 44px 16px;
@@ -1573,6 +1605,7 @@ html[data-theme="dark"] .mr-page{
                     <div class="mr-chip">
                       {% if report.category and report.category.name %}{{ report.category.name }}{% else %}عام{% endif %}
                     </div>
+                    {% include "reports/partials/report_state_chip.html" with report=report %}
                   </div>
                 </td>
 
@@ -1595,9 +1628,13 @@ html[data-theme="dark"] .mr-page{
 
                 <td>
                   <div class="mr-actions-cell">
-                    <a href="{% url 'reports:edit_my_report' report.pk %}" class="mr-iconbtn" title="تعديل" aria-label="تعديل">
-                      <i class="fa-solid fa-pen"></i>
-                    </a>
+                    {% include "reports/partials/report_submit_btn.html" with report=report %}
+
+                    {% if not report_approval_enabled or report.is_editable_by_owner %}
+                      <a href="{% url 'reports:edit_my_report' report.pk %}" class="mr-iconbtn" title="تعديل" aria-label="تعديل">
+                        <i class="fa-solid fa-pen"></i>
+                      </a>
+                    {% endif %}
 
                     <a href="{% url 'reports:report_share_manage' report.pk %}" class="mr-iconbtn" title="مشاركة" aria-label="مشاركة">
                       <i class="fa-solid fa-share-nodes"></i>
@@ -1607,12 +1644,14 @@ html[data-theme="dark"] .mr-page{
                       <i class="fa-solid fa-eye"></i>
                     </a>
 
-                    <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form" data-confirm="نقل التقرير إلى سلة المحذوفات؟ يمكنك استعادته لاحقًا." data-confirm-type="warning">
-                      {% csrf_token %}
-                      <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
-                        <i class="fa-solid fa-trash"></i>
-                      </button>
-                    </form>
+                    {% if not report_approval_enabled or report.is_editable_by_owner %}
+                      <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form" data-confirm="نقل التقرير إلى سلة المحذوفات؟ يمكنك استعادته لاحقًا." data-confirm-type="warning">
+                        {% csrf_token %}
+                        <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
+                          <i class="fa-solid fa-trash"></i>
+                        </button>
+                      </form>
+                    {% endif %}
                   </div>
                 </td>
               </tr>
@@ -1640,6 +1679,7 @@ html[data-theme="dark"] .mr-page{
               <div class="mr-chip">
                 {% if report.category and report.category.name %}{{ report.category.name }}{% else %}عام{% endif %}
               </div>
+              {% include "reports/partials/report_state_chip.html" with report=report %}
             </div>
 
             <div class="mr-mtitle">{{ report.title }}</div>
@@ -1657,9 +1697,13 @@ html[data-theme="dark"] .mr-page{
               </div>
 
               <div class="mr-actions-cell">
-                <a href="{% url 'reports:edit_my_report' report.pk %}" class="mr-iconbtn" title="تعديل" aria-label="تعديل">
-                  <i class="fa-solid fa-pen"></i>
-                </a>
+                {% include "reports/partials/report_submit_btn.html" with report=report %}
+
+                {% if not report_approval_enabled or report.is_editable_by_owner %}
+                  <a href="{% url 'reports:edit_my_report' report.pk %}" class="mr-iconbtn" title="تعديل" aria-label="تعديل">
+                    <i class="fa-solid fa-pen"></i>
+                  </a>
+                {% endif %}
                 <a href="{% url 'reports:report_share_manage' report.pk %}" class="mr-iconbtn" title="مشاركة" aria-label="مشاركة">
                   <i class="fa-solid fa-share-nodes"></i>
                 </a>
@@ -1667,12 +1711,14 @@ html[data-theme="dark"] .mr-page{
                   <i class="fa-solid fa-eye"></i>
                 </a>
 
-                <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form u-inline" data-confirm="نقل التقرير إلى سلة المحذوفات؟ يمكنك استعادته لاحقًا." data-confirm-type="warning">
-                  {% csrf_token %}
-                  <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
-                    <i class="fa-solid fa-trash"></i>
-                  </button>
-                </form>
+                {% if not report_approval_enabled or report.is_editable_by_owner %}
+                  <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form u-inline" data-confirm="نقل التقرير إلى سلة المحذوفات؟ يمكنك استعادته لاحقًا." data-confirm-type="warning">
+                    {% csrf_token %}
+                    <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </form>
+                {% endif %}
               </div>
             </div>
           </div>

@@ -88,19 +88,19 @@ def _asset_for(request, pk: int, school) -> LabAsset:
     لا يحق للمستخدم معرفة أنها موجودة.
     """
     return get_object_or_404(
-        LabAsset.objects.select_related("school", "custodian"),
+        assets_for_school(
+            school, user=request.user, include_inactive=True
+        ).select_related("school", "department", "custodian"),
         pk=pk,
-        school=school,
     )
 
 
 def _experiment_for(request, pk: int, school) -> LabExperiment:
     return get_object_or_404(
-        LabExperiment.objects.select_related(
-            "school", "recorder", "requested_by", "report"
-        ).prefetch_related("assets"),
+        experiments_for_school(school, user=request.user).select_related(
+            "school", "department", "recorder", "requested_by", "report"
+        ),
         pk=pk,
-        school=school,
     )
 
 
@@ -127,15 +127,15 @@ def lab_dashboard(request: HttpRequest) -> HttpResponse:
     if redirect_response is not None:
         return redirect_response
 
-    summary = lab_summary(school)
+    summary = lab_summary(school, user=request.user)
     attention_assets = list(
-        assets_for_school(school).filter(
+        assets_for_school(school, user=request.user).filter(
             condition__in=LabAsset.ATTENTION_CONDITIONS
         )[:6]
     )
-    recent_experiments = list(experiments_for_school(school)[:5])
+    recent_experiments = list(experiments_for_school(school, user=request.user)[:5])
     my_pending = (
-        experiments_for_school(school)
+        experiments_for_school(school, user=request.user)
         .filter(recorder=request.user, approval_state=ApprovalState.DRAFT)
         .count()
     )
@@ -149,8 +149,10 @@ def lab_dashboard(request: HttpRequest) -> HttpResponse:
             "summary": summary,
             "attention_assets": attention_assets,
             "recent_experiments": recent_experiments,
-            "outstanding": outstanding_handovers(school)[:8],
-            "recent_handovers": list(handovers_for_school(school, limit=6)),
+            "outstanding": outstanding_handovers(school, user=request.user)[:8],
+            "recent_handovers": list(
+                handovers_for_school(school, user=request.user, limit=6)
+            ),
             "my_draft_count": my_pending,
             "can_record": can_record,
             "is_lab_tech": is_lab_technician(request.user, school),
@@ -169,13 +171,13 @@ def lab_assets(request: HttpRequest) -> HttpResponse:
     if redirect_response is not None:
         return redirect_response
 
-    form = LabAssetForm(school=school)
+    form = LabAssetForm(school=school, user=request.user)
     if request.method == "POST":
         if not can_record:
             messages.error(request, "متابعةُ المختبر لا تُجيز التسجيل فيه.")
             return redirect("reports:lab_assets")
 
-        form = LabAssetForm(request.POST, school=school)
+        form = LabAssetForm(request.POST, school=school, user=request.user)
         if form.is_valid():
             asset = form.save(commit=False)
             asset.school = school
@@ -190,7 +192,7 @@ def lab_assets(request: HttpRequest) -> HttpResponse:
         messages.error(request, "تعذّر حفظ الصنف — تحقّق من الحقول.")
 
     # النطاق قبل المرشّح: يُبنى الاستعلام الآمن أولاً ثم تُركَّب عليه المرشّحات.
-    rows = assets_for_school(school)
+    rows = assets_for_school(school, user=request.user)
 
     term = (request.GET.get("q") or "").strip()
     category = (request.GET.get("category") or "").strip()
@@ -212,7 +214,7 @@ def lab_assets(request: HttpRequest) -> HttpResponse:
         condition = ""
 
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page") or 1)
-    summary = lab_summary(school)
+    summary = lab_summary(school, user=request.user)
 
     return render(
         request,
@@ -244,7 +246,7 @@ def lab_asset_detail(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect_response
 
     asset = _asset_for(request, pk, school)
-    form = LabAssetForm(instance=asset, school=school)
+    form = LabAssetForm(instance=asset, school=school, user=request.user)
     handover_form = LabHandoverForm(school=school)
 
     if request.method == "POST":
@@ -252,7 +254,9 @@ def lab_asset_detail(request: HttpRequest, pk: int) -> HttpResponse:
             messages.error(request, "متابعةُ المختبر لا تُجيز التسجيل فيه.")
             return redirect("reports:lab_asset_detail", pk=pk)
 
-        form = LabAssetForm(request.POST, instance=asset, school=school)
+        form = LabAssetForm(
+            request.POST, instance=asset, school=school, user=request.user
+        )
         if form.is_valid():
             form.save()
             messages.success(request, "حُدِّثت بيانات الصنف.")
@@ -365,9 +369,9 @@ def lab_assets_print(request: HttpRequest) -> HttpResponse:
         "reports/lab_assets_print.html",
         {
             "active_school": school,
-            "assets": list(assets_for_school(school)),
-            "outstanding": outstanding_handovers(school),
-            "summary": lab_summary(school),
+            "assets": list(assets_for_school(school, user=request.user)),
+            "outstanding": outstanding_handovers(school, user=request.user),
+            "summary": lab_summary(school, user=request.user),
             "printed_at": timezone.now(),
         },
     )
@@ -401,7 +405,7 @@ def lab_experiments(request: HttpRequest) -> HttpResponse:
             return redirect("reports:lab_experiment_detail", pk=experiment.pk)
         messages.error(request, "تعذّر حفظ التجربة — تحقّق من الحقول.")
 
-    rows = experiments_for_school(school)
+    rows = experiments_for_school(school, user=request.user)
 
     term = (request.GET.get("q") or "").strip()
     state = (request.GET.get("state") or "").strip()
@@ -417,7 +421,7 @@ def lab_experiments(request: HttpRequest) -> HttpResponse:
         state = ""
 
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page") or 1)
-    summary = lab_summary(school)
+    summary = lab_summary(school, user=request.user)
 
     return render(
         request,

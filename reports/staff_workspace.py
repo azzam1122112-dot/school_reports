@@ -11,7 +11,7 @@ from __future__ import annotations
 from django.urls import reverse
 
 from . import capabilities as caps
-from .models import SchoolMembership, StaffScope
+from .models import DepartmentMembership, SchoolMembership, StaffScope
 from .permissions import active_delegations
 
 
@@ -223,6 +223,19 @@ def _scope_names(scope, school) -> list[str]:
     )
 
 
+def _lab_scope_names(scope, user, school) -> list[str]:
+    """نطاق المحضّر من شاشة الصلاحيات أو عضوية القسم في الإضافة السريعة."""
+    names = set(_scope_names(scope, school))
+    names.update(
+        DepartmentMembership.objects.filter(
+            teacher=user,
+            department__school=school,
+            department__is_active=True,
+        ).values_list("department__name", flat=True)
+    )
+    return sorted(str(name) for name in names if name)
+
+
 def _capability_labels(codes) -> list[str]:
     return [caps.BY_CODE[code].label for code in sorted(codes) if code in caps.BY_CODE]
 
@@ -424,7 +437,11 @@ def build_staff_workspaces(user, school) -> dict:
         # تظهر الأداة ذاتها مرتين. الموظف المنفرد يستفيد من التفويض كالمعتاد.
         admin_delegated = delegated if deputy_membership is None else set()
         effective = permanent | admin_delegated
-        scope_names = _scope_names(scope, school)
+        scope_names = (
+            _lab_scope_names(scope, user, school)
+            if is_lab_technician
+            else _scope_names(scope, school)
+        )
         # أدوات المتابعة المرتبطة بنطاق لا تفيد بلا أقسام: تفتح شاشة فارغة
         # وتوحي للمحضّر أن عليه عملاً إشرافياً لم يُسند إليه. نحفظ الصلاحيات
         # كما هي، ونُظهر تنبيه الإعداد، لكن لا نعرض الأداة حتى يكتمل نطاقها.

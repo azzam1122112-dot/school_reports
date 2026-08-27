@@ -374,3 +374,158 @@ class TeacherExperienceTests(TestCase):
             add_report_source = (templates_dir / "add_report.html").read_text(encoding="utf-8")
             self.assertIn('d.addEventListener("input", syncDateFields);', add_report_source)
             self.assertIn('d.addEventListener("change", syncDateFields);', add_report_source)
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class AchievementFileOwnerLockTests(TestCase):
+    """ملف الإنجاز يخرج من يد صاحبه متى خرج إلى مراجعه.
+
+    الشاشة كانت تعرف هذا (``can_edit_teacher``) فتمنع تحرير المحاور بعد
+    الإرسال، لكنّ الحذف وتعديل السنة كانا خارج المعرفة: يمحو المعلّمُ ملفاً
+    اعتمده مديرُه محواً نهائياً، أو ينقل شواهد سنةٍ إلى سجلّ سنةٍ أخرى.
+    """
+
+    def setUp(self):
+        self.school = School.objects.create(
+            name="مدرسة قفل الإنجاز",
+            code="achievement-lock",
+            current_academic_year="1447-1448",
+        )
+        plan = SubscriptionPlan.objects.create(
+            name="خطة قفل الإنجاز", price=0, days_duration=30, max_teachers=0
+        )
+        SchoolSubscription.objects.create(school=self.school, plan=plan)
+        self.teacher = Teacher.objects.create_user(
+            phone="500092001", name="معلم ملف الإنجاز", password="teacher-pass"
+        )
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        self.client.force_login(self.teacher)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+    def _file(self, status: str) -> TeacherAchievementFile:
+        return TeacherAchievementFile.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            academic_year="1447-1448",
+            status=status,
+        )
+
+    def test_the_states_that_belong_to_the_owner(self):
+        for status in (
+            TeacherAchievementFile.Status.DRAFT,
+            TeacherAchievementFile.Status.RETURNED,
+        ):
+            self.assertTrue(self._file(status).is_editable_by_owner, status)
+            TeacherAchievementFile.objects.all().delete()
+
+        for status in (
+            TeacherAchievementFile.Status.SUBMITTED,
+            TeacherAchievementFile.Status.APPROVED,
+        ):
+            self.assertFalse(self._file(status).is_editable_by_owner, status)
+            TeacherAchievementFile.objects.all().delete()
+
+    def test_an_approved_file_survives_a_delete_request_from_its_owner(self):
+        ach_file = self._file(TeacherAchievementFile.Status.APPROVED)
+
+        self.client.post(reverse("reports:achievement_file_delete", args=[ach_file.pk]))
+
+        self.assertTrue(TeacherAchievementFile.objects.filter(pk=ach_file.pk).exists())
+
+    def test_a_submitted_file_survives_a_delete_request_from_its_owner(self):
+        ach_file = self._file(TeacherAchievementFile.Status.SUBMITTED)
+
+        self.client.post(reverse("reports:achievement_file_delete", args=[ach_file.pk]))
+
+        self.assertTrue(TeacherAchievementFile.objects.filter(pk=ach_file.pk).exists())
+
+    def test_a_draft_is_still_deletable_by_its_owner(self):
+        ach_file = self._file(TeacherAchievementFile.Status.DRAFT)
+
+        self.client.post(reverse("reports:achievement_file_delete", args=[ach_file.pk]))
+
+        self.assertFalse(TeacherAchievementFile.objects.filter(pk=ach_file.pk).exists())
+
+    def test_an_approved_file_keeps_its_year(self):
+        """السنة هويّة الملف لا حقلاً فيه، فتغييرها يحرّك شواهد سنةٍ إلى غيرها."""
+        ach_file = self._file(TeacherAchievementFile.Status.APPROVED)
+        self.school.current_academic_year = "1448-1449"
+        self.school.save(update_fields=["current_academic_year"])
+
+        self.client.post(
+            reverse("reports:achievement_file_update_year", args=[ach_file.pk]),
+            {"academic_year": "1448-1449"},
+        )
+
+        ach_file.refresh_from_db()
+        self.assertEqual(ach_file.academic_year, "1447-1448")
+
+    def test_the_list_hides_the_actions_the_server_would_refuse(self):
+        ach_file = self._file(TeacherAchievementFile.Status.APPROVED)
+
+        body = self.client.get(reverse("reports:achievement_my_files")).content.decode("utf-8")
+
+        self.assertNotIn(reverse("reports:achievement_file_delete", args=[ach_file.pk]), body)
+        self.assertNotIn(reverse("reports:achievement_file_update_year", args=[ach_file.pk]), body)
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class UnsetAcademicYearIsSurfacedToTheManagerTests(TestCase):
+    """العائق الصامت يُرفع إلى من يملك رفعه.
+
+    اشتراطُ سنةٍ يحددها المدير مقصود، لكنه كان صامتاً في اتجاهه: المعلّم يقرأ
+    «لم تُحدد السنة» ولا يملك تحديدها، والمدير لا يقرأ شيئاً ولا يعلم أن مساراً
+    كاملاً متوقّف عنده.
+    """
+
+    def setUp(self):
+        self.school = School.objects.create(
+            name="مدرسة بلا سنة", code="year-unset", current_academic_year=""
+        )
+        plan = SubscriptionPlan.objects.create(
+            name="خطة بلا سنة", price=0, days_duration=30, max_teachers=0
+        )
+        SchoolSubscription.objects.create(school=self.school, plan=plan)
+        self.manager = Teacher.objects.create_user(
+            phone="500093001", name="مدير بلا سنة", password="manager-pass"
+        )
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=self.manager,
+            role_type=SchoolMembership.RoleType.MANAGER,
+        )
+        self.client.force_login(self.manager)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+    def test_the_dashboard_tells_the_manager_and_points_at_the_setting(self):
+        response = self.client.get(reverse("reports:admin_dashboard"))
+
+        self.assertContains(response, "السنة الدراسية الحالية غير محددة")
+        self.assertContains(response, reverse("reports:school_settings"))
+
+    def test_the_alert_carries_the_year_from_the_calendar(self):
+        """الضبط نظرةٌ لا بحث: السنة المقترحة معروضة في التنبيه نفسه."""
+        from reports.hijri_utils import current_academic_year
+
+        suggestion = current_academic_year()
+        response = self.client.get(reverse("reports:admin_dashboard"))
+
+        self.assertEqual(response.context["academic_year_suggestion"], suggestion)
+        if suggestion:
+            self.assertContains(response, suggestion)
+
+    def test_a_school_with_a_year_shows_no_alert(self):
+        self.school.current_academic_year = "1447-1448"
+        self.school.save(update_fields=["current_academic_year"])
+
+        response = self.client.get(reverse("reports:admin_dashboard"))
+
+        self.assertNotContains(response, "السنة الدراسية الحالية غير محددة")

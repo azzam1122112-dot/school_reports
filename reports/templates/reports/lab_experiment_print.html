@@ -68,6 +68,10 @@
 
   <table class="facts">
     <tr>
+      <th>المختبر</th>
+      <td colspan="3">{% firstof experiment.department.name "غير مصنّف" %}</td>
+    </tr>
+    <tr>
       <th>تاريخ التنفيذ</th>
       <td dir="rtl">{% if experiment.experiment_date %}{{ experiment.experiment_date|hijri }} هـ{% else %}—{% endif %}</td>
       <th>الحالة</th>

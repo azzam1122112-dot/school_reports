@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from functools import wraps
 import logging
 import os
 import traceback
@@ -298,6 +299,62 @@ def _is_staff_or_officer(user) -> bool:
         getattr(user, "is_authenticated", False)
         and (_is_staff(user) or is_officer(user))
     )
+
+
+def coerce_pk(value) -> Optional[int]:
+    """مُعرِّفٌ صحيحٌ موجب من مُدخَل خام، أو ``None`` لكل ما ليس كذلك.
+
+    **لماذا لا يُمرَّر الخام إلى الاستعلام؟** لأن ``filter(pk="abc")`` يرفع
+    ``ValueError`` من داخل جانغو، فينهار الطلب بـ 500 **قبل** أن يصل السطر
+    الذي يعرض الرسالة المقصودة تحته مباشرة. والنتيجة أن الشاشة التي كُتبت لها
+    رسالةٌ مهذَّبة تُظهر صفحة خطأٍ عامة بدلاً منها.
+    """
+    if value in (None, ""):
+        return None
+    try:
+        pk = int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return pk if pk > 0 else None
+
+
+def access_required(test_func, *, message: str = "لا تملك صلاحية الوصول إلى هذه الصفحة."):
+    """حارس صلاحية لا يردّ الداخلَ إلى شاشة الدخول.
+
+    ``user_passes_test`` يوجّه **كل** من يرسب في الاختبار إلى ``login_url``،
+    فمن كان مسجَّلاً بالفعل يُرمى إلى شاشة دخولٍ لا معنى لها: هو داخلٌ فعلاً،
+    ومشكلته صلاحيةٌ لا هوية. الحارس هنا يفرّق بين الحالتين:
+
+    - غير المسجَّل → شاشة الدخول مع ``next`` كما هو متوقَّع.
+    - المسجَّل بلا صلاحية → الرئيسية مع سبب مكتوب.
+    - طلبات JSON → 403 بجسمٍ يقرأه المتصفّح، لا إعادة توجيه تُفسَّر نجاحاً.
+
+    الاختبار نفسه لا يتغيّر، فمن كان يمرّ يظلّ يمرّ.
+    """
+
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped(request: HttpRequest, *args, **kwargs) -> HttpResponse:
+            if test_func(request.user):
+                return view_func(request, *args, **kwargs)
+
+            if not getattr(request.user, "is_authenticated", False):
+                login_url = reverse("reports:login")
+                return redirect(f"{login_url}?{urlencode({'next': request.get_full_path()})}")
+
+            wants_json = (
+                request.headers.get("x-requested-with") == "XMLHttpRequest"
+                or "application/json" in (request.headers.get("accept") or "")
+            )
+            if wants_json:
+                return JsonResponse({"detail": message}, status=403)
+
+            messages.error(request, message)
+            return redirect("reports:home")
+
+        return _wrapped
+
+    return decorator
 
 
 def _safe_next_url(next_url: str | None) -> str | None:

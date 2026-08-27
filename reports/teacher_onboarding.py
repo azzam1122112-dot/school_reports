@@ -236,6 +236,7 @@ def _membership_capacity(school: School) -> dict[str, int]:
 def build_preview(raw_rows: Iterable[dict[str, Any]], school: School) -> dict[str, Any]:
     raw_rows = list(raw_rows)
     by_department_text, by_department_id = _department_maps(school)
+    school_departments = tuple(by_department_id.values())
 
     normalized_phones = {normalize_phone(row.get("phone")) for row in raw_rows}
     normalized_phones.discard("")
@@ -324,6 +325,17 @@ def build_preview(raw_rows: Iterable[dict[str, Any]], school: School) -> dict[st
                 department = by_department_text.get(normalize_header(department_raw))
             if department is None:
                 errors.append("القسم غير موجود في المدرسة الحالية.")
+        if job_title == SchoolMembership.JobTitle.LAB_TECH and department is None:
+            if len(school_departments) == 1:
+                department = school_departments[0]
+            elif not school_departments:
+                errors.append(
+                    "أنشئ قسم مختبر العلوم أو الحاسب ثم اربط محضّر المختبر به."
+                )
+            else:
+                errors.append(
+                    "محضّر المختبر يجب ربطه بقسم العلوم أو قسم الحاسب الآلي."
+                )
 
         teacher = teachers_by_phone.get(phone)
         membership = memberships.get(teacher.id) if teacher else None

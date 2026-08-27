@@ -84,3 +84,30 @@ def hijri_to_gregorian(year: int, month: int, day: int) -> Optional[_dt.date]:
         return _dt.date(g.year, g.month, g.day)
     except Exception:
         return None
+
+
+# بداية السنة الدراسية بالشهر الهجري. الدراسة تبدأ قرب صفر، وما قبله من
+# محرّم ذيلُ السنة السابقة لا رأسُ الجديدة.
+ACADEMIC_YEAR_START_MONTH = 2
+
+
+def current_academic_year(today=None) -> str:
+    """السنة الدراسية الهجرية الجارية بصيغة ``1447-1448``.
+
+    **لماذا تُشتقّ ولا تُخزَّن وحدها؟** لأن الخيار المخزَّن على المدرسة هو
+    القرار، وهذا هو الافتراض حين لا قرار. وغيابُ الافتراض كان يُقفل مسار ملف
+    الإنجاز إقفالاً تاماً على كل مدرسة لم يملأ مديرها الحقل — والمعلّم لا
+    يملك ملأه ولا يعرف أنه السبب.
+
+    تعذّر الحساب يعيد نصّاً فارغاً، فيبقى السلوك القديم — إقفالٌ مشروحٌ في
+    الشاشة — بدل تخمين سنةٍ خاطئة تُبنى عليها ملفات لا تُصحَّح.
+    """
+    d = _as_date(today) or _dt.date.today()
+    h = to_hijri(d)
+    if h is None:
+        return ""
+    try:
+        start = int(h.year) if int(h.month) >= ACADEMIC_YEAR_START_MONTH else int(h.year) - 1
+        return f"{start}-{start + 1}"
+    except Exception:
+        return ""

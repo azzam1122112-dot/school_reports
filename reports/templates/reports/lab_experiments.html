@@ -101,13 +101,14 @@
         <table class="lab-table lab-table--cards">
           <thead>
             <tr>
-              <th>التجربة</th><th>التاريخ</th><th>المادة</th>
+              <th>المختبر</th><th>التجربة</th><th>التاريخ</th><th>المادة</th>
               <th>الصف</th><th>الطلاب</th><th>الحالة</th>
             </tr>
           </thead>
           <tbody>
             {% for experiment in page_obj.object_list %}
               <tr>
+                <td data-label="المختبر">{% firstof experiment.department.name "غير مصنّف" %}</td>
                 <td data-label="التجربة"><a href="{% url 'reports:lab_experiment_detail' experiment.pk %}">{{ experiment.title|default:"مسودة بلا عنوان" }}</a></td>
                 <td data-label="التاريخ" dir="rtl">{% if experiment.experiment_date %}{{ experiment.experiment_date|hijri }}{% else %}—{% endif %}</td>
                 <td data-label="المادة">{{ experiment.subject|default:"—" }}</td>

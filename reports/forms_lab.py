@@ -9,7 +9,15 @@ from __future__ import annotations
 
 from django import forms
 
-from .models import LabAsset, LabAssetHandover, LabExperiment, Report, SchoolMembership, Teacher
+from .models import (
+    Department,
+    LabAsset,
+    LabAssetHandover,
+    LabExperiment,
+    Report,
+    SchoolMembership,
+    Teacher,
+)
 
 __all__ = ["LabAssetForm", "LabHandoverForm", "LabExperimentForm"]
 
@@ -30,10 +38,55 @@ def _school_members(school):
     )
 
 
+def _configure_lab_department(form, *, school, user) -> None:
+    """احصر اختيار المختبر، مع إسناد تلقائي حين لا يوجد إلا خيار واحد."""
+    from .services_lab import lab_departments_for_user
+
+    all_departments = Department.objects.filter(school=school, is_active=True)
+    allowed = (
+        lab_departments_for_user(user, school)
+        if school is not None
+        else Department.objects.none()
+    )
+    field = form.fields["department"]
+    field.queryset = allowed
+    field.required = False
+    field.empty_label = "— اختر مختبر العلوم أو الحاسب —"
+    field.help_text = (
+        "هذا الاختيار يعزل العهدة والتجارب بين مختبر العلوم ومختبر الحاسب الآلي."
+    )
+    form._lab_school_has_departments = all_departments.exists()
+    form._lab_allowed_departments = allowed
+    form._lab_single_department = allowed.first() if allowed.count() == 1 else None
+    if form._lab_single_department is not None and not form.instance.pk:
+        form.initial.setdefault("department", form._lab_single_department.pk)
+
+
+def _clean_lab_department(form, cleaned):
+    department = cleaned.get("department")
+    if department is not None:
+        return department
+    if form._lab_single_department is not None:
+        cleaned["department"] = form._lab_single_department
+        return form._lab_single_department
+    if form._lab_school_has_departments:
+        if form._lab_allowed_departments.exists():
+            form.add_error(
+                "department", "حدّد المختبر الذي يخص هذا السجل."
+            )
+        else:
+            form.add_error(
+                "department",
+                "لم يُربط حساب محضّر المختبر بقسم. اربطه بقسم العلوم أو الحاسب أولاً.",
+            )
+    return None
+
+
 class LabAssetForm(forms.ModelForm):
     class Meta:
         model = LabAsset
         fields = (
+            "department",
             "name",
             "code",
             "category",
@@ -45,6 +98,7 @@ class LabAssetForm(forms.ModelForm):
             "notes",
         )
         widgets = {
+            "department": forms.Select(attrs={"class": "form-control"}),
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "ميكروسكوب ضوئي"}),
             "code": forms.TextInput(attrs={"class": "form-control", "placeholder": "اختياري"}),
             "category": forms.Select(attrs={"class": "form-control"}),
@@ -56,9 +110,11 @@ class LabAssetForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
 
-    def __init__(self, *args, school=None, **kwargs):
+    def __init__(self, *args, school=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.school = school
+        self.user = user
+        _configure_lab_department(self, school=school, user=user)
         self.fields["custodian"].queryset = _school_members(school)
         self.fields["custodian"].required = False
         self.fields["custodian"].empty_label = "— بلا مسؤول محدَّد —"
@@ -78,6 +134,7 @@ class LabAssetForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        _clean_lab_department(self, cleaned)
         # تخفيض الكمية دون ما هو خارج المختبر يجعل الجرد يقول إن المُسلَّم أكثر
         # من الموجود — وهو رقمٌ لا يمكن تسويته إلا بحذف حركة وقعت فعلاً.
         if self.instance.pk:
@@ -152,6 +209,7 @@ class LabExperimentForm(forms.ModelForm):
     class Meta:
         model = LabExperiment
         fields = (
+            "department",
             "title",
             "experiment_date",
             "subject",
@@ -166,6 +224,7 @@ class LabExperimentForm(forms.ModelForm):
             "report",
         )
         widgets = {
+            "department": forms.Select(attrs={"class": "form-control"}),
             "title": forms.TextInput(attrs={"class": "form-control", "placeholder": "استخلاص الكلوروفيل"}),
             "experiment_date": forms.DateInput(
                 attrs={"class": "form-control", "type": "date"}, format="%Y-%m-%d"
@@ -186,16 +245,32 @@ class LabExperimentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.school = school
         self.user = user
+        _configure_lab_department(self, school=school, user=user)
 
         self.fields["requested_by"].queryset = _school_members(school)
         self.fields["requested_by"].required = False
         self.fields["requested_by"].empty_label = "— لم يطلبها معلّم بعينه —"
 
-        self.fields["assets"].queryset = (
-            LabAsset.objects.filter(school=school, is_active=True).order_by("name")
+        from .services_lab import assets_for_school
+
+        selected_department = getattr(self.instance, "department", None)
+        if self.is_bound:
+            posted_department = str(self.data.get("department") or "").strip()
+            if posted_department.isdigit():
+                selected_department = self._lab_allowed_departments.filter(
+                    pk=int(posted_department)
+                ).first()
+        if selected_department is None:
+            selected_department = self._lab_single_department
+
+        asset_queryset = (
+            assets_for_school(school, user=user)
             if school is not None
             else LabAsset.objects.none()
         )
+        if selected_department is not None:
+            asset_queryset = asset_queryset.filter(department=selected_department)
+        self.fields["assets"].queryset = asset_queryset.order_by("name")
         self.fields["assets"].required = False
 
         # التقرير المرتبط: تقارير هذه المدرسة وحدها. وربطُ تقرير من مدرسة أخرى
@@ -226,3 +301,14 @@ class LabExperimentForm(forms.ModelForm):
     def clean_students_count(self):
         value = self.cleaned_data.get("students_count")
         return 0 if value in (None, "") else value
+
+    def clean(self):
+        cleaned = super().clean()
+        department = _clean_lab_department(self, cleaned)
+        assets = cleaned.get("assets")
+        if department is not None and assets is not None:
+            if assets.exclude(department=department).exists():
+                self.add_error(
+                    "assets", "اختر أصنافاً من عهدة المختبر المحدد فقط."
+                )
+        return cleaned

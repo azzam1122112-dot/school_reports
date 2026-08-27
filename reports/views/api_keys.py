@@ -21,7 +21,7 @@ from django_ratelimit.decorators import ratelimit
 
 from ..model_parts.api_keys import generate_api_key
 from ..models import SchoolApiKey, SchoolMembership
-from ._helpers import _get_active_school, _user_manager_schools
+from ._helpers import _get_active_school, _user_manager_schools, coerce_pk
 
 # مفتاحٌ جديد يُمرَّر في الجلسة لعرضةٍ واحدة ثم يُمسح.
 _NEW_KEY_SESSION = "_new_api_key_once"
@@ -78,7 +78,7 @@ def api_key_create(request: HttpRequest) -> HttpResponse:
 
     name = (request.POST.get("name") or "").strip()[:120]
     scope = (request.POST.get("scope") or SchoolApiKey.Scope.READ).strip()
-    acting_as_id = (request.POST.get("acting_as") or "").strip()
+    acting_as_id = coerce_pk(request.POST.get("acting_as"))
 
     if not name:
         messages.error(request, "اكتب اسماً يوضّح لأي نظام هذا المفتاح.")
@@ -89,12 +89,18 @@ def api_key_create(request: HttpRequest) -> HttpResponse:
     # **الهوية المرتبطة يجب أن تكون منسوباً نشطاً في هذه المدرسة.** بلا هذا
     # الفحص يصير حقلٌ في نموذج HTML طريقاً لإصدار مفتاح يعمل بصلاحيات شخصٍ في
     # مدرسة أخرى.
-    membership = SchoolMembership.objects.filter(
-        school=school,
-        teacher_id=acting_as_id or None,
-        is_active=True,
-        role_type__in=SchoolMembership.STAFF_ROLES,
-    ).select_related("teacher").first()
+    membership = (
+        SchoolMembership.objects.filter(
+            school=school,
+            teacher_id=acting_as_id,
+            is_active=True,
+            role_type__in=SchoolMembership.STAFF_ROLES,
+        )
+        .select_related("teacher")
+        .first()
+        if acting_as_id
+        else None
+    )
     if membership is None:
         messages.error(request, "اختر منسوباً نشطاً في هذه المدرسة ليعمل المفتاح بصلاحياته.")
         return redirect("reports:api_keys")

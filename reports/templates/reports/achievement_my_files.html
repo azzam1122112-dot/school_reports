@@ -448,20 +448,25 @@
                 <i class="fa-solid fa-share-nodes"></i>
               </a>
 
-              <button class="af-btn af-edit-year" type="button"
-                      data-url="{% url 'reports:achievement_file_update_year' f.pk %}"
-                      data-year="{{ f.academic_year }}"
-                      title="تعديل السنة الدراسية"
-                      aria-label="تعديل السنة الدراسية لملف {{ f.academic_year }}">
-                <i class="fa-solid fa-pen"></i>
-              </button>
-
-              <form action="{% url 'reports:achievement_file_delete' f.pk %}" method="post" class="af-delete-form u-inline" data-confirm="هل تريد حذف هذا الملف نهائيًا؟ لن يمكنك استرجاعه." data-confirm-type="danger">
-                {% csrf_token %}
-                <button type="submit" class="af-btn af-btn-danger" title="حذف الملف" aria-label="حذف ملف {{ f.academic_year }}">
-                   <i class="fa-solid fa-trash"></i>
+              {% comment %} تعديل السنة والحذف يخرجان من يد المعلّم متى خرج الملف منها:
+                 المُرسَل ينتظر قراراً، والمعتمَد سجلٌّ يُقيَّم عليه صاحبه. وعرضُ
+                 زرٍّ يردّه الخادم أسوأ من غيابه. {% endcomment %}
+              {% if f.is_editable_by_owner %}
+                <button class="af-btn af-edit-year" type="button"
+                        data-url="{% url 'reports:achievement_file_update_year' f.pk %}"
+                        data-year="{{ f.academic_year }}"
+                        title="تعديل السنة الدراسية"
+                        aria-label="تعديل السنة الدراسية لملف {{ f.academic_year }}">
+                  <i class="fa-solid fa-pen"></i>
                 </button>
-              </form>
+
+                <form action="{% url 'reports:achievement_file_delete' f.pk %}" method="post" class="af-delete-form u-inline" data-confirm="هل تريد حذف هذا الملف نهائيًا؟ لن يمكنك استرجاعه." data-confirm-type="danger">
+                  {% csrf_token %}
+                  <button type="submit" class="af-btn af-btn-danger" title="حذف الملف" aria-label="حذف ملف {{ f.academic_year }}">
+                     <i class="fa-solid fa-trash"></i>
+                  </button>
+                </form>
+              {% endif %}
             </div>
           </div>
         {% empty %}

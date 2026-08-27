@@ -478,6 +478,14 @@
     line-height: 1.9;
   }
   .th-note b { color: var(--th-ink); font-weight: 950; }
+  /* المسودة وحدها تُصبح رابطاً، فتُوسَم بما يُقرأ رابطاً — والخط السفلي
+     المتقطّع يميّزها عن جارتها الخبرية دون أن يرفع صوت السطر كله. */
+  .th-note-link {
+    color: inherit;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+  }
+  .th-note-link:hover { color: var(--th-ink); text-decoration-style: solid; }
 
   .th-attention {
     display: grid;
@@ -1179,7 +1187,10 @@
            الاعتماد تحفظ التقرير مسودةً أولاً، فمن كتب ولم يُرسل يحسبه وصل. {% endcomment %}
         {% if awaiting_review_count or draft_reports_count %}
           <p class="th-note">
-            {% if draft_reports_count %}<b>{{ draft_reports_count }}</b> مسودة لم تُرسل بعد.{% endif %}
+            {% comment %} المسودة بندٌ على صاحبها، فذكرُها بلا رابط يخبره بعملٍ عالق
+               ولا يدلّه على بابه. وكشفُ التقارير هو الباب: فيه الحالة وزرّ
+               الإرسال لكل صفّ. أما ما ينتظر غيرك فخبرٌ لا إجراء، ويبقى نصّاً. {% endcomment %}
+            {% if draft_reports_count %}<a class="th-note-link" href="{% url 'reports:my_reports' %}"><b>{{ draft_reports_count }}</b> مسودة لم تُرسل بعد.</a>{% endif %}
             {% if awaiting_review_count %}<b>{{ awaiting_review_count }}</b> بانتظار قرار المراجعة — لا إجراء عليك فيها.{% endif %}
           </p>
         {% endif %}

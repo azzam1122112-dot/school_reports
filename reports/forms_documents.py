@@ -5,6 +5,7 @@ from __future__ import annotations
 from django import forms
 from django.core.exceptions import ValidationError
 
+from .academic_years import hijri_academic_year_options
 from .models import Department, Document
 
 __all__ = ["DocumentUploadForm"]
@@ -25,11 +26,11 @@ class DocumentUploadForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.school = school
 
-        years = []
-        if school is not None:
-            current = (getattr(school, "current_academic_year", "") or "").strip()
-            allowed = list(getattr(school, "allowed_academic_years", None) or [])
-            years = sorted({str(item) for item in allowed if item} | ({current} if current else set()), reverse=True)
+        # القائمة من المصدر المشترك لا من حقلَي المدرسة وحدهما: المدرسة الجديدة
+        # تُنشأ وحقلاها فارغان، وكان ذلك يترك حقلاً **إلزامياً بلا خيار واحد**
+        # فيتعذّر رفع أي وثيقة حتى يمرّ المدير على «بيانات المدرسة» — وهو ما لا
+        # تدلّ عليه رسالة الحقل.
+        years = sorted(hijri_academic_year_options(school), reverse=True)
 
         self.fields["academic_year"] = forms.ChoiceField(
             label="السنة الدراسية",
