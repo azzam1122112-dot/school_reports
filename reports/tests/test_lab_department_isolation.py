@@ -267,7 +267,7 @@ class LabDepartmentIsolationTests(TestCase):
         )
         self.assertContains(
             roles_response,
-            ".rol-field[hidden] { display: none; }",
+            ".rol-field[hidden] { display: none !important; }",
         )
         self.assertContains(roles_response, "syncAssignLabKind()")
 
