@@ -52,7 +52,7 @@ def api_department_members(request: HttpRequest) -> HttpResponse:
 
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff_or_officer, login_url="reports:login")
+@access_required(_is_staff_or_officer)
 @require_http_methods(["GET"])
 def api_school_departments(request: HttpRequest) -> HttpResponse:
     """Return active departments for selected school.
@@ -111,7 +111,7 @@ def api_school_departments(request: HttpRequest) -> HttpResponse:
 
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff_or_officer, login_url="reports:login")
+@access_required(_is_staff_or_officer)
 @require_http_methods(["GET"])
 def api_notification_teachers(request: HttpRequest) -> HttpResponse:
     """Return teachers list for notification create form, filtered by selected school/department.

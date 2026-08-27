@@ -13,13 +13,27 @@ from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
+from .capabilities import MANAGE_LAB
 from .model_parts.approvals import ApprovalState, PENDING_REVIEW_STATES
-from .models import LabAsset, LabAssetHandover, LabExperiment
+from .models import (
+    Department,
+    DepartmentMembership,
+    LabAsset,
+    LabAssetHandover,
+    LabExperiment,
+)
+from .permissions import (
+    capability_source,
+    is_lab_technician,
+    is_school_manager,
+    supervised_department_ids,
+)
 
 __all__ = [
     "assets_for_school",
     "experiments_for_school",
     "handovers_for_school",
+    "lab_departments_for_user",
     "lab_summary",
     "record_handover",
     "set_asset_condition",
@@ -30,14 +44,113 @@ __all__ = [
 # ─────────────────────────────────────────────────────────────────────────────
 # استعلامات العرض
 # ─────────────────────────────────────────────────────────────────────────────
-def assets_for_school(school, *, include_inactive: bool = False):
+def lab_departments_for_user(user, school):
+    """الأقسام التي تمثل مختبرات المستخدم داخل المدرسة.
+
+    المدير يرى كل الأقسام. محضّر المختبر يُحصر في عضوياته المباشرة ونطاقه
+    الإداري، وحامل التفويض المؤقت يرى المدرسة كلها لأن التفويض صادر من المدير.
+    وللتوافق مع المدارس القديمة ذات القسم الوحيد يُسند ذلك القسم تلقائياً؛ أما
+    وجود أكثر من قسم بلا إسناد فيُغلق النطاق بدلاً من فتح المختبرين معاً.
+    """
+    departments = Department.objects.filter(school=school, is_active=True).order_by(
+        "name", "id"
+    )
+    if user is None:
+        return departments
+    if getattr(user, "is_superuser", False) or is_school_manager(user, school):
+        return departments
+
+    source = capability_source(user, MANAGE_LAB, school)
+    if source == "delegation":
+        return departments
+
+    department_ids: set[int] = set()
+    if is_lab_technician(user, school):
+        department_ids.update(
+            int(pk)
+            for pk in DepartmentMembership.objects.filter(
+                teacher=user,
+                department__school=school,
+                department__is_active=True,
+            ).values_list("department_id", flat=True)
+        )
+    if source == "scope" or is_lab_technician(user, school):
+        department_ids.update(supervised_department_ids(user, school))
+
+    if department_ids:
+        return departments.filter(pk__in=department_ids)
+    if is_lab_technician(user, school) and departments.count() == 1:
+        return departments
+    return departments.none()
+
+
+def _assets_in_user_scope(school, user):
+    qs = LabAsset.objects.filter(school=school)
+    if user is None or getattr(user, "is_superuser", False) or is_school_manager(user, school):
+        return qs
+
+    departments = lab_departments_for_user(user, school)
+    department_ids = list(departments.values_list("id", flat=True))
+    if is_lab_technician(user, school):
+        if department_ids:
+            # السجلات القديمة غير المصنفة لا تُعرض إلا لصاحبها؛ فتظل قابلة
+            # للتصنيف من غير أن تصبح ممراً بين مختبري العلوم والحاسب.
+            return qs.filter(
+                Q(department_id__in=department_ids)
+                | Q(department__isnull=True, recorded_by=user)
+                | Q(department__isnull=True, custodian=user)
+            ).distinct()
+        if not Department.objects.filter(school=school, is_active=True).exists():
+            return qs.filter(department__isnull=True)
+        return qs.none()
+
+    source = capability_source(user, MANAGE_LAB, school)
+    if source == "delegation":
+        return qs
+    if source == "scope" and department_ids:
+        return qs.filter(
+            Q(department_id__in=department_ids) | Q(department__isnull=True)
+        )
+    return qs.none()
+
+
+def _experiments_in_user_scope(school, user):
+    qs = LabExperiment.objects.filter(school=school)
+    if user is None or getattr(user, "is_superuser", False) or is_school_manager(user, school):
+        return qs
+
+    departments = lab_departments_for_user(user, school)
+    department_ids = list(departments.values_list("id", flat=True))
+    if is_lab_technician(user, school):
+        if department_ids:
+            return qs.filter(
+                Q(department_id__in=department_ids)
+                | Q(department__isnull=True, recorder=user)
+            )
+        if not Department.objects.filter(school=school, is_active=True).exists():
+            return qs.filter(department__isnull=True)
+        return qs.none()
+
+    source = capability_source(user, MANAGE_LAB, school)
+    if source == "delegation":
+        return qs
+    if source == "scope" and department_ids:
+        return qs.filter(
+            Q(department_id__in=department_ids) | Q(department__isnull=True)
+        )
+    return qs.none()
+
+
+def assets_for_school(school, *, user=None, include_inactive: bool = False):
     """جرد المدرسة، ومعه ما تحتاجه الشاشة في استعلام واحد.
 
     الكمية الخارجة تُجمَّع في الاستعلام لا في حلقة: قراءة ``out_quantity`` لكل
     صفّ في كشفٍ من مئة صنف مئةُ استعلام — وهو ما لا يظهر في مختبرٍ فيه عشرة
     أصناف ويظهر بعد عام من الاستعمال.
     """
-    qs = LabAsset.objects.filter(school=school).select_related("custodian")
+    qs = _assets_in_user_scope(school, user).select_related(
+        "department", "custodian"
+    )
     if not include_inactive:
         qs = qs.filter(is_active=True)
     return qs.annotate(
@@ -52,25 +165,26 @@ def assets_for_school(school, *, include_inactive: bool = False):
     ).order_by("name", "id")
 
 
-def experiments_for_school(school):
+def experiments_for_school(school, *, user=None):
     return (
-        LabExperiment.objects.filter(school=school)
-        .select_related("recorder", "requested_by", "report")
+        _experiments_in_user_scope(school, user)
+        .select_related("department", "recorder", "requested_by", "report")
         .prefetch_related("assets")
         .order_by("-experiment_date", "-id")
     )
 
 
-def handovers_for_school(school, *, limit: int | None = None):
+def handovers_for_school(school, *, user=None, limit: int | None = None):
+    asset_ids = _assets_in_user_scope(school, user).values("pk")
     qs = (
-        LabAssetHandover.objects.filter(school=school)
-        .select_related("asset", "person", "recorded_by")
+        LabAssetHandover.objects.filter(school=school, asset_id__in=asset_ids)
+        .select_related("asset", "asset__department", "person", "recorded_by")
         .order_by("-happened_at", "-id")
     )
     return qs[:limit] if limit else qs
 
 
-def outstanding_handovers(school):
+def outstanding_handovers(school, *, user=None):
     """ما خرج من المختبر ولم يُرجَع — مجموعاً بالصنف والمستلم.
 
     السؤال العملي عند الجرد ليس «كم حركةً وقعت؟» بل «ماذا لا يزال خارج
@@ -80,8 +194,9 @@ def outstanding_handovers(school):
     # يجعل هذا الإرجاع في مجموعة مستقلة سالبة، فيبقى المستلم ظاهراً في كشف
     # المتأخرات رغم عودة الصنف فعلياً. نبني رصيداً زمنياً (FIFO) لكل صنف:
     # الإرجاع المسمّى يسوّي عهدة الشخص أولاً، وغير المسمّى يسوّي أقدم عهدة.
+    asset_ids = _assets_in_user_scope(school, user).values("pk")
     movements = (
-        LabAssetHandover.objects.filter(school=school)
+        LabAssetHandover.objects.filter(school=school, asset_id__in=asset_ids)
         .values(
             "asset_id",
             "asset__name",
@@ -156,9 +271,9 @@ def outstanding_handovers(school):
     return sorted(result, key=lambda row: (row["asset_name"], row["person_name"]))
 
 
-def lab_summary(school) -> dict:
+def lab_summary(school, *, user=None) -> dict:
     """مؤشرات المختبر — في استعلامين لا استعلامٍ لكل رقم."""
-    assets = LabAsset.objects.filter(school=school, is_active=True).aggregate(
+    assets = _assets_in_user_scope(school, user).filter(is_active=True).aggregate(
         total=Count("id"),
         attention=Count(
             "id", filter=Q(condition__in=LabAsset.ATTENTION_CONDITIONS)
@@ -166,7 +281,7 @@ def lab_summary(school) -> dict:
         missing=Count("id", filter=Q(condition=LabAsset.Condition.MISSING)),
         damaged=Count("id", filter=Q(condition=LabAsset.Condition.DAMAGED)),
     )
-    experiments = LabExperiment.objects.filter(school=school).aggregate(
+    experiments = _experiments_in_user_scope(school, user).aggregate(
         total=Count("id"),
         pending=Count("id", filter=Q(approval_state__in=PENDING_REVIEW_STATES)),
         approved=Count("id", filter=Q(approval_state=ApprovalState.APPROVED)),
@@ -181,7 +296,7 @@ def lab_summary(school) -> dict:
         "experiments_pending": int(experiments.get("pending") or 0),
         "experiments_approved": int(experiments.get("approved") or 0),
         "experiments_drafts": int(experiments.get("drafts") or 0),
-        "outstanding": len(outstanding_handovers(school)),
+        "outstanding": len(outstanding_handovers(school, user=user)),
     }
 
 

@@ -12,6 +12,7 @@ from datetime import timedelta
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from .form_widgets import DateTimeLocalInput
 
 from .models import Decision, Department, Meeting, MeetingAgendaItem, MeetingMinutes, SchoolMembership, Teacher
 from .permissions import is_school_manager, supervised_department_ids
@@ -32,7 +33,7 @@ class _MeetingFormBase(forms.ModelForm):
         model = Meeting
         fields = ("title", "purpose", "scheduled_at", "location")
         widgets = {
-            "scheduled_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "scheduled_at": DateTimeLocalInput(),
             "purpose": forms.Textarea(attrs={"rows": 3, "placeholder": "الغرض من الاجتماع…"}),
             "title": forms.TextInput(attrs={"placeholder": "مثال: اجتماع اللجنة التعليمية الأول"}),
             "location": forms.TextInput(attrs={"placeholder": "مثال: قاعة الاجتماعات"}),
@@ -290,9 +291,7 @@ class DecisionForm(forms.ModelForm):
             ),
             "agenda_item": forms.Select(attrs={"id": "id_decision_agenda_item"}),
             "responsible": forms.Select(attrs={"id": "id_decision_responsible"}),
-            "due_at": forms.DateTimeInput(
-                attrs={"id": "id_decision_due_at", "type": "datetime-local"}
-            ),
+            "due_at": DateTimeLocalInput(attrs={"id": "id_decision_due_at"}),
         }
 
     def __init__(self, *args, meeting=None, **kwargs):

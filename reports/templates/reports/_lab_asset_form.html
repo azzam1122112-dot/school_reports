@@ -11,6 +11,7 @@
     <legend><i class="fa-solid fa-tag" aria-hidden="true"></i> تعريف الصنف</legend>
     <p class="lab-form-section__hint">بيانات تساعد على العثور على الصنف ومطابقته مع كشف العهدة.</p>
     <div class="lab-grid-2">
+      {% include "reports/_lab_field.html" with field=form.department %}
       {% include "reports/_lab_field.html" with field=form.name %}
       {% include "reports/_lab_field.html" with field=form.code %}
       {% include "reports/_lab_field.html" with field=form.category %}

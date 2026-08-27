@@ -30,6 +30,7 @@ from django.utils import timezone
 from core.observability import report_degraded as _degraded, soft_fail
 
 from .validators import validate_circular_attachment_file
+from .form_widgets import DateTimeLocalInput
 from .gender_labels import school_gender_labels
 from .report_limits import (
     REPORT_DETAILS_MAX_LENGTH,
@@ -1072,11 +1073,27 @@ class TeacherCreateForm(forms.ModelForm):
         required=False,
         help_text="ينشئ له مساحة المعلّم وملف الإنجاز بجانب دوره الأساسي.",
     )
+    department = forms.ModelChoiceField(
+        label="القسم الأول",
+        queryset=Department.objects.none(),
+        required=False,
+        empty_label="— اختر القسم —",
+        widget=forms.Select(attrs={"class": "form-select"}),
+        help_text="مطلوب لمحضر المختبر حتى تنفصل عهدة العلوم عن عهدة الحاسب الآلي.",
+    )
 
     def __init__(self, *args, **kwargs):
         self._active_school = kwargs.pop("active_school", None)
         super().__init__(*args, **kwargs)
         self.fields["job_title"].choices = assignment_choices(self._active_school)
+        self.fields["department"].queryset = (
+            Department.objects.filter(
+                school=self._active_school,
+                is_active=True,
+            ).order_by("name", "id")
+            if self._active_school is not None
+            else Department.objects.none()
+        )
         self.assignment_cards = assignment_cards(self._active_school)
         self.initial.setdefault("job_title", SchoolMembership.RoleType.TEACHER)
 
@@ -1088,6 +1105,16 @@ class TeacherCreateForm(forms.ModelForm):
         assignment = get_assignment(code)
         if not assignment.supports_teaching_load:
             cleaned["keep_teaching_role"] = False
+        if code == SchoolMembership.JobTitle.LAB_TECH:
+            department = cleaned.get("department")
+            available = self.fields["department"].queryset
+            if department is None and available.count() == 1:
+                cleaned["department"] = available.first()
+            elif department is None:
+                self.add_error(
+                    "department",
+                    "حدّد قسم مختبر العلوم أو مختبر الحاسب الآلي قبل إنشاء المحضّر.",
+                )
         return cleaned
 
     def clean_national_id(self):
@@ -2002,7 +2029,7 @@ class NotificationCreateForm(forms.Form):
     message = forms.CharField(widget=forms.Textarea(attrs={"rows":5}), label="نص الإشعار")
     is_important = forms.BooleanField(required=False, initial=False, label="مهم")
     expires_at = forms.DateTimeField(required=False, label="ينتهي في (اختياري)",
-                                     widget=forms.DateTimeInput(attrs={"type":"datetime-local"}))
+                                     widget=DateTimeLocalInput())
 
     attachment = forms.FileField(
         required=False,
@@ -2028,7 +2055,7 @@ class NotificationCreateForm(forms.Form):
     signature_deadline_at = forms.DateTimeField(
         required=False,
         label="آخر موعد للتوقيع (اختياري)",
-        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        widget=DateTimeLocalInput(),
     )
     signature_ack_text = forms.CharField(
         required=False,

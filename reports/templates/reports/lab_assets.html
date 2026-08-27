@@ -115,13 +115,14 @@
         <table class="lab-table lab-table--cards">
           <thead>
             <tr>
-              <th>الصنف</th><th>الرقم</th><th>النوع</th>
+              <th>المختبر</th><th>الصنف</th><th>الرقم</th><th>النوع</th>
               <th>الكمية</th><th>المتاح</th><th>الحالة</th><th>الموقع</th>
             </tr>
           </thead>
           <tbody>
             {% for asset in page_obj.object_list %}
               <tr>
+                <td data-label="المختبر">{% firstof asset.department.name "غير مصنّف" %}</td>
                 <td data-label="الصنف"><a href="{% url 'reports:lab_asset_detail' asset.pk %}">{{ asset.name }}</a></td>
                 <td data-label="الرقم">{{ asset.code|default:"—" }}</td>
                 <td data-label="النوع">{{ asset.get_category_display }}</td>

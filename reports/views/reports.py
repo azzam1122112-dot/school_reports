@@ -62,6 +62,23 @@ from ._helpers import (
 )
 
 
+def _report_locked_reason(report, school, *, action: str) -> str:
+    """سبب منع إجراءٍ على تقرير خرج من يد مُعِدّه — بصيغة تقول ما العمل.
+
+    ``action`` مصدرٌ صريح («حذف التقرير») لا فعلٌ يُصرَّف في النص. ورسالةُ
+    منعٍ بلا مخرج تدفع صاحبها إلى الدعم، وما يحتاجه أن يعرف الطريق: السحب
+    بيده ما دام لم يُبَتّ فيه، والإعادة بيد مراجعه بعد ذلك.
+    """
+    from ..views._helpers import _school_manager_label
+
+    if getattr(report, "is_final", False):
+        return f"تعذّر {action}: التقرير معتمَد، والمعتمَد سجلٌّ لا يُغيَّر."
+    return (
+        f"تعذّر {action}: التقرير مُرسل وينتظر القرار. اسحبه للتعديل من صفحة "
+        f"الاعتماد، أو اطلب من {_school_manager_label(school)} إعادته إليك."
+    )
+
+
 def _report_evidence_post_data(request: HttpRequest):
     """طبقة توافق لعميل فتح نموذج التقرير قبل إطلاق formset الشواهد."""
     data = request.POST
@@ -631,6 +648,13 @@ def my_reports(request: HttpRequest) -> HttpResponse:
             "end_date": end_date.isoformat() if end_date else "",
             "q": q,
             "stats": stats,
+            # كشفُ التقارير هو المكان الذي يقصده المعلّم ليعمل على تقاريره،
+            # فحالةُ كلٍّ منها وبابُ إرسالها ينتميان إليه. وقبل هذا كان
+            # المفتاح مفعّلاً والكشف صامتاً عنه: يكتب المعلّم فتُحفظ مسودةً
+            # ولا شاشةَ تقول له إنها لم تصل أحداً ولا كيف يرسلها.
+            "report_approval_enabled": bool(
+                getattr(active_school, "report_approval_enabled", False)
+            ),
         },
     )
 
@@ -1589,7 +1613,7 @@ def admin_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
 # حذف تقرير (لوحة المسؤول Officer)
 # =========================
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff_or_officer, login_url="reports:login")
+@access_required(_is_staff_or_officer)
 @require_http_methods(["POST"])
 def officer_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
     """
@@ -1885,6 +1909,12 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                 "private_comments": private_comments,
                 "comment_form": comment_form,
                 "back_url": back_url,
+                # المعاينة هي ما يفتحه المعلّم من لوحة الرئيسية، فتقف عندها
+                # مسودتُه. شريطُها يعرض «طباعة» و«رجوع» فقط، فيطبع تقريراً لم
+                # يصل أحداً — لذلك يُعرض الباب هنا أيضاً لصاحبه وحده.
+                "report_approval_enabled": bool(
+                    getattr(school_scope, "report_approval_enabled", False)
+                ),
                 **evidence_context,
             },
         )
@@ -2507,6 +2537,14 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
     
     # التحقق من صلاحية التعديل
     if not can_edit_report(user, r, active_school=active_school):
+        is_owner = getattr(r, "teacher_id", None) == getattr(user, "id", None)
+        if is_owner:
+            # صاحبُ التقرير يملكه ولكن الدورة أخرجته من يده مؤقتاً: يُقال له
+            # السبب ويُردّ إلى تقاريره — لا إلى شاشة إدارةٍ لا يراها أصلاً.
+            messages.error(
+                request, _report_locked_reason(r, active_school, action="تعديل التقرير")
+            )
+            return redirect("reports:my_reports")
         messages.error(request, "لا تملك صلاحية تعديل هذا التقرير.")
         return redirect("reports:admin_reports")
 
@@ -2597,6 +2635,13 @@ def delete_my_report(request: HttpRequest, pk: int) -> HttpResponse:
     qs = Report.objects.filter(teacher=request.user)
     qs = _filter_by_school(qs, active_school)
     r = get_object_or_404(qs, pk=pk)
+
+    # المرسَل والمعتمَد خرجا من يد مُعِدّهما. والفحص هنا لا في الاستعلام
+    # ليقرأ المستخدم سبب المنع بدل أن يقابله 404 يوحي بأن تقريره اختفى.
+    if not can_delete_report(request.user, r, active_school=active_school):
+        messages.error(request, _report_locked_reason(r, active_school, action="حذف التقرير"))
+        return redirect("reports:my_reports")
+
     r.move_to_trash(by=request.user)
     messages.success(request, "تم نقل التقرير إلى سلة المحذوفات ويمكن استعادته.")
     nxt = _safe_next_url(request.POST.get("next") or request.GET.get("next"))

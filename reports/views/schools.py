@@ -15,6 +15,7 @@ from ._helpers import (
     _model_has_field, _get_active_school, _user_manager_schools,
     _clean_query_params, _clean_query_value, _parse_date_safe,
 )
+from ..academic_years import hijri_academic_year_options
 from ..context_processors import nav_context
 from ..cache_utils import get_school_dashboard_payload
 from ..gender_labels import school_gender_labels
@@ -419,75 +420,7 @@ def get_department_form():
 
 
 # ---- إعدادات المدرسة الحالية (لمدير المدرسة أو مالك النظام) ----
-def _approx_current_hijri_year() -> int:
-    """تقدير السنة الهجرية الحالية (يكفي لتوليد نطاق اختيار واسع)."""
-    import datetime
-
-    today = datetime.date.today()
-    g = today.year + (today.month - 1) / 12.0
-    try:
-        return int(round((g - 622) * 33.0 / 32.0))
-    except Exception:
-        return 1447
-
-
-def _hijri_academic_year_options(instance) -> list[str]:
-    """قائمة سنوات دراسية هجرية للاختيار.
-
-    المصدر الأساسي: السنوات النشطة التي يديرها مدير النظام (AcademicYear).
-    إن لم توجد سنوات مركزية، نتراجع لنطاق تلقائي محسوب (لضمان عدم تعطّل الصفحة).
-    في الحالتين نضمّ أي قيم محفوظة فعلًا في المدرسة حتى لا تختفي.
-    """
-    import re
-
-    existing: set[str] = set()
-    cur = (getattr(instance, "current_academic_year", "") or "").strip()
-    if re.match(r"^\d{4}-\d{4}$", cur):
-        existing.add(cur)
-    for y in (getattr(instance, "allowed_academic_years", None) or []):
-        ys = str(y).strip()
-        if re.match(r"^\d{4}-\d{4}$", ys):
-            existing.add(ys)
-
-    # المصدر المركزي (يديره الآدمن)
-    try:
-        from ..models import AcademicYear
-        central = list(
-            AcademicYear.objects.filter(is_active=True).values_list("value", flat=True)
-        )
-    except Exception:
-        central = []
-
-    if central:
-        values = set(central) | existing
-        return sorted(v for v in values if re.match(r"^\d{4}-\d{4}$", str(v)))
-
-    # ── تراجع: نطاق تلقائي محسوب ──
-    starts: set[int] = set()
-    candidates: list[int] = [_approx_current_hijri_year()]
-
-    cur = (getattr(instance, "current_academic_year", "") or "").strip()
-    m = re.match(r"^(\d{4})-(\d{4})$", cur)
-    if m:
-        s = int(m.group(1))
-        starts.add(s)
-        candidates.append(s)
-
-    for y in (getattr(instance, "allowed_academic_years", None) or []):
-        mm = re.match(r"^(\d{4})-(\d{4})$", str(y).strip())
-        if mm:
-            s = int(mm.group(1))
-            starts.add(s)
-            candidates.append(s)
-
-    # المرتكز = أحدث قيمة (يضمن ظهور السنوات القادمة حتى لو كانت السنة المحفوظة قديمة)
-    anchor = max(candidates)
-
-    # نطاق: 3 سنوات سابقة + 5 قادمة حول المرتكز (قائمة مركّزة وكافية)
-    for s in range(anchor - 3, anchor + 6):
-        starts.add(s)
-
-    return [f"{s}-{s + 1}" for s in sorted(starts)]
+# قائمة السنوات مشتركة مع نموذج رفع الوثائق — انظر ``reports/academic_years.py``.
 
 
 class _SchoolSettingsForm(forms.ModelForm):
@@ -510,7 +443,7 @@ class _SchoolSettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        year_options = _hijri_academic_year_options(self.instance)
+        year_options = hijri_academic_year_options(self.instance)
         choices = [(y, f"{y} هـ") for y in year_options]
 
         # السنة الحالية: قائمة منسدلة بدل الإدخال اليدوي
@@ -891,7 +824,7 @@ def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
 
     if request.method == "POST":
         action = request.POST.get("action")
-        teacher_id = request.POST.get("teacher_id")
+        teacher_id = coerce_pk(request.POST.get("teacher_id"))
         if not teacher_id:
             messages.error(request, f"الرجاء اختيار {labels['teacher']}.")
             return redirect("reports:school_managers_manage", pk=school.pk)
@@ -970,11 +903,13 @@ def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, "reports/school_managers_manage.html", context)
 
 # ---- لوحة المدير المجمعة ----
+# ``role_required({"manager"})`` وحده يحسم الوصول هنا: يمرّ مالك النظام، ويمرّ
+# مدير المدرسة النشطة، ويُردّ من عداهما إلى الرئيسية برسالة. وكان فوقه
+# ``user_passes_test(_is_staff)`` لا يضيف قيداً — فمن يمرّ من الأول يمرّ من
+# الثاني — بل يسبقه فيرمي المسجَّلَ بالفعل إلى **شاشة دخول** لا يحتاجها.
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff, login_url="reports:login")
 @role_required({"manager"})
 @require_http_methods(["GET", "POST"])
-
 def admin_dashboard(request: HttpRequest) -> HttpResponse:
     """لوحة عمل مدير المدرسة."""
     import json
@@ -1058,6 +993,19 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         # A full work bucket silently stops every upload in the school, so the
         # manager has to learn it here rather than from a teacher's failed save.
         ctx['storage_pressure'] = school_storage_pressure(active_school)
+
+        # ── السنة الدراسية غير محددة ────────────────────────────────────
+        # ملف الإنجاز لا يُنشأ إلا على سنة المدرسة الحالية، وهو شرطٌ مقصود:
+        # سنةٌ واحدة يقرّرها المدير أوضح من قائمةٍ يختار منها كل معلّم ما شاء.
+        # لكنّ الشرط كان صامتاً في اتجاه المدير: المعلّم يرى «لم تُحدد السنة»
+        # ولا يملك تحديدها، والمدير لا يرى شيئاً ولا يعلم أن مساراً كاملاً
+        # متوقّف عنده. فيُرفع التنبيه هنا حيث تُرفع بقية العوائق، ومعه السنةُ
+        # المقترحة من التقويم حتى يكون الضبط نظرةً لا بحثاً.
+        if not (getattr(active_school, "current_academic_year", "") or "").strip():
+            from ..hijri_utils import current_academic_year as _suggested_year
+
+            ctx['academic_year_unset'] = True
+            ctx['academic_year_suggestion'] = _suggested_year()
 
         # الاستهلاك الثلاثي معروضاً دائماً لا عند الخطر فقط: التنبيه وحده يخبر
         # المدير أنه اقترب من الحدّ، ولا يخبره أين هو منه قبل ذلك.
@@ -1966,7 +1914,7 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
             return redirect("reports:departments_list")
 
     if request.method == "POST":
-        teacher_id = request.POST.get("teacher_id")
+        teacher_id = coerce_pk(request.POST.get("teacher_id"))
         action = (request.POST.get("action") or "").strip()
 
         allowed_teachers = Teacher.objects.filter(is_active=True)
@@ -1975,7 +1923,7 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
                 school_memberships__school=active_school,
                 school_memberships__is_active=True,
             )
-        teacher = allowed_teachers.filter(pk=teacher_id).first()
+        teacher = allowed_teachers.filter(pk=teacher_id).first() if teacher_id else None
         if not teacher:
             labels = school_gender_labels(active_school)
             messages.error(request, f"{labels['teacher']} غير موجودة." if labels["is_girls"] else f"{labels['teacher']} غير موجود.")

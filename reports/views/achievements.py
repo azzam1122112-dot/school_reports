@@ -5,8 +5,8 @@ from __future__ import annotations
 from ._helpers import *
 from ._helpers import (
     _is_staff, _is_manager_in_school, _private_comment_role_label,
-    _model_has_field, _get_active_school, _school_teachers_obj_label,
-    _user_manager_schools,
+    _model_has_field, _get_active_school, _school_manager_label,
+    _school_teachers_obj_label, _user_manager_schools,
 )
 from ..gender_labels import school_gender_labels, school_gender_template_context
 
@@ -221,10 +221,25 @@ def achievement_my_files(request: HttpRequest) -> HttpResponse:
     )
 
 
+def _achievement_locked_reason(ach_file, school, *, action: str) -> str:
+    """سبب منع إجراءٍ على ملف إنجاز خرج من يد صاحبه — بصيغة تقول ما العمل.
+
+    رسالةٌ واحدة لكل المواضع، و``action`` مصدرٌ صريح («حذف ملف الإنجاز»)
+    لا فعلٌ يُصرَّف في النص. و«ممنوع» بلا مخرج تدفع المستخدم إلى الدعم، وما
+    يحتاجه أن يعرف مَن يفتح له الباب.
+    """
+    if ach_file.is_final:
+        return f"تعذّر {action}: الملف معتمَد، والمعتمَد سجلٌّ لا يُغيَّر."
+    return (
+        f"تعذّر {action}: الملف مُرسل وينتظر القرار. اطلب من "
+        f"{_school_manager_label(school)} إعادته إليك أولاً."
+    )
+
+
 @login_required(login_url="reports:login")
 @require_http_methods(["POST"])
 def achievement_file_delete(request: HttpRequest, pk: int) -> HttpResponse:
-    """حذف ملف إنجاز (للمالك فقط)."""
+    """حذف ملف إنجاز (للمالك فقط، وما دام في يده)."""
     active_school = _get_active_school(request)
     file = get_object_or_404(TeacherAchievementFile, pk=pk, teacher=request.user)
 
@@ -233,7 +248,15 @@ def achievement_file_delete(request: HttpRequest, pk: int) -> HttpResponse:
         messages.error(request, "لا تملك صلاحية حذف ملف إنجاز من مدرسة أخرى.")
         return redirect("reports:achievement_my_files")
     
-    # يمكن إضافة شرط الحالة لو أردنا منع حذف المعتمد، لكن السؤال يوحي بالحرية للتصحيح
+    # المعتمَد لا يُحذف، والمُرسَل لا يُسحب من تحت من يراجعه. وحرية التصحيح
+    # مكفولة في المسودة والمُعاد، وهما حالتا الملكية.
+    if not file.is_editable_by_owner:
+        messages.error(
+            request,
+            _achievement_locked_reason(file, active_school, action="حذف ملف الإنجاز"),
+        )
+        return redirect("reports:achievement_file_detail", pk=file.pk)
+
     file_school = getattr(file, "school", active_school)
     file.delete()
     sync_school_archive_storage_usage(file_school)
@@ -252,6 +275,15 @@ def achievement_file_update_year(request: HttpRequest, pk: int) -> HttpResponse:
     if active_school is not None and getattr(file, "school_id", None) != active_school.id:
         messages.error(request, "لا تملك صلاحية تعديل ملف إنجاز من مدرسة أخرى.")
         return redirect("reports:achievement_my_files")
+
+    # السنة هويّة الملف لا حقلاً فيه: تغييرها بعد الاعتماد ينقل شواهد سنةٍ
+    # إلى سجلّ سنةٍ أخرى، فيصير المعتمَد شاهداً على ما لم يُعتمد.
+    if not file.is_editable_by_owner:
+        messages.error(
+            request,
+            _achievement_locked_reason(file, active_school, action="تعديل السنة الدراسية"),
+        )
+        return redirect("reports:achievement_file_detail", pk=file.pk)
 
     current_year = (getattr(file.school, "current_academic_year", "") or "").strip()
     form = AchievementCreateYearForm(
@@ -472,7 +504,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             .order_by("code", "id")
         )
 
-    can_edit_teacher = bool(is_owner and ach_file.status in {TeacherAchievementFile.Status.DRAFT, TeacherAchievementFile.Status.RETURNED})
+    can_edit_teacher = bool(is_owner and ach_file.is_editable_by_owner)
     can_post = bool(can_edit_teacher or is_manager)
 
     general_form = TeacherAchievementFileForm(request.POST or None, instance=ach_file)

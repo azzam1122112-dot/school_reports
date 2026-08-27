@@ -96,6 +96,24 @@ class TeacherAchievementFile(models.Model):
             models.Index(fields=["teacher", "academic_year"]),
         ]
 
+    # ------------------------------------------------------------------
+    # قراءات الحالة — مصدر واحد تسأله الشاشة والخدمة معاً
+    # ------------------------------------------------------------------
+    # الحالات التي يملك فيها المعلّم ملفَّه. ما عداها بيد المدير: المُرسَل
+    # ينتظر قراره، والمعتمَد صار سجلّاً يُقيَّم عليه صاحبه — وسجلٌّ يمحوه
+    # المُقيَّم متى شاء ليس سجلاً. كان هذا الفهم مكتوباً في الشاشة وحدها
+    # (``can_edit_teacher``) فبقي الحذف وتعديل السنة خارجه.
+    OWNER_EDITABLE_STATES = frozenset({Status.DRAFT, Status.RETURNED})
+    FINAL_STATES = frozenset({Status.APPROVED})
+
+    @property
+    def is_editable_by_owner(self) -> bool:
+        return self.status in self.OWNER_EDITABLE_STATES
+
+    @property
+    def is_final(self) -> bool:
+        return self.status in self.FINAL_STATES
+
     def clean(self):
         self.academic_year = _normalize_academic_year_hijri(self.academic_year)
         _validate_academic_year_hijri(self.academic_year)

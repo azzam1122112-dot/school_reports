@@ -1048,43 +1048,85 @@ def _get_report_permission_scope(user, *, active_school: Optional[School] = None
     return cache_obj[key]
 
 
+def _can_lift_report_seal(user, report, *, active_school: Optional[School] = None) -> bool:
+    """هل يملك هذا المستخدم فكّ ختم الاعتماد عن هذا التقرير؟
+
+    **المعتمِد وحده.** قيدُ الحالة يحمي الختم، فمن يملك الختم لا يقيّده —
+    وإلا مُنع المدير من تقريره هو بعد أن اعتمده، بينما يتصرّف في تقارير من
+    دونه المعتمَدة بلا مانع. أما رئيسُ القسم فيراجع ولا يعتمد في المسارات
+    التي ينتهي فيها القرار إلى المدير، فتعديلُه تقريرَه المعتمَد تغييرٌ لما
+    ختمه **غيرُه** — وهي الثغرة نفسها لا استثناءً منها.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+
+    report_school = getattr(report, "school", None)
+    scope = _get_report_permission_scope(user, active_school=active_school, report_school=report_school)
+    if scope.get("is_superuser"):
+        return True
+    return getattr(report, "school_id", None) in scope.get("manager_school_ids", set())
+
+
+def _has_authority_over_report(user, report, *, active_school: Optional[School] = None) -> bool:
+    """سلطةٌ على التقرير من غير طريق ملكيته: سوبر، أو مديرُ مدرسته، أو رئيسُ قسمه."""
+    if _can_lift_report_seal(user, report, active_school=active_school):
+        return True
+    report_school = getattr(report, "school", None)
+    scope = _get_report_permission_scope(user, active_school=active_school, report_school=report_school)
+    return getattr(report, "category_id", None) in scope.get("officer_reporttype_ids", set())
+
+
 def _can_manage_report(user, report, *, active_school: Optional[School] = None) -> bool:
     if not getattr(user, "is_authenticated", False):
         return False
 
-    report_teacher_id = getattr(report, "teacher_id", None)
-    report_school = getattr(report, "school", None)
-    report_school_id = getattr(report, "school_id", None)
-    report_category_id = getattr(report, "category_id", None)
-
-    scope = _get_report_permission_scope(user, active_school=active_school, report_school=report_school)
-    if scope.get("is_superuser"):
+    if getattr(report, "teacher_id", None) == getattr(user, "id", None):
         return True
 
-    if report_teacher_id == getattr(user, "id", None):
-        return True
+    return _has_authority_over_report(user, report, active_school=active_school)
 
-    if report_school_id in scope.get("manager_school_ids", set()):
-        return True
 
-    if report_category_id in scope.get("officer_reporttype_ids", set()):
-        return True
+def _owner_locked_by_approval(user, report, *, active_school: Optional[School] = None) -> bool:
+    """هل خرج التقرير من يد صاحبه لأن دورة الاعتماد بلغت به مبلغاً؟
 
-    return False
+    **على مُعِدّه وحده.** ما أرسله لا يُسحب من تحت مراجعه، وما اعتُمد لا
+    يُبدَّل بعد ختمه — واعتمادٌ يُعدَّل بعده النصُّ ليس اعتماداً. وحالات
+    الملكية (مسودة، مُعاد، بانتظار استكمال) تبقى مفتوحة، وهي كل ما يحتاجه
+    للتصحيح. ومن يملك فكّ الختم لا يقيّده الختم — راجع ``_can_lift_report_seal``
+    لحدّ هذا الاستثناء ولماذا لا يبلغ رئيس القسم.
+
+    **ومدرسةٌ لم تفعّل الدورة لا يمسّها هذا.** تقاريرها تُحفظ ``approved``
+    فوراً بلا مراجعٍ ولا ختم، فقيدُها به يجمّد كل تقرير في المنصة لحظة
+    حفظه — وهو عكس المقصود تماماً.
+    """
+    if getattr(report, "teacher_id", None) != getattr(user, "id", None):
+        return False
+
+    if not getattr(getattr(report, "school", None), "report_approval_enabled", False):
+        return False
+
+    # ``is_editable_by_owner`` من ``ApprovalMixin``. غيابه يعني سجلاً خارج
+    # الدورة، ولا يُقيَّد بها.
+    if getattr(report, "is_editable_by_owner", None) is not False:
+        return False
+
+    return not _can_lift_report_seal(user, report, active_school=active_school)
 
 
 def can_delete_report(user, report, *, active_school: Optional[School] = None) -> bool:
     """
     يحدد هل المستخدم يستطيع حذف التقرير.
-    
+
     الصلاحيات:
     - السوبر: نعم
     - مدير المدرسة: نعم
     - رئيس القسم (OFFICER): نعم (للتقارير المرتبطة بقسمه)
     - عضو القسم (TEACHER): لا (عرض فقط)
-    - صاحب التقرير: نعم
+    - صاحب التقرير: نعم — ما دام التقرير في يده (راجع ``_owner_locked_by_approval``)
     """
-    return _can_manage_report(user, report, active_school=active_school)
+    if not _can_manage_report(user, report, active_school=active_school):
+        return False
+    return not _owner_locked_by_approval(user, report, active_school=active_school)
 
 
 def can_share_report(user, report, *, active_school: Optional[School] = None) -> bool:
@@ -1104,15 +1146,17 @@ def can_share_report(user, report, *, active_school: Optional[School] = None) ->
 def can_edit_report(user, report, *, active_school: Optional[School] = None) -> bool:
     """
     يحدد هل المستخدم يستطيع تعديل التقرير.
-    
+
     الصلاحيات:
     - السوبر: نعم
     - مدير المدرسة: نعم
     - رئيس القسم (OFFICER): نعم (للتقارير المرتبطة بقسمه)
     - عضو القسم (TEACHER): لا (عرض فقط)
-    - صاحب التقرير: نعم
+    - صاحب التقرير: نعم — ما دام التقرير في يده (راجع ``_owner_locked_by_approval``)
     """
-    return _can_manage_report(user, report, active_school=active_school)
+    if not _can_manage_report(user, report, active_school=active_school):
+        return False
+    return not _owner_locked_by_approval(user, report, active_school=active_school)
 
 
 # ==============================

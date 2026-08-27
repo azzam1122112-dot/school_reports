@@ -15,6 +15,7 @@
     </span>
     <h1>{{ experiment.title|default:"مسودة تجربة بلا عنوان" }}</h1>
     <p class="lab-hero__lead">
+      {% if experiment.department %}{{ experiment.department.name }} · {% endif %}
       <span dir="rtl">{% if experiment.experiment_date %}{{ experiment.experiment_date|hijri }}{% else %}لم يُحدَّد تاريخ التنفيذ{% endif %}</span>
       {% if experiment.subject %}· {{ experiment.subject }}{% endif %}
       {% if experiment.class_name %}· {{ experiment.class_name }}{% endif %}

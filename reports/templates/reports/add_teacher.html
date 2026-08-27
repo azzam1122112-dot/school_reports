@@ -433,6 +433,20 @@
           </section>
         {% endif %}
 
+        {% if form.department %}
+          <div class="tgrid" id="labDepartmentPanel" hidden aria-hidden="true">
+            <div class="group">
+              <label class="label" for="{{ form.department.id_for_label }}">
+                <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+                {{ form.department.label }}
+              </label>
+              {{ form.department }}
+              {% for e in form.department.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+              <div class="hint">{{ form.department.help_text }}</div>
+            </div>
+          </div>
+        {% endif %}
+
         <div class="actions">
           <button type="submit" class="btn btn-primary" id="submitBtn" data-confirming="{% if role_change_confirmation %}1{% else %}0{% endif %}">
             <i class="fas fa-save" aria-hidden="true"></i>
@@ -518,17 +532,25 @@
     const roleInputs = Array.from(document.querySelectorAll('input[name="job_title"][data-supports-teaching]'));
     const teachingPanel = document.getElementById("teachingLoadPanel");
     const teachingCheckbox = teachingPanel ? teachingPanel.querySelector('input[type="checkbox"]') : null;
+    const labDepartmentPanel = document.getElementById("labDepartmentPanel");
+    const departmentSelect = labDepartmentPanel ? labDepartmentPanel.querySelector('select') : null;
 
     function syncRoleExperience(){
       const selected = roleInputs.find(function(input){ return input.checked; });
       if(!selected){ return; }
       const supportsTeaching = selected.dataset.supportsTeaching === "1";
       const needsScope = selected.dataset.needsScope === "1";
+      const isLabTechnician = selected.value === "lab_tech";
       if(teachingPanel){
         teachingPanel.hidden = !supportsTeaching;
         teachingPanel.setAttribute("aria-hidden", supportsTeaching ? "false" : "true");
       }
       if(!supportsTeaching && teachingCheckbox){ teachingCheckbox.checked = false; }
+      if(labDepartmentPanel){
+        labDepartmentPanel.hidden = !isLabTechnician;
+        labDepartmentPanel.setAttribute("aria-hidden", isLabTechnician ? "false" : "true");
+      }
+      if(departmentSelect){ departmentSelect.required = isLabTechnician; }
       if(btn && btn.dataset.confirming !== "1"){
         btn.innerHTML = needsScope
           ? '<i class="fa-solid fa-arrow-left" aria-hidden="true"></i> حفظ ومتابعة للصلاحيات'

@@ -14,7 +14,7 @@ from ._helpers import (
 
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff_or_officer, login_url="reports:login")
+@access_required(_is_staff_or_officer)
 @ratelimit(key="user", rate="10/h", method="POST", block=True)
 @require_http_methods(["GET", "POST"])
 def notifications_create(request: HttpRequest, mode: str = "notification") -> HttpResponse:
@@ -107,7 +107,7 @@ def notifications_create(request: HttpRequest, mode: str = "notification") -> Ht
     )
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff_or_officer, login_url="reports:login")
+@access_required(_is_staff_or_officer)
 @require_http_methods(["POST"])
 def notification_delete(request: HttpRequest, pk: int) -> HttpResponse:
     if Notification is None:
@@ -220,7 +220,7 @@ def _mask_phone(val: str) -> str:
     return ("*" * (len(d) - 4)) + d[-4:]
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff_or_officer, login_url="reports:login")
+@access_required(_is_staff_or_officer)
 @require_http_methods(["GET"])
 def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
     if Notification is None:
@@ -612,7 +612,7 @@ def notification_sign(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff_or_officer, login_url="reports:login")
+@access_required(_is_staff_or_officer)
 @require_http_methods(["GET"])
 def notification_signatures_print(request: HttpRequest, pk: int) -> HttpResponse:
     if Notification is None or NotificationRecipient is None:
@@ -695,7 +695,7 @@ def notification_signatures_print(request: HttpRequest, pk: int) -> HttpResponse
 
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff_or_officer, login_url="reports:login")
+@access_required(_is_staff_or_officer)
 @require_http_methods(["GET"])
 def notification_signatures_csv(request: HttpRequest, pk: int) -> HttpResponse:
     if Notification is None or NotificationRecipient is None:
@@ -1050,7 +1050,7 @@ def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff_or_officer, login_url="reports:login")
+@access_required(_is_staff_or_officer)
 @require_http_methods(["GET"])
 def notifications_sent(request: HttpRequest, mode: str = "notification") -> HttpResponse:
     mode = (mode or "notification").strip().lower()
@@ -1304,6 +1304,6 @@ def notification_mark_read_by_notification(request: HttpRequest, pk: int) -> Htt
 
 # إبقاء المسار القديم للتوافق الخلفي: تحويل إلى صفحة الإنشاء
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff, login_url="reports:login")
+@access_required(_is_staff)
 def send_notification(request: HttpRequest) -> HttpResponse:
     return redirect("reports:notifications_create")

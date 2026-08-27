@@ -5,6 +5,7 @@ from __future__ import annotations
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from .form_widgets import DateTimeLocalInput
 
 from .models import (
     Department,
@@ -72,7 +73,7 @@ class PlanTaskForm(forms.ModelForm):
         widgets = {
             "title": forms.TextInput(attrs={"placeholder": "المهمة", "id": "id_plan_task_title"}),
             "description": forms.Textarea(attrs={"rows": 2, "placeholder": "تفصيل (اختياري)"}),
-            "due_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "due_at": DateTimeLocalInput(),
         }
 
     def __init__(self, *args, plan=None, **kwargs):

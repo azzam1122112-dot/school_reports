@@ -14,6 +14,7 @@ from datetime import timedelta
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from .form_widgets import DateTimeLocalInput
 
 from .models import (  # noqa: F401
     Assignment,
@@ -64,7 +65,7 @@ class SchoolAssignmentForm(forms.ModelForm):
             "min_evidence_count",
         )
         widgets = {
-            "due_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "due_at": DateTimeLocalInput(),
             "description": forms.Textarea(attrs={"rows": 4, "placeholder": "المطلوب بالتفصيل…"}),
             "title": forms.TextInput(attrs={"placeholder": "مثال: رفع تقرير الأسبوع التدريبي"}),
         }
@@ -301,7 +302,7 @@ class GroupAssignmentForm(forms.ModelForm):
         model = Assignment
         fields = ("title", "description", "priority", "due_at", "requires_evidence", "min_evidence_count")
         widgets = {
-            "due_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "due_at": DateTimeLocalInput(),
             "description": forms.Textarea(attrs={"rows": 4, "placeholder": "المطلوب من كل مدرسة…"}),
             "title": forms.TextInput(attrs={"placeholder": "مثال: رفع خطة التحسين للفصل الثاني"}),
         }

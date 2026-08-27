@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from django import forms
 from django.utils import timezone
+from .form_widgets import DateTimeLocalInput
 
 from .models import School
 from .validators import validate_circular_attachment_file
@@ -43,7 +44,7 @@ class GroupNotificationForm(forms.Form):
     signature_deadline_at = forms.DateTimeField(
         required=False,
         label="آخر موعد للتوقيع (اختياري)",
-        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        widget=DateTimeLocalInput(),
     )
     signature_ack_text = forms.CharField(
         required=False,

@@ -13,6 +13,7 @@ from datetime import timedelta
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from .form_widgets import DateTimeLocalInput
 
 from . import capabilities as caps
 from .models import Delegation, Department, SchoolMembership, StaffScope, Teacher
@@ -183,15 +184,9 @@ class DelegationForm(forms.ModelForm):
         model = Delegation
         fields = ("delegate", "capabilities", "reason", "starts_at", "ends_at")
         widgets = {
-            # الصيغة مثبَّتة على ما يقرأه ``datetime-local``: بدونها يُطبع الوقت
-            # الابتدائي بصيغة جانغو العامة فيرفضه المتصفح ويعرض حقلاً فارغاً،
-            # فيظن المدير أن عليه كتابة التاريخين من الصفر.
-            "starts_at": forms.DateTimeInput(
-                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
-            ),
-            "ends_at": forms.DateTimeInput(
-                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
-            ),
+            # الصيغة تحرسها ``DateTimeLocalInput`` نفسها — انظر شرحها هناك.
+            "starts_at": DateTimeLocalInput(),
+            "ends_at": DateTimeLocalInput(),
             "reason": forms.TextInput(attrs={"placeholder": "مثال: إجازة المدير من 5 إلى 12"}),
         }
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .approvals import ApprovalMixin
 from .base import *
-from .schools import School, Teacher
+from .schools import Department, School, Teacher
 
 __all__ = ["LabAsset", "LabAssetHandover", "LabExperiment"]
 
@@ -59,6 +59,15 @@ class LabAsset(models.Model):
         verbose_name="المدرسة",
         db_index=True,
     )
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="lab_assets",
+        verbose_name="المختبر / القسم",
+        help_text="يفصل عهدة مختبر العلوم عن عهدة مختبر الحاسب الآلي.",
+    )
     name = models.CharField("اسم الصنف", max_length=200)
     code = models.CharField(
         "رقم العهدة / الرقم التسلسلي",
@@ -110,8 +119,8 @@ class LabAsset(models.Model):
         verbose_name = "صنف في عهدة المختبر"
         verbose_name_plural = "عهدة المختبر"
         indexes = [
-            models.Index(fields=["school", "condition"]),
-            models.Index(fields=["school", "category"]),
+            models.Index(fields=["school", "department", "condition"]),
+            models.Index(fields=["school", "department", "category"]),
         ]
 
     def __str__(self) -> str:
@@ -150,6 +159,14 @@ class LabAsset(models.Model):
         self.name = (self.name or "").strip()
         if not self.name:
             raise ValidationError({"name": "اسم الصنف مطلوب."})
+        if (
+            self.department_id
+            and self.school_id
+            and self.department.school_id != self.school_id
+        ):
+            raise ValidationError(
+                {"department": "المختبر المختار لا يتبع المدرسة الحالية."}
+            )
 
 
 class LabAssetHandover(models.Model):
@@ -301,6 +318,15 @@ class LabExperiment(ApprovalMixin):
         verbose_name="المدرسة",
         db_index=True,
     )
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="lab_experiments",
+        verbose_name="المختبر / القسم",
+        help_text="يفصل تجارب مختبر العلوم عن تجارب مختبر الحاسب الآلي.",
+    )
     recorder = models.ForeignKey(
         Teacher,
         on_delete=models.SET_NULL,
@@ -365,8 +391,8 @@ class LabExperiment(ApprovalMixin):
         verbose_name = "تجربة مختبر"
         verbose_name_plural = "تجارب المختبر"
         indexes = [
-            models.Index(fields=["school", "-experiment_date"]),
-            models.Index(fields=["school", "approval_state"]),
+            models.Index(fields=["school", "department", "-experiment_date"]),
+            models.Index(fields=["school", "department", "approval_state"]),
         ]
 
     def __str__(self) -> str:
@@ -388,17 +414,33 @@ class LabExperiment(ApprovalMixin):
                 "اكتب خطوات التنفيذ — التجربة بلا خطوات لا تُقرأ ولا تُكرَّر."
             )
 
+    def clean(self):
+        super().clean()
+        if (
+            self.department_id
+            and self.school_id
+            and self.department.school_id != self.school_id
+        ):
+            raise ValidationError(
+                {"department": "المختبر المختار لا يتبع المدرسة الحالية."}
+            )
+
     def can_review_approval(self, user, school):
         """من يراجع التجربة غير مدير المدرسة.
 
-        من مُنح ``manage_lab`` في هذه المدرسة. ولا يُشترط قسمٌ في النطاق: المختبر
-        وحدةٌ واحدة في المدرسة لا تتوزّع على الأقسام، فاشتراط قسمٍ يشملها كان
-        سيمنع كل وكيلٍ نطاقه أقسامٌ تعليمية — وهم كل من يُمنح متابعة المختبر.
+        من مُنح ``manage_lab`` في هذه المدرسة وفي نطاق المختبر نفسه. التفويض
+        المؤقت من المدير يشمل المدرسة، أما الصلاحية الدائمة فتتقيد بالأقسام
+        المسندة حتى لا يراجع مسؤول مختبر العلوم عملاً يخص مختبر الحاسب.
         """
         from ..capabilities import MANAGE_LAB
-        from ..permissions import capability_source
+        from ..permissions import capability_source, supervised_department_ids
 
-        return capability_source(user, MANAGE_LAB, school) is not None
+        source = capability_source(user, MANAGE_LAB, school)
+        if source is None:
+            return False
+        if source == "delegation" or self.department_id is None:
+            return True
+        return self.department_id in supervised_department_ids(user, school)
 
     def can_finalize_approval(self, user, school):
         """Break the manager-owned experiment deadlock without self-approval.
@@ -411,7 +453,11 @@ class LabExperiment(ApprovalMixin):
         final approval belongs to the school manager.
         """
         from ..capabilities import MANAGE_LAB, RECOMMEND_APPROVAL
-        from ..permissions import capability_source, is_school_manager
+        from ..permissions import (
+            capability_source,
+            is_school_manager,
+            supervised_department_ids,
+        )
 
         recorder_id = getattr(self, "recorder_id", None)
         if not recorder_id or not is_school_manager(
@@ -420,7 +466,10 @@ class LabExperiment(ApprovalMixin):
             return None
         if recorder_id == getattr(user, "pk", None):
             return False
-        return bool(
-            capability_source(user, MANAGE_LAB, school) is not None
-            and capability_source(user, RECOMMEND_APPROVAL, school) is not None
-        )
+        manage_source = capability_source(user, MANAGE_LAB, school)
+        approval_source = capability_source(user, RECOMMEND_APPROVAL, school)
+        if manage_source is None or approval_source is None:
+            return False
+        if manage_source == "delegation" or self.department_id is None:
+            return True
+        return self.department_id in supervised_department_ids(user, school)

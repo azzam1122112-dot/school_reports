@@ -687,14 +687,14 @@ def ticket_print(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff, login_url="reports:login")
+@access_required(_is_staff)
 @require_http_methods(["GET", "POST"])
 def admin_request_update(request: HttpRequest, pk: int) -> HttpResponse:
     return ticket_detail(request, pk)
 
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff, login_url="reports:login")
+@access_required(_is_staff)
 @require_http_methods(["GET"])
 def tickets_inbox(request: HttpRequest) -> HttpResponse:
     active_school = _get_active_school(request)

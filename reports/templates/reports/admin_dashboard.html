@@ -1180,7 +1180,7 @@
     </section>
   {% endif %}
 
-  {% if subscription_warning or storage_pressure.needs_attention %}
+  {% if subscription_warning or storage_pressure.needs_attention or academic_year_unset %}
     <div class="manager-alert-stack" aria-label="تنبيهات المدرسة">
       {% if subscription_warning %}
         <div class="manager-subscription-alert {% if subscription_warning == 'critical' %}is-critical{% elif subscription_warning == 'expired' %}is-expired{% endif %}" role="status">
@@ -1217,6 +1217,24 @@
             {% endif %}
           </div>
           <a href="#managerResources">مراجعة المساحة</a>
+        </div>
+      {% endif %}
+
+      {% comment %} السنة الدراسية غير محددة: عائقٌ صامت في اتجاه المدير.
+         المعلّم يقرأ في شاشته «لم تُحدد السنة الدراسية الحالية» ولا يملك
+         تحديدها، والمدير لا يقرأ شيئاً — فيبقى مسار ملف الإنجاز مقفلاً على
+         المدرسة كلها بلا من يعلم أين المفتاح. {% endcomment %}
+      {% if academic_year_unset %}
+        <div class="manager-subscription-alert is-critical" role="status">
+          <i class="fa-regular fa-calendar-xmark" aria-hidden="true"></i>
+          <div class="manager-subscription-alert__content">
+            <strong>السنة الدراسية الحالية غير محددة</strong>
+            <span>
+              لا يستطيع {{ SCHOOL_TEACHERS_LABEL|default:"المعلمون" }} إنشاء ملفات الإنجاز قبل تحديدها.
+              {% if academic_year_suggestion %}السنة الجارية بحسب التقويم: <b>{{ academic_year_suggestion }} هـ</b>.{% endif %}
+            </span>
+          </div>
+          <a href="{% url 'reports:school_settings' %}">تحديد السنة</a>
         </div>
       {% endif %}
     </div>

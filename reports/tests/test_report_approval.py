@@ -683,3 +683,212 @@ class ApprovalInboxTests(TestCase):
         )
         self.assertContains(response, "تاريخ الاعتماد")
         self.assertContains(response, "عمل جيد")
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class OwnerLockTests(TestCase):
+    """القاعدة الثانية — «المعتمد نهائي» — مطبَّقةً على مُعِدّ التقرير.
+
+    كانت القاعدة محروسةً في الخدمة وحدها: ``available_actions`` لا تعرض على
+    صاحب المعتمَد شيئاً. لكن ``edit_my_report`` و``delete_my_report`` لا تمرّان
+    بالخدمة، وكان ``can_edit_report`` يفحص الدور والملكية بلا نظرٍ إلى الحالة —
+    فالمعلّم يعدّل نصّ تقريره المعتمَد والختمُ قائم فوقه، ويرمي المرسَل في
+    السلة من تحت مراجعه.
+    """
+
+    def setUp(self):
+        self.school = _school("مدرسة القفل", "lock-school")
+        self.manager = _user("المدير", "0500025001")
+        SchoolMembership.objects.create(
+            school=self.school, teacher=self.manager, role_type=SchoolMembership.RoleType.MANAGER
+        )
+        self.teacher = _user("المعلم", "0500025002")
+        SchoolMembership.objects.create(
+            school=self.school, teacher=self.teacher, role_type=SchoolMembership.RoleType.TEACHER
+        )
+        self.category = ReportType.objects.create(
+            school=self.school, code="visit", name="زيارة صفية"
+        )
+
+    def _report(self, state: str, *, owner=None) -> Report:
+        return Report.objects.create(
+            school=self.school,
+            teacher=owner or self.teacher,
+            title="زيارة",
+            report_date=date(2026, 8, 1),
+            category=self.category,
+            approval_state=state,
+        )
+
+    def _login(self, user):
+        self.client.force_login(user)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+    # ── ما يبقى في يد صاحبه ──────────────────────────────────────────
+    def test_the_owner_still_edits_and_deletes_a_draft(self):
+        from reports.permissions import can_delete_report, can_edit_report
+
+        for state in (ApprovalState.DRAFT, ApprovalState.RETURNED, ApprovalState.NEEDS_INFO):
+            report = self._report(state)
+            self.assertTrue(
+                can_edit_report(self.teacher, report, active_school=self.school), state
+            )
+            self.assertTrue(
+                can_delete_report(self.teacher, report, active_school=self.school), state
+            )
+
+    # ── ما خرج من يده ────────────────────────────────────────────────
+    def test_the_owner_cannot_edit_a_submitted_or_approved_report(self):
+        from reports.permissions import can_edit_report
+
+        for state in (
+            ApprovalState.SUBMITTED,
+            ApprovalState.UNDER_REVIEW,
+            ApprovalState.RECOMMENDED,
+            ApprovalState.APPROVED,
+        ):
+            report = self._report(state)
+            self.assertFalse(
+                can_edit_report(self.teacher, report, active_school=self.school), state
+            )
+
+    def test_editing_an_approved_report_leaves_its_text_untouched(self):
+        report = self._report(ApprovalState.APPROVED)
+        self._login(self.teacher)
+
+        response = self.client.post(
+            reverse("reports:edit_my_report", args=[report.pk]),
+            {
+                "section_selection_enabled": "1",
+                "title": "عنوان مدسوس بعد الختم",
+                "report_date": "2026-08-01",
+                "category": self.category.code,
+                "show_details": "on",
+                "idea": "نصٌّ بديل يكفي طوله لاجتياز التحقق من الحقول.",
+                "evidence-TOTAL_FORMS": "0",
+                "evidence-INITIAL_FORMS": "0",
+                "evidence-MIN_NUM_FORMS": "0",
+                "evidence-MAX_NUM_FORMS": "8",
+            },
+        )
+
+        report.refresh_from_db()
+        self.assertEqual(report.title, "زيارة")
+        self.assertEqual(report.approval_state, ApprovalState.APPROVED)
+        # يُردّ إلى تقاريره لا إلى شاشة إدارةٍ لا يراها.
+        self.assertRedirects(response, reverse("reports:my_reports"))
+
+    def test_the_owner_cannot_trash_an_approved_report(self):
+        report = self._report(ApprovalState.APPROVED)
+        self._login(self.teacher)
+
+        self.client.post(reverse("reports:delete_my_report", args=[report.pk]))
+
+        report.refresh_from_db()
+        self.assertIsNone(report.trashed_at)
+
+    def test_the_owner_cannot_trash_a_report_under_review(self):
+        report = self._report(ApprovalState.SUBMITTED)
+        self._login(self.teacher)
+
+        self.client.post(reverse("reports:delete_my_report", args=[report.pk]))
+
+        report.refresh_from_db()
+        self.assertIsNone(report.trashed_at)
+
+    # ── حدود القفل ───────────────────────────────────────────────────
+    def test_the_manager_is_not_bound_by_a_seal_they_own(self):
+        """من يملك فكّ الختم لا يقيّده الختم — وإلا مُنع المدير من تقريره هو."""
+        from reports.permissions import can_delete_report, can_edit_report
+
+        own = self._report(ApprovalState.APPROVED, owner=self.manager)
+        theirs = self._report(ApprovalState.APPROVED)
+
+        for report in (own, theirs):
+            self.assertTrue(can_edit_report(self.manager, report, active_school=self.school))
+            self.assertTrue(can_delete_report(self.manager, report, active_school=self.school))
+
+    def test_a_school_without_the_workflow_is_untouched_by_the_lock(self):
+        """تقاريرها تُحفظ ``approved`` فوراً، فقيدُها به يجمّدها لحظة حفظها."""
+        from reports.permissions import can_delete_report, can_edit_report
+
+        legacy = _school("مدرسة بلا دورة", "lock-legacy", approval=False)
+        teacher = _user("معلم تقليدي", "0500025003")
+        SchoolMembership.objects.create(
+            school=legacy, teacher=teacher, role_type=SchoolMembership.RoleType.TEACHER
+        )
+        report = Report.objects.create(
+            school=legacy,
+            teacher=teacher,
+            title="تقرير",
+            report_date=date(2026, 8, 1),
+            approval_state=ApprovalState.APPROVED,
+        )
+
+        self.assertTrue(can_edit_report(teacher, report, active_school=legacy))
+        self.assertTrue(can_delete_report(teacher, report, active_school=legacy))
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class OwnerSubmissionDoorTests(TestCase):
+    """للمعلّم بابٌ يرسل منه مسودته.
+
+    زرّ الإرسال يعيش في ``approval_detail``، وتبويب «الاعتماد» مخفيّ عمّن لا
+    يراجع. فكان المعلّم في مدرسةٍ فعّلت الدورة يكتب تقريره فيُحفظ مسودةً ولا
+    شاشةَ تقول له إنها لم تبلغ أحداً ولا كيف يرسلها — والمنصة تعدّه موثَّقاً.
+    """
+
+    def setUp(self):
+        self.school = _school("مدرسة الباب", "door-school")
+        self.teacher = _user("المعلم", "0500026001")
+        SchoolMembership.objects.create(
+            school=self.school, teacher=self.teacher, role_type=SchoolMembership.RoleType.TEACHER
+        )
+        self.category = ReportType.objects.create(
+            school=self.school, code="program", name="برنامج"
+        )
+        self.report = Report.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            title="برنامج القراءة",
+            report_date=date(2026, 8, 1),
+            category=self.category,
+        )
+        self.client.force_login(self.teacher)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+    def test_my_reports_shows_the_state_and_a_way_to_submit(self):
+        response = self.client.get(reverse("reports:my_reports"))
+
+        self.assertContains(response, "مسودة")
+        self.assertContains(response, reverse("reports:approval_detail", args=[self.report.pk]))
+
+    def test_the_preview_offers_the_owner_a_send_button(self):
+        response = self.client.get(reverse("reports:report_print", args=[self.report.pk]))
+
+        self.assertContains(response, "إرسال للاعتماد")
+        self.assertContains(response, reverse("reports:approval_detail", args=[self.report.pk]))
+
+    def test_the_home_draft_counter_links_to_the_list(self):
+        response = self.client.get(reverse("reports:home"))
+
+        self.assertContains(response, "مسودة لم تُرسل بعد")
+        self.assertContains(response, "th-note-link")
+
+    def test_a_school_without_the_workflow_shows_no_state_noise(self):
+        """وسمُ «معتمد» على كل صفّ في مدرسةٍ بلا مراجع يخبر عن لا شيء."""
+        self.school.report_approval_enabled = False
+        self.school.save(update_fields=["report_approval_enabled"])
+
+        body = self.client.get(reverse("reports:my_reports")).content.decode("utf-8")
+        body = body.split("</style>")[-1]
+
+        self.assertNotIn('class="id-chip mr-state"', body)
+        self.assertNotIn("mr-iconbtn mr-send", body)
+        # وزرّا التعديل والحذف باقيان كما كانا قبل هذه المرحلة.
+        self.assertIn(reverse("reports:edit_my_report", args=[self.report.pk]), body)
+        self.assertIn(reverse("reports:delete_my_report", args=[self.report.pk]), body)

@@ -79,6 +79,7 @@
       <thead>
         <tr>
           <th class="xs-lab-assets-print-1">م</th>
+          <th>المختبر</th>
           <th>الصنف</th>
           <th>الرقم</th>
           <th>النوع</th>
@@ -92,6 +93,7 @@
         {% for asset in assets %}
           <tr>
             <td>{{ forloop.counter }}</td>
+            <td>{% firstof asset.department.name "غير مصنّف" %}</td>
             <td>{{ asset.name }}</td>
             <td>{{ asset.code|default:"—" }}</td>
             <td>{{ asset.get_category_display }}</td>

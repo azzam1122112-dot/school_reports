@@ -887,7 +887,12 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
         ["رقم الجوال", "مطلوب", "0551234567", "اسم الدخول وكلمة المرور المؤقتة."],
         ["رقم الهوية", "اختياري", "1012345678", "10 أرقام عند إدخاله."],
         ["المسمى الوظيفي", "اختياري", labels["teacher_indefinite"], " أو ".join(job_labels) + "."],
-        ["القسم", "اختياري", "النشاط الطلابي", "اكتب اسم القسم كما يظهر في النظام."],
+        [
+            "القسم",
+            "مطلوب لمحضر المختبر",
+            "قسم العلوم",
+            "يفصل عهدة وتجارب مختبر العلوم عن مختبر الحاسب الآلي.",
+        ],
         ["تنبيه", "", "", f"لا تنسخ صفوف الأمثلة إلى ورقة {labels['teachers']}."],
     ]
     for row in instruction_rows:
@@ -978,6 +983,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
 
     assignment_code = form.cleaned_data["job_title"]
     keep_teaching = bool(form.cleaned_data.get("keep_teaching_role"))
+    initial_department = form.cleaned_data.get("department")
     assignment = get_assignment(assignment_code)
     assignment_label = next(
         (
@@ -1038,6 +1044,12 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                 keep_teaching_role=keep_teaching,
             )
             if exact_assignment:
+                if initial_department is not None:
+                    DepartmentMembership.objects.update_or_create(
+                        department=initial_department,
+                        teacher=existing_teacher,
+                        defaults={"role_type": DepartmentMembership.TEACHER},
+                    )
                 messages.info(request, "الحساب مرتبط بالفعل بهذه المدرسة بالتكليف المختار.")
                 return redirect(
                     "reports:add_teacher"
@@ -1066,6 +1078,12 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                     keep_teaching_role=keep_teaching,
                     actor=request.user,
                 )
+                if initial_department is not None:
+                    DepartmentMembership.objects.update_or_create(
+                        department=initial_department,
+                        teacher=existing_teacher,
+                        defaults={"role_type": DepartmentMembership.TEACHER},
+                    )
             messages.success(
                 request,
                 f"تم ربط الحساب الموجود وإسناد دور «{assignment_label}» دون تغيير بيانات دخوله.",
@@ -1080,6 +1098,12 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                     keep_teaching_role=keep_teaching,
                     actor=request.user,
                 )
+                if initial_department is not None:
+                    DepartmentMembership.objects.update_or_create(
+                        department=initial_department,
+                        teacher=teacher,
+                        defaults={"role_type": DepartmentMembership.TEACHER},
+                    )
             messages.success(
                 request,
                 "تمت إضافة المنسوب. كلمة المرور المؤقتة هي رقم الجوال، وسيُطلب تغييرها عند أول دخول.",

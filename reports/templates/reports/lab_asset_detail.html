@@ -15,6 +15,7 @@
     </span>
     <h1>{{ asset.name }}</h1>
     <p class="lab-hero__lead">
+      {% if asset.department %}{{ asset.department.name }} · {% endif %}
       {{ asset.get_category_display }}
       {% if asset.code %}· رقم العهدة {{ asset.code }}{% endif %}
       {% if asset.location %}· {{ asset.location }}{% endif %}
