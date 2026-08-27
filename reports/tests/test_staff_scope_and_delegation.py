@@ -467,6 +467,7 @@ class StaffRolesScreenTests(TestCase):
                 "action": "assign_role",
                 "member": self.teacher.pk,
                 "role_type": SchoolMembership.JobTitle.LAB_TECH,
+                "lab_kind": "science",
             },
         )
         self.assertEqual(response.status_code, 302)
@@ -504,6 +505,7 @@ class StaffRolesScreenTests(TestCase):
                 "action": "assign_role",
                 "member": self.teacher.pk,
                 "role_type": SchoolMembership.JobTitle.LAB_TECH,
+                "lab_kind": "science",
                 "keep_teaching_role": "on",
             },
         )
@@ -530,6 +532,7 @@ class StaffRolesScreenTests(TestCase):
                 "action": "assign_role",
                 "member": self.teacher.pk,
                 "role_type": SchoolMembership.JobTitle.LAB_TECH,
+                "lab_kind": "science",
             },
         )
         membership = SchoolMembership.objects.get(

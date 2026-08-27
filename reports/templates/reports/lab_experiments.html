@@ -108,7 +108,7 @@
           <tbody>
             {% for experiment in page_obj.object_list %}
               <tr>
-                <td data-label="المختبر">{% firstof experiment.department.name "غير مصنّف" %}</td>
+                <td data-label="المختبر">{% firstof experiment.get_lab_kind_display "غير مصنّف" %}</td>
                 <td data-label="التجربة"><a href="{% url 'reports:lab_experiment_detail' experiment.pk %}">{{ experiment.title|default:"مسودة بلا عنوان" }}</a></td>
                 <td data-label="التاريخ" dir="rtl">{% if experiment.experiment_date %}{{ experiment.experiment_date|hijri }}{% else %}—{% endif %}</td>
                 <td data-label="المادة">{{ experiment.subject|default:"—" }}</td>

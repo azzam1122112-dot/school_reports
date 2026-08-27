@@ -93,7 +93,7 @@
         {% for asset in assets %}
           <tr>
             <td>{{ forloop.counter }}</td>
-            <td>{% firstof asset.department.name "غير مصنّف" %}</td>
+            <td>{% firstof asset.get_lab_kind_display "غير مصنّف" %}</td>
             <td>{{ asset.name }}</td>
             <td>{{ asset.code|default:"—" }}</td>
             <td>{{ asset.get_category_display }}</td>

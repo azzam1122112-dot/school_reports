@@ -601,6 +601,15 @@
           <div class="rol-field__help">{{ assign_form.keep_teaching_role.help_text }}</div>
         </div>
 
+        <div class="rol-field u-mt-lg">
+          <label for="{{ assign_form.lab_kind.id_for_label }}">{{ assign_form.lab_kind.label }}</label>
+          {{ assign_form.lab_kind }}
+          {% if assign_form.lab_kind.errors %}
+            <ul class="rol-errors">{% for e in assign_form.lab_kind.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+          {% endif %}
+          <div class="rol-field__help">{{ assign_form.lab_kind.help_text }}</div>
+        </div>
+
         {% if assign_form.non_field_errors %}
           <ul class="rol-errors">{% for e in assign_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
         {% endif %}

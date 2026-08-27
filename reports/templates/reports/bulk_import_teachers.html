@@ -393,7 +393,7 @@
               <th>الصف</th>
               <th>الاسم</th>
               <th>الجوال</th>
-              <th>المسمى / القسم</th>
+              <th>المسمى / القسم / المختبر</th>
               <th>النتيجة</th>
               <th>الملاحظات</th>
             </tr>
@@ -407,6 +407,7 @@
                 <td>
                   {{ row.job_title_label }}
                   {% if row.department_name %}<div class="ob-card-copy">{{ row.department_name }}</div>{% endif %}
+                  {% if row.lab_kind_label %}<div class="ob-card-copy">{{ row.lab_kind_label }}</div>{% endif %}
                 </td>
                 <td><span class="ob-state {% if row.state == 'invalid' %}ob-state--invalid{% endif %}">{{ row.state_label }}</span></td>
                 <td>
@@ -509,7 +510,7 @@
         <div class="ob-card-head">
           <div>
             <h2 class="ob-card-title" id="quickModeTitle">أدخل عدة مستخدمين مرة واحدة</h2>
-            <p class="ob-card-copy">يكفي الاسم ورقم الجوال. المسمى الافتراضي «{{ SCHOOL_TEACHER_INDEFINITE_LABEL|default:"معلم" }}»، ويمكن إضافة الهوية والقسم عند الحاجة.</p>
+            <p class="ob-card-copy">يكفي الاسم ورقم الجوال. المسمى الافتراضي «{{ SCHOOL_TEACHER_INDEFINITE_LABEL|default:"معلم" }}»، ويُحدّد المختبر فقط لمحضر المختبر.</p>
           </div>
           <a class="ob-btn ob-btn-secondary" href="{% url 'reports:add_teacher' %}">إضافة فردية</a>
         </div>
@@ -526,6 +527,7 @@
                   <th>رقم الهوية</th>
                   <th>المسمى الوظيفي</th>
                   <th>القسم</th>
+                  <th>المختبر</th>
                   <th><span class="sr-only">حذف</span></th>
                 </tr>
               </thead>
@@ -547,6 +549,12 @@
                       </select>
                     </td>
                     <td>
+                      <select class="ob-input" name="lab_kind" aria-label="المختبر للصف {{ forloop.counter }}">
+                        <option value="">ليس محضر مختبر</option>
+                        {% for value, label in lab_kind_choices %}<option value="{{ value }}" {% if row.lab_kind == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                      </select>
+                    </td>
+                    <td>
                       <button class="ob-remove remove-quick-row" type="submit" name="remove_row" value="{{ forloop.counter0 }}" aria-label="حذف الصف {{ forloop.counter }}">
                         <i class="fa-solid fa-trash" aria-hidden="true"></i>
                       </button>
@@ -563,7 +571,7 @@
 
           <details class="ob-paste">
             <summary>لصق عدة صفوف مباشرة من Excel</summary>
-            <p>انسخ الأعمدة بالترتيب: الاسم، الجوال، الهوية، المسمى، القسم. يمكن الاكتفاء بالاسم والجوال.</p>
+            <p>انسخ الأعمدة بالترتيب: الاسم، الجوال، الهوية، المسمى، القسم، المختبر. يمكن الاكتفاء بالاسم والجوال.</p>
             <textarea class="ob-input" name="pasted_rows" aria-label="صفوف منسوخة من Excel" placeholder="محمد أحمد	0551234567&#10;سارة علي	0509876543"></textarea>
           </details>
 
@@ -596,6 +604,12 @@
       <select class="ob-input" name="department" aria-label="القسم">
         <option value="">بدون قسم</option>
         {% for department in departments %}<option value="{{ department.id }}">{{ department.name }}</option>{% endfor %}
+      </select>
+    </td>
+    <td>
+      <select class="ob-input" name="lab_kind" aria-label="المختبر">
+        <option value="">ليس محضر مختبر</option>
+        {% for value, label in lab_kind_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
       </select>
     </td>
     <td><button class="ob-remove remove-quick-row" type="button" aria-label="حذف الصف"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td>

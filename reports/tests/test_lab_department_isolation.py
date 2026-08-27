@@ -23,6 +23,7 @@ from reports.models import (
     Teacher,
 )
 from reports.teacher_onboarding import build_preview
+from reports.lab_kinds import LabKind
 
 
 PASSWORD = "Passw0rd!123"
@@ -51,10 +52,10 @@ class LabDepartmentIsolationTests(TestCase):
             role_type=SchoolMembership.RoleType.MANAGER,
         )
         self.science_tech = self._lab_tech(
-            "محضر مختبر العلوم", "0500061002", self.science
+            "محضر مختبر العلوم", "0500061002", self.science, LabKind.SCIENCE
         )
         self.computer_tech = self._lab_tech(
-            "محضر مختبر الحاسب", "0500061003", self.computer
+            "محضر مختبر الحاسب", "0500061003", self.computer, LabKind.COMPUTER
         )
         self.deputy = self._user("وكيل الشؤون التعليمية", "0500061004")
         self.deputy_membership = SchoolMembership.objects.create(
@@ -66,6 +67,7 @@ class LabDepartmentIsolationTests(TestCase):
         self.science_asset = LabAsset.objects.create(
             school=self.school,
             department=self.science,
+            lab_kind=LabKind.SCIENCE,
             name="ميكروسكوب العلوم",
             quantity=2,
             recorded_by=self.science_tech,
@@ -74,6 +76,7 @@ class LabDepartmentIsolationTests(TestCase):
         self.computer_asset = LabAsset.objects.create(
             school=self.school,
             department=self.computer,
+            lab_kind=LabKind.COMPUTER,
             name="حاسب المختبر",
             quantity=8,
             recorded_by=self.computer_tech,
@@ -82,6 +85,7 @@ class LabDepartmentIsolationTests(TestCase):
         self.science_experiment = LabExperiment.objects.create(
             school=self.school,
             department=self.science,
+            lab_kind=LabKind.SCIENCE,
             recorder=self.science_tech,
             title="تجربة علوم",
             experiment_date=date(2026, 8, 27),
@@ -90,6 +94,7 @@ class LabDepartmentIsolationTests(TestCase):
         self.computer_experiment = LabExperiment.objects.create(
             school=self.school,
             department=self.computer,
+            lab_kind=LabKind.COMPUTER,
             recorder=self.computer_tech,
             title="تجربة حاسب",
             experiment_date=date(2026, 8, 27),
@@ -101,13 +106,14 @@ class LabDepartmentIsolationTests(TestCase):
             name=name, phone=phone, password=PASSWORD
         )
 
-    def _lab_tech(self, name, phone, department):
+    def _lab_tech(self, name, phone, department, lab_kind):
         user = self._user(name, phone)
         SchoolMembership.objects.create(
             school=self.school,
             teacher=user,
             role_type=SchoolMembership.RoleType.ADMIN_STAFF,
             job_title=SchoolMembership.JobTitle.LAB_TECH,
+            lab_kind=lab_kind,
         )
         DepartmentMembership.objects.create(
             department=department,
@@ -184,12 +190,12 @@ class LabDepartmentIsolationTests(TestCase):
         )
 
         self.assertEqual(
-            LabAsset.objects.get(name="ميزان حساس").department_id,
-            self.science.pk,
+            LabAsset.objects.get(name="ميزان حساس").lab_kind,
+            LabKind.SCIENCE,
         )
         self.assertEqual(
-            LabExperiment.objects.get(title="تجربة الكثافة").department_id,
-            self.science.pk,
+            LabExperiment.objects.get(title="تجربة الكثافة").lab_kind,
+            LabKind.SCIENCE,
         )
 
     def test_a_tampered_asset_choice_cannot_cross_labs(self):
@@ -221,6 +227,25 @@ class LabDepartmentIsolationTests(TestCase):
         self.assertContains(assets, "حاسب المختبر")
         self.assertContains(experiments, "تجربة علوم")
         self.assertContains(experiments, "تجربة حاسب")
+
+    def test_inventory_lab_picker_is_independent_from_report_departments(self):
+        Department.objects.create(
+            school=self.school, name="النشاط الطلابي", slug="student-activity"
+        )
+        self._enter(self.manager)
+
+        response = self.client.get(reverse("reports:lab_assets"))
+
+        choices = list(response.context["form"].fields["lab_kind"].choices)
+        self.assertEqual(
+            choices,
+            [
+                ("", "— اختر المختبر —"),
+                (LabKind.SCIENCE, "مختبر العلوم"),
+                (LabKind.COMPUTER, "مختبر الحاسب الآلي"),
+            ],
+        )
+        self.assertNotIn("department", response.context["form"].fields)
 
     def test_deputy_lab_review_is_limited_to_the_assigned_department(self):
         scope = StaffScope.objects.create(
@@ -269,7 +294,7 @@ class LabDepartmentIsolationTests(TestCase):
                 "phone": "0500061088",
                 "national_id": "",
                 "job_title": SchoolMembership.JobTitle.LAB_TECH,
-                "department": self.science.pk,
+                "lab_kind": LabKind.SCIENCE,
                 "is_active": "on",
             },
             active_school=self.school,
@@ -284,7 +309,7 @@ class LabDepartmentIsolationTests(TestCase):
                 "phone": "0500061088",
                 "national_id": "",
                 "job_title": SchoolMembership.JobTitle.LAB_TECH,
-                "department": self.science.pk,
+                "lab_kind": LabKind.SCIENCE,
                 "is_active": "on",
             },
         )
@@ -292,7 +317,10 @@ class LabDepartmentIsolationTests(TestCase):
         self.assertEqual(response.status_code, 302)
         user = Teacher.objects.get(phone="0500061088")
         self.assertTrue(
-            DepartmentMembership.objects.filter(
-                teacher=user, department=self.science
+            SchoolMembership.objects.filter(
+                teacher=user,
+                school=self.school,
+                job_title=SchoolMembership.JobTitle.LAB_TECH,
+                lab_kind=LabKind.SCIENCE,
             ).exists()
         )

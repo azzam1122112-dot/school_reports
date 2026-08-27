@@ -783,7 +783,7 @@ class JobTitleAndRoleStayConsistentTests(RoleJourneyTestCase):
         self._enter(self.manager)
         payload = {"name": name, "phone": phone, "job_title": job_title}
         if job_title == SchoolMembership.JobTitle.LAB_TECH:
-            payload["department"] = self.department.pk
+            payload["lab_kind"] = "science"
         return self.client.post(
             reverse("reports:add_teacher"),
             payload,

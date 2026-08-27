@@ -10,7 +10,6 @@ from __future__ import annotations
 from django import forms
 
 from .models import (
-    Department,
     LabAsset,
     LabAssetHandover,
     LabExperiment,
@@ -18,6 +17,7 @@ from .models import (
     SchoolMembership,
     Teacher,
 )
+from .lab_kinds import LabKind
 
 __all__ = ["LabAssetForm", "LabHandoverForm", "LabExperimentForm"]
 
@@ -38,55 +38,48 @@ def _school_members(school):
     )
 
 
-def _configure_lab_department(form, *, school, user) -> None:
-    """احصر اختيار المختبر، مع إسناد تلقائي حين لا يوجد إلا خيار واحد."""
-    from .services_lab import lab_departments_for_user
+def _configure_lab_kind(form, *, school, user) -> None:
+    """Expose the fixed lab catalogue, never the school's report departments."""
+    from .services_lab import lab_kinds_for_user
 
-    all_departments = Department.objects.filter(school=school, is_active=True)
-    allowed = (
-        lab_departments_for_user(user, school)
-        if school is not None
-        else Department.objects.none()
-    )
-    field = form.fields["department"]
-    field.queryset = allowed
+    allowed = lab_kinds_for_user(user, school) if school is not None else ()
+    field = form.fields["lab_kind"]
+    labels = dict(LabKind.choices)
+    field.choices = [("", "— اختر المختبر —")] + [
+        (kind, labels[kind]) for kind in allowed
+    ]
     field.required = False
-    field.empty_label = "— اختر مختبر العلوم أو الحاسب —"
     field.help_text = (
-        "هذا الاختيار يعزل العهدة والتجارب بين مختبر العلوم ومختبر الحاسب الآلي."
+        "هذا الاختيار مستقل عن الأقسام المرتبطة بأنواع التقارير."
     )
-    form._lab_school_has_departments = all_departments.exists()
-    form._lab_allowed_departments = allowed
-    form._lab_single_department = allowed.first() if allowed.count() == 1 else None
-    if form._lab_single_department is not None and not form.instance.pk:
-        form.initial.setdefault("department", form._lab_single_department.pk)
+    form._allowed_lab_kinds = tuple(allowed)
+    form._single_lab_kind = allowed[0] if len(allowed) == 1 else ""
+    if form._single_lab_kind and not form.instance.pk:
+        form.initial.setdefault("lab_kind", form._single_lab_kind)
 
 
-def _clean_lab_department(form, cleaned):
-    department = cleaned.get("department")
-    if department is not None:
-        return department
-    if form._lab_single_department is not None:
-        cleaned["department"] = form._lab_single_department
-        return form._lab_single_department
-    if form._lab_school_has_departments:
-        if form._lab_allowed_departments.exists():
-            form.add_error(
-                "department", "حدّد المختبر الذي يخص هذا السجل."
-            )
-        else:
-            form.add_error(
-                "department",
-                "لم يُربط حساب محضّر المختبر بقسم. اربطه بقسم العلوم أو الحاسب أولاً.",
-            )
-    return None
+def _clean_lab_kind(form, cleaned):
+    lab_kind = cleaned.get("lab_kind") or ""
+    if lab_kind:
+        return lab_kind
+    if form._single_lab_kind:
+        cleaned["lab_kind"] = form._single_lab_kind
+        return form._single_lab_kind
+    if form._allowed_lab_kinds:
+        form.add_error("lab_kind", "حدّد المختبر الذي يخص هذا السجل.")
+    else:
+        form.add_error(
+            "lab_kind",
+            "لم يُحدّد مختبر محضّر المختبر. اختر مختبر العلوم أو مختبر الحاسب من بيانات دوره.",
+        )
+    return ""
 
 
 class LabAssetForm(forms.ModelForm):
     class Meta:
         model = LabAsset
         fields = (
-            "department",
+            "lab_kind",
             "name",
             "code",
             "category",
@@ -98,7 +91,7 @@ class LabAssetForm(forms.ModelForm):
             "notes",
         )
         widgets = {
-            "department": forms.Select(attrs={"class": "form-control"}),
+            "lab_kind": forms.Select(attrs={"class": "form-control"}),
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "ميكروسكوب ضوئي"}),
             "code": forms.TextInput(attrs={"class": "form-control", "placeholder": "اختياري"}),
             "category": forms.Select(attrs={"class": "form-control"}),
@@ -114,7 +107,7 @@ class LabAssetForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.school = school
         self.user = user
-        _configure_lab_department(self, school=school, user=user)
+        _configure_lab_kind(self, school=school, user=user)
         self.fields["custodian"].queryset = _school_members(school)
         self.fields["custodian"].required = False
         self.fields["custodian"].empty_label = "— بلا مسؤول محدَّد —"
@@ -134,7 +127,7 @@ class LabAssetForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        _clean_lab_department(self, cleaned)
+        _clean_lab_kind(self, cleaned)
         # تخفيض الكمية دون ما هو خارج المختبر يجعل الجرد يقول إن المُسلَّم أكثر
         # من الموجود — وهو رقمٌ لا يمكن تسويته إلا بحذف حركة وقعت فعلاً.
         if self.instance.pk:
@@ -209,7 +202,7 @@ class LabExperimentForm(forms.ModelForm):
     class Meta:
         model = LabExperiment
         fields = (
-            "department",
+            "lab_kind",
             "title",
             "experiment_date",
             "subject",
@@ -224,7 +217,7 @@ class LabExperimentForm(forms.ModelForm):
             "report",
         )
         widgets = {
-            "department": forms.Select(attrs={"class": "form-control"}),
+            "lab_kind": forms.Select(attrs={"class": "form-control"}),
             "title": forms.TextInput(attrs={"class": "form-control", "placeholder": "استخلاص الكلوروفيل"}),
             "experiment_date": forms.DateInput(
                 attrs={"class": "form-control", "type": "date"}, format="%Y-%m-%d"
@@ -245,7 +238,7 @@ class LabExperimentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.school = school
         self.user = user
-        _configure_lab_department(self, school=school, user=user)
+        _configure_lab_kind(self, school=school, user=user)
 
         self.fields["requested_by"].queryset = _school_members(school)
         self.fields["requested_by"].required = False
@@ -253,23 +246,21 @@ class LabExperimentForm(forms.ModelForm):
 
         from .services_lab import assets_for_school
 
-        selected_department = getattr(self.instance, "department", None)
+        selected_lab_kind = getattr(self.instance, "lab_kind", "")
         if self.is_bound:
-            posted_department = str(self.data.get("department") or "").strip()
-            if posted_department.isdigit():
-                selected_department = self._lab_allowed_departments.filter(
-                    pk=int(posted_department)
-                ).first()
-        if selected_department is None:
-            selected_department = self._lab_single_department
+            posted_lab_kind = str(self.data.get("lab_kind") or "").strip()
+            if posted_lab_kind in self._allowed_lab_kinds:
+                selected_lab_kind = posted_lab_kind
+        if not selected_lab_kind:
+            selected_lab_kind = self._single_lab_kind
 
         asset_queryset = (
             assets_for_school(school, user=user)
             if school is not None
             else LabAsset.objects.none()
         )
-        if selected_department is not None:
-            asset_queryset = asset_queryset.filter(department=selected_department)
+        if selected_lab_kind:
+            asset_queryset = asset_queryset.filter(lab_kind=selected_lab_kind)
         self.fields["assets"].queryset = asset_queryset.order_by("name")
         self.fields["assets"].required = False
 
@@ -304,10 +295,10 @@ class LabExperimentForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        department = _clean_lab_department(self, cleaned)
+        lab_kind = _clean_lab_kind(self, cleaned)
         assets = cleaned.get("assets")
-        if department is not None and assets is not None:
-            if assets.exclude(department=department).exists():
+        if lab_kind and assets is not None:
+            if assets.exclude(lab_kind=lab_kind).exists():
                 self.add_error(
                     "assets", "اختر أصنافاً من عهدة المختبر المحدد فقط."
                 )

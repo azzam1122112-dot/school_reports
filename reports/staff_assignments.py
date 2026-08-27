@@ -155,6 +155,7 @@ def apply_staff_assignment(
     member,
     code: str,
     keep_teaching_role: bool = False,
+    lab_kind: str = "",
     actor=None,
 ) -> SchoolMembership:
     """استبدل تكليف المنسوب واكتب الدور والمسمّى كوحدة واحدة.
@@ -206,6 +207,16 @@ def apply_staff_assignment(
         if wanted_title and membership.job_title != wanted_title:
             membership.job_title = wanted_title
             updates.append("job_title")
+
+        wanted_lab_kind = (
+            lab_kind
+            if wanted == assignment.role_type
+            and assignment.job_title == SchoolMembership.JobTitle.LAB_TECH
+            else ""
+        )
+        if membership.lab_kind != wanted_lab_kind:
+            membership.lab_kind = wanted_lab_kind
+            updates.append("lab_kind")
 
         if updates:
             membership.save(update_fields=updates)

@@ -14,6 +14,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .form_widgets import DateTimeLocalInput
+from .lab_kinds import LabKind
 
 from . import capabilities as caps
 from .models import Delegation, Department, SchoolMembership, StaffScope, Teacher
@@ -44,6 +45,12 @@ class StaffRoleAssignForm(forms.Form):
         label="يحتفظ بنصابه التدريسي",
         required=False,
         help_text="للوكيل أو الموظف الذي يدرّس أيضاً — يبقى له دور معلّم بجانب دوره الجديد.",
+    )
+    lab_kind = forms.ChoiceField(
+        label="المختبر",
+        required=False,
+        choices=(("", "— اختر المختبر —"),) + tuple(LabKind.choices),
+        help_text="يُطلب فقط عند إسناد دور محضر المختبر، وهو مستقل عن أقسام التقارير.",
     )
 
     def __init__(self, *args, school=None, **kwargs):
@@ -95,6 +102,12 @@ class StaffRoleAssignForm(forms.Form):
         if is_manager:
             raise ValidationError("لا يمكن تغيير دور مدير المدرسة من هذه الشاشة.")
 
+        if choice == SchoolMembership.JobTitle.LAB_TECH:
+            if not cleaned.get("lab_kind"):
+                self.add_error("lab_kind", "حدّد مختبر العلوم أو مختبر الحاسب الآلي.")
+        else:
+            cleaned["lab_kind"] = ""
+
         return cleaned
 
     def apply(self, *, actor=None) -> SchoolMembership:
@@ -113,6 +126,7 @@ class StaffRoleAssignForm(forms.Form):
             member=self.cleaned_data["member"],
             code=self.cleaned_data["role_type"],
             keep_teaching_role=bool(self.cleaned_data.get("keep_teaching_role")),
+            lab_kind=self.cleaned_data.get("lab_kind") or "",
             actor=actor,
         )
 

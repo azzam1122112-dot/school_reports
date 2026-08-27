@@ -11,6 +11,7 @@ from ._helpers import (
 )
 from ..permissions import effective_user_role_label, is_school_manager
 from ..gender_labels import school_gender_labels
+from ..lab_kinds import LabKind
 from ..staff_assignments import (
     apply_staff_assignment,
     assignment_matches,
@@ -568,6 +569,7 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
             "national_id": request.POST.getlist("national_id"),
             "job_title": request.POST.getlist("job_title"),
             "department_id": request.POST.getlist("department"),
+            "lab_kind": request.POST.getlist("lab_kind"),
         }
         count = max((len(values) for values in fields.values()), default=0)
         return [
@@ -595,6 +597,7 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
                         "national_id": "",
                         "job_title": SchoolMembership.JobTitle.TEACHER,
                         "department_id": "",
+                        "lab_kind": "",
                     }
                 )
 
@@ -613,6 +616,7 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
                     "national_id": "",
                     "job_title": SchoolMembership.JobTitle.TEACHER,
                     "department_id": "",
+                    "lab_kind": "",
                 }
 
         elif action == "cancel":
@@ -706,6 +710,7 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
                     "national_id": "",
                     "job_title": SchoolMembership.JobTitle.TEACHER,
                     "department_id": "",
+                    "lab_kind": "",
                 }
                 for _ in range(3)
             ]
@@ -717,6 +722,7 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
             "result": result,
             "capacity": capacity,
             "departments": departments,
+            "lab_kind_choices": LabKind.choices,
             "job_title_choices": assignment_choices(active_school),
             "active_mode": (request.GET.get("mode") or "quick").strip(),
             "quick_rows": quick_rows,
@@ -846,7 +852,7 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
     ws.title = str(labels["teachers"])
     ws.sheet_view.rightToLeft = True
 
-    headers = ["الاسم الكامل", "رقم الجوال", "رقم الهوية", "المسمى الوظيفي", "القسم"]
+    headers = ["الاسم الكامل", "رقم الجوال", "رقم الهوية", "المسمى الوظيفي", "القسم", "المختبر"]
 
     header_font = Font(name="Calibri", bold=True, color="FFFFFF", size=12)
     header_fill = PatternFill("solid", fgColor="006C35")
@@ -867,6 +873,7 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
     ws.column_dimensions["C"].width = 18
     ws.column_dimensions["D"].width = 22
     ws.column_dimensions["E"].width = 24
+    ws.column_dimensions["F"].width = 24
     ws.freeze_panes = "A2"
 
     job_validation = DataValidation(
@@ -887,11 +894,12 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
         ["رقم الجوال", "مطلوب", "0551234567", "اسم الدخول وكلمة المرور المؤقتة."],
         ["رقم الهوية", "اختياري", "1012345678", "10 أرقام عند إدخاله."],
         ["المسمى الوظيفي", "اختياري", labels["teacher_indefinite"], " أو ".join(job_labels) + "."],
+        ["القسم", "اختياري", "قسم العلوم", "القسم التنظيمي المرتبط بالتقارير."],
         [
-            "القسم",
+            "المختبر",
             "مطلوب لمحضر المختبر",
-            "قسم العلوم",
-            "يفصل عهدة وتجارب مختبر العلوم عن مختبر الحاسب الآلي.",
+            "مختبر العلوم",
+            "اختر مختبر العلوم أو مختبر الحاسب الآلي؛ ولا يرتبط هذا الحقل بأقسام التقارير.",
         ],
         ["تنبيه", "", "", f"لا تنسخ صفوف الأمثلة إلى ورقة {labels['teachers']}."],
     ]
@@ -907,19 +915,23 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
     for column, width in {"A": 24, "B": 17, "C": 28, "D": 55}.items():
         instructions.column_dimensions[column].width = width
 
+    instructions.append([])
     if active_school is not None:
         department_names = list(
-            Department.objects.filter(
-                school=active_school,
-                is_active=True,
-            ).order_by("name").values_list("name", flat=True)
+            Department.objects.filter(school=active_school, is_active=True)
+            .order_by("name")
+            .values_list("name", flat=True)
         )
         if department_names:
-            instructions.append([])
             instructions.append(["الأقسام المتاحة في المدرسة"])
             instructions.cell(row=instructions.max_row, column=1).font = Font(bold=True, color="006C35")
             for name in department_names:
                 instructions.append([name])
+            instructions.append([])
+    instructions.append(["المختبرات المتاحة"])
+    instructions.cell(row=instructions.max_row, column=1).font = Font(bold=True, color="006C35")
+    for _value, label in LabKind.choices:
+        instructions.append([label])
 
     from io import BytesIO
     buf = BytesIO()
@@ -983,7 +995,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
 
     assignment_code = form.cleaned_data["job_title"]
     keep_teaching = bool(form.cleaned_data.get("keep_teaching_role"))
-    initial_department = form.cleaned_data.get("department")
+    selected_lab_kind = form.cleaned_data.get("lab_kind") or ""
     assignment = get_assignment(assignment_code)
     assignment_label = next(
         (
@@ -1044,12 +1056,12 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                 keep_teaching_role=keep_teaching,
             )
             if exact_assignment:
-                if initial_department is not None:
-                    DepartmentMembership.objects.update_or_create(
-                        department=initial_department,
+                if assignment_code == SchoolMembership.JobTitle.LAB_TECH:
+                    SchoolMembership.objects.filter(
+                        school=active_school,
                         teacher=existing_teacher,
-                        defaults={"role_type": DepartmentMembership.TEACHER},
-                    )
+                        role_type=assignment.role_type,
+                    ).update(lab_kind=selected_lab_kind)
                 messages.info(request, "الحساب مرتبط بالفعل بهذه المدرسة بالتكليف المختار.")
                 return redirect(
                     "reports:add_teacher"
@@ -1078,12 +1090,8 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                     keep_teaching_role=keep_teaching,
                     actor=request.user,
                 )
-                if initial_department is not None:
-                    DepartmentMembership.objects.update_or_create(
-                        department=initial_department,
-                        teacher=existing_teacher,
-                        defaults={"role_type": DepartmentMembership.TEACHER},
-                    )
+                membership.lab_kind = selected_lab_kind
+                membership.save(update_fields=["lab_kind"])
             messages.success(
                 request,
                 f"تم ربط الحساب الموجود وإسناد دور «{assignment_label}» دون تغيير بيانات دخوله.",
@@ -1098,12 +1106,8 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                     keep_teaching_role=keep_teaching,
                     actor=request.user,
                 )
-                if initial_department is not None:
-                    DepartmentMembership.objects.update_or_create(
-                        department=initial_department,
-                        teacher=teacher,
-                        defaults={"role_type": DepartmentMembership.TEACHER},
-                    )
+                membership.lab_kind = selected_lab_kind
+                membership.save(update_fields=["lab_kind"])
             messages.success(
                 request,
                 "تمت إضافة المنسوب. كلمة المرور المؤقتة هي رقم الجوال، وسيُطلب تغييرها عند أول دخول.",
