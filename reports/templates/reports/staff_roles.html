@@ -87,6 +87,7 @@
     background: var(--rol-line); color: var(--rol-ink);
   }
   .rol-panel[hidden] { display: none; }
+  .rol-field[hidden] { display: none; }
 
   /* ── البطاقات ─────────────────────────────────────────────── */
   .rol-card {
@@ -601,7 +602,7 @@
           <div class="rol-field__help">{{ assign_form.keep_teaching_role.help_text }}</div>
         </div>
 
-        <div class="rol-field u-mt-lg">
+        <div class="rol-field u-mt-lg" id="assignLabKindPanel" hidden aria-hidden="true">
           <label for="{{ assign_form.lab_kind.id_for_label }}">{{ assign_form.lab_kind.label }}</label>
           {{ assign_form.lab_kind }}
           {% if assign_form.lab_kind.errors %}
@@ -868,6 +869,28 @@
     });
     var fromHash = (window.location.hash || '').replace('#', '');
     show(['roster', 'assign', 'delegate'].indexOf(fromHash) >= 0 ? fromHash : OPEN);
+
+    /* ── إسناد محضّر المختبر: لا يظهر نوع المختبر لغير هذا الدور ── */
+    var assignRoleInputs = Array.prototype.slice.call(
+      document.querySelectorAll('#panel-assign input[name="role_type"]')
+    );
+    var assignLabKindPanel = document.getElementById('assignLabKindPanel');
+    var assignLabKindSelect = document.getElementById('{{ assign_form.lab_kind.id_for_label }}');
+
+    function syncAssignLabKind() {
+      var selected = assignRoleInputs.find(function (input) { return input.checked; });
+      var isLabTechnician = Boolean(selected && selected.value === 'lab_tech');
+      if (assignLabKindPanel) {
+        assignLabKindPanel.hidden = !isLabTechnician;
+        assignLabKindPanel.setAttribute('aria-hidden', isLabTechnician ? 'false' : 'true');
+      }
+      if (assignLabKindSelect) assignLabKindSelect.required = isLabTechnician;
+    }
+
+    assignRoleInputs.forEach(function (input) {
+      input.addEventListener('change', syncAssignLabKind);
+    });
+    syncAssignLabKind();
 
     /* ── تصفية القوائم المنسدلة الطويلة ────────────────────── */
     // كشفٌ من مئتَي اسم في قائمة منسدلة لا يُختار منه؛ فالكتابة تُقلّصه.

@@ -247,6 +247,30 @@ class LabDepartmentIsolationTests(TestCase):
         )
         self.assertNotIn("department", response.context["form"].fields)
 
+    def test_lab_picker_is_hidden_until_the_lab_technician_role_is_selected(self):
+        self._enter(self.manager)
+
+        add_response = self.client.get(reverse("reports:add_teacher"))
+        roles_response = self.client.get(reverse("reports:staff_roles"))
+
+        self.assertContains(
+            add_response,
+            'id="labDepartmentPanel" hidden aria-hidden="true"',
+        )
+        self.assertContains(
+            add_response,
+            ".teacher-page #labDepartmentPanel[hidden]{display:none!important}",
+        )
+        self.assertContains(
+            roles_response,
+            'id="assignLabKindPanel" hidden aria-hidden="true"',
+        )
+        self.assertContains(
+            roles_response,
+            ".rol-field[hidden] { display: none; }",
+        )
+        self.assertContains(roles_response, "syncAssignLabKind()")
+
     def test_deputy_lab_review_is_limited_to_the_assigned_department(self):
         scope = StaffScope.objects.create(
             membership=self.deputy_membership,
