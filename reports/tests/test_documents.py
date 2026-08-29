@@ -63,12 +63,17 @@ class DocumentBase(TestCase):
             school=self.school, teacher=self.manager, role_type=SchoolMembership.RoleType.MANAGER
         )
         self.staff = _user("الموظف", "0500080002")
-        SchoolMembership.objects.create(
+        self.staff_membership = SchoolMembership.objects.create(
             school=self.school, teacher=self.staff, role_type=SchoolMembership.RoleType.ADMIN_STAFF
         )
         self.department = Department.objects.create(
             school=self.school, name="الشؤون الإدارية", slug="doc-ops"
         )
+        self.staff_scope = StaffScope.objects.create(
+            membership=self.staff_membership,
+            capabilities=[caps.ARCHIVE_DOCUMENTS],
+        )
+        self.staff_scope.departments.add(self.department)
 
     def _document(self, owner=None, **overrides):
         data = {
@@ -307,6 +312,51 @@ class DocumentScreenTests(DocumentBase):
         document = Document.objects.get(title="خطاب إدارة التعليم")
         self.assertEqual(document.approval_state, ApprovalState.DRAFT)
         self.assertEqual(document.owner_id, self.staff.pk)
+
+    def test_upload_department_choices_are_limited_to_the_staff_scope(self):
+        outside = Department.objects.create(
+            school=self.school, name="قسم خارج النطاق", slug="doc-outside"
+        )
+        self._enter(self.staff)
+
+        response = self.client.get(reverse("reports:document_archive"))
+
+        choices = response.context["form"].fields["department"].queryset
+        self.assertEqual(list(choices), [self.department])
+        self.assertNotIn(outside, choices)
+
+    def test_forged_upload_to_a_department_outside_the_staff_scope_is_refused(self):
+        outside = Department.objects.create(
+            school=self.school, name="قسم خارج النطاق", slug="doc-forged-outside"
+        )
+        self._enter(self.staff)
+
+        response = self.client.post(
+            reverse("reports:document_archive"),
+            {
+                "title": "وثيقة خارج النطاق",
+                "description": "اختبار حد الصلاحية",
+                "academic_year": "1447-1448",
+                "department": outside.pk,
+                "kind": Document.Kind.LETTER,
+                "file": _pdf("outside.pdf"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Document.objects.filter(title="وثيقة خارج النطاق").exists())
+        self.assertIn("department", response.context["form"].errors)
+
+    def test_manager_upload_form_keeps_all_school_departments(self):
+        outside = Department.objects.create(
+            school=self.school, name="قسم ثانٍ", slug="doc-manager-second"
+        )
+        self._enter(self.manager)
+
+        response = self.client.get(reverse("reports:document_archive"))
+
+        choices = response.context["form"].fields["department"].queryset
+        self.assertEqual(set(choices), {self.department, outside})
 
     def test_a_year_is_required_on_upload(self):
         self._enter(self.staff)

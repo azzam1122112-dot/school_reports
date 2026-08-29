@@ -77,8 +77,6 @@
 .xs-add-report-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
 .xs-add-report-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; margin-bottom: 30px; }
 .xs-add-report-4 { margin-top:6px; font-weight:800; color:#0a5c33; font-size:.95rem; }
-.xs-add-report-5 { margin:0 0 20px; font-size:1.1rem; font-weight:900; }
-.xs-add-report-6 { font-size:0.8rem; font-weight:700; color:var(--ar-text-soft); }
 
 /* ── reports/admin_dashboard.html ── */
 .xs-admin-dashboard-1 { height:210px; }
@@ -206,9 +204,6 @@
 .xs-lab-asset-detail-3 { margin:.5rem 0 0; }
 .xs-lab-asset-detail-4 { margin-bottom:1.1rem; }
 
-/* ── reports/lab_assets_print.html ── */
-.xs-lab-assets-print-1 { width:26px; }
-
 /* ── reports/lab_dashboard.html ── */
 .xs-lab-dashboard-1 { margin-bottom:1.1rem; }
 
@@ -219,9 +214,6 @@
 .xs-lab-experiment-detail-4 { font-weight:800; color:var(--lab-muted); font-size:12.5px; }
 .xs-lab-experiment-detail-5 { margin:.35rem 0 0; display:flex; flex-wrap:wrap; gap:.4rem; }
 .xs-lab-experiment-detail-6 { font-weight:800; color:var(--lab-warn); font-size:12.5px; }
-
-/* ── reports/lab_experiment_print.html ── */
-.xs-lab-experiment-print-1 { font-size:9.5pt; color:var(--muted); margin-top:14px; }
 
 /* ── reports/meeting_detail.html ── */
 .xs-meeting-detail-1 { margin-top:1rem; margin-bottom:0; border-color:var(--asg-danger); }
@@ -295,9 +287,6 @@
 .xs-achievement-file-2 { margin:0 0 10px; }
 .xs-achievement-file-3 { font-weight:1000; margin:0 0 6px; }
 .xs-achievement-file-4 { margin-top:10px; font-size:12px; color:var(--muted); }
-
-/* ── reports/pdf_processing.html ── */
-.xs-pdf-processing-1 { margin-inline:auto; }
 
 /* ── reports/plan_detail.html ── */
 .xs-plan-detail-1 { margin-top:1.15rem; }
@@ -456,4 +445,3 @@
 .xs-ticket-detail-14 { margin-bottom:2px; }
 .xs-ticket-detail-15 { color:var(--s-don); font-size:0.7em; }
 .xs-ticket-detail-16 { margin-bottom:8px; font-weight:700; color:var(--c-text-muted); font-size:0.85rem; padding-right:4px; }
-

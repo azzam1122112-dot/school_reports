@@ -197,6 +197,33 @@ class TaskToAssignmentTests(PlanBase):
         plan.refresh_from_db()
         self.assertEqual(plan.stage, Plan.Stage.RUNNING)
 
+    def test_an_approved_plan_still_offers_task_conversion(self):
+        """اعتماد الخطة يجمّد بنودها، لكنه لا يمنع بدء تنفيذ مهامها."""
+        plan = self._plan()
+        task = self._task(
+            plan,
+            responsible=self.teacher,
+            due_at=timezone.now() + timedelta(days=4),
+        )
+        issue(plan, self.manager, school=self.school)
+        self.client.force_login(self.manager)
+        session = self.client.session
+        session["active_school_id"] = self.school.pk
+        session.save()
+
+        detail = self.client.get(reverse("reports:plan_detail", args=[plan.pk]))
+
+        self.assertContains(detail, "حوّلها إلى تكليف")
+        self.assertContains(detail, 'name="plan_action" value="track_task"')
+
+        response = self.client.post(
+            reverse("reports:plan_action", args=[plan.pk]),
+            {"plan_action": "track_task", "task_id": task.pk},
+        )
+        self.assertEqual(response.status_code, 302)
+        task.refresh_from_db()
+        self.assertIsNotNone(task.assignment_id)
+
     def test_converting_twice_is_refused(self):
         plan = self._plan()
         task = self._task(plan, responsible=self.teacher, due_at=timezone.now() + timedelta(days=4))
