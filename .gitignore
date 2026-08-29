@@ -29,6 +29,8 @@ logs/
 .pytest_cache/
 pytest-cache-files-*/
 .ruff_cache/
+output/
+test_evidence_*.txt
 .tox/
 .nox/
 .hypothesis/

@@ -254,7 +254,9 @@
               {% elif task.state == 'running' %}<span class="pln-pill pln-pill--running">قيد التنفيذ</span>
               {% else %}<span class="pln-pill pln-pill--wait">لم تُكلَّف بعد</span>{% endif %}
 
-              {% if may_edit and task.can_become_assignment %}
+              {# تحويل المهمة إلى تكليف هو بدء التنفيذ، لا تعديلٌ لبنود الخطة. #}
+              {# لذلك يبقى متاحاً لمالك الخطة/المدير حتى بعد اعتماد الوثيقة. #}
+              {% if may_manage and task.can_become_assignment %}
                 <form method="post" action="{% url 'reports:plan_action' plan.pk %}">
                   {% csrf_token %}
                   <input type="hidden" name="plan_action" value="track_task">

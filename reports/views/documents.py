@@ -59,10 +59,12 @@ def document_archive(request):
     if redirect_response is not None:
         return redirect_response
 
-    form = DocumentUploadForm(school=school)
+    form = DocumentUploadForm(school=school, uploader=request.user)
 
     if request.method == "POST":
-        form = DocumentUploadForm(request.POST, request.FILES, school=school)
+        form = DocumentUploadForm(
+            request.POST, request.FILES, school=school, uploader=request.user
+        )
         if form.is_valid():
             capacity_error = archive_storage_capacity_error(
                 school, [form.cleaned_data.get("file")]
