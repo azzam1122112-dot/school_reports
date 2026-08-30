@@ -421,6 +421,12 @@ html[data-theme="dark"] .cir-empty__icon { background: #332a18; color: #efd396; 
 
 @media print {
   html, body { background: #fff !important; }
+  html.cir-print-root, body.cir-print-body {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
   body * { visibility: hidden !important; }
   .cir-printable, .cir-printable * { visibility: visible !important; }
   .cir-printable {
@@ -509,6 +515,7 @@ html[data-theme="dark"] .cir-empty__icon { background: #332a18; color: #efd396; 
   .cir-print-body * { visibility: visible !important; }
   .cir-print-toolbar { display: none !important; }
   .cir-print-sheet { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
+  .cir-report-table { break-inside: auto; page-break-inside: auto; }
   .cir-report-table thead { display: table-header-group; }
   .cir-report-table tr { break-inside: avoid; page-break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

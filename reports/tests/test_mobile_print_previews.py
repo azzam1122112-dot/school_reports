@@ -135,3 +135,38 @@ class ReportSignaturesAtPageBottomTests(SimpleTestCase):
             (top, bottom),
             "ارتفاع الصفحة لا يطابق هوامش @page المعلنة",
         )
+
+
+class CircularSignaturesPrintPaginationTests(SimpleTestCase):
+    """تقارير المستلمين الطويلة يجب أن تتمدد على أكثر من ورقة في Chrome."""
+
+    @staticmethod
+    def _source(relative_path: str) -> str:
+        return (Path(settings.BASE_DIR) / relative_path).read_text(encoding="utf-8")
+
+    def setUp(self):
+        self.template = self._source(
+            "reports/templates/reports/notification_signatures_print.html"
+        )
+        styles = self._source("static/css/circulars-official.css")
+        self.print_block = styles.split("@media print {", 1)[1]
+
+    def test_the_print_document_is_not_limited_to_the_screen_height(self):
+        self.assertIn('class="cir-print-root"', self.template)
+        self.assertIn("html.cir-print-root, body.cir-print-body", self.print_block)
+        self.assertIn("height: auto !important;", self.print_block)
+        self.assertIn("overflow: visible !important;", self.print_block)
+
+    def test_the_recipient_table_can_cross_pages_without_splitting_rows(self):
+        self.assertIn(
+            ".cir-report-table { break-inside: auto; page-break-inside: auto; }",
+            self.print_block,
+        )
+        self.assertIn(
+            ".cir-report-table thead { display: table-header-group; }",
+            self.print_block,
+        )
+        self.assertIn(
+            ".cir-report-table tr { break-inside: avoid; page-break-inside: avoid; }",
+            self.print_block,
+        )
