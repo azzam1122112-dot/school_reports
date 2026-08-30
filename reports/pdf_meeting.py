@@ -16,6 +16,7 @@ from .pdf_report import (
     _moe_logo_url,
     _school_principal_name,
 )
+from .pdf_render import prefer_reportlab_for_official_arabic, render_html_pdf
 from .services_meetings import decision_followup_rows
 
 
@@ -39,9 +40,7 @@ def build_meeting_print_context(meeting, *, active_school=None, for_pdf: bool = 
 
 
 def _generate_meeting_pdf_weasy(*, html: str, base_url: str | None) -> bytes:
-    from weasyprint import HTML
-
-    return HTML(string=html, base_url=base_url).write_pdf()
+    return render_html_pdf(html=html, base_url=base_url)
 
 
 def _generate_meeting_pdf_fallback(meeting, *, context: dict | None = None) -> bytes:
@@ -68,6 +67,8 @@ def _generate_meeting_pdf_fallback(meeting, *, context: dict | None = None) -> b
     output = BytesIO()
     page_width, page_height = A4
     pdf = canvas.Canvas(output, pagesize=A4, pageCompression=1)
+    pdf.setTitle(f"محضر اجتماع MTG-{meeting.pk}")
+    pdf.setAuthor("منصة توثيق")
     margin, bottom = 42, 42
     green, gold, ink, line = map(HexColor, ("#006c35", "#b9975b", "#17251f", "#d6e0da"))
     y = page_height - 42
@@ -130,18 +131,36 @@ def _generate_meeting_pdf_fallback(meeting, *, context: dict | None = None) -> b
     def section(title, body):
         nonlocal y
         lines = wrapped(body)
-        needed = 31 + len(lines) * 16
-        if y - needed < bottom:
-            start_page()
-        right(title, page_width - margin, y, 10.5, bold, green)
-        y -= 18
-        pdf.setFillColor(HexColor("#fbfdfc"))
-        pdf.setStrokeColor(line)
-        pdf.roundRect(margin, y - len(lines) * 16 - 12, page_width - 2 * margin, len(lines) * 16 + 14, 5, fill=1, stroke=1)
-        for row in lines:
-            right(row, page_width - margin - 9, y - 13, 9.5)
-            y -= 16
-        y -= 22
+        continuation = False
+        while lines:
+            # Reserve the section title, box padding, footer, and at least two
+            # lines. Long sections are continued cleanly on a fresh page.
+            if y - bottom < 76:
+                start_page()
+            available_lines = max(2, int((y - bottom - 49) // 16))
+            page_lines, lines = lines[:available_lines], lines[available_lines:]
+            heading = f"{title} — تابع" if continuation else title
+            right(heading, page_width - margin, y, 10.5, bold, green)
+            y -= 18
+            box_height = len(page_lines) * 16 + 14
+            pdf.setFillColor(HexColor("#fbfdfc"))
+            pdf.setStrokeColor(line)
+            pdf.roundRect(
+                margin,
+                y - len(page_lines) * 16 - 12,
+                page_width - 2 * margin,
+                box_height,
+                5,
+                fill=1,
+                stroke=1,
+            )
+            for row in page_lines:
+                right(row, page_width - margin - 9, y - 13, 9.5)
+                y -= 16
+            y -= 22
+            continuation = True
+            if lines:
+                start_page()
 
     start_page()
     section("بيانات الاجتماع", f"الموضوع: {meeting.title} | المكان: {meeting.location or '—'} | المنظم: {meeting.organizer_name or getattr(meeting.organizer, 'name', '')}")
@@ -176,10 +195,11 @@ def generate_meeting_pdf(*, request, meeting) -> Tuple[bytes, str]:
     context = build_meeting_print_context(meeting, active_school=getattr(meeting, "school", None), for_pdf=True)
     html = render_to_string("reports/meeting_print.html", context)
     base_url = request.build_absolute_uri("/") if request is not None else None
-    try:
-        pdf_bytes = _generate_meeting_pdf_weasy(html=html, base_url=base_url)
-        if not pdf_bytes.startswith(b"%PDF-"):
-            raise ValueError("WeasyPrint returned an invalid PDF")
-    except Exception:
+    if prefer_reportlab_for_official_arabic():
         pdf_bytes = _generate_meeting_pdf_fallback(meeting, context=context)
+    else:
+        try:
+            pdf_bytes = _generate_meeting_pdf_weasy(html=html, base_url=base_url)
+        except Exception:
+            pdf_bytes = _generate_meeting_pdf_fallback(meeting, context=context)
     return pdf_bytes, f"meeting_{meeting.pk}.pdf"

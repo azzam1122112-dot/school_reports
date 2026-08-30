@@ -15,18 +15,27 @@ from openpyxl import load_workbook
 
 from maintenance.services import collect_reset_summary
 from reports.models import (
+    Assignment,
+    AssignmentEvidence,
+    AssignmentTarget,
     AchievementEvidenceReport,
     AchievementSection,
     Department,
     DepartmentMembership,
     Document,
+    GeneratedExportJob,
     Initiative,
+    LabAsset,
+    LabAssetHandover,
+    LabExperiment,
     Payment,
     Meeting,
     MeetingMinutes,
     Notification,
     NotificationRecipient,
     Plan,
+    PlanGoal,
+    PlanTask,
     Report,
     LeadershipEvidenceImage,
     LeadershipPortfolioSection,
@@ -460,6 +469,40 @@ class SchoolArchiveManagerExperienceTests(TestCase):
         self.assertEqual(archive.report_count, 0)
         self.assertEqual(archive.ticket_count, 1)
 
+    def test_school_with_only_plans_and_laboratory_work_can_create_snapshot(self):
+        self.report.delete()
+        Plan.objects.create(
+            school=self.school,
+            owner=self.manager,
+            title="خطة هي المحتوى الوحيد",
+            academic_year="1447-1448",
+        )
+        LabAsset.objects.create(
+            school=self.school,
+            name="أصل مختبر وحيد",
+            quantity=1,
+            recorded_by=self.manager,
+        )
+
+        years = archive_available_years(
+            school=self.school,
+            teacher=self.manager,
+            school_wide=True,
+        )
+        self.assertIn("1447-1448", years)
+
+        response = self.client.post(
+            reverse("reports:school_archive_create"),
+            {"year": "1447-1448"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        archive = SchoolYearArchive.objects.get()
+        self.assertEqual(archive.report_count, 0)
+        self.assertEqual(archive.plan_count, 1)
+        self.assertEqual(archive.lab_asset_count, 1)
+        self.assertEqual(archive.status, SchoolYearArchive.Status.READY)
+
     def test_one_time_year_export_also_contains_excel_index(self):
         with patch(
             "reports.pdf_report.generate_report_pdf",
@@ -528,7 +571,7 @@ class SchoolArchiveManagerExperienceTests(TestCase):
             school=self.school,
             teacher=self.teacher,
             plan=plan,
-            title="مسودة مبادرة لا تُؤرشف",
+            title="مسودة مبادرة محفوظة تاريخياً",
             summary="مقترح لم يعتمد بعد.",
         )
 
@@ -553,8 +596,9 @@ class SchoolArchiveManagerExperienceTests(TestCase):
             self.assertEqual(metadata["document_count"], 1)
             self.assertEqual(metadata["meeting_count"], 1)
             self.assertEqual(metadata["plan_count"], 1)
-            self.assertEqual(metadata["initiative_count"], 1)
+            self.assertEqual(metadata["initiative_count"], 2)
             self.assertEqual(metadata["generated_meeting_pdf_count"], 1)
+            self.assertEqual(metadata["generated_initiative_pdf_count"], 2)
             with zipfile.ZipFile(package) as zipped:
                 names = zipped.namelist()
                 self.assertTrue(
@@ -596,7 +640,7 @@ class SchoolArchiveManagerExperienceTests(TestCase):
                 self.assertTrue(any(row[1] == plan.title for row in plan_rows[1:]))
                 initiative_rows = list(workbook["المبادرات"].iter_rows(values_only=True))
                 self.assertTrue(any(row[1] == initiative.title for row in initiative_rows[1:]))
-                self.assertFalse(
+                self.assertTrue(
                     any(row[1] == draft_initiative.title for row in initiative_rows[1:])
                 )
         finally:
@@ -610,6 +654,294 @@ class SchoolArchiveManagerExperienceTests(TestCase):
         self.addCleanup(full_workbook.close)
         self.assertIn("الاجتماعات", full_workbook.sheetnames)
         self.assertIn("المبادرات", full_workbook.sheetnames)
+
+    def test_snapshot_fully_archives_assignments_plans_initiatives_and_labs(self):
+        assignment = Assignment.objects.create(
+            school=self.school,
+            issuer=self.manager,
+            issuer_name=self.manager.name,
+            title="تكليف تنفيذ الخطة",
+            description="تنفيذ المهمة ورفع شاهد الإنجاز.",
+            due_at=timezone.now() + timedelta(days=5),
+            requires_evidence=True,
+        )
+        target = AssignmentTarget.objects.create(
+            assignment=assignment,
+            assignee=self.teacher,
+            school=self.school,
+            progress_percent=80,
+            progress_note="اكتملت الخطوات الأساسية.",
+            approval_state=ApprovalState.APPROVED,
+        )
+        evidence = AssignmentEvidence.objects.create(
+            target=target,
+            file=SimpleUploadedFile(
+                "assignment-proof.pdf",
+                b"%PDF-assignment-proof",
+                content_type="application/pdf",
+            ),
+            note="شاهد تنفيذ التكليف",
+            uploaded_by=self.teacher,
+        )
+        other_school = School.objects.create(
+            name="مدرسة أخرى لا تظهر بياناتها",
+            code="archive-isolation-other-school",
+        )
+        other_teacher = Teacher.objects.create_user(
+            phone="0500700099",
+            name="معلم مدرسة أخرى",
+            password="safe-other-school-password",
+        )
+        other_target = AssignmentTarget.objects.create(
+            assignment=assignment,
+            assignee=other_teacher,
+            school=other_school,
+            approval_state=ApprovalState.DRAFT,
+        )
+        other_evidence = AssignmentEvidence.objects.create(
+            target=other_target,
+            file=SimpleUploadedFile(
+                "other-school-secret.pdf",
+                b"%PDF-other-school-secret",
+                content_type="application/pdf",
+            ),
+            note="شاهد خاص بمدرسة أخرى",
+            uploaded_by=other_teacher,
+        )
+        plan = Plan.objects.create(
+            school=self.school,
+            owner=self.manager,
+            title="الخطة التشغيلية المتكاملة",
+            academic_year="1447-1448",
+            description="خطة محفوظة بكل أهدافها ومهامها.",
+        )
+        goal = PlanGoal.objects.create(
+            plan=plan,
+            title="رفع جودة التنفيذ",
+            indicator="نسبة المهام المعتمدة",
+            target="100%",
+        )
+        PlanTask.objects.create(
+            plan=plan,
+            goal=goal,
+            title="تنفيذ التكليف الموثق",
+            description="تفصيل المهمة التي يجب ألا تضيع من الأرشيف.",
+            responsible=self.teacher,
+            due_at=assignment.due_at,
+            assignment=assignment,
+        )
+        initiative = Initiative.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            plan=plan,
+            title="مبادرة الأثر المستدام",
+            summary="وصف الفكرة والأثر السابق للرجوع إليه.",
+            approval_state=ApprovalState.DRAFT,
+        )
+        asset = LabAsset.objects.create(
+            school=self.school,
+            name="مجهر رقمي",
+            code="LAB-001",
+            category=LabAsset.Category.DEVICE,
+            quantity=3,
+            custodian=self.teacher,
+            recorded_by=self.manager,
+        )
+        handover = LabAssetHandover.objects.create(
+            school=self.school,
+            asset=asset,
+            direction=LabAssetHandover.Direction.OUT,
+            person=self.teacher,
+            person_name=self.teacher.name,
+            quantity=1,
+            recorded_by=self.manager,
+            note="تسليم لتنفيذ التجربة",
+        )
+        experiment = LabExperiment.objects.create(
+            school=self.school,
+            recorder=self.teacher,
+            requested_by=self.manager,
+            title="تجربة المجهر الرقمي",
+            experiment_date=timezone.localdate(),
+            subject="العلوم",
+            class_name="الثالث المتوسط",
+            students_count=20,
+            objectives="تمييز مكونات الخلية.",
+            procedure="تجهيز الشريحة ثم فحصها وتسجيل النتائج.",
+            materials_note="شرائح وعينات محفوظة.",
+            safety_notes="تعقيم الأدوات قبل الاستخدام وبعده.",
+            report=self.report,
+            approval_state=ApprovalState.APPROVED,
+        )
+        experiment.assets.add(asset)
+
+        with patch(
+            "reports.pdf_report.generate_report_pdf",
+            return_value=(b"%PDF-report", "report.pdf"),
+        ):
+            package, metadata = build_school_export_zip_file(
+                self.school,
+                academic_year="1447-1448",
+                teacher=self.manager,
+                school_wide=True,
+                return_metadata=True,
+            )
+        try:
+            self.assertEqual(metadata["assignment_count"], 1)
+            self.assertEqual(metadata["plan_count"], 1)
+            self.assertEqual(metadata["initiative_count"], 1)
+            self.assertEqual(metadata["lab_asset_count"], 1)
+            self.assertEqual(metadata["lab_handover_count"], 1)
+            self.assertEqual(metadata["lab_experiment_count"], 1)
+            self.assertEqual(metadata["generated_assignment_pdf_count"], 1)
+            self.assertEqual(metadata["generated_plan_pdf_count"], 1)
+            self.assertEqual(metadata["generated_initiative_pdf_count"], 1)
+            self.assertEqual(metadata["generated_lab_inventory_pdf_count"], 1)
+            self.assertEqual(metadata["generated_lab_experiment_pdf_count"], 1)
+            self.assertFalse(metadata["is_partial"])
+
+            with zipfile.ZipFile(package) as zipped:
+                names = zipped.namelist()
+                expected_pdf_suffixes = (
+                    "/سجل-التكليف.pdf",
+                    "/الخطة.pdf",
+                    "/المبادرة.pdf",
+                    "المختبرات/كشف-العهدة-وحركاتها.pdf",
+                    "/سجل-التجربة.pdf",
+                )
+                for suffix in expected_pdf_suffixes:
+                    name = next(item for item in names if item.endswith(suffix))
+                    self.assertTrue(zipped.read(name).startswith(b"%PDF-"))
+                self.assertTrue(
+                    any(
+                        name.startswith("التكليفات/")
+                        and "/شواهد/" in name
+                        and name.endswith(f"-{evidence.id}.pdf")
+                        for name in names
+                    )
+                )
+                self.assertFalse(
+                    any(name.endswith(f"-{other_evidence.id}.pdf") for name in names)
+                )
+
+                workbook = load_workbook(
+                    BytesIO(zipped.read("فهرس-السنة.xlsx")),
+                    read_only=True,
+                    data_only=True,
+                )
+                self.addCleanup(workbook.close)
+                self.assertTrue(
+                    {
+                        "التكليفات",
+                        "تنفيذ التكليفات",
+                        "شواهد التكليفات",
+                        "أهداف الخطط",
+                        "مهام الخطط",
+                        "أصول المختبر",
+                        "حركات العهدة",
+                        "تجارب المختبر",
+                    }.issubset(set(workbook.sheetnames))
+                )
+                self.assertTrue(
+                    any(
+                        row[1] == assignment.title
+                        for row in list(workbook["التكليفات"].iter_rows(values_only=True))[1:]
+                    )
+                )
+                assignment_row = next(
+                    row
+                    for row in list(workbook["التكليفات"].iter_rows(values_only=True))[1:]
+                    if row[1] == assignment.title
+                )
+                self.assertEqual(assignment_row[9], 1)
+                self.assertEqual(assignment_row[10], 100)
+                self.assertNotIn(
+                    other_teacher.name,
+                    {
+                        row[2]
+                        for row in list(
+                            workbook["تنفيذ التكليفات"].iter_rows(values_only=True)
+                        )[1:]
+                    },
+                )
+                self.assertTrue(
+                    any(
+                        row[1] == asset.name
+                        for row in list(workbook["أصول المختبر"].iter_rows(values_only=True))[1:]
+                    )
+                )
+                manifest = zipped.read("الفهرس-والتحقق.txt").decode("utf-8")
+                self.assertIn("التكليفات حتى لحظة إنشاء النسخة: 1", manifest)
+                self.assertIn("تجارب المختبر حتى لحظة إنشاء النسخة: 1", manifest)
+        finally:
+            package.close()
+
+        with patch(
+            "reports.pdf_report.generate_report_pdf",
+            return_value=(b"%PDF-report", "report.pdf"),
+        ):
+            response = self.client.post(
+                reverse("reports:school_archive_create"),
+                {"year": "1447-1448"},
+            )
+        self.assertEqual(response.status_code, 302)
+        snapshot = SchoolYearArchive.objects.get()
+        self.assertEqual(snapshot.assignment_count, 1)
+        self.assertEqual(snapshot.plan_count, 1)
+        self.assertEqual(snapshot.initiative_count, 1)
+        self.assertEqual(snapshot.lab_asset_count, 1)
+        self.assertEqual(snapshot.lab_handover_count, 1)
+        self.assertEqual(snapshot.lab_experiment_count, 1)
+
+    def test_background_snapshot_persists_complete_school_work_counts(self):
+        from reports.tasks import build_generated_export_task
+
+        payload = tempfile.SpooledTemporaryFile(max_size=1024)
+        payload.write(b"PK\x03\x04complete-archive-background")
+        payload.seek(0)
+        metadata = {
+            "is_partial": False,
+            "archive_sha256": "a" * 64,
+            "file_count": 18,
+            "missing_file_count": 0,
+            "failed_pdf_count": 0,
+            "report_count": 1,
+            "achievement_count": 2,
+            "leadership_count": 3,
+            "ticket_count": 4,
+            "circular_count": 5,
+            "notification_count": 6,
+            "assignment_count": 7,
+            "plan_count": 8,
+            "initiative_count": 9,
+            "lab_asset_count": 10,
+            "lab_handover_count": 11,
+            "lab_experiment_count": 12,
+            "notes": "نسخة مكتملة من العامل الخلفي.",
+        }
+        job = GeneratedExportJob.objects.create(
+            school=self.school,
+            requested_by=self.manager,
+            kind=GeneratedExportJob.Kind.ARCHIVE_SNAPSHOT,
+            parameters={"academic_year": "1447-1448", "school_wide": True},
+        )
+
+        with patch(
+            "reports.services_export.build_school_export_zip_file",
+            return_value=(payload, metadata),
+        ):
+            result = build_generated_export_task.apply(args=[job.pk]).get()
+
+        self.assertTrue(result)
+        job.refresh_from_db()
+        self.assertEqual(job.status, GeneratedExportJob.Status.READY)
+        snapshot = job.archive
+        self.assertEqual(snapshot.assignment_count, 7)
+        self.assertEqual(snapshot.plan_count, 8)
+        self.assertEqual(snapshot.initiative_count, 9)
+        self.assertEqual(snapshot.lab_asset_count, 10)
+        self.assertEqual(snapshot.lab_handover_count, 11)
+        self.assertEqual(snapshot.lab_experiment_count, 12)
 
     def test_snapshot_contains_pdf_and_original_files_for_tickets_and_circulars(self):
         ticket = Ticket.objects.create(
@@ -748,7 +1080,7 @@ class SchoolArchiveManagerExperienceTests(TestCase):
             {"year": "1447-1448"},
         )
         self.assertContains(page, "التذاكر حتى الآن")
-        self.assertContains(page, "جميع سجلاتها وحالاتها ومرفقاتها")
+        self.assertContains(page, "تشمل الحزمة الحالات والمرفقات والشواهد الأصلية")
 
     def test_manager_archive_previews_and_searches_all_administrative_records(self):
         Ticket.objects.create(

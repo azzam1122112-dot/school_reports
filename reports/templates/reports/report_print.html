@@ -16,7 +16,7 @@
 
   <style nonce="{{ CSP_NONCE }}">
     :root {
-      --font-body: 'Cairo', Tahoma, Arial, sans-serif;
+      --font-body: {% if for_pdf %}"Noto Sans Arabic", "DejaVu Sans", sans-serif{% else %}'Cairo', Tahoma, Arial, sans-serif{% endif %};
       --ink: #111;
       --muted: #444;
       --line: #000;
@@ -99,7 +99,9 @@
         border-radius: 0;
       }
       /* المجموعة الختامية (التواقيع + التذييل) تبقى متماسكة في الأسفل */
-      .signatures, .report-footer { break-inside: avoid; }
+      .signatures, .report-footer, .meta-table, .approval-block { break-inside: avoid; page-break-inside: avoid; }
+      .section-h { break-after: avoid; page-break-after: avoid; }
+      .section-body, td { overflow-wrap: anywhere; word-break: normal; }
       .page::before { display: none !important; } /* إخفاء شريط الهوية في الطباعة */
       .no-print { display: none !important; }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

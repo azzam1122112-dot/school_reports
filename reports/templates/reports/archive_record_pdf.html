@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <style nonce="{{ CSP_NONCE }}">
     @page { size: A4; margin: 16mm 14mm; }
-    body { color:#17231c; font-family:Tahoma, Arial, sans-serif; font-size:12px; line-height:1.8; }
+    body { color:#17231c; font-family:"Noto Sans Arabic", "DejaVu Sans", Tahoma, Arial, sans-serif; font-size:12px; line-height:1.8; }
     header { border-bottom:3px solid #087443; margin-bottom:18px; padding-bottom:12px; }
     h1 { color:#075d39; font-size:23px; margin:0 0 5px; }
     h2 { color:#075d39; font-size:15px; margin:20px 0 8px; }
@@ -14,6 +14,9 @@
     .label { color:#607067; font-weight:bold; }
     .body { background:#f5faf7; border:1px solid #d7e7dc; border-radius:8px; padding:12px; white-space:pre-wrap; }
     table { border-collapse:collapse; width:100%; }
+    thead { display:table-header-group; }
+    tr, .grid, .body { break-inside:avoid; page-break-inside:avoid; }
+    td, th, .item, .body { overflow-wrap:anywhere; word-break:normal; }
     th, td { border:1px solid #cfdcd3; padding:6px; text-align:right; vertical-align:top; }
     th { background:#eaf5ee; color:#075d39; }
     footer { border-top:1px solid #dfe8e2; color:#66736b; font-size:10px; margin-top:24px; padding-top:8px; }

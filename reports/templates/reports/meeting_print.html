@@ -8,13 +8,15 @@
   <title>محضر اجتماع: {% firstof meeting.title "بدون عنوان" %}</title>
 
   {% comment %}الخط والأيقونات محلياً: لا طلب لطرف ثالث قبل أول حرف، ولا نطاق خارجي في سياسة المحتوى.{% endcomment %}
-  <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
-  <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+  {% if not for_pdf %}
+    <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+  {% endif %}
 
   <style nonce="{{ CSP_NONCE }}">
     :root {
-      --font-body: 'Cairo', Tahoma, Arial, sans-serif;
+      --font-body: {% if for_pdf %}"Noto Sans Arabic", "DejaVu Sans", sans-serif{% else %}'Cairo', Tahoma, Arial, sans-serif{% endif %};
       --ink: #111;
       --muted: #444;
       --line: #000;
@@ -220,7 +222,12 @@
     .meeting-section-grid .section-body { min-height: 0; }
     .people-table thead { display: table-header-group; }
     .people-table tr { break-inside: avoid; page-break-inside: avoid; }
-    @media print { .meeting-section-grid { gap: 2mm; } }
+    @media print {
+      .meeting-section-grid { gap: 2mm; }
+      .meta-table, .people-table, .signatures { break-inside: avoid; page-break-inside: avoid; }
+      .section-h { break-after: avoid; page-break-after: avoid; }
+      .section-body, td { overflow-wrap: anywhere; word-break: normal; }
+    }
     @media screen and (max-width: 720px) { .meeting-section-grid { grid-template-columns: 1fr; } }
   </style>
 <link rel="stylesheet" href="{% static 'css/utilities.css' %}?v=20260812.1">

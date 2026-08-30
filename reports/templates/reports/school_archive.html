@@ -320,6 +320,13 @@
           <div class="ar-kpi"><span>ملف الأداء القيادي</span><strong>{{ leadership_count }}</strong></div>
           <div class="ar-kpi"><span>التذاكر حتى الآن</span><strong>{{ administrative_stats.tickets }}</strong></div>
           <div class="ar-kpi"><span>التعاميم حتى الآن</span><strong>{{ administrative_stats.circulars }}</strong></div>
+          <div class="ar-kpi"><span>التكليفات حتى الآن</span><strong>{{ administrative_stats.assignments }}</strong></div>
+          <div class="ar-kpi"><span>خطط السنة</span><strong>{{ snapshot_source_counts.plans }}</strong></div>
+          <div class="ar-kpi"><span>مبادرات السنة</span><strong>{{ snapshot_source_counts.initiatives }}</strong></div>
+          <div class="ar-kpi"><span>الاجتماعات حتى الآن</span><strong>{{ administrative_stats.meetings }}</strong></div>
+          <div class="ar-kpi"><span>أصول المختبر</span><strong>{{ administrative_stats.lab_assets }}</strong></div>
+          <div class="ar-kpi"><span>حركات العهدة</span><strong>{{ administrative_stats.lab_handovers }}</strong></div>
+          <div class="ar-kpi"><span>تجارب المختبر</span><strong>{{ administrative_stats.lab_experiments }}</strong></div>
           <div class="ar-kpi">
             <span>إشعارات المدرسة حتى الآن</span>
             <strong>{{ administrative_stats.notifications }}</strong>
@@ -338,14 +345,21 @@
               {{ leadership_count }} ملف أداء قيادي ·
               {{ administrative_stats.tickets }} طلب ·
               {{ administrative_stats.circulars }} تعميم ·
-              {{ administrative_stats.notifications }} إشعار
+              {{ administrative_stats.notifications }} إشعار ·
+              {{ administrative_stats.assignments }} تكليف ·
+              {{ snapshot_source_counts.plans }} خطة ·
+              {{ snapshot_source_counts.initiatives }} مبادرة ·
+              {{ administrative_stats.meetings }} اجتماع ·
+              {{ administrative_stats.lab_assets }} أصل مختبر ·
+              {{ administrative_stats.lab_handovers }} حركة عهدة ·
+              {{ administrative_stats.lab_experiments }} تجربة
             </span>
           </div>
           <div class="ar-readiness-count"><b>{{ snapshot_total_records }}</b><small>سجل إجمالي</small></div>
         </div>
         <div class="ar-alert ar-alert--success">
           <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-          <div><strong>ماذا تحفظ نسخة السنة؟</strong><br>التقارير وملفات الإنجاز وملف الأداء القيادي وشواهده تُرشّح بحسب السنة المختارة. أما التذاكر والتعاميم والإشعارات فلا تحمل سنة دراسية في النظام؛ لذلك تحفظ النسخة جميع سجلاتها وحالاتها ومرفقاتها كما هي لحظة الإنشاء، بما في ذلك حالات القراءة والتوقيع. الإشعارات الآلية موضحة باسم «النظام» داخل الفهرس.</div>
+          <div><strong>ماذا تحفظ نسخة السنة؟</strong><br>تحفظ التقارير وملفات الإنجاز وملف الأداء القيادي والخطط وأهدافها ومهامها والمبادرات بجميع حالات اعتمادها بحسب السنة المختارة. كما تحفظ كل التكليفات وأهدافها التنفيذية والمكلّفين وشواهدهم، والاجتماعات، والتذاكر، والتعاميم، والإشعارات، وأصول المختبر وحركات العهدة والتجارب كما هي لحظة الإنشاء؛ لأن هذه السجلات لا تحمل سنة دراسية مستقلة. تشمل الحزمة الحالات والمرفقات والشواهد الأصلية وفهارس Excel ونسخ PDF مهيأة للعرض.</div>
         </div>
       {% endif %}
 
@@ -358,7 +372,7 @@
             {% if can_create_archive %}
               <div class="ar-snapshot-action">
                 <h3>حفظ إصدار جديد من الحالة الحالية</h3>
-                <p>سيُنشأ ZIP مستقل يحتوي PDF لكل سجل ومحضر اجتماع، و«منصة توثيق · القيادة المدرسية/ملف الأداء القيادي.pdf»، والوثائق والمرفقات والشواهد الأصلية، وفهرس Excel تفصيليًا يشمل الخطط والمبادرات وفريق المدرسة والأقسام، وبصمات التحقق. لا تُستبدل النسخ السابقة، وتُحتسب النسخة الجديدة من مساحة التخزين.</p>
+                <p>سيُنشأ ZIP مستقل يحتوي PDF للتقارير والتكليفات والخطط والمبادرات والتجارب ومحاضر الاجتماعات وكشف عهدة المختبر وملف الأداء القيادي، إضافةً إلى الوثائق والمرفقات والشواهد الأصلية وفهرس Excel تفصيلي وبصمات تحقق. لا تُستبدل النسخ السابقة، وتُحتسب النسخة الجديدة من مساحة التخزين.</p>
                 <form method="post" action="{% url 'reports:school_archive_create' %}" class="archive-create-form" data-confirm="سيتم حفظ إصدار جديد مستقل ويُحتسب من مساحة التخزين. هل تريد المتابعة؟" data-confirm-type="warning">
                   {% csrf_token %}
                   <input type="hidden" name="year" value="{{ selected_year }}">
@@ -382,7 +396,7 @@
                       <span class="ar-badge {% if version.status == 'partial' %}ar-badge--warn{% endif %}">{{ version.get_status_display }}</span>
                     </div>
                     <div class="ar-version-meta">
-                      <span>{{ version.report_count }} تقرير</span><span>{{ version.achievement_count }} ملف إنجاز</span><span>{{ version.leadership_count }} ملف أداء قيادي</span><span>{{ version.ticket_count }} تذكرة</span><span>{{ version.circular_count }} تعميم</span><span>{{ version.notification_count }} إشعار</span><span>{{ version.file_count }} ملف داخل الحزمة</span><span>{{ version.archive_size_mb }}MB</span><span>{{ version.download_count }} تنزيل</span>
+                      <span>{{ version.report_count }} تقرير</span><span>{{ version.achievement_count }} ملف إنجاز</span><span>{{ version.leadership_count }} ملف أداء قيادي</span><span>{{ version.ticket_count }} تذكرة</span><span>{{ version.circular_count }} تعميم</span><span>{{ version.notification_count }} إشعار</span><span>{{ version.assignment_count }} تكليف</span><span>{{ version.plan_count }} خطة</span><span>{{ version.initiative_count }} مبادرة</span><span>{{ version.lab_asset_count }} أصل مختبر</span><span>{{ version.lab_handover_count }} حركة عهدة</span><span>{{ version.lab_experiment_count }} تجربة مختبر</span><span>{{ version.file_count }} ملف داخل الحزمة</span><span>{{ version.archive_size_mb }}MB</span><span>{{ version.download_count }} تنزيل</span>
                       {% if version.missing_file_count %}<span>{{ version.missing_file_count }} ملف مفقود</span>{% endif %}
                       {% if version.failed_pdf_count %}<span>{{ version.failed_pdf_count }} PDF متعذر</span>{% endif %}
                     </div>

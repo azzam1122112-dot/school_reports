@@ -16,12 +16,16 @@ from django.utils import timezone
 from .gender_labels import school_gender_labels
 from .model_parts.approvals import ApprovalState
 from .models import (
+    Assignment,
     AchievementEvidenceImage,
     AchievementEvidenceReport,
     Department,
     DepartmentMembership,
     Document,
     LeadershipEvidenceImage,
+    LabAsset,
+    LabAssetHandover,
+    LabExperiment,
     Initiative,
     Meeting,
     Notification,
@@ -501,6 +505,8 @@ def build_school_export_workbook(school):
         ["اسم القسم", "الدور الظاهر", "الحالة", "عدد الأعضاء"],
         dept_rows,
     )
+
+    _append_extended_school_work_sheets(wb, school, academic_year=None)
 
     return wb
 
@@ -1037,6 +1043,13 @@ def build_year_archive_index_bytes(
         }.items():
             sheet.column_dimensions[column].width = width
 
+    if school_wide:
+        _append_extended_school_work_sheets(
+            workbook,
+            school,
+            academic_year=academic_year,
+        )
+
     buffer = BytesIO()
     workbook.save(buffer)
     return buffer.getvalue()
@@ -1197,11 +1210,7 @@ def _plans_qs(school, *, academic_year=None):
 
 
 def _initiatives_qs(school, *, academic_year=None):
-    """مبادرات التصدير.
-
-    التنزيل الكامل نسخة بيانات، فيحفظ كل الحالات. أما نسخة السنة
-    فهي أرشيف رسمي، ولذلك لا تدخلها مسودة أو مقترح لم يُعتمد.
-    """
+    """All initiatives, including drafts, so the historical archive loses nothing."""
     qs = (
         Initiative.objects.filter(school=school)
         .select_related("teacher", "plan")
@@ -1212,9 +1221,308 @@ def _initiatives_qs(school, *, academic_year=None):
 
         qs = qs.filter(
             Q(plan__academic_year=academic_year) | Q(plan__isnull=True),
-            approval_state=ApprovalState.APPROVED,
         )
     return qs
+
+
+def _assignments_qs(school):
+    """All assignments that belong to, or were issued to, this school.
+
+    Group assignments have no ``school`` on the parent, so the target school is
+    part of the archive boundary.  ``distinct`` prevents one parent appearing
+    once per target.
+    """
+    from django.db.models import Q
+
+    return (
+        Assignment.objects.filter(Q(school=school) | Q(targets__school=school))
+        .select_related("issuer", "department", "school", "group", "cancelled_by")
+        .prefetch_related(
+            "targets__assignee",
+            "targets__school",
+            "targets__evidence__uploaded_by",
+        )
+        .distinct()
+        .order_by("-created_at", "-id")
+    )
+
+
+def _lab_assets_qs(school):
+    return (
+        LabAsset.objects.filter(school=school)
+        .select_related("department", "custodian", "recorded_by")
+        .prefetch_related("handovers")
+        .order_by("lab_kind", "name", "id")
+    )
+
+
+def _lab_handovers_qs(school):
+    return (
+        LabAssetHandover.objects.filter(school=school)
+        .select_related("asset", "person", "recorded_by")
+        .order_by("-happened_at", "-id")
+    )
+
+
+def _lab_experiments_qs(school):
+    return (
+        LabExperiment.objects.filter(school=school)
+        .select_related("department", "recorder", "requested_by", "report")
+        .prefetch_related("assets")
+        .order_by("-experiment_date", "-id")
+    )
+
+
+def school_archive_source_counts(school, *, academic_year) -> dict[str, int]:
+    """Counts every live domain that makes a yearly snapshot non-empty."""
+
+    return {
+        "reports": _reports_qs(school, academic_year=academic_year).count(),
+        "achievements": _achievement_files_qs(
+            school, academic_year=academic_year
+        ).count(),
+        "leadership": _leadership_portfolios_qs(
+            school, academic_year=academic_year
+        ).count(),
+        "tickets": _tickets_qs(school).count(),
+        "notifications": _notifications_qs(school).count(),
+        "documents": _documents_qs(school, academic_year=academic_year).count(),
+        "meetings": _meetings_qs(school).count(),
+        "plans": _plans_qs(school, academic_year=academic_year).count(),
+        "initiatives": _initiatives_qs(
+            school, academic_year=academic_year
+        ).count(),
+        "assignments": _assignments_qs(school).count(),
+        "lab_assets": _lab_assets_qs(school).count(),
+        "lab_handovers": _lab_handovers_qs(school).count(),
+        "lab_experiments": _lab_experiments_qs(school).count(),
+    }
+
+
+def _append_extended_school_work_sheets(workbook, school, *, academic_year=None) -> None:
+    """Add detailed, searchable sheets for execution and laboratory history."""
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    def add_sheet(name: str, headers: list[str], rows) -> None:
+        sheet = workbook.create_sheet(name)
+        sheet.sheet_view.rightToLeft = True
+        sheet.append(headers)
+        for row in rows:
+            sheet.append(list(row))
+        for cell in sheet[1]:
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill("solid", fgColor=_HEADER_FILL)
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+        sheet.freeze_panes = "A2"
+        sheet.auto_filter.ref = sheet.dimensions
+        for column in sheet.columns:
+            letter = column[0].column_letter
+            values = [str(cell.value or "") for cell in column[:200]]
+            sheet.column_dimensions[letter].width = min(
+                44,
+                max(14, max((len(value) for value in values), default=12) + 2),
+            )
+
+    assignments = list(_assignments_qs(school))
+    school_targets = []
+    evidence_rows = []
+    target_counts: dict[int, int] = {}
+    completed_target_counts: dict[int, int] = {}
+    for assignment in assignments:
+        targets = [
+            target
+            for target in assignment.targets.all()
+            if target.school_id == school.pk
+            or (target.school_id is None and assignment.school_id == school.pk)
+        ]
+        target_counts[assignment.id] = len(targets)
+        completed_target_counts[assignment.id] = sum(
+            1 for target in targets if target.approval_state == ApprovalState.APPROVED
+        )
+        for target in targets:
+            school_targets.append((assignment, target))
+            for evidence in target.evidence.all():
+                evidence_rows.append((assignment, target, evidence))
+
+    add_sheet(
+        "التكليفات",
+        [
+            "المعرف", "العنوان", "المكلِّف", "المصدر", "الأولوية",
+            "القسم", "موعد التسليم", "يتطلب شواهد", "الحد الأدنى",
+            "المكلَّفون في المدرسة", "نسبة الإنجاز", "ملغى", "سبب الإلغاء",
+            "المطلوب", "تاريخ الإصدار",
+        ],
+        (
+            (
+                assignment.id,
+                assignment.title,
+                assignment.issuer_name or getattr(assignment.issuer, "name", ""),
+                assignment.get_source_display(),
+                assignment.get_priority_display(),
+                getattr(assignment.department, "name", "") or "—",
+                assignment.due_at.isoformat() if assignment.due_at else "",
+                "نعم" if assignment.requires_evidence else "لا",
+                assignment.min_evidence_count,
+                target_counts[assignment.id],
+                (
+                    round(completed_target_counts[assignment.id] * 100 / target_counts[assignment.id])
+                    if target_counts[assignment.id]
+                    else 0
+                ),
+                "نعم" if assignment.is_cancelled else "لا",
+                assignment.cancel_reason or "",
+                assignment.description or "",
+                assignment.created_at.isoformat() if assignment.created_at else "",
+            )
+            for assignment in assignments
+        ),
+    )
+    add_sheet(
+        "تنفيذ التكليفات",
+        [
+            "معرف التكليف", "التكليف", "المكلَّف", "المدرسة", "الحالة",
+            "نسبة الإنجاز", "متأخر", "قُبل في", "طلب التوضيح",
+            "ملاحظات التنفيذ", "عدد الشواهد", "تاريخ الإسناد",
+        ],
+        (
+            (
+                assignment.id,
+                assignment.title,
+                getattr(target.assignee, "name", "") or "—",
+                getattr(target.school, "name", "") or getattr(school, "name", ""),
+                target.get_approval_state_display(),
+                target.progress_percent,
+                "نعم" if target.is_overdue else "لا",
+                target.accepted_at.isoformat() if target.accepted_at else "",
+                target.clarification_note or "",
+                target.progress_note or "",
+                target.evidence_count,
+                target.created_at.isoformat() if target.created_at else "",
+            )
+            for assignment, target in school_targets
+        ),
+    )
+    add_sheet(
+        "شواهد التكليفات",
+        [
+            "معرف التكليف", "التكليف", "المكلَّف", "الوصف", "اسم الملف",
+            "الحجم بالبايت", "رفعه", "تاريخ الرفع",
+        ],
+        (
+            (
+                assignment.id,
+                assignment.title,
+                getattr(target.assignee, "name", "") or "—",
+                evidence.note or "",
+                getattr(evidence.file, "name", "") or "",
+                evidence.storage_bytes,
+                getattr(evidence.uploaded_by, "name", "") or "—",
+                evidence.created_at.isoformat() if evidence.created_at else "",
+            )
+            for assignment, target, evidence in evidence_rows
+        ),
+    )
+
+    plans = list(_plans_qs(school, academic_year=academic_year))
+    add_sheet(
+        "أهداف الخطط",
+        ["معرف الخطة", "الخطة", "الترتيب", "الهدف", "مؤشر القياس", "المستهدف", "نسبة الإنجاز"],
+        (
+            (
+                plan.id, plan.title, goal.order, goal.title, goal.indicator,
+                goal.target, goal.progress_percent,
+            )
+            for plan in plans
+            for goal in plan.goals.all()
+        ),
+    )
+    add_sheet(
+        "مهام الخطط",
+        [
+            "معرف الخطة", "الخطة", "الترتيب", "المهمة", "التفصيل", "الهدف",
+            "المسؤول", "القسم", "الموعد", "الحالة", "معرف التكليف",
+        ],
+        (
+            (
+                plan.id,
+                plan.title,
+                task.order,
+                task.title,
+                task.description or "",
+                getattr(task.goal, "title", "") or "—",
+                getattr(task.responsible, "name", "") or "—",
+                getattr(task.department, "name", "") or "—",
+                task.due_at.isoformat() if task.due_at else "",
+                task.state,
+                task.assignment_id or "",
+            )
+            for plan in plans
+            for task in plan.tasks.all()
+        ),
+    )
+
+    assets = list(_lab_assets_qs(school))
+    add_sheet(
+        "أصول المختبر",
+        [
+            "المعرف", "الصنف", "رقم العهدة", "المختبر", "القسم", "النوع",
+            "الكمية", "الوحدة", "الخارج", "المتاح", "الحالة", "الموقع",
+            "مسؤول العهدة", "نشط", "الملاحظات", "تاريخ الإضافة", "آخر تحديث",
+        ],
+        (
+            (
+                asset.id, asset.name, asset.code, asset.get_lab_kind_display() if asset.lab_kind else "—",
+                getattr(asset.department, "name", "") or "—", asset.get_category_display(),
+                asset.quantity, asset.unit, asset.out_quantity, asset.available_quantity,
+                asset.get_condition_display(), asset.location,
+                getattr(asset.custodian, "name", "") or "—",
+                "نعم" if asset.is_active else "لا", asset.notes,
+                asset.created_at.isoformat() if asset.created_at else "",
+                asset.updated_at.isoformat() if asset.updated_at else "",
+            )
+            for asset in assets
+        ),
+    )
+    handovers = list(_lab_handovers_qs(school))
+    add_sheet(
+        "حركات العهدة",
+        ["المعرف", "الصنف", "الحركة", "المستلم", "الكمية", "تاريخ الحركة", "سجلها", "الملاحظة"],
+        (
+            (
+                row.id, getattr(row.asset, "name", "") or "—", row.get_direction_display(),
+                row.person_name or getattr(row.person, "name", "") or "—", row.quantity,
+                row.happened_at.isoformat() if row.happened_at else "",
+                getattr(row.recorded_by, "name", "") or "—", row.note,
+            )
+            for row in handovers
+        ),
+    )
+    experiments = list(_lab_experiments_qs(school))
+    add_sheet(
+        "تجارب المختبر",
+        [
+            "المعرف", "العنوان", "المختبر", "القسم", "المحضر", "المعلم الطالب",
+            "تاريخ التنفيذ", "المادة", "الصف", "عدد الطلاب", "الأهداف", "الخطوات",
+            "المواد والأدوات", "إجراءات السلامة", "العهد المستخدمة", "التقرير المرتبط",
+            "حالة الاعتماد", "تاريخ الإنشاء", "آخر تحديث",
+        ],
+        (
+            (
+                experiment.id, experiment.title, experiment.get_lab_kind_display() if experiment.lab_kind else "—",
+                getattr(experiment.department, "name", "") or "—",
+                getattr(experiment.recorder, "name", "") or "—",
+                getattr(experiment.requested_by, "name", "") or "—",
+                experiment.experiment_date.isoformat() if experiment.experiment_date else "",
+                experiment.subject, experiment.class_name, experiment.students_count,
+                experiment.objectives, experiment.procedure, experiment.materials_note,
+                experiment.safety_notes, "، ".join(asset.name for asset in experiment.assets.all()),
+                experiment.report_id or "", experiment.get_approval_state_display(),
+                experiment.created_at.isoformat() if experiment.created_at else "",
+                experiment.updated_at.isoformat() if experiment.updated_at else "",
+            )
+            for experiment in experiments
+        ),
+    )
 
 
 def _ticket_folder(ticket) -> str:
@@ -1428,6 +1736,72 @@ def _file_fields_for_school(school, *, academic_year=None, teacher=None, school_
             extension = os.path.splitext(name)[1].lower() or ".bin"
             yield f"الوثائق/{year}/{kind}/{title}-{document.id}{extension}", field
 
+    # 7) شواهد تنفيذ التكليفات. التكليفات الإدارية لا تحمل سنة دراسية، لذلك
+    # تحفظ النسخة السنوية حالتها الكاملة وقت الإنشاء، مع قصر تكليفات المجموعة
+    # على المكلَّفين داخل المدرسة الحالية منعاً لتسريب مدارس شقيقة.
+    if school_wide:
+        from django.db.models import Q
+
+        for assignment in _assignments_qs(school):
+            assignment_folder = _safe_segment(
+                f"{assignment.title} - {assignment.id}",
+                fallback=f"تكليف-{assignment.id}",
+            )
+            targets = assignment.targets.filter(
+                Q(school=school)
+                | Q(school__isnull=True, assignment__school=school)
+            ).select_related("assignee")
+            for target in targets:
+                assignee = _safe_segment(
+                    getattr(target.assignee, "name", "") or f"مكلف-{target.id}"
+                )
+                for index, evidence in enumerate(target.evidence.all(), start=1):
+                    field = getattr(evidence, "file", None)
+                    name = getattr(field, "name", "") or ""
+                    if not name:
+                        continue
+                    extension = os.path.splitext(name)[1].lower() or ".bin"
+                    note = _safe_segment(
+                        evidence.note,
+                        fallback=f"شاهد-{index}",
+                    )
+                    yield (
+                        f"التكليفات/{assignment_folder}/المكلفون/{assignee}/"
+                        f"شواهد/{note}-{evidence.id}{extension}",
+                        field,
+                    )
+
+    # 8) صور التقارير المرتبطة بالتجارب تُنسخ أيضاً تحت سجل التجربة. وجودها
+    # في مجلد التقرير وحده لا يكفي عند قراءة أرشيف المختبر مستقلاً.
+    if school_wide:
+        for experiment in _lab_experiments_qs(school):
+            report = getattr(experiment, "report", None)
+            if report is None:
+                continue
+            experiment_folder = _safe_segment(
+                f"{experiment.experiment_date or 'بدون-تاريخ'} - "
+                f"{experiment.title or 'تجربة'} - {experiment.id}",
+                fallback=f"تجربة-{experiment.id}",
+            )
+            evidence_fields = [item.image for item in report.evidences.all()]
+            if not evidence_fields:
+                evidence_fields = [
+                    report.image1,
+                    report.image2,
+                    report.image3,
+                    report.image4,
+                ]
+            for index, field in enumerate(evidence_fields, start=1):
+                name = getattr(field, "name", "") or ""
+                if not name:
+                    continue
+                extension = os.path.splitext(name)[1].lower() or ".jpg"
+                yield (
+                    f"المختبرات/التجارب/{experiment_folder}/"
+                    f"شاهد-{index}{extension}",
+                    field,
+                )
+
     # السجلات الإدارية لا تحمل سنة دراسية؛ يضيفها أرشيف السنة صراحةً
     # بوصفها "الحالة حتى لحظة إنشاء النسخة". وهنا نضيفها للتصدير الكامل.
     if academic_year or not school_wide:
@@ -1528,6 +1902,10 @@ def build_school_export_zip_file(
         if school_wide
         else 0
     )
+    assignment_count = _assignments_qs(school).count() if school_wide else 0
+    lab_asset_count = _lab_assets_qs(school).count() if school_wide else 0
+    lab_handover_count = _lab_handovers_qs(school).count() if school_wide else 0
+    lab_experiment_count = _lab_experiments_qs(school).count() if school_wide else 0
 
     tmp = tempfile.SpooledTemporaryFile(max_size=24 * 1024 * 1024)
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=1) as zf:
@@ -1599,6 +1977,16 @@ def build_school_export_zip_file(
         leadership_pdf_failed = 0
         meeting_pdf_ok = 0
         meeting_pdf_failed = 0
+        assignment_pdf_ok = 0
+        assignment_pdf_failed = 0
+        plan_pdf_ok = 0
+        plan_pdf_failed = 0
+        initiative_pdf_ok = 0
+        initiative_pdf_failed = 0
+        lab_inventory_pdf_ok = 0
+        lab_inventory_pdf_failed = 0
+        lab_experiment_pdf_ok = 0
+        lab_experiment_pdf_failed = 0
 
         # (أ) ملف PDF لكل تقرير (لكل النطاقات بما فيها غير المصنّفة بسنة)
         for rep in _reports_qs(
@@ -1716,6 +2104,97 @@ def build_school_export_zip_file(
                 )
                 meeting_pdf_ok += 1
 
+            # (هـ) ملفات التنفيذ المدرسي التي كانت سابقاً مجرد صفوف Excel.
+            # تستخدم مولداً حتمياً لا يعتمد على مكتبات HTML الأصلية، فلا يحول
+            # تعطل Pango نسخة المدرسة إلى أرشيف ناقص.
+            from .pdf_school_archive import (
+                generate_assignment_archive_pdf,
+                generate_initiative_archive_pdf,
+                generate_lab_experiment_archive_pdf,
+                generate_lab_inventory_archive_pdf,
+                generate_plan_archive_pdf,
+            )
+
+            for assignment in _assignments_qs(school):
+                try:
+                    pdf_bytes = generate_assignment_archive_pdf(
+                        assignment,
+                        school=school,
+                    )
+                except Exception:
+                    assignment_pdf_failed += 1
+                    continue
+                folder = _safe_segment(
+                    f"{assignment.title} - {assignment.id}",
+                    fallback=f"تكليف-{assignment.id}",
+                )
+                write_bytes(f"التكليفات/{folder}/سجل-التكليف.pdf", pdf_bytes)
+                assignment_pdf_ok += 1
+
+            for plan in _plans_qs(school, academic_year=academic_year):
+                try:
+                    pdf_bytes = generate_plan_archive_pdf(plan)
+                except Exception:
+                    plan_pdf_failed += 1
+                    continue
+                folder = _safe_segment(
+                    f"{plan.title} - {plan.id}",
+                    fallback=f"خطة-{plan.id}",
+                )
+                write_bytes(f"الخطط/{folder}/الخطة.pdf", pdf_bytes)
+                plan_pdf_ok += 1
+
+            for initiative in _initiatives_qs(
+                school,
+                academic_year=academic_year,
+            ):
+                try:
+                    pdf_bytes = generate_initiative_archive_pdf(initiative)
+                except Exception:
+                    initiative_pdf_failed += 1
+                    continue
+                folder = _safe_segment(
+                    f"{initiative.title} - {initiative.id}",
+                    fallback=f"مبادرة-{initiative.id}",
+                )
+                write_bytes(f"المبادرات/{folder}/المبادرة.pdf", pdf_bytes)
+                initiative_pdf_ok += 1
+
+            lab_assets = list(_lab_assets_qs(school))
+            lab_handovers = list(_lab_handovers_qs(school))
+            if lab_assets or lab_handovers:
+                try:
+                    pdf_bytes = generate_lab_inventory_archive_pdf(
+                        school=school,
+                        assets=lab_assets,
+                        handovers=lab_handovers,
+                    )
+                except Exception:
+                    lab_inventory_pdf_failed += 1
+                else:
+                    write_bytes(
+                        "المختبرات/كشف-العهدة-وحركاتها.pdf",
+                        pdf_bytes,
+                    )
+                    lab_inventory_pdf_ok += 1
+
+            for experiment in _lab_experiments_qs(school):
+                try:
+                    pdf_bytes = generate_lab_experiment_archive_pdf(experiment)
+                except Exception:
+                    lab_experiment_pdf_failed += 1
+                    continue
+                folder = _safe_segment(
+                    f"{experiment.experiment_date or 'بدون-تاريخ'} - "
+                    f"{experiment.title or 'تجربة'} - {experiment.id}",
+                    fallback=f"تجربة-{experiment.id}",
+                )
+                write_bytes(
+                    f"المختبرات/التجارب/{folder}/سجل-التجربة.pdf",
+                    pdf_bytes,
+                )
+                lab_experiment_pdf_ok += 1
+
         # (د) ملف الأداء القيادي الرسمي للمدرسة، مع شواهده الأصلية التي أضيفت
         # في المرور الأساسي تحت «منصة توثيق · القيادة المدرسية».
         if school_wide and not is_unclassified:
@@ -1756,12 +2235,21 @@ def build_school_export_zip_file(
             f"  • الاجتماعات والمحاضر حتى لحظة إنشاء النسخة: {meeting_count}",
             f"  • الخطط في النطاق: {plan_count}",
             f"  • المبادرات في النطاق: {initiative_count}",
+            f"  • التكليفات حتى لحظة إنشاء النسخة: {assignment_count}",
+            f"  • أصول المختبر حتى لحظة إنشاء النسخة: {lab_asset_count}",
+            f"  • حركات العهدة حتى لحظة إنشاء النسخة: {lab_handover_count}",
+            f"  • تجارب المختبر حتى لحظة إنشاء النسخة: {lab_experiment_count}",
             f"  • ملفات PDF للتقارير التي تم توليدها: {rep_ok}",
             f"  • ملفات PDF لملفات الإنجاز التي تم توليدها: {gen_ok}",
             f"  • ملفات PDF للأداء القيادي التي تم توليدها: {leadership_pdf_ok}",
             f"  • ملفات PDF للطلبات والتذاكر التي تم توليدها: {ticket_pdf_ok}",
             f"  • ملفات PDF للتعاميم والإشعارات التي تم توليدها: {notification_pdf_ok}",
             f"  • ملفات PDF لمحاضر الاجتماعات التي تم توليدها: {meeting_pdf_ok}",
+            f"  • ملفات PDF للتكليفات التي تم توليدها: {assignment_pdf_ok}",
+            f"  • ملفات PDF للخطط التي تم توليدها: {plan_pdf_ok}",
+            f"  • ملفات PDF للمبادرات التي تم توليدها: {initiative_pdf_ok}",
+            f"  • ملفات PDF لكشف عهدة المختبر التي تم توليدها: {lab_inventory_pdf_ok}",
+            f"  • ملفات PDF لتجارب المختبر التي تم توليدها: {lab_experiment_pdf_ok}",
         ]
         if missing_file_count:
             content_notes.append(f"  ⚠ ملفات أصلية تعذرت قراءتها: {missing_file_count}")
@@ -1786,6 +2274,17 @@ def build_school_export_zip_file(
             content_notes.append(
                 f"  ⚠ ملفات PDF لمحاضر الاجتماعات تعذر توليدها: {meeting_pdf_failed}"
             )
+        for label, failed in (
+            ("التكليفات", assignment_pdf_failed),
+            ("الخطط", plan_pdf_failed),
+            ("المبادرات", initiative_pdf_failed),
+            ("كشف عهدة المختبر", lab_inventory_pdf_failed),
+            ("تجارب المختبر", lab_experiment_pdf_failed),
+        ):
+            if failed:
+                content_notes.append(
+                    f"  ⚠ ملفات PDF لـ{label} تعذر توليدها: {failed}"
+                )
         if not (
             missing_file_count
             or rep_failed
@@ -1794,6 +2293,11 @@ def build_school_export_zip_file(
             or notification_pdf_failed
             or leadership_pdf_failed
             or meeting_pdf_failed
+            or assignment_pdf_failed
+            or plan_pdf_failed
+            or initiative_pdf_failed
+            or lab_inventory_pdf_failed
+            or lab_experiment_pdf_failed
         ):
             content_notes.append("  ✓ اكتمل إنشاء الحزمة دون ملفات مفقودة أو أخطاء توليد.")
         if school_wide:
@@ -1832,6 +2336,10 @@ def build_school_export_zip_file(
             and meeting_count == 0
             and plan_count == 0
             and initiative_count == 0
+            and assignment_count == 0
+            and lab_asset_count == 0
+            and lab_handover_count == 0
+            and lab_experiment_count == 0
         ):
             zf.writestr(
                 "اقرأني.txt",
@@ -1859,11 +2367,21 @@ def build_school_export_zip_file(
             + notification_pdf_failed
             + leadership_pdf_failed
             + meeting_pdf_failed
+            + assignment_pdf_failed
+            + plan_pdf_failed
+            + initiative_pdf_failed
+            + lab_inventory_pdf_failed
+            + lab_experiment_pdf_failed
         ),
         "generated_report_pdf_count": rep_ok,
         "generated_achievement_pdf_count": gen_ok,
         "generated_leadership_pdf_count": leadership_pdf_ok,
         "generated_meeting_pdf_count": meeting_pdf_ok,
+        "generated_assignment_pdf_count": assignment_pdf_ok,
+        "generated_plan_pdf_count": plan_pdf_ok,
+        "generated_initiative_pdf_count": initiative_pdf_ok,
+        "generated_lab_inventory_pdf_count": lab_inventory_pdf_ok,
+        "generated_lab_experiment_pdf_count": lab_experiment_pdf_ok,
         "report_count": report_count,
         "achievement_count": achievement_count,
         "leadership_count": leadership_count,
@@ -1874,6 +2392,10 @@ def build_school_export_zip_file(
         "meeting_count": meeting_count,
         "plan_count": plan_count,
         "initiative_count": initiative_count,
+        "assignment_count": assignment_count,
+        "lab_asset_count": lab_asset_count,
+        "lab_handover_count": lab_handover_count,
+        "lab_experiment_count": lab_experiment_count,
         "archive_size_bytes": archive_size,
         "archive_sha256": digest.hexdigest(),
         "is_partial": bool(
@@ -1884,6 +2406,11 @@ def build_school_export_zip_file(
             or notification_pdf_failed
             or leadership_pdf_failed
             or meeting_pdf_failed
+            or assignment_pdf_failed
+            or plan_pdf_failed
+            or initiative_pdf_failed
+            or lab_inventory_pdf_failed
+            or lab_experiment_pdf_failed
         ),
         "notes": "\n".join(content_notes),
     }

@@ -8,14 +8,16 @@
   <title>ملف الإنجاز - {{ file.teacher_name }} - {{ file.academic_year }}</title>
 
   {% comment %}الخط والأيقونات محلياً: لا طلب لطرف ثالث قبل أول حرف، ولا نطاق خارجي في سياسة المحتوى.{% endcomment %}
-  <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
+  {% if not for_pdf %}
+    <link rel="preload" href="{% static 'vendor/fonts/cairo/cairo-arabic.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v=20260812.1">
+  {% endif %}
 
   <style nonce="{{ CSP_NONCE }}">
     @page { size: A4; margin: 0; }
 
     :root {
-      --font-body: 'Cairo', DejaVu Sans, Tahoma, Arial, sans-serif;
+      --font-body: {% if for_pdf %}"Noto Sans Arabic", "DejaVu Sans", sans-serif{% else %}'Cairo', "DejaVu Sans", Tahoma, Arial, sans-serif{% endif %};
       --brand: #075b36;
       --brand-deep: #043d25;
       --gold: #b58a46;
@@ -59,6 +61,8 @@
       }
       .no-print { display: none !important; }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      table, tr, figure, .header, .document-footer { break-inside: avoid; page-break-inside: avoid; }
+      td, th, p, .section-body { overflow-wrap: anywhere; word-break: normal; }
     }
 
     /* Toolbar (screen only) */

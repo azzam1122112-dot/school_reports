@@ -2005,6 +2005,12 @@ def build_generated_export_task(self, job_id: int) -> bool:
                         ticket_count=metadata["ticket_count"],
                         circular_count=metadata["circular_count"],
                         notification_count=metadata["notification_count"],
+                        assignment_count=int(metadata.get("assignment_count") or 0),
+                        plan_count=int(metadata.get("plan_count") or 0),
+                        initiative_count=int(metadata.get("initiative_count") or 0),
+                        lab_asset_count=int(metadata.get("lab_asset_count") or 0),
+                        lab_handover_count=int(metadata.get("lab_handover_count") or 0),
+                        lab_experiment_count=int(metadata.get("lab_experiment_count") or 0),
                         notes=metadata["notes"],
                         created_by=requested_by,
                     )
