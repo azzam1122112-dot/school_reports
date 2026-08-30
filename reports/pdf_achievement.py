@@ -12,6 +12,7 @@ from django.contrib.staticfiles import finders
 
 from .gender_labels import school_gender_template_context
 from .models import TeacherAchievementFile, AchievementEvidenceReport, AchievementSection
+from .pdf_render import render_html_pdf
 
 
 def _static_png_as_data_uri(path: str) -> str | None:
@@ -79,14 +80,12 @@ def generate_achievement_pdf(
         "has_evidence_reports": AchievementEvidenceReport.objects.filter(section__file=ach_file).exists(),
         "theme": {"brand": primary},
         "now": timezone.localtime(timezone.now()),
+        "for_pdf": True,
         "ministry_logo_src": _static_png_as_data_uri("img/UntiTtled-1.png"),
         **school_gender_template_context(school),
     }
 
     html = render_to_string("reports/pdf/achievement_file.html", ctx)
-
-    # WeasyPrint import kept inside to avoid import-time failures in dev environments.
-    from weasyprint import HTML
 
     if base_url is None and request is not None:
         try:
@@ -94,6 +93,6 @@ def generate_achievement_pdf(
         except Exception:
             base_url = None
 
-    pdf_bytes = HTML(string=html, base_url=base_url).write_pdf()
+    pdf_bytes = render_html_pdf(html=html, base_url=base_url)
 
     return pdf_bytes, achievement_pdf_filename(ach_file)

@@ -6,15 +6,14 @@ import logging
 from django.template.loader import render_to_string
 
 from .pdf_report import _fallback_bold_font_path, _fallback_font_path
+from .pdf_render import prefer_reportlab_for_official_arabic, render_html_pdf
 
 
 logger = logging.getLogger(__name__)
 
 
 def _generate_invoice_pdf_weasy(*, html: str, base_url: str | None) -> bytes:
-    from weasyprint import HTML
-
-    return HTML(string=html, base_url=base_url).write_pdf()
+    return render_html_pdf(html=html, base_url=base_url)
 
 
 def _generate_invoice_pdf_fallback(context: dict) -> bytes:
@@ -176,11 +175,12 @@ def _generate_invoice_pdf_fallback(context: dict) -> bytes:
 def generate_invoice_pdf(*, context: dict, request=None) -> tuple[bytes, str]:
     html = render_to_string("reports/billing_invoice_pdf.html", context)
     base_url = request.build_absolute_uri("/") if request is not None else None
-    try:
-        pdf_bytes = _generate_invoice_pdf_weasy(html=html, base_url=base_url)
-        if not pdf_bytes.startswith(b"%PDF-"):
-            raise ValueError("WeasyPrint returned an invalid PDF")
-    except Exception:
+    if prefer_reportlab_for_official_arabic():
         pdf_bytes = _generate_invoice_pdf_fallback(context)
+    else:
+        try:
+            pdf_bytes = _generate_invoice_pdf_weasy(html=html, base_url=base_url)
+        except Exception:
+            pdf_bytes = _generate_invoice_pdf_fallback(context)
     filename = f"tawtheeq-invoice-{context['invoice_number']}.pdf"
     return pdf_bytes, filename

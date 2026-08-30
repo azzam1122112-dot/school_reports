@@ -9,9 +9,10 @@ from .models import (
     LeadershipEvidenceReport,
     LeadershipPortfolioSection,
 )
+from .pdf_render import render_html_pdf
 
 
-def build_leadership_print_context(portfolio) -> dict:
+def build_leadership_print_context(portfolio, *, for_pdf: bool = False) -> dict:
     sections = portfolio.sections.prefetch_related(
         "evidence_images",
         "evidence_reports__report__category",
@@ -33,6 +34,7 @@ def build_leadership_print_context(portfolio) -> dict:
         ).count(),
         **school_gender_template_context(portfolio.school),
         "manager_label": school_gender_template_context(portfolio.school)["SCHOOL_MANAGER_LABEL"],
+        "for_pdf": for_pdf,
     }
 
 
@@ -46,15 +48,13 @@ def generate_leadership_portfolio_pdf(portfolio, *, request=None, base_url=None)
     """
     html = render_to_string(
         "reports/pdf/leadership_portfolio.html",
-        build_leadership_print_context(portfolio),
+        build_leadership_print_context(portfolio, for_pdf=True),
         request=request,
     )
-    from weasyprint import HTML
-
     if base_url is None:
         base_url = (
             request.build_absolute_uri("/")
             if request is not None
             else str(getattr(settings, "BASE_DIR", "") or "")
         )
-    return HTML(string=html, base_url=base_url).write_pdf()
+    return render_html_pdf(html=html, base_url=base_url)

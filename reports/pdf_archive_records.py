@@ -4,16 +4,16 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from .pdf_render import render_html_pdf
+
 
 def _render_pdf(context: dict, *, request=None) -> bytes:
-    from weasyprint import HTML
-
     html = render_to_string("reports/archive_record_pdf.html", context)
     if request is not None:
         base_url = request.build_absolute_uri("/")
     else:
         base_url = str(settings.BASE_DIR)
-    return HTML(string=html, base_url=base_url).write_pdf()
+    return render_html_pdf(html=html, base_url=base_url)
 
 
 def generate_ticket_archive_pdf(ticket, *, request=None) -> bytes:

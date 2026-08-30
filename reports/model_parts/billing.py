@@ -581,6 +581,12 @@ class SchoolYearArchive(models.Model):
     ticket_count = models.PositiveIntegerField("عدد التذاكر", default=0)
     circular_count = models.PositiveIntegerField("عدد التعاميم", default=0)
     notification_count = models.PositiveIntegerField("عدد الإشعارات", default=0)
+    assignment_count = models.PositiveIntegerField("عدد التكليفات", default=0)
+    plan_count = models.PositiveIntegerField("عدد الخطط", default=0)
+    initiative_count = models.PositiveIntegerField("عدد المبادرات", default=0)
+    lab_asset_count = models.PositiveIntegerField("عدد أصول المختبر", default=0)
+    lab_handover_count = models.PositiveIntegerField("عدد حركات العهدة", default=0)
+    lab_experiment_count = models.PositiveIntegerField("عدد تجارب المختبر", default=0)
     notes = models.TextField("تقرير الإنشاء", blank=True, default="")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

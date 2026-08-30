@@ -6,11 +6,18 @@ from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from .models import (
+    Assignment,
     AchievementEvidenceImage,
     AchievementEvidenceReport,
     Document,
+    Initiative,
+    LabAsset,
+    LabAssetHandover,
+    LabExperiment,
     LeadershipEvidenceImage,
     Notification,
+    Meeting,
+    Plan,
     Report,
     ReportEvidence,
     School,
@@ -205,6 +212,11 @@ def school_administrative_archive_stats(school: School | None) -> dict:
             "notifications": 0,
             "system_notifications": 0,
             "user_notifications": 0,
+            "assignments": 0,
+            "meetings": 0,
+            "lab_assets": 0,
+            "lab_handovers": 0,
+            "lab_experiments": 0,
             "total": 0,
         }
     notifications = Notification.objects.filter(school=school)
@@ -220,8 +232,27 @@ def school_administrative_archive_stats(school: School | None) -> dict:
             requires_signature=False,
             created_by__isnull=False,
         ).count(),
+        "assignments": Assignment.objects.filter(
+            Q(school=school) | Q(targets__school=school)
+        ).distinct().count(),
+        "meetings": Meeting.objects.filter(school=school).count(),
+        "lab_assets": LabAsset.objects.filter(school=school).count(),
+        "lab_handovers": LabAssetHandover.objects.filter(school=school).count(),
+        "lab_experiments": LabExperiment.objects.filter(school=school).count(),
     }
-    values["total"] = values["tickets"] + values["circulars"] + values["notifications"]
+    values["total"] = sum(
+        values[key]
+        for key in (
+            "tickets",
+            "circulars",
+            "notifications",
+            "assignments",
+            "meetings",
+            "lab_assets",
+            "lab_handovers",
+            "lab_experiments",
+        )
+    )
     return values
 
 
@@ -938,16 +969,36 @@ def archive_available_years(*, school: School, teacher=None, school_wide: bool =
     if school_wide:
         years.update(leadership_qs.values_list("academic_year", flat=True).distinct())
         years.update(
+            Document.objects.filter(school=school)
+            .exclude(academic_year="")
+            .values_list("academic_year", flat=True)
+            .distinct()
+        )
+        years.update(
+            Plan.objects.filter(school=school)
+            .exclude(academic_year="")
+            .values_list("academic_year", flat=True)
+            .distinct()
+        )
+        years.update(
             SchoolYearArchive.objects.filter(school=school)
             .exclude(academic_year="")
             .values_list("academic_year", flat=True)
             .distinct()
         )
-        # التذاكر والتعاميم لا تحمل سنة دراسية في نموذجها. إذا كانت هي المحتوى
-        # الوحيد، نستخدم سنة المدرسة الحالية كوعاء واضح للنسخة الإدارية.
+        # هذه السجلات التشغيلية لا تحمل سنة دراسية في نماذجها. إذا كانت هي
+        # المحتوى الوحيد، نستخدم سنة المدرسة الحالية كوعاء واضح للقطة الكاملة.
         has_administrative_records = (
             Ticket.objects.filter(school=school).exists()
             or Notification.objects.filter(school=school).exists()
+            or Meeting.objects.filter(school=school).exists()
+            or Initiative.objects.filter(school=school, plan__isnull=True).exists()
+            or Assignment.objects.filter(
+                Q(school=school) | Q(targets__school=school)
+            ).exists()
+            or LabAsset.objects.filter(school=school).exists()
+            or LabAssetHandover.objects.filter(school=school).exists()
+            or LabExperiment.objects.filter(school=school).exists()
         )
         current_year = (getattr(school, "current_academic_year", "") or "").strip()
         if has_administrative_records and current_year:

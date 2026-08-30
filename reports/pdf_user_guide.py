@@ -7,6 +7,8 @@ from django.templatetags.static import static
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
+from .pdf_render import render_html_pdf
+
 
 def generate_user_guide_pdf(*, base_url: str) -> bytes:
     guide_html = render_to_string(
@@ -32,6 +34,4 @@ def generate_user_guide_pdf(*, base_url: str) -> bytes:
             "guide_html": mark_safe(guide_html),  # noqa: S308 - repository-owned template
         },
     )
-    from weasyprint import HTML
-
-    return HTML(string=html, base_url=base_url).write_pdf()
+    return render_html_pdf(html=html, base_url=base_url)

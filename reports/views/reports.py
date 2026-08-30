@@ -814,6 +814,11 @@ def school_archive(request: HttpRequest) -> HttpResponse:
             "notifications": 0,
             "system_notifications": 0,
             "user_notifications": 0,
+            "assignments": 0,
+            "meetings": 0,
+            "lab_assets": 0,
+            "lab_handovers": 0,
+            "lab_experiments": 0,
             "total": 0,
         }
     )
@@ -845,11 +850,23 @@ def school_archive(request: HttpRequest) -> HttpResponse:
         else SchoolLeadershipPortfolio.objects.none()
     )
     leadership_count = leadership_portfolios.count()
+    from ..services_export import school_archive_source_counts
+
+    snapshot_source_counts = (
+        school_archive_source_counts(
+            active_school,
+            academic_year=selected_year,
+        )
+        if school_wide and selected_year
+        else {}
+    )
     snapshot_total_records = (
-        snapshot_payload["report_stats"]["total"]
-        + snapshot_payload["achievement_stats"]["total"]
-        + leadership_count
-        + administrative_stats["total"]
+        sum(snapshot_source_counts.values())
+        if school_wide and selected_year
+        else (
+            snapshot_payload["report_stats"]["total"]
+            + snapshot_payload["achievement_stats"]["total"]
+        )
     )
 
     reports_page = svc_paginate(payload["reports_qs"], per_page=15, page=request.GET.get("reports_page", 1))
@@ -956,6 +973,7 @@ def school_archive(request: HttpRequest) -> HttpResponse:
             "leadership_portfolios": leadership_portfolios,
             "leadership_count": leadership_count,
             "snapshot_total_records": snapshot_total_records,
+            "snapshot_source_counts": snapshot_source_counts,
             "administrative_stats": administrative_stats,
             "administrative_matches": administrative_payload["matches"],
             "tickets": tickets_page,
@@ -990,7 +1008,11 @@ def school_archive(request: HttpRequest) -> HttpResponse:
 def school_archive_create(request: HttpRequest) -> HttpResponse:
     """Create and persist an immutable versioned ZIP snapshot for one year."""
     from django.core.files import File
-    from ..services_export import build_school_export_zip_file, archive_zip_filename
+    from ..services_export import (
+        archive_zip_filename,
+        build_school_export_zip_file,
+        school_archive_source_counts,
+    )
 
     active_school = _get_active_school(request)
     if active_school is None:
@@ -1006,23 +1028,11 @@ def school_archive_create(request: HttpRequest) -> HttpResponse:
         messages.error(request, "السنة المطلوبة غير متاحة أو لا تحتوي على بيانات.")
         return redirect("reports:school_archive")
 
-    payload = archive_payload(
-        school=active_school,
-        selected_year=selected_year,
-        teacher=request.user,
-        school_wide=True,
-    )
-    administrative_stats = school_administrative_archive_stats(active_school)
-    source_count = (
-        payload["report_stats"]["total"]
-        + payload["achievement_stats"]["total"]
-        + SchoolLeadershipPortfolio.objects.filter(
-            school=active_school,
+    source_count = sum(
+        school_archive_source_counts(
+            active_school,
             academic_year=selected_year,
-        ).count()
-        + administrative_stats["tickets"]
-        + administrative_stats["circulars"]
-        + administrative_stats["notifications"]
+        ).values()
     )
     if source_count <= 0:
         messages.error(request, "لا يمكن إنشاء نسخة فارغة؛ لا توجد بيانات حية لهذه السنة.")
@@ -1094,6 +1104,12 @@ def school_archive_create(request: HttpRequest) -> HttpResponse:
                 ticket_count=metadata["ticket_count"],
                 circular_count=metadata["circular_count"],
                 notification_count=metadata["notification_count"],
+                assignment_count=int(metadata.get("assignment_count") or 0),
+                plan_count=int(metadata.get("plan_count") or 0),
+                initiative_count=int(metadata.get("initiative_count") or 0),
+                lab_asset_count=int(metadata.get("lab_asset_count") or 0),
+                lab_handover_count=int(metadata.get("lab_handover_count") or 0),
+                lab_experiment_count=int(metadata.get("lab_experiment_count") or 0),
                 notes=metadata["notes"],
                 created_by=request.user,
             )

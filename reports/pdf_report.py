@@ -22,6 +22,7 @@ from django.templatetags.static import static
 from .hijri_utils import hijri_date
 from .gender_labels import school_gender_labels, school_gender_template_context
 from .models import SchoolMembership
+from .pdf_render import prefer_reportlab_for_official_arabic, render_html_pdf
 from .utils import _resolve_department_for_category, _build_head_decision
 
 
@@ -187,9 +188,7 @@ def build_report_print_context(report) -> dict:
 
 
 def _generate_report_pdf_weasy(*, html: str, base_url: str | None) -> bytes:
-    from weasyprint import HTML
-
-    return HTML(string=html, base_url=base_url).write_pdf()
+    return render_html_pdf(html=html, base_url=base_url)
 
 
 def _fallback_font_path() -> str:
@@ -653,14 +652,17 @@ def generate_report_pdf(*, request, report) -> Tuple[bytes, str]:
     except Exception:
         base_url = None
 
-    try:
-        pdf_bytes = _generate_report_pdf_weasy(html=html, base_url=base_url)
-    except Exception as exc:
-        logger.warning(
-            "WeasyPrint report rendering failed; using official ReportLab fallback report_id=%s error=%s",
-            getattr(report, "id", None),
-            type(exc).__name__,
-        )
+    if prefer_reportlab_for_official_arabic():
         pdf_bytes = _generate_report_pdf_fallback(report, context=context)
+    else:
+        try:
+            pdf_bytes = _generate_report_pdf_weasy(html=html, base_url=base_url)
+        except Exception as exc:
+            logger.warning(
+                "WeasyPrint report rendering failed; using official ReportLab fallback report_id=%s error=%s",
+                getattr(report, "id", None),
+                type(exc).__name__,
+            )
+            pdf_bytes = _generate_report_pdf_fallback(report, context=context)
     filename = f"report_{getattr(report, 'id', 'x')}.pdf"
     return pdf_bytes, filename
