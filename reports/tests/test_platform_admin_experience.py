@@ -18,6 +18,7 @@ from reports.models import (
     Report,
     ReportType,
     School,
+    SchoolMembership,
     Teacher,
 )
 
@@ -276,6 +277,47 @@ class PlatformAdminExperienceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "هذا الحقل مطلوب")
         self.assertFalse(Teacher.objects.filter(phone="0551234511").exists())
+
+    def test_school_manager_update_accepts_blank_national_id_and_changes_password(self):
+        Teacher.objects.create_user(
+            phone="0551234513",
+            name="سجل قديم",
+            password="LegacyPass#2026",
+            national_id="",
+        )
+        manager = Teacher.objects.create_user(
+            phone="0551234512",
+            name="مدير قبل التعديل",
+            email="manager-before@example.com",
+            password="OldManagerPass#2026",
+            national_id=None,
+            is_active=True,
+        )
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=manager,
+            role_type=SchoolMembership.RoleType.MANAGER,
+        )
+
+        response = self.client.post(
+            reverse("reports:school_manager_update", args=[manager.pk]),
+            data={
+                "name": "مدير بعد التعديل",
+                "phone": manager.phone,
+                "email": "manager-after@example.com",
+                "national_id": "",
+                "password": "NewManagerPass#2026",
+                "is_active": "on",
+                "schools": [str(self.school.pk)],
+            },
+        )
+
+        self.assertRedirects(response, reverse("reports:school_managers_list"))
+        manager.refresh_from_db()
+        self.assertEqual(manager.name, "مدير بعد التعديل")
+        self.assertEqual(manager.email, "manager-after@example.com")
+        self.assertIsNone(manager.national_id)
+        self.assertTrue(manager.check_password("NewManagerPass#2026"))
 
 
 class MansourKnowledgeFileSafetyTests(SimpleTestCase):

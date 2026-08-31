@@ -1347,6 +1347,13 @@ class ManagerCreateForm(forms.ModelForm):
             raise ValidationError("البريد الإلكتروني إلزامي لمدير المدرسة.")
         return email
 
+    def clean_national_id(self):
+        nid = (self.cleaned_data.get("national_id") or "").strip()
+        if nid:
+            if not nid.isdigit() or len(nid) != 10:
+                raise ValidationError("رقم الهوية يجب أن يتكون من 10 أرقام.")
+        return nid or None
+
     def save(self, commit=True):
         instance = super().save(commit=False)
         password = self.cleaned_data.get("password")
