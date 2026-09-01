@@ -20,60 +20,56 @@ class LandingPageTests(TestCase):
         response = self.client.get(reverse("reports:landing"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "منصة واحدة لإدارة تقارير المدرسة وطلباتها وتعاميمها")
-        self.assertContains(response, "وتحويل العمل اليومي إلى إنجاز موثّق")
-        self.assertContains(response, "لوحة للمدير، مساحة للفريق، وأرشيف يبقى")
-        self.assertContains(response, "ملفات إنجاز المعلمين")
+        self.assertContains(response, "شغّل مدرستك من مكان واحد")
+        self.assertContains(response, "وحوّل كل عمل إلى إنجاز موثّق")
+        self.assertContains(response, "تقارير، ملفات إنجاز، طلبات، تعاميم، خطط وأرشيف")
         self.assertContains(response, "التعاميم")
         self.assertContains(response, "الأرشيف")
-        self.assertContains(response, "ابدأ تجربة مجانية 30 يوم")
-        self.assertNotContains(response, "ابدأ تجربة مجانية 14 يوم")
-        self.assertContains(response, "من تسجيل المدرسة إلى أول عمل موثّق")
-        self.assertContains(response, "لكل مدرسة بياناتها وتجربتها وباقتها ودفعها المستقل")
+        self.assertContains(response, "ابدأ مجانًا 30 يوم")
+        self.assertNotContains(response, "ابدأ مجانًا 14 يوم")
+        self.assertContains(response, "أدخل عدد المعلمين واعرف السعر فورًا")
         self.assertContains(response, reverse("reports:register_school"))
         self.assertContains(response, "img/landing/dashboard-system.png")
-        self.assertContains(response, "img/landing/tickets-system.png")
         self.assertContains(response, "img/landing/report-system.png")
-        self.assertContains(response, "img/landing/archive-system.png")
+        self.assertNotContains(response, "img/landing/tickets-system.png")
+        self.assertNotContains(response, "img/landing/archive-system.png")
         self.assertContains(response, "بيانات تجريبية")
         self.assertContains(response, 'id="productLightbox"')
         self.assertContains(response, "img/brand-mark.svg")
         self.assertNotContains(response, "+500K")
         self.assertNotContains(response, "100% رضا")
 
-    def test_landing_answers_the_whatsapp_and_drive_objection(self):
+    def test_landing_exposes_prices_in_desktop_and_mobile_navigation(self):
         response = self.client.get(reverse("reports:landing"))
         html = response.content.decode("utf-8")
 
-        self.assertContains(response, 'id="compare"')
-        self.assertContains(response, "قروبات واتساب ومجلدات درايف")
-        # Each contrast row must be paired, otherwise the two columns misalign.
-        self.assertEqual(
-            html.count("compare-cell compare-before"),
-            html.count("compare-cell compare-after"),
-        )
-        self.assertGreaterEqual(html.count("compare-cell compare-before"), 4)
-        # The claim must stay an invitation to verify, never an invented statistic.
-        self.assertContains(response, "جرّبه على أعمال أسبوع واحد")
+        header = html[html.index("<header"): html.index("</header>")]
+        mobile_menu = html[html.index('id="mobileMenu"'): html.index("<main")]
+        self.assertIn('href="#pricing">الأسعار</a>', header)
+        self.assertIn('href="#pricing">الأسعار</a>', mobile_menu)
+        self.assertNotIn('href="#pricing">الباقات</a>', html)
+        self.assertContains(response, "اعرف سعر مدرستك")
 
-    def test_landing_puts_role_specific_journeys_before_the_long_catalog(self):
+    def test_landing_uses_a_short_decision_focused_information_architecture(self):
         response = self.client.get(reverse("reports:landing"))
         html = response.content.decode("utf-8")
 
-        self.assertLess(html.index('id="roles"'), html.index('id="start"'))
-        self.assertEqual(html.count('role="tab"'), 4)
-        self.assertEqual(html.count('role="tabpanel"'), 4)
-        self.assertContains(response, "صاحب قرار التشغيل والاشتراك")
-        self.assertContains(response, "مستخدم مدعو من إدارة المدرسة")
-        self.assertContains(response, "قيادة مجموعة مدارس")
-        self.assertContains(response, "مستخدم مدعو بصلاحيات محددة")
-        self.assertContains(response, "دخول المعلم")
-        self.assertContains(response, "دخول الموظف الإداري")
-        self.assertContains(response, "الطلبات والتكليفات والوثائق والاجتماعات والخطط والتقارير")
-        self.assertContains(response, "المعلم والموظف الإداري فيدخلان بعد إضافتهما")
-        self.assertIn('data-role-target="rolePanelManager"', html)
-        self.assertIn('data-role-target="rolePanelAdmin"', html)
-        self.assertIn('data-role-panel hidden', html)
+        for section_id in ("features", "pricing", "product", "faq"):
+            self.assertEqual(html.count(f'id="{section_id}"'), 1)
+        self.assertLess(html.index('id="features"'), html.index('id="pricing"'))
+        self.assertLess(html.index('id="pricing"'), html.index('id="product"'))
+        self.assertLess(html.index('id="product"'), html.index('id="faq"'))
+        for removed_section_id in (
+            "roles",
+            "start",
+            "compare",
+            "voice",
+            "leadership",
+            "group",
+            "security",
+            "verify",
+        ):
+            self.assertNotIn(f'id="{removed_section_id}"', html)
 
     def test_landing_metadata_names_the_product_outcome_and_core_audiences(self):
         response = self.client.get(reverse("reports:landing"))
@@ -100,9 +96,8 @@ class LandingPageTests(TestCase):
         self.assertGreaterEqual(html.count('class="feature-proof"'), 6)
         self.assertContains(response, "PDF بهوية المدرسة")
         self.assertContains(response, "كتابة التقرير بالصوت")
-        self.assertContains(response, "تحسين الصياغة بالذكاء الاصطناعي")
+        self.assertContains(response, "تحسين بالذكاء الاصطناعي")
         self.assertContains(response, "إدخال المحضر بالصوت")
-        self.assertContains(response, "تحسين المحضر بالذكاء الاصطناعي")
         self.assertContains(response, "بصمة تحقق SHA-256")
         self.assertContains(response, "سجل اطلاع وتوقيع")
 
@@ -123,10 +118,9 @@ class LandingPageTests(TestCase):
             html.index('id="mobileMenu"'),
             "The fixed mobile menu must stay outside the blurred sticky header.",
         )
-        self.assertIn('id="security"', html)
         self.assertIn(f'href="{reverse("reports:terms_conditions")}"', html)
         self.assertIn(f'href="{reverse("reports:refund_policy")}"', html)
-        self.assertIn("التسعير حسب عدد المعلمين", html)
+        self.assertIn("أسعار واضحة", html)
         self.assertNotIn("هوية مقدم الخدمة", html)
         self.assertNotIn('href="#business"', html)
         self.assertIn('<span>دخول</span>', html)
@@ -361,16 +355,11 @@ class LandingPageTests(TestCase):
         # No package cards beside it — the visitor must not be asked to choose twice.
         html = response.content.decode("utf-8")
         self.assertNotIn("price-card paid-card", html)
-        self.assertIn("pricing-grid--trial-only", html)
-        # The free trial stays: it is the entry point, not a package.
-        self.assertContains(response, "التجربة المجانية")
-        self.assertContains(response, "تشغيل كامل للتجربة")
-        # Managing a group of schools is a feature; a group *subscription* is
-        # not. The page may name «مجموعة مدارس» as an admin capability, so what
-        # is guarded here is the billing promise and the bundle wording below.
-        self.assertContains(response, "توسعة سعة المعلمين")
-        self.assertContains(response, "كل اشتراك ودفع يخص مدرسة واحدة")
-        self.assertContains(response, "حتى عند إدارة عدة مدارس من الحساب نفسه")
+        self.assertNotIn("pricing-grid--trial-only", html)
+        # The free trial stays as a concise entry point, not another price card.
+        self.assertContains(response, "تجربة مجانية 30 يومًا")
+        self.assertContains(response, "كل اشتراك يخص مدرسة واحدة")
+        self.assertContains(response, "إدارة عدة مدارس من الحساب نفسه")
         self.assertNotContains(response, "اشتراك مجمع")
         self.assertNotContains(response, "اشتراك موحد")
         self.assertNotContains(response, "باقة المجموعة")
@@ -388,8 +377,8 @@ class LandingPageTests(TestCase):
 
         self.assertEqual(response.context["trial_days"], 30)
         self.assertEqual(response.context["pricing_trial_plan"]["duration_days"], 30)
-        self.assertContains(response, "لمدة 30 يوم")
-        self.assertNotContains(response, "لمدة 14 يوم")
+        self.assertContains(response, "مجانية 30 يومًا")
+        self.assertNotContains(response, "مجانية 14 يومًا")
 
     def test_inactive_plans_are_not_advertised(self):
         SubscriptionPlan.objects.create(
